@@ -8,3 +8,6 @@ build/
 .eggs/
 venv/
 .env
+
+# Paper text cache
+.paper_cache/

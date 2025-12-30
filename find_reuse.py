@@ -34,11 +34,24 @@ from tqdm import tqdm
 CACHE_DIR = Path(__file__).parent / '.paper_cache'
 
 
+# Data descriptor journal DOI patterns - journals that primarily publish dataset descriptions
+DATA_DESCRIPTOR_JOURNALS = {
+    'Data (MDPI)': {
+        'doi_prefix': '10.3390/data',
+        'pattern': r'^10\.3390/data\d+',
+    },
+    'Scientific Data (Nature)': {
+        'doi_prefix': '10.1038/s41597',
+        'pattern': r'^10\.1038/s41597-',
+    },
+}
+
+
 # Archive reference patterns - dictionary of archive name to list of (pattern, pattern_type) tuples
 ARCHIVE_PATTERNS = {
     'DANDI Archive': [
         # DOI format: 10.48324/dandi.000130 or 10.48324/dandi.000130/0.210914.1539
-        (r'10\.48324/dandi\.(\d{6})', 'doi'),
+        (r'10\.48324/dandi\.(\d{6})(?:/[\d.]+)?', 'doi'),
         # URL formats
         (r'dandiarchive\.org/dandiset/(\d{6})', 'url'),
         (r'gui\.dandiarchive\.org/#/dandiset/(\d{6})', 'gui_url'),
@@ -86,9 +99,10 @@ ARCHIVE_PATTERNS = {
 class ArchiveFinder:
     """Find dataset references from multiple archives in papers."""
     
-    def __init__(self, verbose: bool = False, use_cache: bool = True):
+    def __init__(self, verbose: bool = False, use_cache: bool = True, follow_references: bool = False):
         self.verbose = verbose
         self.use_cache = use_cache
+        self.follow_references = follow_references
         self.session = requests.Session()
         self.session.headers.update({
             'User-Agent': 'ArchiveFinder/1.0 (https://github.com/dandi; mailto:info@dandiarchive.org)'
@@ -147,7 +161,7 @@ class ArchiveFinder:
         """
         Find all dataset IDs for a specific archive in the given text.
         
-        Returns list of matches with id, pattern type, and matched string.
+        Returns list of matches with id, pattern type, matched string, and full DOI if applicable.
         """
         matches = []
         seen_ids = set()
@@ -159,11 +173,17 @@ class ArchiveFinder:
                 matched_str = match.group(0)
                 
                 if dataset_id not in seen_ids:
-                    matches.append({
+                    match_info = {
                         'id': dataset_id,
                         'pattern_type': pattern_type,
                         'matched_string': matched_str
-                    })
+                    }
+                    
+                    # Include full DOI when pattern type is 'doi'
+                    if pattern_type == 'doi':
+                        match_info['doi'] = matched_str
+                    
+                    matches.append(match_info)
                     seen_ids.add(dataset_id)
         
         return matches
@@ -316,6 +336,118 @@ class ArchiveFinder:
         
         return None
     
+    def get_reference_dois(self, doi: str) -> list[dict]:
+        """
+        Extract DOIs of all references from a paper using CrossRef.
+        
+        Returns list of dicts with DOI, title (if available), and journal info.
+        """
+        self.log(f"Getting reference DOIs for: {doi}")
+        
+        url = f"https://api.crossref.org/works/{quote(doi, safe='')}"
+        
+        try:
+            resp = self.session.get(url, timeout=30)
+            resp.raise_for_status()
+            data = resp.json()
+            
+            message = data.get('message', {})
+            references = []
+            
+            for ref in message.get('reference', []):
+                ref_doi = ref.get('DOI')
+                if ref_doi:
+                    references.append({
+                        'doi': ref_doi,
+                        'unstructured': ref.get('unstructured', ''),
+                        'article_title': ref.get('article-title', ''),
+                        'journal_title': ref.get('journal-title', ''),
+                    })
+            
+            self.log(f"Found {len(references)} reference DOIs")
+            return references
+            
+        except Exception as e:
+            self.log(f"CrossRef reference extraction error: {e}")
+            return []
+    
+    def is_data_descriptor_doi(self, doi: str) -> Optional[str]:
+        """
+        Check if a DOI is from a data descriptor journal.
+        
+        Returns the journal name if it's a data descriptor, None otherwise.
+        """
+        for journal_name, info in DATA_DESCRIPTOR_JOURNALS.items():
+            if re.match(info['pattern'], doi):
+                return journal_name
+        return None
+    
+    def find_data_descriptor_citations(self, doi: str) -> list[dict]:
+        """
+        Find citations to data descriptor papers in a paper's references.
+        
+        Returns list of data descriptor DOIs with journal info.
+        """
+        references = self.get_reference_dois(doi)
+        data_descriptors = []
+        
+        for ref in references:
+            ref_doi = ref['doi']
+            journal = self.is_data_descriptor_doi(ref_doi)
+            if journal:
+                self.log(f"Found data descriptor citation: {ref_doi} ({journal})")
+                data_descriptors.append({
+                    'doi': ref_doi,
+                    'journal': journal,
+                    'title': ref.get('article_title') or ref.get('unstructured', '')[:100],
+                })
+        
+        return data_descriptors
+    
+    def follow_data_descriptor_chain(self, doi: str) -> list[dict]:
+        """
+        Follow citations to data descriptor papers and extract datasets from them.
+        
+        Returns list of indirect references with the data descriptor info and datasets found.
+        """
+        indirect_refs = []
+        
+        # Find data descriptor citations
+        data_descriptors = self.find_data_descriptor_citations(doi)
+        
+        for dd in data_descriptors:
+            dd_doi = dd['doi']
+            self.log(f"Following data descriptor: {dd_doi}")
+            
+            # Get the data descriptor's text and find datasets
+            dd_text, dd_source = self.get_paper_text(dd_doi)
+            
+            if dd_text:
+                # Find archive references in the data descriptor
+                dd_archives = self.find_all_archive_references(dd_text)
+                
+                if dd_archives:
+                    indirect_refs.append({
+                        'via_data_descriptor': {
+                            'doi': dd_doi,
+                            'journal': dd['journal'],
+                            'title': dd['title'],
+                            'source': dd_source,
+                        },
+                        'datasets': {
+                            archive: {
+                                'dataset_ids': list(set(m['id'] for m in matches)),
+                                'matches': matches
+                            }
+                            for archive, matches in dd_archives.items()
+                        }
+                    })
+            
+            # Rate limiting
+            time.sleep(0.5)
+        
+        return indirect_refs
+    
     def get_text_from_publisher_html(self, doi: str) -> Optional[str]:
         """
         Scrape full text from publisher's open access HTML page.
@@ -451,11 +583,13 @@ class ArchiveFinder:
         Find dataset references from all archives in a paper given its DOI.
         
         Returns dict with DOI, found dataset IDs by archive, source, and match details.
+        If follow_references is enabled, also follows citations to data descriptor papers.
         """
         result = {
             'doi': doi,
             'archives': {},
             'source': '',
+            'text_length': 0,
             'error': None
         }
         
@@ -467,8 +601,18 @@ class ArchiveFinder:
             return result
         
         result['source'] = source
+        result['text_length'] = len(text)
         
-        # Find references from all archives
+        # Check if we have sufficient content (not just CrossRef metadata)
+        # CrossRef-only results are typically < 1000 chars and just have title + references
+        # Full papers should have at least 3000 chars
+        MIN_FULL_TEXT_LENGTH = 3000
+        
+        if len(text) < MIN_FULL_TEXT_LENGTH and source == 'crossref':
+            result['error'] = 'Insufficient content (CrossRef metadata only, no full text available)'
+            return result
+        
+        # Find direct references from all archives
         archive_matches = self.find_all_archive_references(text)
         
         for archive_name, matches in archive_matches.items():
@@ -476,6 +620,12 @@ class ArchiveFinder:
                 'dataset_ids': list(set(m['id'] for m in matches)),
                 'matches': matches
             }
+        
+        # Follow citations to data descriptor papers if enabled
+        if self.follow_references:
+            indirect_refs = self.follow_data_descriptor_chain(doi)
+            if indirect_refs:
+                result['indirect_references'] = indirect_refs
         
         return result
     
@@ -592,9 +742,9 @@ class ArchiveFinder:
             # OpenNeuro
             '("openneuro"[All Fields] OR "10.18112/openneuro"[All Fields])',
             # Figshare (too generic, use DOI pattern only)
-            '("10.6084/m9.figshare"[All Fields])',
+            #'("10.6084/m9.figshare"[All Fields])',
             # PhysioNet
-            '("physionet"[All Fields] OR "10.13026"[All Fields])',
+            # '("physionet"[All Fields] OR "10.13026"[All Fields])',
         ]
         combined_query = ' OR '.join(query_parts)
         
@@ -644,11 +794,13 @@ class ArchiveFinder:
                 result['results'].append(paper_result)
                 papers_with_datasets += 1
             else:
-                # Store DOI of papers without datasets
+                # Store DOI of papers without datasets with content info
                 result['papers_without_datasets'].append({
                     'doi': doi,
                     'pmid': paper.get('pmid'),
                     'title': paper.get('title'),
+                    'source': paper_result.get('source', ''),
+                    'text_length': paper_result.get('text_length', 0),
                     'error': paper_result.get('error')
                 })
             
@@ -693,10 +845,18 @@ def main():
         action='store_true',
         help='Enable verbose output'
     )
+    parser.add_argument(
+        '--no-follow-references',
+        action='store_true',
+        help='Disable following citations to data descriptor papers (Scientific Data, Data) for indirect dataset references'
+    )
     
     args = parser.parse_args()
     
-    finder = ArchiveFinder(verbose=args.verbose)
+    finder = ArchiveFinder(
+        verbose=args.verbose,
+        follow_references=not args.no_follow_references
+    )
     
     # Discovery mode
     if args.discover:
