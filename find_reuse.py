@@ -3,17 +3,22 @@
 find_reuse.py - Find dataset references in scientific papers
 
 This module extracts text from papers (given a DOI) and identifies references
-to datasets on multiple archives (DANDI Archive, OpenNeuro).
+to datasets on multiple archives (DANDI Archive, OpenNeuro, Figshare, PhysioNet).
 
 Usage:
     python find_reuse.py <DOI>
     python find_reuse.py --file dois.txt
+    python find_reuse.py --discover -o results.json
     
 Output is always JSON.
 """
 
 import argparse
+from datetime import datetime
+import hashlib
 import json
+import os
+from pathlib import Path
 import re
 import sys
 import time
@@ -23,6 +28,10 @@ from urllib.parse import quote
 import requests
 from bs4 import BeautifulSoup
 from tqdm import tqdm
+
+
+# Cache directory for storing paper full text
+CACHE_DIR = Path(__file__).parent / '.paper_cache'
 
 
 # Archive reference patterns - dictionary of archive name to list of (pattern, pattern_type) tuples
@@ -77,12 +86,57 @@ ARCHIVE_PATTERNS = {
 class ArchiveFinder:
     """Find dataset references from multiple archives in papers."""
     
-    def __init__(self, verbose: bool = False):
+    def __init__(self, verbose: bool = False, use_cache: bool = True):
         self.verbose = verbose
+        self.use_cache = use_cache
         self.session = requests.Session()
         self.session.headers.update({
             'User-Agent': 'ArchiveFinder/1.0 (https://github.com/dandi; mailto:info@dandiarchive.org)'
         })
+        
+        # Ensure cache directory exists
+        if self.use_cache:
+            CACHE_DIR.mkdir(exist_ok=True)
+    
+    def _get_cache_path(self, doi: str) -> Path:
+        """Get cache file path for a DOI."""
+        # Use hash of DOI for filename to avoid filesystem issues
+        doi_hash = hashlib.md5(doi.encode()).hexdigest()
+        return CACHE_DIR / f"{doi_hash}.json"
+    
+    def _get_cached_text(self, doi: str) -> Optional[tuple[str, str]]:
+        """Get cached paper text if available."""
+        if not self.use_cache:
+            return None
+        
+        cache_path = self._get_cache_path(doi)
+        if cache_path.exists():
+            try:
+                with open(cache_path, 'r') as f:
+                    data = json.load(f)
+                    self.log(f"Cache hit for DOI: {doi}")
+                    return data.get('text'), data.get('source', '')
+            except Exception as e:
+                self.log(f"Cache read error: {e}")
+        return None
+    
+    def _cache_text(self, doi: str, text: str, source: str):
+        """Cache paper text."""
+        if not self.use_cache:
+            return
+        
+        cache_path = self._get_cache_path(doi)
+        try:
+            with open(cache_path, 'w') as f:
+                json.dump({
+                    'doi': doi,
+                    'text': text,
+                    'source': source,
+                    'cached_at': datetime.now().isoformat()
+                }, f)
+            self.log(f"Cached text for DOI: {doi}")
+        except Exception as e:
+            self.log(f"Cache write error: {e}")
     
     def log(self, message: str):
         """Print message if verbose mode is enabled."""
@@ -342,6 +396,11 @@ class ArchiveFinder:
         Returns tuple of (text, source_name) or (None, '') if not found.
         Combines text from multiple sources to maximize coverage.
         """
+        # Check cache first
+        cached = self._get_cached_text(doi)
+        if cached and cached[0]:
+            return cached
+        
         text_parts = []
         sources_used = []
         
@@ -381,6 +440,8 @@ class ArchiveFinder:
         if text_parts:
             combined_text = '\n\n'.join(text_parts)
             source_str = '+'.join(sources_used)
+            # Cache the result
+            self._cache_text(doi, combined_text, source_str)
             return combined_text, source_str
         
         return None, ''
@@ -417,11 +478,191 @@ class ArchiveFinder:
             }
         
         return result
+    
+    def search_pubmed(self, query: str, max_results: int = 1000) -> list[dict]:
+        """
+        Search PubMed for papers matching a query.
+        
+        Returns list of papers with PMID, DOI, and title.
+        """
+        self.log(f"Searching PubMed: {query}")
+        
+        # Search PubMed
+        esearch_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
+        params = {
+            'db': 'pubmed',
+            'term': query,
+            'retmax': max_results,
+            'retmode': 'json',
+            'tool': 'archive_finder',
+            'email': 'info@dandiarchive.org'
+        }
+        
+        try:
+            resp = self.session.get(esearch_url, params=params, timeout=60)
+            resp.raise_for_status()
+            data = resp.json()
+            
+            pmids = data.get('esearchresult', {}).get('idlist', [])
+            total_count = int(data.get('esearchresult', {}).get('count', 0))
+            self.log(f"Found {total_count} total results, got {len(pmids)} PMIDs")
+            
+            if not pmids:
+                return []
+            
+            # Fetch details for these PMIDs in batches
+            papers = []
+            batch_size = 200
+            
+            for i in range(0, len(pmids), batch_size):
+                batch = pmids[i:i + batch_size]
+                self.log(f"Fetching details for PMIDs {i+1}-{i+len(batch)}")
+                
+                efetch_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
+                params = {
+                    'db': 'pubmed',
+                    'id': ','.join(batch),
+                    'rettype': 'xml',
+                    'retmode': 'xml',
+                    'tool': 'archive_finder',
+                    'email': 'info@dandiarchive.org'
+                }
+                
+                fetch_resp = self.session.get(efetch_url, params=params, timeout=60)
+                if fetch_resp.status_code == 200:
+                    soup = BeautifulSoup(fetch_resp.content, 'lxml-xml')
+                    
+                    for article in soup.find_all('PubmedArticle'):
+                        paper = self._parse_pubmed_article(article)
+                        if paper and paper.get('doi'):
+                            papers.append(paper)
+                
+                time.sleep(0.5)  # Rate limiting
+            
+            return papers
+            
+        except Exception as e:
+            self.log(f"PubMed search error: {e}")
+            return []
+    
+    def _parse_pubmed_article(self, article) -> Optional[dict]:
+        """Parse a PubMed article XML element."""
+        try:
+            pmid_elem = article.find('PMID')
+            pmid = pmid_elem.get_text() if pmid_elem else None
+            
+            title_elem = article.find('ArticleTitle')
+            title = title_elem.get_text() if title_elem else None
+            
+            # Find DOI
+            doi = None
+            for article_id in article.find_all('ArticleId'):
+                if article_id.get('IdType') == 'doi':
+                    doi = article_id.get_text()
+                    break
+            
+            # Also check ELocationID
+            if not doi:
+                for eloc in article.find_all('ELocationID'):
+                    if eloc.get('EIdType') == 'doi':
+                        doi = eloc.get_text()
+                        break
+            
+            return {
+                'pmid': pmid,
+                'doi': doi,
+                'title': title
+            }
+        except Exception:
+            return None
+    
+    def discover_papers(self, max_results: int = 1000) -> dict:
+        """
+        Discover papers that reference datasets from any supported archive.
+        
+        Searches PubMed with a combined query for all archives, then analyzes
+        each paper to extract specific dataset references.
+        
+        Returns dict with query metadata and results by DOI.
+        """
+        # Build combined query for all archives
+        query_parts = [
+            # DANDI
+            '("dandi"[All Fields] OR "dandiarchive"[All Fields] OR "10.48324/dandi"[All Fields])',
+            # OpenNeuro
+            '("openneuro"[All Fields] OR "10.18112/openneuro"[All Fields])',
+            # Figshare (too generic, use DOI pattern only)
+            '("10.6084/m9.figshare"[All Fields])',
+            # PhysioNet
+            '("physionet"[All Fields] OR "10.13026"[All Fields])',
+        ]
+        combined_query = ' OR '.join(query_parts)
+        
+        self.log(f"Combined query: {combined_query}")
+        
+        # Search PubMed
+        papers = self.search_pubmed(combined_query, max_results)
+        
+        # Prepare results
+        result = {
+            'query_metadata': {
+                'query': combined_query,
+                'timestamp': datetime.now().isoformat(),
+                'total_pubmed_results': len(papers),
+                'max_results_requested': max_results,
+            },
+            'results': [],
+            'papers_without_datasets': []
+        }
+        
+        if not papers:
+            self.log("No papers found")
+            return result
+        
+        # Process each paper
+        self.log(f"Processing {len(papers)} papers...")
+        papers_with_datasets = 0
+        
+        paper_iterator = tqdm(papers, desc="Analyzing papers", file=sys.stderr)
+        
+        for paper in paper_iterator:
+            doi = paper.get('doi')
+            if not doi:
+                continue
+            
+            paper_iterator.set_postfix_str(doi[:40] + "..." if len(doi) > 40 else doi)
+            
+            # Find dataset references
+            paper_result = self.find_references(doi)
+            
+            # Add paper metadata
+            paper_result['pmid'] = paper.get('pmid')
+            paper_result['title'] = paper.get('title')
+            
+            # Track papers with and without dataset references
+            if paper_result.get('archives'):
+                result['results'].append(paper_result)
+                papers_with_datasets += 1
+            else:
+                # Store DOI of papers without datasets
+                result['papers_without_datasets'].append({
+                    'doi': doi,
+                    'pmid': paper.get('pmid'),
+                    'title': paper.get('title'),
+                    'error': paper_result.get('error')
+                })
+            
+            # Rate limiting
+            time.sleep(1)
+        
+        result['query_metadata']['papers_with_datasets'] = papers_with_datasets
+        
+        return result
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Find dataset references (DANDI Archive, OpenNeuro) in scientific papers'
+        description='Find dataset references (DANDI Archive, OpenNeuro, Figshare, PhysioNet) in scientific papers'
     )
     parser.add_argument(
         'doi',
@@ -433,6 +674,21 @@ def main():
         help='File containing DOIs (one per line)'
     )
     parser.add_argument(
+        '--discover',
+        action='store_true',
+        help='Discover papers from PubMed that reference datasets'
+    )
+    parser.add_argument(
+        '--max-results', '-n',
+        type=int,
+        default=100,
+        help='Maximum number of PubMed results to process (default: 100)'
+    )
+    parser.add_argument(
+        '--output', '-o',
+        help='Output file path (default: stdout)'
+    )
+    parser.add_argument(
         '--verbose', '-v',
         action='store_true',
         help='Enable verbose output'
@@ -440,10 +696,24 @@ def main():
     
     args = parser.parse_args()
     
-    if not args.doi and not args.file:
-        parser.error('Please provide a DOI or a file with DOIs')
-    
     finder = ArchiveFinder(verbose=args.verbose)
+    
+    # Discovery mode
+    if args.discover:
+        result = finder.discover_papers(max_results=args.max_results)
+        output_json = json.dumps(result, indent=2)
+        
+        if args.output:
+            with open(args.output, 'w') as f:
+                f.write(output_json)
+            print(f"Results saved to {args.output}", file=sys.stderr)
+        else:
+            print(output_json)
+        return
+    
+    # DOI mode
+    if not args.doi and not args.file:
+        parser.error('Please provide a DOI, a file with DOIs, or use --discover')
     
     # Collect DOIs to process
     dois = []
@@ -472,9 +742,16 @@ def main():
         if len(dois) > 1:
             time.sleep(1)
     
-    # Output results as JSON (always)
+    # Output results as JSON
     output = results if len(results) > 1 else results[0]
-    print(json.dumps(output, indent=2))
+    output_json = json.dumps(output, indent=2)
+    
+    if args.output:
+        with open(args.output, 'w') as f:
+            f.write(output_json)
+        print(f"Results saved to {args.output}", file=sys.stderr)
+    else:
+        print(output_json)
 
 
 if __name__ == '__main__':
