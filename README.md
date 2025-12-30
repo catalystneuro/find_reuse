@@ -30,6 +30,36 @@ python find_reuse.py --file dois.txt
 
 When processing multiple DOIs, a progress bar shows the current status.
 
+### Discovery Mode
+
+Automatically discover papers that reference datasets by searching PubMed:
+
+```bash
+# Discover papers (default: 100 results)
+python find_reuse.py --discover
+
+# Discover more papers
+python find_reuse.py --discover --max-results 500
+
+# Save results to file
+python find_reuse.py --discover -o results.json
+```
+
+Discovery mode:
+1. Searches PubMed for papers mentioning DANDI, OpenNeuro, Figshare, or PhysioNet
+2. Retrieves full text for each paper
+3. Extracts specific dataset IDs
+4. Follows citations to data descriptor papers (Scientific Data, Data MDPI) to find indirect references
+5. Returns structured JSON with all findings
+
+### Following Data Descriptor Citations
+
+By default, the tool follows citations to data descriptor papers (Scientific Data, Data MDPI journals) to find datasets that are referenced indirectly. This can be disabled:
+
+```bash
+python find_reuse.py --no-follow-references 10.1038/s41593-024-01783-4
+```
+
 ### Verbose mode
 
 ```bash
