@@ -100,9 +100,9 @@ class ArchiveFinder:
     
     def _get_cache_path(self, doi: str) -> Path:
         """Get cache file path for a DOI."""
-        # Use hash of DOI for filename to avoid filesystem issues
-        doi_hash = hashlib.md5(doi.encode()).hexdigest()
-        return CACHE_DIR / f"{doi_hash}.json"
+        # Sanitize DOI for use as filename (replace / and other unsafe chars)
+        safe_doi = doi.replace('/', '_').replace(':', '_').replace('\\', '_')
+        return CACHE_DIR / f"{safe_doi}.json"
     
     def _get_cached_text(self, doi: str) -> Optional[tuple[str, str]]:
         """Get cached paper text if available."""
