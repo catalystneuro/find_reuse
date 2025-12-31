@@ -3,7 +3,7 @@
 find_reuse.py - Find dataset references in scientific papers
 
 This module extracts text from papers (given a DOI) and identifies references
-to datasets on multiple archives (DANDI Archive, OpenNeuro, Figshare, PhysioNet).
+to datasets on multiple archives (DANDI Archive, OpenNeuro, Figshare, PhysioNet, EBRAINS).
 
 Usage:
     python find_reuse.py <DOI>
@@ -15,9 +15,7 @@ Output is always JSON.
 
 import argparse
 from datetime import datetime
-import hashlib
 import json
-import os
 from pathlib import Path
 import re
 import sys
@@ -43,6 +41,37 @@ DATA_DESCRIPTOR_JOURNALS = {
     'Scientific Data (Nature)': {
         'doi_prefix': '10.1038/s41597',
         'pattern': r'^10\.1038/s41597-',
+    },
+}
+
+
+# Search terms for discovering papers - used to build PubMed and Europe PMC queries
+# Each archive has terms that will be combined with OR
+ARCHIVE_SEARCH_TERMS = {
+    'DANDI Archive': {
+        'names': ['dandi', 'dandiarchive'],
+        'urls': ['dandiarchive.org'],
+        'doi_prefixes': ['10.48324/dandi'],
+    },
+    'OpenNeuro': {
+        'names': ['openneuro'],
+        'urls': ['openneuro.org'],
+        'doi_prefixes': ['10.18112/openneuro'],
+    },
+    'EBRAINS': {
+        'names': ['ebrains'],
+        'urls': ['kg.ebrains.eu', 'ebrains.eu/datasets', 'data.ebrains.eu'],
+        'doi_prefixes': ['10.25493'],
+    },
+    'Figshare': {
+        'names': ['figshare'],
+        'urls': ['figshare.com'],
+        'doi_prefixes': ['10.6084/m9.figshare'],
+    },
+    'PhysioNet': {
+        'names': ['physionet'],
+        'urls': ['physionet.org'],
+        'doi_prefixes': ['10.13026'],
     },
 }
 
@@ -92,6 +121,19 @@ ARCHIVE_PATTERNS = {
         (r'physionet\.org/physiobank/database/([a-z][a-z0-9-]{2,})', 'physiobank_url'),
         # Direct text mentions - require database name pattern (lowercase, longer names)
         (r'PhysioNet\s+database\s+([a-z][a-z0-9-]{3,})', 'text_database'),
+    ],
+    'EBRAINS': [
+        # DOI format: 10.25493/xxxx-xxxx (EBRAINS Knowledge Graph DOIs)
+        (r'10\.25493/([A-Za-z0-9-]+)', 'doi'),
+        # Knowledge Graph URL formats
+        (r'kg\.ebrains\.eu/search/instances/([a-f0-9-]{36})', 'kg_url'),
+        (r'search\.kg\.ebrains\.eu/instances/([a-f0-9-]{36})', 'kg_search_url'),
+        # Dataset viewer URLs
+        (r'data\.ebrains\.eu/datasets/([a-f0-9-]{36})', 'data_url'),
+        # Direct text mentions with UUID
+        (r'EBRAINS[:\s]+([a-f0-9-]{36})', 'text_uuid'),
+        # EBRAINS dataset mentions with identifier
+        (r'EBRAINS\s+(?:dataset|data\s*set)[:\s]+([A-Za-z0-9-]+)', 'text_dataset'),
     ],
 }
 
@@ -631,6 +673,62 @@ class ArchiveFinder:
         
         return result, from_cache
     
+    def search_europe_pmc(self, query: str, max_results: int = 1000) -> list[dict]:
+        """
+        Search Europe PMC for papers matching a query (searches full text).
+        
+        Returns list of papers with PMID, DOI, and title.
+        """
+        self.log(f"Searching Europe PMC: {query}")
+        
+        search_url = "https://www.ebi.ac.uk/europepmc/webservices/rest/search"
+        papers = []
+        cursor_mark = '*'
+        page_size = min(100, max_results)  # Europe PMC max is 1000 per page
+        
+        try:
+            while len(papers) < max_results:
+                params = {
+                    'query': f'{query} OPEN_ACCESS:Y',
+                    'format': 'json',
+                    'pageSize': page_size,
+                    'cursorMark': cursor_mark,
+                    'resultType': 'core'
+                }
+                
+                resp = self.session.get(search_url, params=params, timeout=60)
+                resp.raise_for_status()
+                data = resp.json()
+                
+                results = data.get('resultList', {}).get('result', [])
+                if not results:
+                    break
+                
+                for r in results:
+                    doi = r.get('doi')
+                    if doi:
+                        papers.append({
+                            'pmid': r.get('pmid'),
+                            'doi': doi,
+                            'title': r.get('title'),
+                            'pmcid': r.get('pmcid'),
+                        })
+                
+                # Check if there are more results
+                next_cursor = data.get('nextCursorMark')
+                if not next_cursor or next_cursor == cursor_mark:
+                    break
+                cursor_mark = next_cursor
+                
+                time.sleep(0.5)  # Rate limiting
+            
+            self.log(f"Found {len(papers)} papers from Europe PMC")
+            return papers[:max_results]
+            
+        except Exception as e:
+            self.log(f"Europe PMC search error: {e}")
+            return []
+    
     def search_pubmed(self, query: str, max_results: int = 1000) -> list[dict]:
         """
         Search PubMed for papers matching a query.
@@ -728,32 +826,79 @@ class ArchiveFinder:
         except Exception:
             return None
     
-    def discover_papers(self, max_results: int = 100) -> dict:
+    def _build_pubmed_query(self, archive_name: str) -> str:
+        """Build a PubMed query from archive search terms."""
+        terms = ARCHIVE_SEARCH_TERMS.get(archive_name, {})
+        query_parts = []
+        
+        # Add name terms
+        for name in terms.get('names', []):
+            query_parts.append(f'"{name}"[All Fields]')
+        
+        # Add URL terms
+        for url in terms.get('urls', []):
+            query_parts.append(f'"{url}"[All Fields]')
+        
+        # Add DOI prefix terms
+        for doi_prefix in terms.get('doi_prefixes', []):
+            query_parts.append(f'"{doi_prefix}"[All Fields]')
+        
+        return '(' + ' OR '.join(query_parts) + ')'
+    
+    def _build_europe_pmc_query(self, archive_name: str) -> str:
+        """Build a Europe PMC query from archive search terms."""
+        terms = ARCHIVE_SEARCH_TERMS.get(archive_name, {})
+        query_parts = []
+        
+        # For Europe PMC full-text search, URLs and DOI prefixes are most effective
+        # Names can match too broadly in full text
+        for url in terms.get('urls', []):
+            query_parts.append(f'"{url}"')
+        
+        for doi_prefix in terms.get('doi_prefixes', []):
+            query_parts.append(f'"{doi_prefix}"')
+        
+        return ' OR '.join(query_parts)
+    
+    def discover_papers(self, max_results: int = 100, archives: list[str] | None = None) -> dict:
         """
         Discover papers that reference datasets from any supported archive.
         
-        Searches PubMed separately for each archive (max_results per archive),
+        Searches both PubMed (metadata) and Europe PMC (full text) for each archive,
         deduplicates papers, then analyzes each paper to extract specific dataset references.
+        
+        Args:
+            max_results: Maximum number of results per archive per search engine.
+            archives: List of archive names to search. If None, searches all archives.
         
         Returns dict with query metadata and results by DOI.
         """
-        # Define PubMed queries for each archive
-        archive_queries = {
-            'DANDI Archive': '("dandi"[All Fields] OR "dandiarchive"[All Fields] OR "10.48324/dandi"[All Fields])',
-            'OpenNeuro': '("openneuro"[All Fields] OR "10.18112/openneuro"[All Fields])',
-            #'Figshare': '("figshare"[All Fields] OR "10.6084/m9.figshare"[All Fields])',
-            #'PhysioNet': '("physionet"[All Fields] OR "10.13026"[All Fields])',
-        }
+        # Determine which archives to search
+        if archives is None:
+            archives_to_search = list(ARCHIVE_SEARCH_TERMS.keys())
+        else:
+            archives_to_search = [a for a in archives if a in ARCHIVE_SEARCH_TERMS]
+        
+        self.log(f"Searching archives: {', '.join(archives_to_search)}")
+        
+        # Build queries programmatically from ARCHIVE_SEARCH_TERMS
+        pubmed_queries = {}
+        europe_pmc_queries = {}
+        
+        for archive_name in archives_to_search:
+            pubmed_queries[archive_name] = self._build_pubmed_query(archive_name)
+            europe_pmc_queries[archive_name] = self._build_europe_pmc_query(archive_name)
         
         # Collect papers from each archive search, tracking which search found them
         all_papers = {}  # DOI -> paper info with search_sources
-        search_stats = {}
+        search_stats = {'pubmed': {}, 'europe_pmc': {}}
         
-        for archive_name, query in archive_queries.items():
+        # Search PubMed (metadata search)
+        for archive_name, query in pubmed_queries.items():
             self.log(f"Searching PubMed for {archive_name}: {query}")
             papers = self.search_pubmed(query, max_results)
-            search_stats[archive_name] = len(papers)
-            self.log(f"Found {len(papers)} papers for {archive_name}")
+            search_stats['pubmed'][archive_name] = len(papers)
+            self.log(f"Found {len(papers)} papers from PubMed for {archive_name}")
             
             for paper in papers:
                 doi = paper.get('doi')
@@ -761,14 +906,31 @@ class ArchiveFinder:
                     continue
                 
                 if doi in all_papers:
-                    # Paper already found by another archive search - add this source
-                    all_papers[doi]['search_sources'].append(archive_name)
+                    all_papers[doi]['search_sources'].append(f"pubmed:{archive_name}")
                 else:
-                    # New paper
-                    paper['search_sources'] = [archive_name]
+                    paper['search_sources'] = [f"pubmed:{archive_name}"]
                     all_papers[doi] = paper
             
-            # Rate limiting between archive searches
+            time.sleep(1)
+        
+        # Search Europe PMC (full text search)
+        for archive_name, query in europe_pmc_queries.items():
+            self.log(f"Searching Europe PMC for {archive_name}: {query}")
+            papers = self.search_europe_pmc(query, max_results)
+            search_stats['europe_pmc'][archive_name] = len(papers)
+            self.log(f"Found {len(papers)} papers from Europe PMC for {archive_name}")
+            
+            for paper in papers:
+                doi = paper.get('doi')
+                if not doi:
+                    continue
+                
+                if doi in all_papers:
+                    all_papers[doi]['search_sources'].append(f"europe_pmc:{archive_name}")
+                else:
+                    paper['search_sources'] = [f"europe_pmc:{archive_name}"]
+                    all_papers[doi] = paper
+            
             time.sleep(1)
         
         # Convert to list
@@ -777,7 +939,8 @@ class ArchiveFinder:
         # Prepare results
         result = {
             'query_metadata': {
-                'archive_queries': archive_queries,
+                'pubmed_queries': pubmed_queries,
+                'europe_pmc_queries': europe_pmc_queries,
                 'search_stats': search_stats,
                 'timestamp': datetime.now().isoformat(),
                 'total_unique_papers': len(papers_list),
@@ -840,7 +1003,7 @@ class ArchiveFinder:
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Find dataset references (DANDI Archive, OpenNeuro, Figshare, PhysioNet) in scientific papers'
+        description='Find dataset references (DANDI Archive, OpenNeuro, Figshare, PhysioNet, EBRAINS) in scientific papers'
     )
     parser.add_argument(
         'doi',
@@ -876,6 +1039,20 @@ def main():
         action='store_true',
         help='Disable following citations to data descriptor papers (Scientific Data, Data) for indirect dataset references'
     )
+    parser.add_argument(
+        '--archives',
+        nargs='+',
+        choices=list(ARCHIVE_SEARCH_TERMS.keys()),
+        default=None,
+        help='Archives to search (default: all). Choices: ' + ', '.join(ARCHIVE_SEARCH_TERMS.keys())
+    )
+    parser.add_argument(
+        '--exclude-archives',
+        nargs='+',
+        choices=list(ARCHIVE_SEARCH_TERMS.keys()),
+        default=[],
+        help='Archives to exclude from search. Useful to disable Figshare and PhysioNet which can have many false positives.'
+    )
     
     args = parser.parse_args()
     
@@ -886,7 +1063,17 @@ def main():
     
     # Discovery mode
     if args.discover:
-        result = finder.discover_papers(max_results=args.max_results)
+        # Determine which archives to search
+        if args.archives:
+            archives = args.archives
+        else:
+            archives = list(ARCHIVE_SEARCH_TERMS.keys())
+        
+        # Apply exclusions
+        if args.exclude_archives:
+            archives = [a for a in archives if a not in args.exclude_archives]
+        
+        result = finder.discover_papers(max_results=args.max_results, archives=archives)
         output_json = json.dumps(result, indent=2)
         
         if args.output:
