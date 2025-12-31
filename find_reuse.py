@@ -247,7 +247,7 @@ class ArchiveFinder:
         """
         Get full text from Europe PMC.
         
-        Only returns text if full text is available (PMCID exists).
+        Supports both PMC articles (via PMCID) and preprints (via PPR ID).
         Abstract-only results are skipped since DANDI refs are rarely in abstracts.
         """
         self.log(f"Trying Europe PMC for DOI: {doi}")
@@ -269,7 +269,7 @@ class ArchiveFinder:
                 result = data['resultList']['result'][0]
                 pmcid = result.get('pmcid')
                 
-                # Only proceed if we have full text access via PMCID
+                # Try PMCID first (for published articles)
                 if pmcid:
                     self.log(f"Found PMCID: {pmcid}, fetching full text")
                     fulltext_url = f"https://www.ebi.ac.uk/europepmc/webservices/rest/{pmcid}/fullTextXML"
@@ -282,8 +282,24 @@ class ArchiveFinder:
                             return soup.get_text(separator=' ', strip=True)
                     except Exception as e:
                         self.log(f"Error fetching full text: {e}")
-                else:
-                    self.log("No PMCID available, skipping abstract-only result")
+                
+                # Try PPR ID for preprints (bioRxiv, medRxiv, etc.)
+                full_text_ids = result.get('fullTextIdList', {}).get('fullTextId', [])
+                for ft_id in full_text_ids:
+                    if ft_id.startswith('PPR'):
+                        self.log(f"Found preprint ID: {ft_id}, fetching full text")
+                        fulltext_url = f"https://www.ebi.ac.uk/europepmc/webservices/rest/{ft_id}/fullTextXML"
+                        
+                        try:
+                            ft_resp = self.session.get(fulltext_url, timeout=30)
+                            if ft_resp.status_code == 200:
+                                soup = BeautifulSoup(ft_resp.content, 'lxml-xml')
+                                return soup.get_text(separator=' ', strip=True)
+                        except Exception as e:
+                            self.log(f"Error fetching preprint full text: {e}")
+                
+                if not pmcid and not full_text_ids:
+                    self.log("No PMCID or preprint ID available, skipping abstract-only result")
                     
         except Exception as e:
             self.log(f"Europe PMC error: {e}")
@@ -846,7 +862,11 @@ class ArchiveFinder:
         return '(' + ' OR '.join(query_parts) + ')'
     
     def _build_europe_pmc_query(self, archive_name: str) -> str:
-        """Build a Europe PMC query from archive search terms."""
+        """Build a Europe PMC query from archive search terms.
+        
+        Returns query wrapped in parentheses for proper AND/OR precedence
+        when combined with OPEN_ACCESS:Y filter.
+        """
         terms = ARCHIVE_SEARCH_TERMS.get(archive_name, {})
         query_parts = []
         
@@ -858,7 +878,8 @@ class ArchiveFinder:
         for doi_prefix in terms.get('doi_prefixes', []):
             query_parts.append(f'"{doi_prefix}"')
         
-        return ' OR '.join(query_parts)
+        # Wrap in parentheses so OPEN_ACCESS:Y is properly AND'd, not OR'd
+        return '(' + ' OR '.join(query_parts) + ')'
     
     def discover_papers(self, max_results: int = 100, archives: list[str] | None = None) -> dict:
         """
