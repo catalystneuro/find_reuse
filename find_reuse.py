@@ -53,7 +53,11 @@ ARCHIVE_SEARCH_TERMS = {
         'names': ['dandi', 'dandiarchive'],  # Keep 'dandi' for PubMed search recall
         'urls': ['dandiarchive.org'],
         'doi_prefixes': ['10.48324/dandi'],
-        'exclude': ['dandi bioscience', 'dandi bio', 'roberto dandi'],  # Biotech company, not the archive
+        'exclude': [
+            'dandi bioscience', 'dandi bio', 'roberto dandi',  # Biotech company, not the archive
+            'dandi march',  # Historical: India's salt march to Dandi
+            'dandi district', 'lake dandi', 'meta robi',  # Geographic: Ethiopian locations
+        ],
     },
     'OpenNeuro': {
         'names': ['openneuro'],
