@@ -420,7 +420,7 @@ class ArchiveFinder:
             self.log(f"Following data descriptor: {dd_doi}")
             
             # Get the data descriptor's text and find datasets
-            dd_text, dd_source = self.get_paper_text(dd_doi)
+            dd_text, dd_source, dd_from_cache = self.get_paper_text(dd_doi)
             
             if dd_text:
                 # Find archive references in the data descriptor
@@ -443,8 +443,9 @@ class ArchiveFinder:
                         }
                     })
             
-            # Rate limiting
-            time.sleep(0.5)
+            # Rate limiting - only if we made API calls (not from cache)
+            if not dd_from_cache:
+                time.sleep(0.5)
         
         return indirect_refs
     
@@ -521,17 +522,17 @@ class ArchiveFinder:
         
         return None
     
-    def get_paper_text(self, doi: str) -> tuple[Optional[str], str]:
+    def get_paper_text(self, doi: str) -> tuple[Optional[str], str, bool]:
         """
         Get paper text from multiple sources.
         
-        Returns tuple of (text, source_name) or (None, '') if not found.
+        Returns tuple of (text, source_name, from_cache) or (None, '', False) if not found.
         Combines text from multiple sources to maximize coverage.
         """
         # Check cache first
         cached = self._get_cached_text(doi)
         if cached and cached[0]:
-            return cached
+            return cached[0], cached[1], True
         
         text_parts = []
         sources_used = []
@@ -574,15 +575,16 @@ class ArchiveFinder:
             source_str = '+'.join(sources_used)
             # Cache the result
             self._cache_text(doi, combined_text, source_str)
-            return combined_text, source_str
+            return combined_text, source_str, False
         
-        return None, ''
+        return None, '', False
     
-    def find_references(self, doi: str) -> dict:
+    def find_references(self, doi: str) -> tuple[dict, bool]:
         """
         Find dataset references from all archives in a paper given its DOI.
         
-        Returns dict with DOI, found dataset IDs by archive, source, and match details.
+        Returns tuple of (result_dict, from_cache).
+        Result dict contains DOI, found dataset IDs by archive, source, and match details.
         If follow_references is enabled, also follows citations to data descriptor papers.
         """
         result = {
@@ -594,11 +596,11 @@ class ArchiveFinder:
         }
         
         # Get paper text
-        text, source = self.get_paper_text(doi)
+        text, source, from_cache = self.get_paper_text(doi)
         
         if not text:
             result['error'] = 'Could not retrieve paper text'
-            return result
+            return result, from_cache
         
         result['source'] = source
         result['text_length'] = len(text)
@@ -610,7 +612,7 @@ class ArchiveFinder:
         
         if len(text) < MIN_FULL_TEXT_LENGTH and source == 'crossref':
             result['error'] = 'Insufficient content (CrossRef metadata only, no full text available)'
-            return result
+            return result, from_cache
         
         # Find direct references from all archives
         archive_matches = self.find_all_archive_references(text)
@@ -627,7 +629,7 @@ class ArchiveFinder:
             if indirect_refs:
                 result['indirect_references'] = indirect_refs
         
-        return result
+        return result, from_cache
     
     def search_pubmed(self, query: str, max_results: int = 1000) -> list[dict]:
         """
@@ -726,54 +728,74 @@ class ArchiveFinder:
         except Exception:
             return None
     
-    def discover_papers(self, max_results: int = 1000) -> dict:
+    def discover_papers(self, max_results: int = 100) -> dict:
         """
         Discover papers that reference datasets from any supported archive.
         
-        Searches PubMed with a combined query for all archives, then analyzes
-        each paper to extract specific dataset references.
+        Searches PubMed separately for each archive (max_results per archive),
+        deduplicates papers, then analyzes each paper to extract specific dataset references.
         
         Returns dict with query metadata and results by DOI.
         """
-        # Build combined query for all archives
-        query_parts = [
-            # DANDI
-            '("dandi"[All Fields] OR "dandiarchive"[All Fields] OR "10.48324/dandi"[All Fields])',
-            # OpenNeuro
-            '("openneuro"[All Fields] OR "10.18112/openneuro"[All Fields])',
-            # Figshare (too generic, use DOI pattern only)
-            #'("10.6084/m9.figshare"[All Fields])',
-            # PhysioNet
-            # '("physionet"[All Fields] OR "10.13026"[All Fields])',
-        ]
-        combined_query = ' OR '.join(query_parts)
+        # Define PubMed queries for each archive
+        archive_queries = {
+            'DANDI Archive': '("dandi"[All Fields] OR "dandiarchive"[All Fields] OR "10.48324/dandi"[All Fields])',
+            'OpenNeuro': '("openneuro"[All Fields] OR "10.18112/openneuro"[All Fields])',
+            #'Figshare': '("figshare"[All Fields] OR "10.6084/m9.figshare"[All Fields])',
+            #'PhysioNet': '("physionet"[All Fields] OR "10.13026"[All Fields])',
+        }
         
-        self.log(f"Combined query: {combined_query}")
+        # Collect papers from each archive search, tracking which search found them
+        all_papers = {}  # DOI -> paper info with search_sources
+        search_stats = {}
         
-        # Search PubMed
-        papers = self.search_pubmed(combined_query, max_results)
+        for archive_name, query in archive_queries.items():
+            self.log(f"Searching PubMed for {archive_name}: {query}")
+            papers = self.search_pubmed(query, max_results)
+            search_stats[archive_name] = len(papers)
+            self.log(f"Found {len(papers)} papers for {archive_name}")
+            
+            for paper in papers:
+                doi = paper.get('doi')
+                if not doi:
+                    continue
+                
+                if doi in all_papers:
+                    # Paper already found by another archive search - add this source
+                    all_papers[doi]['search_sources'].append(archive_name)
+                else:
+                    # New paper
+                    paper['search_sources'] = [archive_name]
+                    all_papers[doi] = paper
+            
+            # Rate limiting between archive searches
+            time.sleep(1)
+        
+        # Convert to list
+        papers_list = list(all_papers.values())
         
         # Prepare results
         result = {
             'query_metadata': {
-                'query': combined_query,
+                'archive_queries': archive_queries,
+                'search_stats': search_stats,
                 'timestamp': datetime.now().isoformat(),
-                'total_pubmed_results': len(papers),
-                'max_results_requested': max_results,
+                'total_unique_papers': len(papers_list),
+                'max_results_per_archive': max_results,
             },
             'results': [],
             'papers_without_datasets': []
         }
         
-        if not papers:
+        if not papers_list:
             self.log("No papers found")
             return result
         
         # Process each paper
-        self.log(f"Processing {len(papers)} papers...")
+        self.log(f"Processing {len(papers_list)} unique papers...")
         papers_with_datasets = 0
         
-        paper_iterator = tqdm(papers, desc="Analyzing papers", file=sys.stderr)
+        paper_iterator = tqdm(papers_list, desc="Analyzing papers", file=sys.stderr)
         
         for paper in paper_iterator:
             doi = paper.get('doi')
@@ -782,12 +804,13 @@ class ArchiveFinder:
             
             paper_iterator.set_postfix_str(doi[:40] + "..." if len(doi) > 40 else doi)
             
-            # Find dataset references
-            paper_result = self.find_references(doi)
+            # Find dataset references (searches ALL archive patterns)
+            paper_result, from_cache = self.find_references(doi)
             
             # Add paper metadata
             paper_result['pmid'] = paper.get('pmid')
             paper_result['title'] = paper.get('title')
+            paper_result['search_sources'] = paper.get('search_sources', [])
             
             # Track papers with and without dataset references
             if paper_result.get('archives'):
@@ -795,17 +818,20 @@ class ArchiveFinder:
                 papers_with_datasets += 1
             else:
                 # Store DOI of papers without datasets with content info
+                # Include which archive search returned this paper
                 result['papers_without_datasets'].append({
                     'doi': doi,
                     'pmid': paper.get('pmid'),
                     'title': paper.get('title'),
+                    'search_sources': paper.get('search_sources', []),
                     'source': paper_result.get('source', ''),
                     'text_length': paper_result.get('text_length', 0),
                     'error': paper_result.get('error')
                 })
             
-            # Rate limiting
-            time.sleep(1)
+            # Rate limiting - only if we made API calls (not from cache)
+            if not from_cache:
+                time.sleep(1)
         
         result['query_metadata']['papers_with_datasets'] = papers_with_datasets
         
@@ -895,11 +921,11 @@ def main():
         if len(dois) > 1:
             doi_iterator.set_postfix_str(doi[:40] + "..." if len(doi) > 40 else doi)
         
-        result = finder.find_references(doi)
+        result, from_cache = finder.find_references(doi)
         results.append(result)
         
-        # Rate limiting between papers
-        if len(dois) > 1:
+        # Rate limiting between papers - only if we made API calls (not from cache)
+        if len(dois) > 1 and not from_cache:
             time.sleep(1)
     
     # Output results as JSON
