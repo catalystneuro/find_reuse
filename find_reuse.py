@@ -47,11 +47,13 @@ DATA_DESCRIPTOR_JOURNALS = {
 
 # Search terms for discovering papers - used to build PubMed and Europe PMC queries
 # Each archive has terms that will be combined with OR
+# 'exclude' terms are used with NOT to filter false positives
 ARCHIVE_SEARCH_TERMS = {
     'DANDI Archive': {
-        'names': ['dandi', 'dandiarchive'],
+        'names': ['dandi', 'dandiarchive'],  # Keep 'dandi' for PubMed search recall
         'urls': ['dandiarchive.org'],
         'doi_prefixes': ['10.48324/dandi'],
+        'exclude': ['dandi bioscience', 'dandi bio', 'roberto dandi'],  # Biotech company, not the archive
     },
     'OpenNeuro': {
         'names': ['openneuro'],
@@ -91,6 +93,8 @@ ARCHIVE_PATTERNS = {
         (r'dandiset/(\d{6})', 'dandiset_path'),
         # DANDI archive identifier pattern
         (r'DANDI(?:\s+archive)?(?:\s+identifier)?[:\s]+(\d{6})', 'identifier'),
+        # "Dandiarchive.org, ID:000221" format (seen in Cell papers)
+        (r'(?:dandiarchive\.org|DANDI)[,\s]+ID[:\s]*(\d{6})', 'id_format'),
     ],
     'OpenNeuro': [
         # DOI format: 10.18112/openneuro.ds000001
@@ -125,9 +129,11 @@ ARCHIVE_PATTERNS = {
     'EBRAINS': [
         # DOI format: 10.25493/xxxx-xxxx (EBRAINS Knowledge Graph DOIs)
         (r'10\.25493/([A-Za-z0-9-]+)', 'doi'),
-        # Knowledge Graph URL formats
-        (r'kg\.ebrains\.eu/search/instances/([a-f0-9-]{36})', 'kg_url'),
-        (r'search\.kg\.ebrains\.eu/instances/([a-f0-9-]{36})', 'kg_search_url'),
+        # Knowledge Graph URL formats - with optional entity type (Project, Dataset, etc.)
+        (r'kg\.ebrains\.eu/search/instances/(?:[A-Za-z]+/)?([a-f0-9-]{36})', 'kg_url'),
+        (r'search\.kg\.ebrains\.eu/instances/(?:[A-Za-z]+/)?([a-f0-9-]{36})', 'kg_search_url'),
+        # Knowledge Graph "live" URLs with schema path (e.g., /search/live/minds/core/dataset/v1.0.0/)
+        (r'kg\.ebrains\.eu/search/live/[a-z/._0-9]+/([a-f0-9-]{36})', 'kg_live_url'),
         # Dataset viewer URLs
         (r'data\.ebrains\.eu/datasets/([a-f0-9-]{36})', 'data_url'),
         # Direct text mentions with UUID
@@ -859,7 +865,15 @@ class ArchiveFinder:
         for doi_prefix in terms.get('doi_prefixes', []):
             query_parts.append(f'"{doi_prefix}"[All Fields]')
         
-        return '(' + ' OR '.join(query_parts) + ')'
+        query = '(' + ' OR '.join(query_parts) + ')'
+        
+        # Add exclusion terms with NOT
+        exclude_terms = terms.get('exclude', [])
+        if exclude_terms:
+            exclude_parts = [f'"{term}"[All Fields]' for term in exclude_terms]
+            query = f'{query} NOT ({" OR ".join(exclude_parts)})'
+        
+        return query
     
     def _build_europe_pmc_query(self, archive_name: str) -> str:
         """Build a Europe PMC query from archive search terms.
@@ -878,8 +892,15 @@ class ArchiveFinder:
         for doi_prefix in terms.get('doi_prefixes', []):
             query_parts.append(f'"{doi_prefix}"')
         
-        # Wrap in parentheses so OPEN_ACCESS:Y is properly AND'd, not OR'd
-        return '(' + ' OR '.join(query_parts) + ')'
+        query = '(' + ' OR '.join(query_parts) + ')'
+        
+        # Add exclusion terms with NOT
+        exclude_terms = terms.get('exclude', [])
+        if exclude_terms:
+            exclude_parts = [f'"{term}"' for term in exclude_terms]
+            query = f'{query} NOT ({" OR ".join(exclude_parts)})'
+        
+        return query
     
     def discover_papers(self, max_results: int = 100, archives: list[str] | None = None) -> dict:
         """
