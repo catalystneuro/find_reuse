@@ -45,13 +45,14 @@ DATA_DESCRIPTOR_JOURNALS = {
 }
 
 
-# Search terms for discovering papers - used to build PubMed and Europe PMC queries
+# Search terms for discovering papers - used to build Europe PMC queries
 # Each archive has terms that will be combined with OR
 # 'exclude' terms are used with NOT to filter false positives
 ARCHIVE_SEARCH_TERMS = {
     'DANDI Archive': {
-        'names': ['dandi', 'dandiarchive'],  # Keep 'dandi' for PubMed search recall
+        'names': ['dandi', 'dandiarchive'],
         'urls': ['dandiarchive.org'],
+        'search_terms': ['dandiset', 'DANDI Archive'],
         'doi_prefixes': ['10.48324/dandi'],
         'exclude': [
             'dandi bioscience', 'dandi bio', 'roberto dandi',  # Biotech company, not the archive
@@ -95,8 +96,8 @@ ARCHIVE_PATTERNS = {
         (r'DANDI\s+(\d{6})', 'text_space'),
         (r'dandiset\s+(\d{6})', 'dandiset_text'),
         (r'dandiset/(\d{6})', 'dandiset_path'),
-        # DANDI archive identifier pattern
-        (r'DANDI(?:\s+archive)?(?:\s+identifier)?[:\s]+(\d{6})', 'identifier'),
+        # DANDI archive identifier pattern (with colon, space, or comma separator)
+        (r'DANDI(?:\s+archive)?(?:\s+identifier)?[,:\s]+(\d{6})', 'identifier'),
         # "Dandiarchive.org, ID:000221" format (seen in Cell papers)
         (r'(?:dandiarchive\.org|DANDI)[,\s]+ID[:\s]*(\d{6})', 'id_format'),
     ],
@@ -157,7 +158,7 @@ class ArchiveFinder:
         self.follow_references = follow_references
         self.session = requests.Session()
         self.session.headers.update({
-            'User-Agent': 'ArchiveFinder/1.0 (https://github.com/dandi; mailto:info@dandiarchive.org)'
+            'User-Agent': 'ArchiveFinder/1.0 (https://github.com/dandi; mailto:ben.dichter@catalystneuro.com)'
         })
         
         # Ensure cache directory exists
@@ -699,6 +700,62 @@ class ArchiveFinder:
         
         return result, from_cache
     
+    def search_openalex(self, search_terms: list[str], max_results: int = 200) -> list[dict]:
+        """
+        Search OpenAlex for papers matching search terms in full text.
+        
+        OpenAlex provides fulltext search for papers including preprints not in Europe PMC.
+        
+        Returns list of papers with DOI and title.
+        """
+        self.log(f"Searching OpenAlex for terms: {search_terms}")
+        
+        openalex_url = "https://api.openalex.org/works"
+        papers = []
+        seen_dois = set()
+        
+        try:
+            for term in search_terms:
+                params = {
+                    'filter': f'fulltext.search:{term}',
+                    'per_page': min(50, max_results),
+                    'mailto': 'ben.dichter@catalystneuro.com'
+                }
+                
+                resp = self.session.get(openalex_url, params=params, timeout=60)
+                if resp.status_code != 200:
+                    self.log(f"OpenAlex error for '{term}': {resp.status_code}")
+                    continue
+                
+                data = resp.json()
+                count = data.get('meta', {}).get('count', 0)
+                self.log(f"OpenAlex found {count} papers for '{term}'")
+                
+                for item in data.get('results', []):
+                    doi = item.get('doi', '')
+                    if doi:
+                        # Clean up DOI format (OpenAlex returns full URL)
+                        doi = doi.replace('https://doi.org/', '')
+                        if doi not in seen_dois:
+                            seen_dois.add(doi)
+                            papers.append({
+                                'doi': doi,
+                                'title': item.get('title', ''),
+                                'openalex_id': item.get('id', ''),
+                            })
+                
+                time.sleep(0.5)  # Rate limiting
+                
+                if len(papers) >= max_results:
+                    break
+            
+            self.log(f"Found {len(papers)} unique papers from OpenAlex")
+            return papers[:max_results]
+            
+        except Exception as e:
+            self.log(f"OpenAlex search error: {e}")
+            return []
+    
     def search_europe_pmc(self, query: str, max_results: int = 1000) -> list[dict]:
         """
         Search Europe PMC for papers matching a query (searches full text).
@@ -715,7 +772,7 @@ class ArchiveFinder:
         try:
             while len(papers) < max_results:
                 params = {
-                    'query': f'{query} OPEN_ACCESS:Y',
+                    'query': query,  # Removed OPEN_ACCESS:Y filter - it incorrectly excludes preprints
                     'format': 'json',
                     'pageSize': page_size,
                     'cursorMark': cursor_mark,
@@ -755,130 +812,6 @@ class ArchiveFinder:
             self.log(f"Europe PMC search error: {e}")
             return []
     
-    def search_pubmed(self, query: str, max_results: int = 1000) -> list[dict]:
-        """
-        Search PubMed for papers matching a query.
-        
-        Returns list of papers with PMID, DOI, and title.
-        """
-        self.log(f"Searching PubMed: {query}")
-        
-        # Search PubMed
-        esearch_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
-        params = {
-            'db': 'pubmed',
-            'term': query,
-            'retmax': max_results,
-            'retmode': 'json',
-            'tool': 'archive_finder',
-            'email': 'info@dandiarchive.org'
-        }
-        
-        try:
-            resp = self.session.get(esearch_url, params=params, timeout=60)
-            resp.raise_for_status()
-            data = resp.json()
-            
-            pmids = data.get('esearchresult', {}).get('idlist', [])
-            total_count = int(data.get('esearchresult', {}).get('count', 0))
-            self.log(f"Found {total_count} total results, got {len(pmids)} PMIDs")
-            
-            if not pmids:
-                return []
-            
-            # Fetch details for these PMIDs in batches
-            papers = []
-            batch_size = 200
-            
-            for i in range(0, len(pmids), batch_size):
-                batch = pmids[i:i + batch_size]
-                self.log(f"Fetching details for PMIDs {i+1}-{i+len(batch)}")
-                
-                efetch_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
-                params = {
-                    'db': 'pubmed',
-                    'id': ','.join(batch),
-                    'rettype': 'xml',
-                    'retmode': 'xml',
-                    'tool': 'archive_finder',
-                    'email': 'info@dandiarchive.org'
-                }
-                
-                fetch_resp = self.session.get(efetch_url, params=params, timeout=60)
-                if fetch_resp.status_code == 200:
-                    soup = BeautifulSoup(fetch_resp.content, 'lxml-xml')
-                    
-                    for article in soup.find_all('PubmedArticle'):
-                        paper = self._parse_pubmed_article(article)
-                        if paper and paper.get('doi'):
-                            papers.append(paper)
-                
-                time.sleep(0.5)  # Rate limiting
-            
-            return papers
-            
-        except Exception as e:
-            self.log(f"PubMed search error: {e}")
-            return []
-    
-    def _parse_pubmed_article(self, article) -> Optional[dict]:
-        """Parse a PubMed article XML element."""
-        try:
-            pmid_elem = article.find('PMID')
-            pmid = pmid_elem.get_text() if pmid_elem else None
-            
-            title_elem = article.find('ArticleTitle')
-            title = title_elem.get_text() if title_elem else None
-            
-            # Find DOI
-            doi = None
-            for article_id in article.find_all('ArticleId'):
-                if article_id.get('IdType') == 'doi':
-                    doi = article_id.get_text()
-                    break
-            
-            # Also check ELocationID
-            if not doi:
-                for eloc in article.find_all('ELocationID'):
-                    if eloc.get('EIdType') == 'doi':
-                        doi = eloc.get_text()
-                        break
-            
-            return {
-                'pmid': pmid,
-                'doi': doi,
-                'title': title
-            }
-        except Exception:
-            return None
-    
-    def _build_pubmed_query(self, archive_name: str) -> str:
-        """Build a PubMed query from archive search terms."""
-        terms = ARCHIVE_SEARCH_TERMS.get(archive_name, {})
-        query_parts = []
-        
-        # Add name terms
-        for name in terms.get('names', []):
-            query_parts.append(f'"{name}"[All Fields]')
-        
-        # Add URL terms
-        for url in terms.get('urls', []):
-            query_parts.append(f'"{url}"[All Fields]')
-        
-        # Add DOI prefix terms
-        for doi_prefix in terms.get('doi_prefixes', []):
-            query_parts.append(f'"{doi_prefix}"[All Fields]')
-        
-        query = '(' + ' OR '.join(query_parts) + ')'
-        
-        # Add exclusion terms with NOT
-        exclude_terms = terms.get('exclude', [])
-        if exclude_terms:
-            exclude_parts = [f'"{term}"[All Fields]' for term in exclude_terms]
-            query = f'{query} NOT ({" OR ".join(exclude_parts)})'
-        
-        return query
-    
     def _build_europe_pmc_query(self, archive_name: str) -> str:
         """Build a Europe PMC query from archive search terms.
         
@@ -896,6 +829,10 @@ class ArchiveFinder:
         for doi_prefix in terms.get('doi_prefixes', []):
             query_parts.append(f'"{doi_prefix}"')
         
+        # Add specific search terms (like "dandiset" which is specific enough)
+        for term in terms.get('search_terms', []):
+            query_parts.append(f'"{term}"')
+        
         query = '(' + ' OR '.join(query_parts) + ')'
         
         # Add exclusion terms with NOT
@@ -910,11 +847,15 @@ class ArchiveFinder:
         """
         Discover papers that reference datasets from any supported archive.
         
-        Searches both PubMed (metadata) and Europe PMC (full text) for each archive,
-        deduplicates papers, then analyzes each paper to extract specific dataset references.
+        Searches Europe PMC (full text) for each archive, then analyzes each paper
+        to extract specific dataset references.
+        
+        Note: PubMed search was removed because its [All Fields] search matches author
+        names, causing many false positives with minimal benefit (analysis showed 98.97%
+        coverage with Europe PMC alone).
         
         Args:
-            max_results: Maximum number of results per archive per search engine.
+            max_results: Maximum number of results per archive.
             archives: List of archive names to search. If None, searches all archives.
         
         Returns dict with query metadata and results by DOI.
@@ -927,37 +868,15 @@ class ArchiveFinder:
         
         self.log(f"Searching archives: {', '.join(archives_to_search)}")
         
-        # Build queries programmatically from ARCHIVE_SEARCH_TERMS
-        pubmed_queries = {}
+        # Build Europe PMC queries from ARCHIVE_SEARCH_TERMS
         europe_pmc_queries = {}
         
         for archive_name in archives_to_search:
-            pubmed_queries[archive_name] = self._build_pubmed_query(archive_name)
             europe_pmc_queries[archive_name] = self._build_europe_pmc_query(archive_name)
         
         # Collect papers from each archive search, tracking which search found them
         all_papers = {}  # DOI -> paper info with search_sources
-        search_stats = {'pubmed': {}, 'europe_pmc': {}}
-        
-        # Search PubMed (metadata search)
-        for archive_name, query in pubmed_queries.items():
-            self.log(f"Searching PubMed for {archive_name}: {query}")
-            papers = self.search_pubmed(query, max_results)
-            search_stats['pubmed'][archive_name] = len(papers)
-            self.log(f"Found {len(papers)} papers from PubMed for {archive_name}")
-            
-            for paper in papers:
-                doi = paper.get('doi')
-                if not doi:
-                    continue
-                
-                if doi in all_papers:
-                    all_papers[doi]['search_sources'].append(f"pubmed:{archive_name}")
-                else:
-                    paper['search_sources'] = [f"pubmed:{archive_name}"]
-                    all_papers[doi] = paper
-            
-            time.sleep(1)
+        search_stats = {'europe_pmc': {}, 'openalex': {}}
         
         # Search Europe PMC (full text search)
         for archive_name, query in europe_pmc_queries.items():
@@ -979,13 +898,40 @@ class ArchiveFinder:
             
             time.sleep(1)
         
+        # Search OpenAlex (fulltext search for preprints and papers not in Europe PMC)
+        for archive_name in archives_to_search:
+            terms = ARCHIVE_SEARCH_TERMS.get(archive_name, {})
+            # Build OpenAlex search terms from URLs, DOI prefixes, and specific search terms
+            openalex_terms = []
+            openalex_terms.extend(terms.get('urls', []))
+            openalex_terms.extend(terms.get('doi_prefixes', []))
+            openalex_terms.extend(terms.get('search_terms', []))
+            
+            if openalex_terms:
+                self.log(f"Searching OpenAlex for {archive_name}")
+                papers = self.search_openalex(openalex_terms, max_results)
+                search_stats['openalex'][archive_name] = len(papers)
+                self.log(f"Found {len(papers)} papers from OpenAlex for {archive_name}")
+                
+                for paper in papers:
+                    doi = paper.get('doi')
+                    if not doi:
+                        continue
+                    
+                    if doi in all_papers:
+                        all_papers[doi]['search_sources'].append(f"openalex:{archive_name}")
+                    else:
+                        paper['search_sources'] = [f"openalex:{archive_name}"]
+                        all_papers[doi] = paper
+                
+                time.sleep(1)
+        
         # Convert to list
         papers_list = list(all_papers.values())
         
         # Prepare results
         result = {
             'query_metadata': {
-                'pubmed_queries': pubmed_queries,
                 'europe_pmc_queries': europe_pmc_queries,
                 'search_stats': search_stats,
                 'timestamp': datetime.now().isoformat(),
@@ -1063,13 +1009,13 @@ def main():
     parser.add_argument(
         '--discover',
         action='store_true',
-        help='Discover papers from PubMed that reference datasets'
+        help='Discover papers from Europe PMC that reference datasets'
     )
     parser.add_argument(
         '--max-results', '-n',
         type=int,
         default=100,
-        help='Maximum number of PubMed results to process (default: 100)'
+        help='Maximum number of results per archive to process (default: 100)'
     )
     parser.add_argument(
         '--output', '-o',
