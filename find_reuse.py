@@ -27,9 +27,19 @@ import requests
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
+# Try to import playwright for bioRxiv/medRxiv full text
+try:
+    from playwright.sync_api import sync_playwright
+    PLAYWRIGHT_AVAILABLE = True
+except ImportError:
+    PLAYWRIGHT_AVAILABLE = False
+
 
 # Cache directory for storing paper full text
 CACHE_DIR = Path(__file__).parent / '.paper_cache'
+
+# Cache directory for preprint-publication links
+PREPRINT_CACHE_DIR = Path(__file__).parent / '.preprint_cache'
 
 
 # Data descriptor journal DOI patterns - journals that primarily publish dataset descriptions
@@ -167,9 +177,10 @@ class ArchiveFinder:
             'User-Agent': 'ArchiveFinder/1.0 (https://github.com/dandi; mailto:ben.dichter@catalystneuro.com)'
         })
         
-        # Ensure cache directory exists
+        # Ensure cache directories exist
         if self.use_cache:
             CACHE_DIR.mkdir(exist_ok=True)
+            PREPRINT_CACHE_DIR.mkdir(exist_ok=True)
     
     def _get_cache_path(self, doi: str) -> Path:
         """Get cache file path for a DOI."""
@@ -210,6 +221,203 @@ class ArchiveFinder:
             self.log(f"Cached text for DOI: {doi}")
         except Exception as e:
             self.log(f"Cache write error: {e}")
+    
+    def is_preprint_doi(self, doi: str) -> bool:
+        """Check if a DOI is from a preprint server (bioRxiv/medRxiv)."""
+        return doi.startswith('10.1101/')
+    
+    def _get_preprint_cache_path(self, doi: str) -> Path:
+        """Get cache file path for preprint lookup."""
+        safe_doi = doi.replace('/', '_').replace(':', '_').replace('\\', '_')
+        return PREPRINT_CACHE_DIR / f"{safe_doi}.json"
+    
+    def get_published_version(self, preprint_doi: str) -> Optional[dict]:
+        """
+        Look up the published version of a bioRxiv/medRxiv preprint.
+        
+        Uses the bioRxiv API: https://api.biorxiv.org/pubs/biorxiv/{doi}
+        
+        Returns dict with published_doi, published_journal, published_date if found,
+        or None if no published version exists.
+        """
+        if not self.is_preprint_doi(preprint_doi):
+            return None
+        
+        cache_path = self._get_preprint_cache_path(preprint_doi)
+        
+        # Check cache first
+        if self.use_cache and cache_path.exists():
+            try:
+                with open(cache_path, 'r') as f:
+                    data = json.load(f)
+                    self.log(f"Preprint cache hit for DOI: {preprint_doi}")
+                    return data.get('published_info')
+            except Exception as e:
+                self.log(f"Preprint cache read error: {e}")
+        
+        self.log(f"Looking up published version of preprint: {preprint_doi}")
+        
+        # Try bioRxiv API first, then medRxiv
+        for server in ['biorxiv', 'medrxiv']:
+            url = f"https://api.biorxiv.org/pubs/{server}/{preprint_doi}"
+            
+            try:
+                resp = self.session.get(url, timeout=30)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    
+                    if data.get('collection') and len(data['collection']) > 0:
+                        pub_info = data['collection'][0]
+                        published_doi = pub_info.get('published_doi')
+                        
+                        if published_doi:
+                            result = {
+                                'published_doi': published_doi,
+                                'published_journal': pub_info.get('published_journal', ''),
+                                'published_date': pub_info.get('published_date', ''),
+                                'preprint_title': pub_info.get('preprint_title', ''),
+                            }
+                            
+                            # Cache the result
+                            if self.use_cache:
+                                try:
+                                    with open(cache_path, 'w') as f:
+                                        json.dump({
+                                            'preprint_doi': preprint_doi,
+                                            'published_info': result,
+                                            'cached_at': datetime.now().isoformat()
+                                        }, f)
+                                except Exception as e:
+                                    self.log(f"Preprint cache write error: {e}")
+                            
+                            self.log(f"Found published version: {published_doi} in {result['published_journal']}")
+                            return result
+                
+                time.sleep(0.3)  # Rate limiting
+                
+            except Exception as e:
+                self.log(f"bioRxiv API error for {server}: {e}")
+        
+        # Cache negative result (no published version found)
+        if self.use_cache:
+            try:
+                with open(cache_path, 'w') as f:
+                    json.dump({
+                        'preprint_doi': preprint_doi,
+                        'published_info': None,
+                        'cached_at': datetime.now().isoformat()
+                    }, f)
+            except Exception as e:
+                self.log(f"Preprint cache write error: {e}")
+        
+        self.log(f"No published version found for: {preprint_doi}")
+        return None
+    
+    def find_preprint_duplicates(self, results: list[dict]) -> dict:
+        """
+        Find duplicate entries where both preprint and published versions exist.
+        
+        Args:
+            results: List of paper results with DOIs
+            
+        Returns dict with:
+            - duplicates: List of (preprint_doi, published_doi) tuples found in results
+            - preprint_to_published: Mapping of preprint DOIs to their published versions
+            - published_to_preprint: Mapping of published DOIs to their preprint versions
+        """
+        # Get all DOIs from results
+        all_dois = set(r['doi'] for r in results if r.get('doi'))
+        
+        # Find preprints and look up their published versions
+        preprint_to_published = {}
+        published_to_preprint = {}
+        duplicates = []
+        
+        for result in results:
+            doi = result.get('doi')
+            if doi and self.is_preprint_doi(doi):
+                pub_info = self.get_published_version(doi)
+                if pub_info and pub_info.get('published_doi'):
+                    pub_doi = pub_info['published_doi']
+                    preprint_to_published[doi] = pub_info
+                    published_to_preprint[pub_doi] = {
+                        'preprint_doi': doi,
+                        'preprint_title': pub_info.get('preprint_title', '')
+                    }
+                    
+                    # Check if both are in results
+                    if pub_doi in all_dois:
+                        duplicates.append((doi, pub_doi))
+                        self.log(f"Found duplicate: {doi} -> {pub_doi}")
+        
+        return {
+            'duplicates': duplicates,
+            'preprint_to_published': preprint_to_published,
+            'published_to_preprint': published_to_preprint,
+        }
+    
+    def deduplicate_results(self, results: list[dict], prefer_published: bool = True) -> tuple[list[dict], dict]:
+        """
+        Remove duplicate entries where both preprint and published versions exist.
+        
+        Args:
+            results: List of paper results
+            prefer_published: If True, keep published version; if False, keep preprint
+            
+        Returns tuple of:
+            - Deduplicated results list
+            - Deduplication metadata with info about removed duplicates
+        """
+        dup_info = self.find_preprint_duplicates(results)
+        
+        if not dup_info['duplicates']:
+            return results, {'removed': [], 'preprint_links': dup_info}
+        
+        # Build set of DOIs to remove
+        dois_to_remove = set()
+        removed_entries = []
+        
+        for preprint_doi, published_doi in dup_info['duplicates']:
+            if prefer_published:
+                dois_to_remove.add(preprint_doi)
+                removed_entries.append({
+                    'removed_doi': preprint_doi,
+                    'kept_doi': published_doi,
+                    'reason': 'preprint_has_published_version'
+                })
+            else:
+                dois_to_remove.add(published_doi)
+                removed_entries.append({
+                    'removed_doi': published_doi,
+                    'kept_doi': preprint_doi,
+                    'reason': 'published_has_preprint_version'
+                })
+        
+        # Filter results
+        deduplicated = []
+        for result in results:
+            doi = result.get('doi')
+            if doi not in dois_to_remove:
+                # Add preprint link info to published papers
+                if doi in dup_info['published_to_preprint']:
+                    result = result.copy()
+                    result['preprint_doi'] = dup_info['published_to_preprint'][doi]['preprint_doi']
+                # Add published link info to preprints
+                elif doi in dup_info['preprint_to_published']:
+                    result = result.copy()
+                    pub_info = dup_info['preprint_to_published'][doi]
+                    result['published_doi'] = pub_info['published_doi']
+                    result['published_journal'] = pub_info.get('published_journal', '')
+                deduplicated.append(result)
+        
+        metadata = {
+            'removed': removed_entries,
+            'total_duplicates_found': len(dup_info['duplicates']),
+            'preprint_links': dup_info
+        }
+        
+        self.log(f"Removed {len(removed_entries)} duplicate entries")
+        return deduplicated, metadata
     
     def log(self, message: str):
         """Print message if verbose mode is enabled."""
@@ -647,6 +855,75 @@ class ArchiveFinder:
         
         return indirect_refs
     
+    def get_text_from_biorxiv_playwright(self, doi: str) -> Optional[str]:
+        """
+        Get full text from bioRxiv/medRxiv using Playwright to bypass Cloudflare.
+        
+        This method uses a headless browser to fetch the full text from
+        bioRxiv or medRxiv preprints, which are protected by Cloudflare.
+        
+        Requires: pip install playwright && playwright install chromium
+        """
+        if not PLAYWRIGHT_AVAILABLE:
+            self.log("Playwright not available, skipping bioRxiv browser fetch")
+            return None
+        
+        if not self.is_preprint_doi(doi):
+            return None
+        
+        self.log(f"Trying bioRxiv/medRxiv via Playwright for DOI: {doi}")
+        
+        try:
+            with sync_playwright() as p:
+                browser = p.chromium.launch(
+                    headless=True,
+                    args=['--disable-blink-features=AutomationControlled']
+                )
+                context = browser.new_context(
+                    user_agent='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                )
+                page = context.new_page()
+                
+                # Try bioRxiv first, then medRxiv
+                for server in ['biorxiv', 'medrxiv']:
+                    url = f'https://www.{server}.org/content/{doi}v1.full'
+                    self.log(f"Navigating to: {url}")
+                    
+                    try:
+                        page.goto(url, wait_until='domcontentloaded', timeout=30000)
+                        
+                        # Wait for Cloudflare challenge to complete
+                        page.wait_for_timeout(10000)
+                        
+                        # Check if page loaded successfully
+                        title = page.title()
+                        if 'not found' in title.lower() or '404' in title:
+                            self.log(f"Page not found on {server}")
+                            continue
+                        
+                        # Try to find article content, fall back to body
+                        article = page.query_selector('article')
+                        if article:
+                            text = article.inner_text()
+                        else:
+                            # bioRxiv may not have an article element, use body
+                            text = page.inner_text('body')
+                        
+                        if text and len(text) > 1000:  # Minimum content threshold
+                            self.log(f"Got {len(text)} chars from {server} via Playwright")
+                            browser.close()
+                            return text
+                    except Exception as e:
+                        self.log(f"Error fetching from {server}: {e}")
+                        continue
+                
+                browser.close()
+                
+        except Exception as e:
+            self.log(f"Playwright error: {e}")
+        
+        return None
+    
     def get_text_from_publisher_html(self, doi: str) -> Optional[str]:
         """
         Scrape full text from publisher's open access HTML page.
@@ -760,13 +1037,23 @@ class ArchiveFinder:
                 sources_used.append('crossref')
         time.sleep(0.5)
         
-        # If we don't have PMC full text, try scraping publisher HTML
+        # If we don't have PMC full text, try other sources
         if not sources_used or sources_used == ['crossref']:
-            publisher_text = self.get_text_from_publisher_html(doi)
-            if publisher_text and len(publisher_text) > 1000:
-                self.log(f"Got text from publisher ({len(publisher_text)} chars)")
-                text_parts.append(publisher_text)
-                sources_used.append('publisher_html')
+            # For bioRxiv/medRxiv preprints, try Playwright first
+            if self.is_preprint_doi(doi):
+                playwright_text = self.get_text_from_biorxiv_playwright(doi)
+                if playwright_text and len(playwright_text) > 1000:
+                    self.log(f"Got text from Playwright ({len(playwright_text)} chars)")
+                    text_parts.append(playwright_text)
+                    sources_used.append('playwright_biorxiv')
+            
+            # Try scraping publisher HTML as fallback
+            if not sources_used or sources_used == ['crossref']:
+                publisher_text = self.get_text_from_publisher_html(doi)
+                if publisher_text and len(publisher_text) > 1000:
+                    self.log(f"Got text from publisher ({len(publisher_text)} chars)")
+                    text_parts.append(publisher_text)
+                    sources_used.append('publisher_html')
         
         if text_parts:
             combined_text = '\n\n'.join(text_parts)
@@ -1197,6 +1484,16 @@ def main():
         default=[],
         help='Archives to exclude from search. Useful to disable Figshare and PhysioNet which can have many false positives.'
     )
+    parser.add_argument(
+        '--deduplicate',
+        action='store_true',
+        help='Remove duplicate entries where a bioRxiv/medRxiv preprint and its published version both appear. Keeps the published version by default.'
+    )
+    parser.add_argument(
+        '--prefer-preprint',
+        action='store_true',
+        help='When deduplicating, keep the preprint instead of the published version.'
+    )
     
     args = parser.parse_args()
     
@@ -1218,6 +1515,24 @@ def main():
             archives = [a for a in archives if a not in args.exclude_archives]
         
         result = finder.discover_papers(max_results=args.max_results, archives=archives)
+        
+        # Apply deduplication if requested
+        if args.deduplicate and result.get('results'):
+            original_count = len(result['results'])
+            result['results'], dedup_metadata = finder.deduplicate_results(
+                result['results'], 
+                prefer_published=not args.prefer_preprint
+            )
+            result['deduplication'] = {
+                'enabled': True,
+                'prefer': 'preprint' if args.prefer_preprint else 'published',
+                'original_count': original_count,
+                'deduplicated_count': len(result['results']),
+                'removed': dedup_metadata['removed'],
+            }
+            # Update metadata
+            result['query_metadata']['papers_with_datasets_after_dedup'] = len(result['results'])
+        
         output_json = json.dumps(result, indent=2)
         
         if args.output:
