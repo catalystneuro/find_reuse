@@ -83,6 +83,12 @@ ARCHIVE_SEARCH_TERMS = {
 }
 
 
+# Pattern to detect DANDI citations without explicit IDs
+# Matches: "Title here" DANDI Archive  or  "Title here." DANDI Archive
+# Supports both straight quotes (") and curly quotes (" ")
+DANDI_CITATION_PATTERN = r'["\u201C\u201D]([^"\u201C\u201D]{20,})["\u201C\u201D]\s*\.?\s*DANDI\s*Archive'
+
+
 # Archive reference patterns - dictionary of archive name to list of (pattern, pattern_type) tuples
 ARCHIVE_PATTERNS = {
     'DANDI Archive': [
@@ -253,6 +259,129 @@ class ArchiveFinder:
             if matches:
                 results[archive_name] = matches
         return results
+    
+    def find_unlinked_dandi_citations(self, text: str) -> list[str]:
+        """
+        Find potential DANDI citations that don't have explicit IDs.
+        
+        These are citations like:
+        "Dataset Title Here." DANDI Archive.
+        
+        Returns list of citation titles that should be searched in DANDI.
+        """
+        matches = re.findall(DANDI_CITATION_PATTERN, text, re.IGNORECASE)
+        return matches
+    
+    def search_dandi_api(self, query: str, limit: int = 10) -> list[dict]:
+        """
+        Search the DANDI Archive API for datasets matching a query.
+        
+        Args:
+            query: Search query (e.g., dataset title or keywords)
+            limit: Maximum number of results to return
+            
+        Returns list of matching datasets with id, name, and other metadata.
+        """
+        # Normalize query: replace en-dashes, em-dashes, and other special chars with spaces
+        normalized_query = query.replace('–', ' ').replace('—', ' ').replace('-', ' ')
+        # Remove trailing punctuation that might interfere with search
+        normalized_query = normalized_query.rstrip('.,;:!?')
+        # Remove extra whitespace
+        normalized_query = ' '.join(normalized_query.split())
+        
+        self.log(f"Searching DANDI API for: {normalized_query[:50]}...")
+        
+        url = "https://api.dandiarchive.org/api/dandisets/"
+        params = {
+            'search': normalized_query,
+            'page_size': limit,
+            'draft': 'true',
+            'empty': 'false',
+            'embargoed': 'false',
+        }
+        
+        try:
+            resp = self.session.get(url, params=params, timeout=30)
+            resp.raise_for_status()
+            data = resp.json()
+            
+            results = []
+            for item in data.get('results', []):
+                dandiset_id = item.get('identifier', '')
+                # Get the most recent version info
+                most_recent = item.get('most_recent_published_version') or item.get('draft_version', {})
+                
+                results.append({
+                    'id': dandiset_id,
+                    'name': most_recent.get('name', ''),
+                    'version': most_recent.get('version', 'draft'),
+                    'asset_count': most_recent.get('asset_count', 0),
+                    'size': most_recent.get('size', 0),
+                    'url': f"https://dandiarchive.org/dandiset/{dandiset_id}",
+                })
+            
+            self.log(f"Found {len(results)} DANDI datasets")
+            return results
+            
+        except Exception as e:
+            self.log(f"DANDI API search error: {e}")
+            return []
+    
+    def resolve_unlinked_dandi_citations(self, text: str) -> list[dict]:
+        """
+        Find and resolve DANDI citations that don't have explicit IDs.
+        
+        Extracts citation titles mentioning "DANDI Archive" and searches
+        the DANDI API to find matching datasets.
+        
+        Returns list of resolved citations with the original title and matched dataset(s).
+        """
+        resolved = []
+        
+        # Find potential citations
+        citation_titles = self.find_unlinked_dandi_citations(text)
+        
+        if not citation_titles:
+            return resolved
+        
+        self.log(f"Found {len(citation_titles)} potential unlinked DANDI citations")
+        
+        for title in citation_titles:
+            # Search DANDI API for this title
+            matches = self.search_dandi_api(title, limit=5)
+            
+            if matches:
+                # Check if any match has high similarity to the citation title
+                best_matches = []
+                title_lower = title.lower()
+                
+                for match in matches:
+                    match_name_lower = match['name'].lower()
+                    # Check for substantial overlap in words
+                    title_words = set(title_lower.split())
+                    match_words = set(match_name_lower.split())
+                    
+                    # Calculate word overlap
+                    common_words = title_words & match_words
+                    # Ignore common words that aren't meaningful
+                    stopwords = {'the', 'a', 'an', 'in', 'of', 'to', 'and', 'for', 'with', 'on', 'at'}
+                    meaningful_common = common_words - stopwords
+                    meaningful_title = title_words - stopwords
+                    
+                    if meaningful_title and len(meaningful_common) >= len(meaningful_title) * 0.5:
+                        best_matches.append(match)
+                
+                if best_matches:
+                    resolved.append({
+                        'citation_title': title,
+                        'matched_datasets': best_matches,
+                        'pattern_type': 'unlinked_citation',
+                    })
+            
+            # Rate limiting
+            time.sleep(0.3)
+        
+        return resolved
     
     def get_text_from_europe_pmc(self, doi: str) -> Optional[str]:
         """
@@ -691,6 +820,29 @@ class ArchiveFinder:
                 'dataset_ids': list(set(m['id'] for m in matches)),
                 'matches': matches
             }
+        
+        # Find and resolve unlinked DANDI citations (e.g., "Title" DANDI Archive without ID)
+        unlinked_citations = self.resolve_unlinked_dandi_citations(text)
+        if unlinked_citations:
+            result['unlinked_citations'] = unlinked_citations
+            # Also add these to the DANDI Archive results
+            for citation in unlinked_citations:
+                for dataset in citation.get('matched_datasets', []):
+                    dataset_id = dataset['id']
+                    if 'DANDI Archive' not in result['archives']:
+                        result['archives']['DANDI Archive'] = {
+                            'dataset_ids': [],
+                            'matches': []
+                        }
+                    if dataset_id not in result['archives']['DANDI Archive']['dataset_ids']:
+                        result['archives']['DANDI Archive']['dataset_ids'].append(dataset_id)
+                        result['archives']['DANDI Archive']['matches'].append({
+                            'id': dataset_id,
+                            'pattern_type': 'unlinked_citation',
+                            'matched_string': citation['citation_title'],
+                            'resolved_name': dataset['name'],
+                            'url': dataset['url'],
+                        })
         
         # Follow citations to data descriptor papers if enabled
         if self.follow_references:
