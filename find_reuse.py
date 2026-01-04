@@ -113,9 +113,13 @@ ARCHIVE_PATTERNS = {
         (r'dandiset\s+(\d{6})', 'dandiset_text'),
         (r'dandiset/(\d{6})', 'dandiset_path'),
         # DANDI archive identifier pattern (with colon, space, or comma separator)
-        (r'DANDI(?:\\s+archive)?(?:\\s+identifier)?[,:\\s]+(\\d{6})', 'identifier'),
+        (r'DANDI(?:\s+archive)?(?:\s+identifier)?[,:\s]+(\d{6})', 'identifier'),
         # "Dandiarchive.org, ID:000221" format (seen in Cell papers)
-        (r'(?:dandiarchive\\.org|DANDI)[,\\s]+ID[:\\s]*(\\d{6})', 'id_format'),
+        (r'(?:dandiarchive\.org|DANDI)[,\s]+ID[:\s]*(\d{6})', 'id_format'),
+        # "DANDI ID#: 000978" format (seen in eNeuro papers)
+        (r'DANDI\s+ID#[:\s]+(\d{6})', 'id_hash_format'),
+        # "DANDI Archive ID: 000467" format (seen in Current Biology papers)
+        (r'DANDI\s+Archive\s+ID[:\s]+(\d{6})', 'archive_id'),
     ],
     'OpenNeuro': [
         # DOI format: 10.18112/openneuro.ds000001
@@ -1274,6 +1278,9 @@ class ArchiveFinder:
                 return text
             else:
                 self.log(f"Insufficient content from HTML ({len(text)} chars)")
+                # Try Playwright as fallback for JavaScript-rendered pages
+                self.log("Trying Playwright fallback for insufficient HTML content")
+                return self.get_text_from_publisher_playwright(doi)
                 
         except Exception as e:
             self.log(f"Publisher HTML error: {e}")
