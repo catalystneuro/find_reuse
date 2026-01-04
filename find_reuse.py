@@ -113,9 +113,9 @@ ARCHIVE_PATTERNS = {
         (r'dandiset\s+(\d{6})', 'dandiset_text'),
         (r'dandiset/(\d{6})', 'dandiset_path'),
         # DANDI archive identifier pattern (with colon, space, or comma separator)
-        (r'DANDI(?:\s+archive)?(?:\s+identifier)?[,:\s]+(\d{6})', 'identifier'),
+        (r'DANDI(?:\\s+archive)?(?:\\s+identifier)?[,:\\s]+(\\d{6})', 'identifier'),
         # "Dandiarchive.org, ID:000221" format (seen in Cell papers)
-        (r'(?:dandiarchive\.org|DANDI)[,\s]+ID[:\s]*(\d{6})', 'id_format'),
+        (r'(?:dandiarchive\\.org|DANDI)[,\\s]+ID[:\\s]*(\\d{6})', 'id_format'),
     ],
     'OpenNeuro': [
         # DOI format: 10.18112/openneuro.ds000001
@@ -356,48 +356,94 @@ class ArchiveFinder:
             'published_to_preprint': published_to_preprint,
         }
     
-    def deduplicate_results(self, results: list[dict], prefer_published: bool = True) -> tuple[list[dict], dict]:
+    def deduplicate_results(self, results: list[dict], papers_without_datasets: list[dict] | None = None, prefer_published: bool = True) -> tuple[list[dict], list[dict] | None, dict]:
         """
         Remove duplicate entries where both preprint and published versions exist.
         
+        This checks for duplicates both within the results array and across
+        results and papers_without_datasets arrays.
+        
         Args:
-            results: List of paper results
+            results: List of paper results with dataset references
+            papers_without_datasets: Optional list of papers without dataset references
             prefer_published: If True, keep published version; if False, keep preprint
             
         Returns tuple of:
             - Deduplicated results list
+            - Deduplicated papers_without_datasets list (or None if not provided)
             - Deduplication metadata with info about removed duplicates
         """
         dup_info = self.find_preprint_duplicates(results)
         
-        if not dup_info['duplicates']:
-            return results, {'removed': [], 'preprint_links': dup_info}
-        
-        # Build set of DOIs to remove
-        dois_to_remove = set()
+        # Build set of DOIs to remove from results
+        dois_to_remove_from_results = set()
         removed_entries = []
         
+        # Handle duplicates within results array
         for preprint_doi, published_doi in dup_info['duplicates']:
             if prefer_published:
-                dois_to_remove.add(preprint_doi)
+                dois_to_remove_from_results.add(preprint_doi)
                 removed_entries.append({
                     'removed_doi': preprint_doi,
                     'kept_doi': published_doi,
-                    'reason': 'preprint_has_published_version'
+                    'reason': 'preprint_has_published_version',
+                    'removed_from': 'results'
                 })
             else:
-                dois_to_remove.add(published_doi)
+                dois_to_remove_from_results.add(published_doi)
                 removed_entries.append({
                     'removed_doi': published_doi,
                     'kept_doi': preprint_doi,
-                    'reason': 'published_has_preprint_version'
+                    'reason': 'published_has_preprint_version',
+                    'removed_from': 'results'
                 })
         
+        # Handle cross-array duplicates: preprints in papers_without_datasets
+        # whose published versions are in results
+        dois_to_remove_from_no_datasets = set()
+        cross_array_duplicates = []
+        
+        if papers_without_datasets:
+            # Get all DOIs from results
+            results_dois = set(r['doi'] for r in results if r.get('doi'))
+            
+            for paper in papers_without_datasets:
+                doi = paper.get('doi')
+                if doi and self.is_preprint_doi(doi):
+                    pub_info = self.get_published_version(doi)
+                    if pub_info and pub_info.get('published_doi'):
+                        pub_doi = pub_info['published_doi']
+                        
+                        # Check if published version is in results
+                        if pub_doi in results_dois:
+                            cross_array_duplicates.append((doi, pub_doi))
+                            
+                            if prefer_published:
+                                # Remove preprint from papers_without_datasets
+                                dois_to_remove_from_no_datasets.add(doi)
+                                removed_entries.append({
+                                    'removed_doi': doi,
+                                    'kept_doi': pub_doi,
+                                    'reason': 'preprint_in_no_datasets_has_published_in_results',
+                                    'removed_from': 'papers_without_datasets'
+                                })
+                                self.log(f"Cross-array duplicate: removing {doi} from papers_without_datasets (published version {pub_doi} in results)")
+                            else:
+                                # Remove published from results
+                                dois_to_remove_from_results.add(pub_doi)
+                                removed_entries.append({
+                                    'removed_doi': pub_doi,
+                                    'kept_doi': doi,
+                                    'reason': 'published_in_results_has_preprint_in_no_datasets',
+                                    'removed_from': 'results'
+                                })
+                                self.log(f"Cross-array duplicate: removing {pub_doi} from results (preprint version {doi} preferred)")
+        
         # Filter results
-        deduplicated = []
+        deduplicated_results = []
         for result in results:
             doi = result.get('doi')
-            if doi not in dois_to_remove:
+            if doi not in dois_to_remove_from_results:
                 # Add preprint link info to published papers
                 if doi in dup_info['published_to_preprint']:
                     result = result.copy()
@@ -408,16 +454,82 @@ class ArchiveFinder:
                     pub_info = dup_info['preprint_to_published'][doi]
                     result['published_doi'] = pub_info['published_doi']
                     result['published_journal'] = pub_info.get('published_journal', '')
-                deduplicated.append(result)
+                deduplicated_results.append(result)
+        
+        # Filter papers_without_datasets and check published versions for dataset refs
+        deduplicated_no_datasets = None
+        promoted_to_results = []  # Papers promoted from no_datasets to results
+        
+        # Get all DOIs from deduplicated results for checking
+        all_results_dois = set(r['doi'] for r in deduplicated_results if r.get('doi'))
+        
+        if papers_without_datasets is not None:
+            deduplicated_no_datasets = []
+            for paper in papers_without_datasets:
+                doi = paper.get('doi')
+                if doi in dois_to_remove_from_no_datasets:
+                    continue  # Skip removed duplicates
+                
+                # For preprints without dataset refs, check if published version has refs
+                if doi and self.is_preprint_doi(doi):
+                    pub_info = self.get_published_version(doi)
+                    if pub_info and pub_info.get('published_doi'):
+                        pub_doi = pub_info['published_doi']
+                        
+                        # Skip if published version already in results
+                        if pub_doi not in all_results_dois:
+                            # Analyze the published version for dataset references
+                            self.log(f"Analyzing published version {pub_doi} for preprint {doi}")
+                            pub_result, _ = self.find_references(pub_doi)
+                            
+                            if pub_result.get('archives'):
+                                # Published version has dataset refs - add to results
+                                pub_result['preprint_doi'] = doi
+                                pub_result['title'] = paper.get('title', pub_info.get('preprint_title', ''))
+                                pub_result['published_journal'] = pub_info.get('published_journal', '')
+                                promoted_to_results.append(pub_result)
+                                
+                                # Track this promotion
+                                removed_entries.append({
+                                    'removed_doi': doi,
+                                    'kept_doi': pub_doi,
+                                    'reason': 'preprint_replaced_by_published_with_datasets',
+                                    'removed_from': 'papers_without_datasets',
+                                    'added_to': 'results'
+                                })
+                                self.log(f"Promoted {pub_doi} to results (has datasets), replacing preprint {doi}")
+                                continue  # Don't add preprint to deduplicated_no_datasets
+                            else:
+                                # Published version also has no dataset refs - annotate preprint
+                                paper = paper.copy()
+                                paper['published_doi'] = pub_doi
+                                paper['published_journal'] = pub_info.get('published_journal', '')
+                        else:
+                            # Published version already in results - remove preprint, don't add to no_datasets
+                            removed_entries.append({
+                                'removed_doi': doi,
+                                'kept_doi': pub_doi,
+                                'reason': 'preprint_in_no_datasets_has_published_in_results',
+                                'removed_from': 'papers_without_datasets'
+                            })
+                            self.log(f"Removing preprint {doi} from papers_without_datasets (published version {pub_doi} already in results)")
+                            continue  # Don't add preprint to deduplicated_no_datasets
+                
+                deduplicated_no_datasets.append(paper)
+        
+        # Add promoted papers to results
+        deduplicated_results.extend(promoted_to_results)
         
         metadata = {
             'removed': removed_entries,
-            'total_duplicates_found': len(dup_info['duplicates']),
+            'total_duplicates_found': len(dup_info['duplicates']) + len(cross_array_duplicates),
+            'within_results_duplicates': len(dup_info['duplicates']),
+            'cross_array_duplicates': len(cross_array_duplicates),
             'preprint_links': dup_info
         }
         
-        self.log(f"Removed {len(removed_entries)} duplicate entries")
-        return deduplicated, metadata
+        self.log(f"Removed {len(removed_entries)} duplicate entries ({len(dup_info['duplicates'])} within results, {len(cross_array_duplicates)} cross-array)")
+        return deduplicated_results, deduplicated_no_datasets, metadata
     
     def log(self, message: str):
         """Print message if verbose mode is enabled."""
@@ -591,6 +703,34 @@ class ArchiveFinder:
         
         return resolved
     
+    def get_pmcid_for_doi(self, doi: str) -> Optional[str]:
+        """
+        Get PMCID for a DOI using NCBI ID converter.
+        
+        Returns the PMCID if found, None otherwise.
+        """
+        # Use NCBI ID converter which is more reliable than Europe PMC for some papers
+        converter_url = "https://www.ncbi.nlm.nih.gov/pmc/utils/idconv/v1.0/"
+        params = {
+            'ids': doi,
+            'format': 'json',
+            'tool': 'dandi_finder',
+            'email': 'info@dandiarchive.org'
+        }
+        
+        try:
+            resp = self.session.get(converter_url, params=params, timeout=30)
+            resp.raise_for_status()
+            data = resp.json()
+            
+            records = data.get('records', [])
+            if records and records[0].get('pmcid'):
+                return records[0]['pmcid']
+        except Exception as e:
+            self.log(f"Error getting PMCID: {e}")
+        
+        return None
+    
     def get_text_from_europe_pmc(self, doi: str) -> Optional[str]:
         """
         Get full text from Europe PMC.
@@ -627,7 +767,21 @@ class ArchiveFinder:
                         if ft_resp.status_code == 200:
                             soup = BeautifulSoup(ft_resp.content, 'lxml-xml')
                             # Extract all text content
-                            return soup.get_text(separator=' ', strip=True)
+                            text = soup.get_text(separator=' ', strip=True)
+                            
+                            # Also extract hyperlink URLs (ext-link elements contain href attributes)
+                            # These often contain DANDI URLs that aren't in the visible text
+                            ext_links = []
+                            for link in soup.find_all('ext-link'):
+                                href = link.get('xlink:href', '')
+                                if href:
+                                    ext_links.append(href)
+                            
+                            if ext_links:
+                                self.log(f"Found {len(ext_links)} hyperlinks in XML")
+                                text = text + '\n\n[HYPERLINKS]\n' + '\n'.join(ext_links)
+                            
+                            return text
                     except Exception as e:
                         self.log(f"Error fetching full text: {e}")
                 
@@ -642,7 +796,20 @@ class ArchiveFinder:
                             ft_resp = self.session.get(fulltext_url, timeout=30)
                             if ft_resp.status_code == 200:
                                 soup = BeautifulSoup(ft_resp.content, 'lxml-xml')
-                                return soup.get_text(separator=' ', strip=True)
+                                text = soup.get_text(separator=' ', strip=True)
+                                
+                                # Also extract hyperlink URLs from preprint XML
+                                ext_links = []
+                                for link in soup.find_all('ext-link'):
+                                    href = link.get('xlink:href', '')
+                                    if href:
+                                        ext_links.append(href)
+                                
+                                if ext_links:
+                                    self.log(f"Found {len(ext_links)} hyperlinks in preprint XML")
+                                    text = text + '\n\n[HYPERLINKS]\n' + '\n'.join(ext_links)
+                                
+                                return text
                         except Exception as e:
                             self.log(f"Error fetching preprint full text: {e}")
                 
@@ -654,9 +821,11 @@ class ArchiveFinder:
         
         return None
     
-    def get_text_from_pmc(self, doi: str) -> Optional[str]:
+    def get_text_from_pmc(self, doi: str) -> tuple[Optional[str], Optional[str]]:
         """
         Get full text from NCBI PubMed Central.
+        
+        Returns tuple of (text, pmcid) - pmcid is returned for potential Playwright fallback.
         """
         self.log(f"Trying NCBI PMC for DOI: {doi}")
         
@@ -692,12 +861,12 @@ class ArchiveFinder:
                 ft_resp = self.session.get(efetch_url, params=params, timeout=30)
                 if ft_resp.status_code == 200:
                     soup = BeautifulSoup(ft_resp.content, 'lxml-xml')
-                    return soup.get_text(separator=' ', strip=True)
+                    return soup.get_text(separator=' ', strip=True), pmcid
                     
         except Exception as e:
             self.log(f"NCBI PMC error: {e}")
         
-        return None
+        return None, None
     
     def get_text_from_crossref(self, doi: str) -> Optional[str]:
         """
@@ -855,6 +1024,64 @@ class ArchiveFinder:
         
         return indirect_refs
     
+    def get_text_from_pmc_playwright(self, pmcid: str) -> Optional[str]:
+        """
+        Get full text from PMC using Playwright.
+        
+        The PMC API sometimes returns incomplete text (e.g., author manuscripts
+        missing data availability sections). This method scrapes the full HTML
+        page which often contains more complete content.
+        
+        Args:
+            pmcid: The PMC ID (e.g., 'PMC11093107')
+            
+        Requires: pip install playwright && playwright install chromium
+        """
+        if not PLAYWRIGHT_AVAILABLE:
+            self.log("Playwright not available, skipping PMC browser fetch")
+            return None
+        
+        self.log(f"Trying PMC via Playwright for PMCID: {pmcid}")
+        
+        try:
+            with sync_playwright() as p:
+                browser = p.chromium.launch(
+                    headless=True,
+                    args=['--disable-blink-features=AutomationControlled']
+                )
+                context = browser.new_context(
+                    user_agent='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                )
+                page = context.new_page()
+                
+                url = f'https://pmc.ncbi.nlm.nih.gov/articles/{pmcid}/'
+                self.log(f"Navigating to: {url}")
+                
+                page.goto(url, wait_until='domcontentloaded', timeout=30000)
+                page.wait_for_timeout(5000)  # Wait for page to fully render
+                
+                # Check if page loaded successfully
+                title = page.title()
+                if 'not found' in title.lower() or '404' in title or 'error' in title.lower():
+                    self.log(f"Page not found for {pmcid}")
+                    browser.close()
+                    return None
+                
+                # Get full page text
+                text = page.inner_text('body')
+                
+                if text and len(text) > 1000:
+                    self.log(f"Got {len(text)} chars from PMC via Playwright")
+                    browser.close()
+                    return text
+                
+                browser.close()
+                
+        except Exception as e:
+            self.log(f"PMC Playwright error: {e}")
+        
+        return None
+    
     def get_text_from_biorxiv_playwright(self, doi: str) -> Optional[str]:
         """
         Get full text from bioRxiv/medRxiv using Playwright to bypass Cloudflare.
@@ -924,11 +1151,67 @@ class ArchiveFinder:
         
         return None
     
+    def get_text_from_publisher_playwright(self, doi: str) -> Optional[str]:
+        """
+        Scrape full text from publisher's HTML page using Playwright.
+        
+        This is a fallback for when regular HTTP requests fail (403 Forbidden, etc).
+        Works with many publishers that block automated requests.
+        
+        Requires: pip install playwright && playwright install chromium
+        """
+        if not PLAYWRIGHT_AVAILABLE:
+            self.log("Playwright not available, skipping publisher browser fetch")
+            return None
+        
+        self.log(f"Trying publisher HTML via Playwright for DOI: {doi}")
+        
+        try:
+            with sync_playwright() as p:
+                browser = p.chromium.launch(
+                    headless=True,
+                    args=['--disable-blink-features=AutomationControlled']
+                )
+                context = browser.new_context(
+                    user_agent='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                )
+                page = context.new_page()
+                
+                # Resolve DOI to get the actual publisher URL
+                doi_url = f'https://doi.org/{doi}'
+                self.log(f"Navigating to: {doi_url}")
+                
+                page.goto(doi_url, wait_until='domcontentloaded', timeout=30000)
+                page.wait_for_timeout(5000)  # Wait for page to fully render
+                
+                # Check if page loaded successfully
+                title = page.title()
+                if 'not found' in title.lower() or '404' in title or 'error' in title.lower():
+                    self.log(f"Page not found for {doi}")
+                    browser.close()
+                    return None
+                
+                # Get full page text
+                text = page.inner_text('body')
+                
+                if text and len(text) > 1000:
+                    self.log(f"Got {len(text)} chars from publisher via Playwright")
+                    browser.close()
+                    return text
+                
+                browser.close()
+                
+        except Exception as e:
+            self.log(f"Publisher Playwright error: {e}")
+        
+        return None
+    
     def get_text_from_publisher_html(self, doi: str) -> Optional[str]:
         """
         Scrape full text from publisher's open access HTML page.
         
         Works with Nature, Springer, Cell, Elsevier, and other open access papers.
+        Falls back to Playwright if regular HTTP request fails.
         """
         self.log(f"Trying publisher HTML for DOI: {doi}")
         
@@ -994,6 +1277,9 @@ class ArchiveFinder:
                 
         except Exception as e:
             self.log(f"Publisher HTML error: {e}")
+            # Try Playwright as fallback for 403/blocked requests
+            self.log("Trying Playwright fallback for publisher HTML")
+            return self.get_text_from_publisher_playwright(doi)
         
         return None
     
@@ -1011,21 +1297,22 @@ class ArchiveFinder:
         
         text_parts = []
         sources_used = []
+        pmcid = None  # Track PMCID for potential Playwright fallback
         
-        # Try full-text sources first
-        fulltext_sources = [
-            ('europe_pmc', self.get_text_from_europe_pmc),
-            ('ncbi_pmc', self.get_text_from_pmc),
-        ]
-        
-        for source_name, fetch_func in fulltext_sources:
-            text = fetch_func(doi)
+        # Try Europe PMC first
+        text = self.get_text_from_europe_pmc(doi)
+        if text and len(text) > 100:
+            self.log(f"Got text from europe_pmc ({len(text)} chars)")
+            text_parts.append(text)
+            sources_used.append('europe_pmc')
+        else:
+            time.sleep(0.5)
+            # Try NCBI PMC (returns tuple with pmcid)
+            text, pmcid = self.get_text_from_pmc(doi)
             if text and len(text) > 100:
-                self.log(f"Got text from {source_name} ({len(text)} chars)")
+                self.log(f"Got text from ncbi_pmc ({len(text)} chars)")
                 text_parts.append(text)
-                sources_used.append(source_name)
-                # Only use first successful full-text source
-                break
+                sources_used.append('ncbi_pmc')
             time.sleep(0.5)
         
         # Always try CrossRef for references (they often contain DANDI DOIs)
@@ -1036,6 +1323,24 @@ class ArchiveFinder:
             if 'crossref' not in sources_used:
                 sources_used.append('crossref')
         time.sleep(0.5)
+        
+        # If PMC text is short (might be missing data availability section), try Playwright
+        # PMC author manuscripts often have incomplete text via API
+        MIN_PMC_TEXT_FOR_COMPLETENESS = 15000  # Full papers are usually > 15k chars
+        pmc_text_length = len(text_parts[0]) if text_parts and sources_used and sources_used[0] in ('europe_pmc', 'ncbi_pmc') else 0
+        
+        if pmc_text_length > 0 and pmc_text_length < MIN_PMC_TEXT_FOR_COMPLETENESS:
+            # If we don't have PMCID from ncbi_pmc, get it now
+            if not pmcid:
+                pmcid = self.get_pmcid_for_doi(doi)
+            if pmcid:
+                self.log(f"PMC text seems short ({pmc_text_length} chars), trying Playwright for {pmcid}")
+                playwright_text = self.get_text_from_pmc_playwright(pmcid)
+                if playwright_text and len(playwright_text) > pmc_text_length:
+                    self.log(f"Got better text from PMC Playwright ({len(playwright_text)} chars vs {pmc_text_length})")
+                    # Replace the PMC API text with Playwright text
+                    text_parts[0] = playwright_text
+                    sources_used[0] = 'pmc_playwright'
         
         # If we don't have PMC full text, try other sources
         if not sources_used or sources_used == ['crossref']:
@@ -1518,16 +1823,28 @@ def main():
         
         # Apply deduplication if requested
         if args.deduplicate and result.get('results'):
-            original_count = len(result['results'])
-            result['results'], dedup_metadata = finder.deduplicate_results(
-                result['results'], 
+            original_results_count = len(result['results'])
+            original_no_datasets_count = len(result.get('papers_without_datasets', []))
+            
+            result['results'], deduped_no_datasets, dedup_metadata = finder.deduplicate_results(
+                result['results'],
+                papers_without_datasets=result.get('papers_without_datasets'),
                 prefer_published=not args.prefer_preprint
             )
+            
+            # Update papers_without_datasets if it was provided and deduplicated
+            if deduped_no_datasets is not None:
+                result['papers_without_datasets'] = deduped_no_datasets
+            
             result['deduplication'] = {
                 'enabled': True,
                 'prefer': 'preprint' if args.prefer_preprint else 'published',
-                'original_count': original_count,
-                'deduplicated_count': len(result['results']),
+                'original_results_count': original_results_count,
+                'deduplicated_results_count': len(result['results']),
+                'original_no_datasets_count': original_no_datasets_count,
+                'deduplicated_no_datasets_count': len(result.get('papers_without_datasets', [])),
+                'within_results_duplicates': dedup_metadata['within_results_duplicates'],
+                'cross_array_duplicates': dedup_metadata['cross_array_duplicates'],
                 'removed': dedup_metadata['removed'],
             }
             # Update metadata
