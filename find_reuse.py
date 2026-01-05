@@ -735,14 +735,18 @@ class ArchiveFinder:
         
         return None
     
-    def get_text_from_europe_pmc(self, doi: str) -> Optional[str]:
+    def get_text_from_europe_pmc(self, doi: str) -> tuple[Optional[str], Optional[str]]:
         """
         Get full text from Europe PMC.
         
         Supports both PMC articles (via PMCID) and preprints (via PPR ID).
         Abstract-only results are skipped since DANDI refs are rarely in abstracts.
+        
+        Returns tuple of (text, pmcid) - pmcid is returned even if text fetch fails,
+        for potential Playwright fallback.
         """
         self.log(f"Trying Europe PMC for DOI: {doi}")
+        pmcid_found = None
         
         # Search for the article by DOI
         search_url = "https://www.ebi.ac.uk/europepmc/webservices/rest/search"
@@ -763,6 +767,7 @@ class ArchiveFinder:
                 
                 # Try PMCID first (for published articles)
                 if pmcid:
+                    pmcid_found = pmcid  # Save for potential Playwright fallback
                     self.log(f"Found PMCID: {pmcid}, fetching full text")
                     fulltext_url = f"https://www.ebi.ac.uk/europepmc/webservices/rest/{pmcid}/fullTextXML"
                     
@@ -785,7 +790,7 @@ class ArchiveFinder:
                                 self.log(f"Found {len(ext_links)} hyperlinks in XML")
                                 text = text + '\n\n[HYPERLINKS]\n' + '\n'.join(ext_links)
                             
-                            return text
+                            return text, pmcid_found
                     except Exception as e:
                         self.log(f"Error fetching full text: {e}")
                 
@@ -813,7 +818,7 @@ class ArchiveFinder:
                                     self.log(f"Found {len(ext_links)} hyperlinks in preprint XML")
                                     text = text + '\n\n[HYPERLINKS]\n' + '\n'.join(ext_links)
                                 
-                                return text
+                                return text, pmcid_found
                         except Exception as e:
                             self.log(f"Error fetching preprint full text: {e}")
                 
@@ -823,7 +828,7 @@ class ArchiveFinder:
         except Exception as e:
             self.log(f"Europe PMC error: {e}")
         
-        return None
+        return None, pmcid_found
     
     def get_text_from_pmc(self, doi: str) -> tuple[Optional[str], Optional[str]]:
         """
@@ -914,6 +919,54 @@ class ArchiveFinder:
             self.log(f"CrossRef error: {e}")
         
         return None
+    
+    def get_paper_metadata(self, doi: str) -> dict:
+        """
+        Get paper metadata from CrossRef (journal name, publication date).
+        
+        Returns dict with journal and date fields.
+        """
+        url = f"https://api.crossref.org/works/{quote(doi, safe='')}"
+        
+        result = {
+            'journal': None,
+            'date': None,
+        }
+        
+        try:
+            resp = self.session.get(url, timeout=30)
+            resp.raise_for_status()
+            data = resp.json()
+            
+            message = data.get('message', {})
+            
+            # Get journal name (try container-title first, then publisher)
+            container_title = message.get('container-title', [])
+            if container_title:
+                result['journal'] = container_title[0]
+            elif message.get('publisher'):
+                result['journal'] = message['publisher']
+            
+            # Get publication date (prefer published-print, then published-online, then created)
+            date_parts = None
+            for date_field in ['published-print', 'published-online', 'published', 'created']:
+                if message.get(date_field, {}).get('date-parts'):
+                    date_parts = message[date_field]['date-parts'][0]
+                    break
+            
+            if date_parts:
+                # Format as YYYY-MM-DD (or partial if not all parts available)
+                if len(date_parts) >= 3:
+                    result['date'] = f"{date_parts[0]:04d}-{date_parts[1]:02d}-{date_parts[2]:02d}"
+                elif len(date_parts) >= 2:
+                    result['date'] = f"{date_parts[0]:04d}-{date_parts[1]:02d}"
+                elif len(date_parts) >= 1:
+                    result['date'] = f"{date_parts[0]:04d}"
+                    
+        except Exception as e:
+            self.log(f"CrossRef metadata error: {e}")
+        
+        return result
     
     def get_reference_dois(self, doi: str) -> list[dict]:
         """
@@ -1306,8 +1359,10 @@ class ArchiveFinder:
         sources_used = []
         pmcid = None  # Track PMCID for potential Playwright fallback
         
-        # Try Europe PMC first
-        text = self.get_text_from_europe_pmc(doi)
+        # Try Europe PMC first (returns tuple of text, pmcid)
+        text, europe_pmc_pmcid = self.get_text_from_europe_pmc(doi)
+        if europe_pmc_pmcid:
+            pmcid = europe_pmc_pmcid  # Save PMCID even if text fetch failed
         if text and len(text) > 100:
             self.log(f"Got text from europe_pmc ({len(text)} chars)")
             text_parts.append(text)
@@ -1315,7 +1370,9 @@ class ArchiveFinder:
         else:
             time.sleep(0.5)
             # Try NCBI PMC (returns tuple with pmcid)
-            text, pmcid = self.get_text_from_pmc(doi)
+            text, ncbi_pmcid = self.get_text_from_pmc(doi)
+            if ncbi_pmcid:
+                pmcid = ncbi_pmcid
             if text and len(text) > 100:
                 self.log(f"Got text from ncbi_pmc ({len(text)} chars)")
                 text_parts.append(text)
@@ -1366,6 +1423,16 @@ class ArchiveFinder:
                     self.log(f"Got text from publisher ({len(publisher_text)} chars)")
                     text_parts.append(publisher_text)
                     sources_used.append('publisher_html')
+            
+            # If publisher HTML failed (e.g., Cloudflare) but we have a PMCID, try PMC Playwright
+            # This works for journals like JNeurosci that block scraping but have PMC copies
+            if (not sources_used or sources_used == ['crossref']) and pmcid:
+                self.log(f"Publisher blocked, trying PMC Playwright for {pmcid}")
+                pmc_playwright_text = self.get_text_from_pmc_playwright(pmcid)
+                if pmc_playwright_text and len(pmc_playwright_text) > 1000:
+                    self.log(f"Got text from PMC Playwright ({len(pmc_playwright_text)} chars)")
+                    text_parts.append(pmc_playwright_text)
+                    sources_used.append('pmc_playwright')
         
         if text_parts:
             combined_text = '\n\n'.join(text_parts)
@@ -1700,6 +1767,9 @@ class ArchiveFinder:
         # Process each paper
         self.log(f"Processing {len(papers_list)} unique papers...")
         papers_with_datasets = 0
+        papers_by_archive = {}  # Track papers with datasets by archive
+        datasets_by_archive = {}  # Track unique dataset IDs per archive
+        papers_exclusive_to_archive = {}  # Track papers that ONLY reference one archive
         
         paper_iterator = tqdm(papers_list, desc="Analyzing papers", file=sys.stderr)
         
@@ -1718,10 +1788,36 @@ class ArchiveFinder:
             paper_result['title'] = paper.get('title')
             paper_result['search_sources'] = paper.get('search_sources', [])
             
+            # Get journal and date from CrossRef
+            metadata = self.get_paper_metadata(doi)
+            paper_result['journal'] = metadata.get('journal')
+            paper_result['date'] = metadata.get('date')
+            
             # Track papers with and without dataset references
             if paper_result.get('archives'):
                 result['results'].append(paper_result)
                 papers_with_datasets += 1
+                
+                archives_in_paper = list(paper_result['archives'].keys())
+                
+                # Track by archive
+                for archive_name in archives_in_paper:
+                    if archive_name not in papers_by_archive:
+                        papers_by_archive[archive_name] = 0
+                    papers_by_archive[archive_name] += 1
+                    
+                    # Track unique dataset IDs per archive
+                    if archive_name not in datasets_by_archive:
+                        datasets_by_archive[archive_name] = set()
+                    for dataset_id in paper_result['archives'][archive_name].get('dataset_ids', []):
+                        datasets_by_archive[archive_name].add(dataset_id)
+                
+                # Track papers exclusive to one archive
+                if len(archives_in_paper) == 1:
+                    archive_name = archives_in_paper[0]
+                    if archive_name not in papers_exclusive_to_archive:
+                        papers_exclusive_to_archive[archive_name] = 0
+                    papers_exclusive_to_archive[archive_name] += 1
             else:
                 # Store DOI of papers without datasets with content info
                 # Include which archive search returned this paper
@@ -1740,6 +1836,11 @@ class ArchiveFinder:
                 time.sleep(1)
         
         result['query_metadata']['papers_with_datasets'] = papers_with_datasets
+        result['query_metadata']['papers_by_archive'] = papers_by_archive
+        result['query_metadata']['papers_exclusive_to_archive'] = papers_exclusive_to_archive
+        result['query_metadata']['unique_datasets_by_archive'] = {
+            archive: len(ids) for archive, ids in datasets_by_archive.items()
+        }
         
         return result
 
