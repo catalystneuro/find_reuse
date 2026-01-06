@@ -120,6 +120,10 @@ ARCHIVE_PATTERNS = {
         (r'DANDI\s+ID#[:\s]+(\d{6})', 'id_hash_format'),
         # "DANDI Archive ID: 000467" format (seen in Current Biology papers)
         (r'DANDI\s+Archive\s+ID[:\s]+(\d{6})', 'archive_id'),
+        # "DANDI (dataset IDs: 000209 and 000020)" format (seen in iScience papers)
+        (r'DANDI\s*\(dataset\s+IDs?:?\s*(\d{6})', 'dataset_ids_paren'),
+        # Capture additional IDs after "and" within DANDI parentheses
+        (r'DANDI\s*\([^)]*\band\s+(\d{6})\)', 'dataset_ids_paren_and'),
     ],
     'OpenNeuro': [
         # DOI format: 10.18112/openneuro.ds000001
