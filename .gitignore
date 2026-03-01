@@ -12,6 +12,7 @@ venv/
 
 # Classification cache
 .classification_cache/
+.direct_ref_cache/
 
 # Paper text cache
 .paper_cache/
