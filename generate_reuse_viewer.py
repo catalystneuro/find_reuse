@@ -154,6 +154,18 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
         .dataset-section.expanded .dataset-papers { display: block; }
 
         .no-results { text-align: center; padding: 40px; color: #7f8c8d; }
+        .pagination {
+            display: flex; justify-content: center; align-items: center; gap: 6px;
+            margin-top: 16px; padding: 10px; flex-wrap: wrap;
+        }
+        .pagination button {
+            padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px;
+            background: white; cursor: pointer; font-size: 0.9em; color: #2c3e50;
+        }
+        .pagination button:hover { background: #ecf0f1; }
+        .pagination button.active { background: #3498db; color: white; border-color: #3498db; }
+        .pagination button:disabled { opacity: 0.4; cursor: default; }
+        .pagination .page-info { font-size: 0.85em; color: #7f8c8d; margin: 0 8px; }
         @media (max-width: 768px) {
             .paper-header { flex-direction: column; align-items: flex-start; }
             .badge { margin-top: 8px; }
@@ -182,6 +194,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             </span>
         </div>
         <div class="paper-list" id="paperList"></div>
+        <div class="pagination" id="paperPagination"></div>
     </div>
 
     <div class="tab-content" id="tab-datasets">
@@ -189,6 +202,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             <input type="text" class="search-box" id="dsSearch" placeholder="Search by dataset ID or name...">
         </div>
         <div id="datasetList"></div>
+        <div class="pagination" id="datasetPagination"></div>
     </div>
 
     <script>
@@ -297,51 +311,111 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             document.getElementById('summary').innerHTML = html;
         }
 
+        // Pagination helper
+        const PAGE_SIZE = 50;
+
+        function renderPaginationControls(containerId, totalItems, currentPage, onPageChange) {
+            const el = document.getElementById(containerId);
+            const totalPages = Math.ceil(totalItems / PAGE_SIZE);
+            if (totalPages <= 1) { el.innerHTML = ''; return; }
+            const start = currentPage * PAGE_SIZE + 1;
+            const end = Math.min((currentPage + 1) * PAGE_SIZE, totalItems);
+            let html = '';
+            html += `<button ${currentPage === 0 ? 'disabled' : ''} onclick="${onPageChange}(0)">&#171;</button>`;
+            html += `<button ${currentPage === 0 ? 'disabled' : ''} onclick="${onPageChange}(${currentPage - 1})">&#8249;</button>`;
+            // Show page buttons with ellipsis
+            const maxButtons = 7;
+            let pages = [];
+            if (totalPages <= maxButtons) {
+                for (let i = 0; i < totalPages; i++) pages.push(i);
+            } else {
+                pages.push(0);
+                let lo = Math.max(1, currentPage - 2);
+                let hi = Math.min(totalPages - 2, currentPage + 2);
+                if (lo <= 2) { lo = 1; hi = Math.max(hi, 5); }
+                if (hi >= totalPages - 3) { hi = totalPages - 2; lo = Math.min(lo, totalPages - 6); }
+                lo = Math.max(1, lo); hi = Math.min(totalPages - 2, hi);
+                if (lo > 1) pages.push(-1);
+                for (let i = lo; i <= hi; i++) pages.push(i);
+                if (hi < totalPages - 2) pages.push(-1);
+                pages.push(totalPages - 1);
+            }
+            pages.forEach(pg => {
+                if (pg === -1) { html += '<span style="color:#95a5a6">...</span>'; return; }
+                html += `<button class="${pg === currentPage ? 'active' : ''}" onclick="${onPageChange}(${pg})">${pg + 1}</button>`;
+            });
+            html += `<button ${currentPage >= totalPages - 1 ? 'disabled' : ''} onclick="${onPageChange}(${currentPage + 1})">&#8250;</button>`;
+            html += `<button ${currentPage >= totalPages - 1 ? 'disabled' : ''} onclick="${onPageChange}(${totalPages - 1})">&#187;</button>`;
+            html += `<span class="page-info">${start}-${end} of ${totalItems}</span>`;
+            el.innerHTML = html;
+        }
+
         // Papers tab
-        function renderPapers(items) {
-            const list = document.getElementById('paperList');
-            if (!items.length) { list.innerHTML = '<div class="no-results">No papers match your filters</div>'; return; }
-            list.innerHTML = items.map((p, i) => {
-                const cls = clsKey(p.classification);
-                const title = p.citing_title || p.citing_doi || 'Unknown';
-                const excerpts = (p.context_excerpts || []).map((e, ei) => {
-                    const highlighted = highlightRef(escapeHtml(e.text || ''), e);
-                    const plain = escapeHtml(e.text || '');
-                    const LIMIT = 250;
-                    if (plain.length <= LIMIT) {
-                        return `<div class="context-excerpt"><div class="context-method">Found via: ${escapeHtml(e.method || 'unknown')}</div>${highlighted}</div>`;
-                    }
-                    const truncated = plain.slice(0, LIMIT) + '…';
-                    const eid = `exc-${i}-${ei}`;
-                    return `<div class="context-excerpt"><div class="context-method">Found via: ${escapeHtml(e.method || 'unknown')}</div><div class="excerpt-preview" id="${eid}" onclick="toggleExcerpt('${eid}')"><span class="excerpt-truncated">${truncated} <span class="excerpt-toggle">▶ Show all</span></span><span class="excerpt-full">${highlighted} <span class="excerpt-toggle">▲ Show less</span></span></div></div>`;
-                }).join('');
-                return `
-                <div class="paper-card" data-cls="${(p.classification||'').toUpperCase()}" data-idx="${i}">
-                    <div class="paper-header" onclick="toggleCard(${i})">
-                        <div class="paper-info">
-                            <div class="paper-title"><a href="https://doi.org/${p.citing_doi}" target="_blank">${escapeHtml(title)}</a></div>
-                            <div class="paper-doi"><a href="https://doi.org/${p.citing_doi}" target="_blank">${p.citing_doi}</a></div>
-                            <div class="paper-meta">
-                                Dataset: <a href="https://dandiarchive.org/dandiset/${p.dandiset_id}" target="_blank">${p.dandiset_id}</a>
-                                ${p.citing_journal ? ' | ' + escapeHtml(p.citing_journal) : ''}
-                                ${p.citing_date ? ' | ' + p.citing_date : ''}
-                                ${p.num_contexts != null ? ' | ' + p.num_contexts + ' context(s)' : ''}
-                            </div>
-                        </div>
-                        <span class="badge ${cls}">${(p.classification || 'Neither').replace(/_/g, ' ')}</span>${labBadge(p)}
-                        <span class="expand-icon">&#9660;</span>
-                    </div>
-                    <div class="paper-details">
-                        ${p.reasoning ? `<div class="reasoning"><strong>Reasoning</strong>${p.confidence != null ? `<span class="confidence ${confClass(p.confidence)}">${p.confidence}/10</span>` : ''}<br>${escapeHtml(p.reasoning)}</div>` : ''}
-                        <div class="paper-meta">Cited paper: <a href="https://doi.org/${p.cited_doi}" target="_blank">${p.cited_doi}</a></div>
-                        ${excerpts ? `<div style="margin-top:10px"><strong>Context Excerpts:</strong>${excerpts}</div>` : ''}
-                    </div>
-                </div>`;
+        let currentPaperPage = 0;
+        let currentFilteredPapers = [];
+
+        function renderPaperCard(p, globalIdx) {
+            const cls = clsKey(p.classification);
+            const title = p.citing_title || p.citing_doi || 'Unknown';
+            const excerpts = (p.context_excerpts || []).map((e, ei) => {
+                const highlighted = highlightRef(escapeHtml(e.text || ''), e);
+                const plain = escapeHtml(e.text || '');
+                const LIMIT = 250;
+                if (plain.length <= LIMIT) {
+                    return `<div class="context-excerpt"><div class="context-method">Found via: ${escapeHtml(e.method || 'unknown')}</div>${highlighted}</div>`;
+                }
+                const truncated = plain.slice(0, LIMIT) + '...';
+                const eid = `exc-${globalIdx}-${ei}`;
+                return `<div class="context-excerpt"><div class="context-method">Found via: ${escapeHtml(e.method || 'unknown')}</div><div class="excerpt-preview" id="${eid}" onclick="toggleExcerpt('${eid}')"><span class="excerpt-truncated">${truncated} <span class="excerpt-toggle">&#9654; Show all</span></span><span class="excerpt-full">${highlighted} <span class="excerpt-toggle">&#9650; Show less</span></span></div></div>`;
             }).join('');
+            return `
+            <div class="paper-card" data-cls="${(p.classification||'').toUpperCase()}" data-idx="${globalIdx}">
+                <div class="paper-header" onclick="toggleCard(${globalIdx})">
+                    <div class="paper-info">
+                        <div class="paper-title"><a href="https://doi.org/${p.citing_doi}" target="_blank">${escapeHtml(title)}</a></div>
+                        <div class="paper-doi"><a href="https://doi.org/${p.citing_doi}" target="_blank">${p.citing_doi}</a></div>
+                        <div class="paper-meta">
+                            Dataset: <a href="https://dandiarchive.org/dandiset/${p.dandiset_id}" target="_blank">${p.dandiset_id}</a>
+                            ${p.citing_journal ? ' | ' + escapeHtml(p.citing_journal) : ''}
+                            ${p.citing_date ? ' | ' + p.citing_date : ''}
+                            ${p.num_contexts != null ? ' | ' + p.num_contexts + ' context(s)' : ''}
+                        </div>
+                    </div>
+                    <span class="badge ${cls}">${(p.classification || 'Neither').replace(/_/g, ' ')}</span>${labBadge(p)}
+                    <span class="expand-icon">&#9660;</span>
+                </div>
+                <div class="paper-details">
+                    ${p.reasoning ? `<div class="reasoning"><strong>Reasoning</strong>${p.confidence != null ? `<span class="confidence ${confClass(p.confidence)}">${p.confidence}/10</span>` : ''}<br>${escapeHtml(p.reasoning)}</div>` : ''}
+                    <div class="paper-meta">Cited paper: <a href="https://doi.org/${p.cited_doi}" target="_blank">${p.cited_doi}</a></div>
+                    ${excerpts ? `<div style="margin-top:10px"><strong>Context Excerpts:</strong>${excerpts}</div>` : ''}
+                </div>
+            </div>`;
+        }
+
+        function renderPapers(items, page) {
+            if (page == null) page = 0;
+            currentFilteredPapers = items;
+            currentPaperPage = page;
+            const list = document.getElementById('paperList');
+            if (!items.length) {
+                list.innerHTML = '<div class="no-results">No papers match your filters</div>';
+                document.getElementById('paperPagination').innerHTML = '';
+                return;
+            }
+            const start = page * PAGE_SIZE;
+            const pageItems = items.slice(start, start + PAGE_SIZE);
+            list.innerHTML = pageItems.map((p, i) => renderPaperCard(p, start + i)).join('');
+            renderPaginationControls('paperPagination', items.length, page, 'goToPaperPage');
+        }
+
+        function goToPaperPage(page) {
+            renderPapers(currentFilteredPapers, page);
+            document.getElementById('tab-papers').scrollIntoView({behavior: 'smooth'});
         }
 
         function toggleCard(i) {
-            document.querySelector(`[data-idx="${i}"]`).classList.toggle('expanded');
+            const el = document.querySelector(`[data-idx="${i}"]`);
+            if (el) el.classList.toggle('expanded');
         }
 
         function toggleExcerpt(eid) {
@@ -366,7 +440,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 }
                 return true;
             });
-            renderPapers(filtered);
+            renderPapers(filtered, 0);
         }
 
         document.getElementById('search').addEventListener('input', filterPapers);
@@ -389,42 +463,64 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             });
         }
 
-        function renderDatasets(groups) {
-            const el = document.getElementById('datasetList');
-            if (!groups.length) { el.innerHTML = '<div class="no-results">No datasets match</div>'; return; }
-            el.innerHTML = groups.map((g, gi) => {
-                const reuse = g.papers.filter(p => isReuse(p.classification)).length;
-                const mention = g.papers.filter(p => p.classification === 'MENTION').length;
-                const other = g.papers.length - reuse - mention;
-                const paperCards = g.papers.map((p, pi) => {
-                    const cls = clsKey(p.classification);
-                    const title = p.citing_title || p.citing_doi;
-                    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f0f0f0">
-                        <div><a href="https://doi.org/${p.citing_doi}" target="_blank" style="color:#2c3e50;text-decoration:none;font-size:0.9em">${escapeHtml(title)}</a></div>
-                        <div><span class="badge ${cls}" style="font-size:0.7em;padding:3px 8px">${(p.classification||'').replace(/_/g,' ')}</span>${labBadge(p)}</div>
-                    </div>`;
-                }).join('');
-                return `
-                <div class="dataset-section" data-dsi="${gi}">
-                    <div class="dataset-header" onclick="toggleDs(${gi})">
-                        <div>
-                            <span class="dataset-name">${escapeHtml(g.name || g.id)}</span>
-                            <span class="dataset-id"> - <a href="https://dandiarchive.org/dandiset/${g.id}" target="_blank">${g.id}</a></span>
-                        </div>
-                        <div class="dataset-stats">
-                            <span class="stat-chip reuse">${reuse} reuse</span>
-                            <span class="stat-chip mention">${mention} mention</span>
-                            ${other ? `<span class="stat-chip other">${other} other</span>` : ''}
-                            <span style="color:#95a5a6">(${g.papers.length} total)</span>
-                        </div>
-                    </div>
-                    <div class="dataset-papers">${paperCards}</div>
+        let currentDatasetPage = 0;
+        let currentFilteredDatasets = [];
+        const DS_PAGE_SIZE = 25;
+
+        function renderDatasetCard(g, gi) {
+            const reuse = g.papers.filter(p => isReuse(p.classification)).length;
+            const mention = g.papers.filter(p => p.classification === 'MENTION').length;
+            const other = g.papers.length - reuse - mention;
+            const paperCards = g.papers.map((p, pi) => {
+                const cls = clsKey(p.classification);
+                const title = p.citing_title || p.citing_doi;
+                return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f0f0f0">
+                    <div><a href="https://doi.org/${p.citing_doi}" target="_blank" style="color:#2c3e50;text-decoration:none;font-size:0.9em">${escapeHtml(title)}</a></div>
+                    <div><span class="badge ${cls}" style="font-size:0.7em;padding:3px 8px">${(p.classification||'').replace(/_/g,' ')}</span>${labBadge(p)}</div>
                 </div>`;
             }).join('');
+            return `
+            <div class="dataset-section" data-dsi="${gi}">
+                <div class="dataset-header" onclick="toggleDs(${gi})">
+                    <div>
+                        <span class="dataset-name">${escapeHtml(g.name || g.id)}</span>
+                        <span class="dataset-id"> - <a href="https://dandiarchive.org/dandiset/${g.id}" target="_blank">${g.id}</a></span>
+                    </div>
+                    <div class="dataset-stats">
+                        <span class="stat-chip reuse">${reuse} reuse</span>
+                        <span class="stat-chip mention">${mention} mention</span>
+                        ${other ? `<span class="stat-chip other">${other} other</span>` : ''}
+                        <span style="color:#95a5a6">(${g.papers.length} total)</span>
+                    </div>
+                </div>
+                <div class="dataset-papers">${paperCards}</div>
+            </div>`;
+        }
+
+        function renderDatasets(groups, page) {
+            if (page == null) page = 0;
+            currentFilteredDatasets = groups;
+            currentDatasetPage = page;
+            const el = document.getElementById('datasetList');
+            if (!groups.length) {
+                el.innerHTML = '<div class="no-results">No datasets match</div>';
+                document.getElementById('datasetPagination').innerHTML = '';
+                return;
+            }
+            const start = page * DS_PAGE_SIZE;
+            const pageGroups = groups.slice(start, start + DS_PAGE_SIZE);
+            el.innerHTML = pageGroups.map((g, i) => renderDatasetCard(g, start + i)).join('');
+            renderPaginationControls('datasetPagination', groups.length, page, 'goToDatasetPage');
+        }
+
+        function goToDatasetPage(page) {
+            renderDatasets(currentFilteredDatasets, page);
+            document.getElementById('tab-datasets').scrollIntoView({behavior: 'smooth'});
         }
 
         function toggleDs(i) {
-            document.querySelector(`[data-dsi="${i}"]`).classList.toggle('expanded');
+            const el = document.querySelector(`[data-dsi="${i}"]`);
+            if (el) el.classList.toggle('expanded');
         }
 
         function filterDatasets() {
@@ -433,7 +529,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 if (!q) return true;
                 return (g.id + ' ' + g.name).toLowerCase().includes(q);
             });
-            renderDatasets(groups);
+            renderDatasets(groups, 0);
         }
         document.getElementById('dsSearch').addEventListener('input', filterDatasets);
 
@@ -453,7 +549,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
         // Init
         renderSummary();
-        renderPapers(classifications);
+        renderPapers(classifications, 0);
     </script>
 </body>
 </html>'''

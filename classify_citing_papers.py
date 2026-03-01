@@ -187,6 +187,10 @@ def classify_single_paper(
         cached = get_cached_classification(citing_doi, cited_doi)
         if cached:
             cached['from_cache'] = True
+            # Always update dandiset_name from current data (may have been
+            # missing when originally cached)
+            if dandiset_name and not cached.get('dandiset_name'):
+                cached['dandiset_name'] = dandiset_name
             return cached
 
     result = {
