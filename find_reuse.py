@@ -35,11 +35,11 @@ except ImportError:
     PLAYWRIGHT_AVAILABLE = False
 
 
-# Cache directory for storing paper full text
-CACHE_DIR = Path(__file__).parent / '.paper_cache'
+# Default cache directory for storing paper full text
+DEFAULT_CACHE_DIR = Path(__file__).parent / '.paper_cache'
 
-# Cache directory for preprint-publication links
-PREPRINT_CACHE_DIR = Path(__file__).parent / '.preprint_cache'
+# Default cache directory for preprint-publication links
+DEFAULT_PREPRINT_CACHE_DIR = Path(__file__).parent / '.preprint_cache'
 
 
 # Data descriptor journal DOI patterns - journals that primarily publish dataset descriptions
@@ -175,8 +175,8 @@ ARCHIVE_PATTERNS = {
 
 class ArchiveFinder:
     """Find dataset references from multiple archives in papers."""
-    
-    def __init__(self, verbose: bool = False, use_cache: bool = True, follow_references: bool = False):
+
+    def __init__(self, verbose: bool = False, use_cache: bool = True, follow_references: bool = False, cache_dir: str | Path | None = None):
         self.verbose = verbose
         self.use_cache = use_cache
         self.follow_references = follow_references
@@ -184,17 +184,25 @@ class ArchiveFinder:
         self.session.headers.update({
             'User-Agent': 'ArchiveFinder/1.0 (https://github.com/dandi; mailto:ben.dichter@catalystneuro.com)'
         })
-        
+
+        # Set cache directories
+        if cache_dir:
+            self.cache_dir = Path(cache_dir)
+            self.preprint_cache_dir = self.cache_dir / 'preprint_cache'
+        else:
+            self.cache_dir = DEFAULT_CACHE_DIR
+            self.preprint_cache_dir = DEFAULT_PREPRINT_CACHE_DIR
+
         # Ensure cache directories exist
         if self.use_cache:
-            CACHE_DIR.mkdir(exist_ok=True)
-            PREPRINT_CACHE_DIR.mkdir(exist_ok=True)
-    
+            self.cache_dir.mkdir(parents=True, exist_ok=True)
+            self.preprint_cache_dir.mkdir(parents=True, exist_ok=True)
+
     def _get_cache_path(self, doi: str) -> Path:
         """Get cache file path for a DOI."""
         # Sanitize DOI for use as filename (replace / and other unsafe chars)
         safe_doi = doi.replace('/', '_').replace(':', '_').replace('\\', '_')
-        return CACHE_DIR / f"{safe_doi}.json"
+        return self.cache_dir / f"{safe_doi}.json"
     
     def _get_cached_text(self, doi: str) -> Optional[tuple[str, str]]:
         """Get cached paper text if available."""
@@ -237,7 +245,7 @@ class ArchiveFinder:
     def _get_preprint_cache_path(self, doi: str) -> Path:
         """Get cache file path for preprint lookup."""
         safe_doi = doi.replace('/', '_').replace(':', '_').replace('\\', '_')
-        return PREPRINT_CACHE_DIR / f"{safe_doi}.json"
+        return self.preprint_cache_dir / f"{safe_doi}.json"
     
     def get_published_version(self, preprint_doi: str) -> Optional[dict]:
         """
@@ -1350,7 +1358,7 @@ class ArchiveFinder:
     def get_paper_text(self, doi: str) -> tuple[Optional[str], str, bool]:
         """
         Get paper text from multiple sources.
-        
+
         Returns tuple of (text, source_name, from_cache) or (None, '', False) if not found.
         Combines text from multiple sources to maximize coverage.
         """
@@ -1358,93 +1366,113 @@ class ArchiveFinder:
         cached = self._get_cached_text(doi)
         if cached and cached[0]:
             return cached[0], cached[1], True
-        
+
         text_parts = []
         sources_used = []
         pmcid = None  # Track PMCID for potential Playwright fallback
-        
-        # Try Europe PMC first (returns tuple of text, pmcid)
-        text, europe_pmc_pmcid = self.get_text_from_europe_pmc(doi)
-        if europe_pmc_pmcid:
-            pmcid = europe_pmc_pmcid  # Save PMCID even if text fetch failed
-        if text and len(text) > 100:
-            self.log(f"Got text from europe_pmc ({len(text)} chars)")
-            text_parts.append(text)
-            sources_used.append('europe_pmc')
-        else:
-            time.sleep(0.5)
-            # Try NCBI PMC (returns tuple with pmcid)
-            text, ncbi_pmcid = self.get_text_from_pmc(doi)
-            if ncbi_pmcid:
-                pmcid = ncbi_pmcid
-            if text and len(text) > 100:
-                self.log(f"Got text from ncbi_pmc ({len(text)} chars)")
-                text_parts.append(text)
-                sources_used.append('ncbi_pmc')
-            time.sleep(0.5)
-        
-        # Always try CrossRef for references (they often contain DANDI DOIs)
-        crossref_text = self.get_text_from_crossref(doi)
-        if crossref_text and len(crossref_text) > 100:
-            self.log(f"Got text from crossref ({len(crossref_text)} chars)")
-            text_parts.append(crossref_text)
-            if 'crossref' not in sources_used:
-                sources_used.append('crossref')
-        time.sleep(0.5)
-        
-        # If PMC text is short (might be missing data availability section), try Playwright
-        # PMC author manuscripts often have incomplete text via API
-        MIN_PMC_TEXT_FOR_COMPLETENESS = 15000  # Full papers are usually > 15k chars
-        pmc_text_length = len(text_parts[0]) if text_parts and sources_used and sources_used[0] in ('europe_pmc', 'ncbi_pmc') else 0
-        
-        if pmc_text_length > 0 and pmc_text_length < MIN_PMC_TEXT_FOR_COMPLETENESS:
-            # If we don't have PMCID from ncbi_pmc, get it now
-            if not pmcid:
-                pmcid = self.get_pmcid_for_doi(doi)
-            if pmcid:
-                self.log(f"PMC text seems short ({pmc_text_length} chars), trying Playwright for {pmcid}")
-                playwright_text = self.get_text_from_pmc_playwright(pmcid)
-                if playwright_text and len(playwright_text) > pmc_text_length:
-                    self.log(f"Got better text from PMC Playwright ({len(playwright_text)} chars vs {pmc_text_length})")
-                    # Replace the PMC API text with Playwright text
-                    text_parts[0] = playwright_text
-                    sources_used[0] = 'pmc_playwright'
-        
-        # If we don't have PMC full text, try other sources
-        if not sources_used or sources_used == ['crossref']:
-            # For bioRxiv/medRxiv preprints, try Playwright first
-            if self.is_preprint_doi(doi):
-                playwright_text = self.get_text_from_biorxiv_playwright(doi)
-                if playwright_text and len(playwright_text) > 1000:
-                    self.log(f"Got text from Playwright ({len(playwright_text)} chars)")
-                    text_parts.append(playwright_text)
-                    sources_used.append('playwright_biorxiv')
-            
-            # Try scraping publisher HTML as fallback
+
+        # For bioRxiv/medRxiv preprints (10.1101/...), use dedicated method first
+        if self.is_preprint_doi(doi):
+            self.log(f"Preprint DOI detected, trying bioRxiv/medRxiv Playwright first: {doi}")
+            playwright_text = self.get_text_from_biorxiv_playwright(doi)
+            if playwright_text and len(playwright_text) > 1000:
+                self.log(f"Got text from bioRxiv Playwright ({len(playwright_text)} chars)")
+                text_parts.append(playwright_text)
+                sources_used.append('playwright_biorxiv')
+
+            # Also try CrossRef for references
+            crossref_text = self.get_text_from_crossref(doi)
+            if crossref_text and len(crossref_text) > 100:
+                self.log(f"Got text from crossref ({len(crossref_text)} chars)")
+                text_parts.append(crossref_text)
+                if 'crossref' not in sources_used:
+                    sources_used.append('crossref')
+
+            # If bioRxiv Playwright failed, try Europe PMC (some preprints are indexed there)
             if not sources_used or sources_used == ['crossref']:
+                text, europe_pmc_pmcid = self.get_text_from_europe_pmc(doi)
+                if text and len(text) > 100:
+                    self.log(f"Got text from europe_pmc ({len(text)} chars)")
+                    text_parts.insert(0, text)  # Insert at beginning
+                    sources_used.insert(0, 'europe_pmc')
+        else:
+            # For non-preprint DOIs, try Europe PMC first (returns tuple of text, pmcid)
+            text, europe_pmc_pmcid = self.get_text_from_europe_pmc(doi)
+            if europe_pmc_pmcid:
+                pmcid = europe_pmc_pmcid  # Save PMCID even if text fetch failed
+            if text and len(text) > 100:
+                self.log(f"Got text from europe_pmc ({len(text)} chars)")
+                text_parts.append(text)
+                sources_used.append('europe_pmc')
+            else:
+                time.sleep(0.5)
+                # Try NCBI PMC (returns tuple with pmcid)
+                text, ncbi_pmcid = self.get_text_from_pmc(doi)
+                if ncbi_pmcid:
+                    pmcid = ncbi_pmcid
+                if text and len(text) > 100:
+                    self.log(f"Got text from ncbi_pmc ({len(text)} chars)")
+                    text_parts.append(text)
+                    sources_used.append('ncbi_pmc')
+                time.sleep(0.5)
+
+            # Always try CrossRef for references (they often contain DANDI DOIs)
+            crossref_text = self.get_text_from_crossref(doi)
+            if crossref_text and len(crossref_text) > 100:
+                self.log(f"Got text from crossref ({len(crossref_text)} chars)")
+                text_parts.append(crossref_text)
+                if 'crossref' not in sources_used:
+                    sources_used.append('crossref')
+            time.sleep(0.5)
+
+            # If PMC text is short (might be missing data availability section), try Playwright
+            # PMC author manuscripts often have incomplete text via API
+            MIN_PMC_TEXT_FOR_COMPLETENESS = 15000  # Full papers are usually > 15k chars
+            pmc_text_length = len(text_parts[0]) if text_parts and sources_used and sources_used[0] in ('europe_pmc', 'ncbi_pmc') else 0
+
+            if pmc_text_length > 0 and pmc_text_length < MIN_PMC_TEXT_FOR_COMPLETENESS:
+                # If we don't have PMCID from ncbi_pmc, get it now
+                if not pmcid:
+                    pmcid = self.get_pmcid_for_doi(doi)
+                if pmcid:
+                    self.log(f"PMC text seems short ({pmc_text_length} chars), trying Playwright for {pmcid}")
+                    playwright_text = self.get_text_from_pmc_playwright(pmcid)
+                    if playwright_text and len(playwright_text) > pmc_text_length:
+                        self.log(f"Got better text from PMC Playwright ({len(playwright_text)} chars vs {pmc_text_length})")
+                        # Replace the PMC API text with Playwright text
+                        text_parts[0] = playwright_text
+                        sources_used[0] = 'pmc_playwright'
+
+            # If we don't have PMC full text, try other sources
+            if not sources_used or sources_used == ['crossref']:
+                # Try scraping publisher HTML as fallback
                 publisher_text = self.get_text_from_publisher_html(doi)
                 if publisher_text and len(publisher_text) > 1000:
                     self.log(f"Got text from publisher ({len(publisher_text)} chars)")
                     text_parts.append(publisher_text)
                     sources_used.append('publisher_html')
-            
-            # If publisher HTML failed (e.g., Cloudflare) but we have a PMCID, try PMC Playwright
-            # This works for journals like JNeurosci that block scraping but have PMC copies
-            if (not sources_used or sources_used == ['crossref']) and pmcid:
-                self.log(f"Publisher blocked, trying PMC Playwright for {pmcid}")
-                pmc_playwright_text = self.get_text_from_pmc_playwright(pmcid)
-                if pmc_playwright_text and len(pmc_playwright_text) > 1000:
-                    self.log(f"Got text from PMC Playwright ({len(pmc_playwright_text)} chars)")
-                    text_parts.append(pmc_playwright_text)
-                    sources_used.append('pmc_playwright')
+
+                # If publisher HTML failed (e.g., Cloudflare) but we have a PMCID, try PMC Playwright
+                # This works for journals like JNeurosci that block scraping but have PMC copies
+                if (not sources_used or sources_used == ['crossref']) and pmcid:
+                    self.log(f"Publisher blocked, trying PMC Playwright for {pmcid}")
+                    pmc_playwright_text = self.get_text_from_pmc_playwright(pmcid)
+                    if pmc_playwright_text and len(pmc_playwright_text) > 1000:
+                        self.log(f"Got text from PMC Playwright ({len(pmc_playwright_text)} chars)")
+                        text_parts.append(pmc_playwright_text)
+                        sources_used.append('pmc_playwright')
         
         if text_parts:
             combined_text = '\n\n'.join(text_parts)
             source_str = '+'.join(sources_used)
-            # Cache the result
-            self._cache_text(doi, combined_text, source_str)
+            # Only cache if we have more than just crossref metadata
+            # Crossref-only results are not useful for finding dataset references
+            if sources_used != ['crossref']:
+                self._cache_text(doi, combined_text, source_str)
+            else:
+                self.log(f"Skipping cache for crossref-only result: {doi}")
             return combined_text, source_str, False
-        
+
         return None, '', False
     
     def find_references(self, doi: str) -> tuple[dict, bool]:

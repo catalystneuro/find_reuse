@@ -26,10 +26,19 @@ Usage:
     python dandi_primary_papers.py --all-relations
     python dandi_primary_papers.py --citations -o results.json  # Include citation counts
     python dandi_primary_papers.py --citations --summary  # Show citation summary
+    python dandi_primary_papers.py --fetch-text -o results.json  # Fetch citing paper texts
+    python dandi_primary_papers.py --fetch-text --max-citing-papers 5  # Limit per dandiset
 
 Citation counts include:
 - Total citations (all time) from OpenAlex
 - Citations after dandiset creation (potential reuse indicators)
+
+Citing paper text fetching (--fetch-text):
+- Gets papers that cite the primary papers after dandiset creation (potential reuse)
+- Uses find_reuse.ArchiveFinder to fetch full text from multiple sources
+- Sources include Europe PMC, NCBI PMC, CrossRef, bioRxiv/medRxiv, publisher HTML
+- Results are cached to avoid repeated fetches
+- Limited to --max-citing-papers per dandiset (default: 10)
 """
 
 import argparse
@@ -241,42 +250,6 @@ def extract_doi_from_resource(resource: dict) -> Optional[str]:
     return None
 
 
-def get_dandiset_creation_dates(
-    session: requests.Session,
-    dandiset_ids: list[str],
-    show_progress: bool = True
-) -> dict[str, str]:
-    """
-    Fetch creation dates for a list of dandisets.
-
-    Args:
-        session: requests Session object
-        dandiset_ids: List of dandiset identifiers
-        show_progress: Whether to show progress bar
-
-    Returns:
-        Dictionary mapping dandiset_id to creation date (ISO format string)
-    """
-    from datetime import datetime
-
-    creation_dates = {}
-    pbar = tqdm(dandiset_ids, desc="Fetching dandiset creation dates", disable=not show_progress)
-
-    for ds_id in pbar:
-        try:
-            resp = session.get(f"{DANDI_API_URL}/dandisets/{ds_id}/", timeout=10)
-            if resp.status_code == 200:
-                data = resp.json()
-                created_str = data.get('created', '')
-                if created_str:
-                    creation_dates[ds_id] = created_str
-        except requests.RequestException:
-            pass
-        time.sleep(0.02)
-
-    return creation_dates
-
-
 def get_openalex_paper_data(
     session: requests.Session,
     doi: str
@@ -358,9 +331,10 @@ def add_citation_counts(
     Add citation counts to the paper relations in results.
 
     Fetches:
-    - Dandiset creation dates
     - Paper publication dates and total citation counts from OpenAlex
     - Citation counts filtered to only include papers published after dandiset creation
+
+    Note: dandiset_created is already populated by find_dandisets_with_primary_papers()
 
     Args:
         results: List of results from find_dandisets_with_primary_papers
@@ -377,11 +351,7 @@ def add_citation_counts(
         'User-Agent': 'DANDIPrimaryPapers/1.0 (https://github.com/dandi; mailto:ben.dichter@catalystneuro.com)'
     })
 
-    # Step 1: Get dandiset creation dates
-    dandiset_ids = [r['dandiset_id'] for r in results]
-    creation_dates = get_dandiset_creation_dates(session, dandiset_ids, show_progress)
-
-    # Step 2: Get OpenAlex data for all unique DOIs
+    # Step 1: Get OpenAlex data for all unique DOIs
     all_dois = set()
     for result in results:
         for paper in result['paper_relations']:
@@ -398,24 +368,21 @@ def add_citation_counts(
             doi_data[doi] = data
         time.sleep(rate_limit)
 
-    # Step 3: For each paper, get citations after dandiset creation
+    # Step 2: For each paper, get citations after dandiset creation
     pbar = tqdm(results, desc="Fetching citations after dandiset creation", disable=not show_progress)
 
     for result in pbar:
         ds_id = result['dandiset_id']
         pbar.set_postfix({'dandiset': ds_id})
 
-        # Parse dandiset creation date
-        ds_created_str = creation_dates.get(ds_id)
+        # Parse dandiset creation date (already populated by find_dandisets_with_primary_papers)
+        ds_created_str = result.get('dandiset_created')
         ds_created = None
         if ds_created_str:
             try:
                 ds_created = datetime.fromisoformat(ds_created_str.replace('Z', '+00:00'))
-                result['dandiset_created'] = ds_created_str
             except ValueError:
-                result['dandiset_created'] = None
-        else:
-            result['dandiset_created'] = None
+                pass
 
         total_citations = 0
         total_citations_after = 0
@@ -449,6 +416,229 @@ def add_citation_counts(
 
         result['total_citations'] = total_citations
         result['total_citations_after_created'] = total_citations_after
+
+    return results
+
+
+def get_citing_papers(
+    session: requests.Session,
+    openalex_id: str,
+    after_date: str,
+    max_results: int = 10
+) -> list[dict]:
+    """
+    Get the DOIs and metadata of papers that cite a given paper after a specific date.
+
+    Args:
+        session: requests Session object
+        openalex_id: The OpenAlex ID of the cited paper (e.g., "W123456789")
+        after_date: Date string in YYYY-MM-DD format
+        max_results: Maximum number of citing papers to return
+
+    Returns:
+        List of dicts with DOI, title, publication_date, and openalex_id of citing papers
+    """
+    # Extract just the ID part if full URL
+    if '/' in openalex_id:
+        openalex_id = openalex_id.split('/')[-1]
+
+    url = f"https://api.openalex.org/works?filter=cites:{openalex_id},publication_date:>{after_date}&per_page={max_results}"
+
+    try:
+        resp = session.get(url, timeout=30)
+        if resp.status_code == 200:
+            data = resp.json()
+            citing_papers = []
+            for work in data.get('results', []):
+                doi = work.get('doi', '')
+                if doi:
+                    # Clean up DOI format (OpenAlex returns full URL)
+                    doi = doi.replace('https://doi.org/', '')
+
+                # Get journal/source name from primary_location
+                journal = None
+                primary_location = work.get('primary_location', {})
+                if primary_location:
+                    source = primary_location.get('source', {})
+                    if source:
+                        journal = source.get('display_name')
+
+                citing_papers.append({
+                    'doi': doi,
+                    'title': work.get('title', ''),
+                    'publication_date': work.get('publication_date'),
+                    'journal': journal,
+                    'openalex_id': work.get('id'),
+                })
+            return citing_papers
+    except requests.RequestException:
+        pass
+
+    return []
+
+
+def fetch_citing_paper_texts(
+    results: list[dict],
+    max_citing_papers_per_dandiset: int = 10,
+    max_total_papers: int | None = None,
+    show_progress: bool = True,
+    verbose: bool = False,
+    rate_limit: float = 0.1,
+    cache_dir: str = "/Volumes/microsd64/data/"
+) -> list[dict]:
+    """
+    Fetch full text for papers that cite the primary papers after dandiset creation.
+
+    This function:
+    1. Gets the list of citing papers from OpenAlex (filtered by date)
+    2. Fetches full text for each citing paper using ArchiveFinder
+
+    Requires that add_citation_counts() was called first to populate openalex_id
+    and dandiset_created fields.
+
+    Args:
+        results: List of results from find_dandisets_with_primary_papers (with citations)
+        max_citing_papers_per_dandiset: Maximum citing papers to fetch per dandiset
+        max_total_papers: Maximum total papers to fetch across all dandisets (None = no limit)
+        show_progress: Whether to show progress bars
+        verbose: Whether to show verbose output from ArchiveFinder
+        rate_limit: Delay between API calls in seconds
+        cache_dir: Directory to store cached paper texts
+
+    Returns:
+        Updated results with citing_papers added to each dandiset result
+    """
+    # Import ArchiveFinder from find_reuse module
+    from find_reuse import ArchiveFinder
+
+    finder = ArchiveFinder(verbose=verbose, use_cache=True, cache_dir=cache_dir)
+
+    session = requests.Session()
+    session.headers.update({
+        'User-Agent': 'DANDIPrimaryPapers/1.0 (https://github.com/dandi; mailto:ben.dichter@catalystneuro.com)'
+    })
+
+    # Step 1: Get citing papers for each dandiset
+    pbar = tqdm(results, desc="Fetching citing papers from OpenAlex", disable=not show_progress)
+
+    for result in pbar:
+        ds_id = result['dandiset_id']
+        pbar.set_postfix({'dandiset': ds_id})
+
+        ds_created_str = result.get('dandiset_created')
+        if not ds_created_str:
+            result['citing_papers'] = []
+            continue
+
+        # Parse dandiset creation date to get the filter date
+        try:
+            from datetime import datetime
+            ds_created = datetime.fromisoformat(ds_created_str.replace('Z', '+00:00'))
+            from_date = ds_created.strftime('%Y-%m-%d')
+        except ValueError:
+            result['citing_papers'] = []
+            continue
+
+        # Collect citing papers from all primary papers
+        all_citing = []
+        seen_citing_dois = set()
+
+        for paper in result['paper_relations']:
+            # Need OpenAlex ID to query citing papers
+            # This requires that add_citation_counts was called first
+            # We'll need to fetch OpenAlex ID if not present
+            doi = paper.get('doi')
+            if not doi:
+                continue
+
+            # Get OpenAlex ID for this paper if we don't have it
+            openalex_data = get_openalex_paper_data(session, doi)
+            if not openalex_data or not openalex_data.get('openalex_id'):
+                continue
+
+            openalex_id = openalex_data['openalex_id']
+
+            # Get citing papers
+            citing = get_citing_papers(
+                session, openalex_id, from_date,
+                max_results=max_citing_papers_per_dandiset
+            )
+
+            for c in citing:
+                c_doi = c.get('doi')
+                if c_doi and c_doi not in seen_citing_dois:
+                    c['cited_paper_doi'] = doi  # Track which paper was cited
+                    all_citing.append(c)
+                    seen_citing_dois.add(c_doi)
+
+            time.sleep(rate_limit)
+
+            # Stop if we have enough citing papers
+            if len(all_citing) >= max_citing_papers_per_dandiset:
+                break
+
+        # Limit to max per dandiset
+        result['citing_papers'] = all_citing[:max_citing_papers_per_dandiset]
+
+    # Step 2: Collect all unique citing paper DOIs to fetch
+    all_citing_dois = []
+    seen_dois = set()
+    for result in results:
+        for citing in result.get('citing_papers', []):
+            doi = citing.get('doi')
+            if doi and doi not in seen_dois:
+                all_citing_dois.append(doi)
+                seen_dois.add(doi)
+
+    # Apply max_total_papers limit
+    if max_total_papers is not None and len(all_citing_dois) > max_total_papers:
+        print(f"Found {len(all_citing_dois)} unique citing papers, limiting to {max_total_papers}", file=sys.stderr)
+        all_citing_dois = all_citing_dois[:max_total_papers]
+    else:
+        print(f"Found {len(all_citing_dois)} unique citing papers to fetch", file=sys.stderr)
+
+    # Step 3: Fetch text for all unique citing paper DOIs
+    doi_texts = {}
+    pbar = tqdm(all_citing_dois, desc="Fetching citing paper texts", disable=not show_progress)
+
+    for doi in pbar:
+        pbar.set_postfix({'doi': doi[:40] if len(doi) > 40 else doi})
+        text, source, from_cache = finder.get_paper_text(doi)
+        if text:
+            doi_texts[doi] = {
+                'text': text,
+                'source': source,
+                'text_length': len(text),
+            }
+        else:
+            doi_texts[doi] = {
+                'text': None,
+                'source': None,
+                'text_length': 0,
+                'error': 'Could not retrieve paper text'
+            }
+
+        # Rate limiting - only if we made API calls (not from cache)
+        if not from_cache:
+            time.sleep(0.5)
+
+    # Step 4: Add text metadata to citing papers in results (text is stored in cache files)
+    for result in results:
+        for citing in result.get('citing_papers', []):
+            doi = citing.get('doi')
+            if doi and doi in doi_texts:
+                text_info = doi_texts[doi]
+                # Don't include paper_text in output - it's stored in individual cache files
+                citing['text_source'] = text_info.get('source')
+                citing['text_length'] = text_info.get('text_length', 0)
+                citing['text_cached'] = text_info.get('text') is not None
+                if text_info.get('error'):
+                    citing['text_error'] = text_info['error']
+            else:
+                citing['text_source'] = None
+                citing['text_length'] = 0
+                citing['text_cached'] = False
+                citing['text_error'] = 'No DOI available'
 
     return results
 
@@ -591,6 +781,7 @@ def find_dandisets_with_primary_papers(
                 'dandiset_version': version,
                 'dandiset_url': f"https://dandiarchive.org/dandiset/{ds_id}/{version}",
                 'dandiset_doi': metadata.get('doi'),
+                'dandiset_created': ds.get('created'),  # Populate on first run
                 'contact_person': ds.get('contact_person'),
                 'paper_relations': paper_resources,
             })
@@ -647,6 +838,34 @@ def main():
         action='store_true',
         help='Fetch citation counts from OpenAlex (slower, requires additional API calls)'
     )
+    parser.add_argument(
+        '--fetch-text',
+        action='store_true',
+        help='Fetch full text of citing papers (papers that cite primary papers after dandiset creation)'
+    )
+    parser.add_argument(
+        '--max-citing-papers',
+        type=int,
+        default=10,
+        help='Maximum number of citing papers to fetch per dandiset (default: 10)'
+    )
+    parser.add_argument(
+        '--verbose', '-v',
+        action='store_true',
+        help='Enable verbose output for paper text fetching'
+    )
+    parser.add_argument(
+        '--max-papers',
+        type=int,
+        default=None,
+        help='Maximum total number of citing papers to fetch (default: all)'
+    )
+    parser.add_argument(
+        '--cache-dir',
+        type=str,
+        default='/Volumes/microsd64/data/',
+        help='Directory to store cached paper texts (default: /Volumes/microsd64/data/)'
+    )
 
     args = parser.parse_args()
 
@@ -659,6 +878,20 @@ def main():
     # Optionally fetch citation counts
     if args.citations:
         results = add_citation_counts(results, show_progress=not args.no_progress)
+
+    # Optionally fetch citing paper texts (requires --citations to have dandiset_created)
+    if args.fetch_text:
+        if not args.citations:
+            print("Warning: --fetch-text requires --citations to get dandiset creation dates. Enabling --citations.", file=sys.stderr)
+            results = add_citation_counts(results, show_progress=not args.no_progress)
+        results = fetch_citing_paper_texts(
+            results,
+            max_citing_papers_per_dandiset=args.max_citing_papers,
+            max_total_papers=args.max_papers,
+            show_progress=not args.no_progress,
+            verbose=args.verbose,
+            cache_dir=args.cache_dir
+        )
 
     if args.summary:
         # Print summary

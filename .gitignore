@@ -1,3 +1,4 @@
+.DS_Store
 __pycache__/
 *.pyc
 *.pyo
@@ -11,3 +12,8 @@ venv/
 
 # Paper text cache
 .paper_cache/
+.paper_cache.zip
+.preprint_cache/
+
+# Output results
+output/
