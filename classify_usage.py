@@ -31,6 +31,7 @@ import requests
 
 # Import from find_reuse.py
 from find_reuse import ArchiveFinder, ARCHIVE_PATTERNS, CACHE_DIR
+from llm_utils import get_api_key, call_openrouter_api, parse_json_response
 
 
 # Classification categories
@@ -66,18 +67,7 @@ def log_citation_error(doi: str, error_type: str, details: dict) -> None:
         f.write(json.dumps(entry) + '\n')
 
 
-def get_api_key() -> str:
-    """
-    Get OpenRouter API key from environment.
-
-    Raises ValueError if no API key is found.
-    """
-    api_key = os.environ.get('OPENROUTER_API_KEY')
-    if not api_key:
-        raise ValueError(
-            "No API key found. Set OPENROUTER_API_KEY environment variable."
-        )
-    return api_key
+## get_api_key is imported from llm_utils
 
 
 def find_dandi_mentions_with_positions(text: str) -> list[dict]:
@@ -708,115 +698,7 @@ Respond with ONLY a raw JSON object (no markdown, no code blocks, no extra text)
 {{"classification": "PRIMARY|SECONDARY|NEITHER|UNKNOWN", "confidence": "high|medium|low", "reasoning": "Brief explanation"}}"""
 
 
-def call_openrouter_api(
-    prompt: str,
-    api_key: str,
-    model: str = DEFAULT_MODEL,
-    max_retries: int = 3,
-    return_full_interaction: bool = False,
-) -> dict:
-    """
-    Call OpenRouter API for classification with retry logic.
-
-    Args:
-        prompt: The prompt to send
-        api_key: OpenRouter API key
-        model: Model to use
-        max_retries: Number of retry attempts
-        return_full_interaction: If True, return dict with 'result', 'prompt', 'raw_response'
-
-    Returns:
-        Parsed JSON result, or dict with full interaction if return_full_interaction=True
-    """
-    headers = {
-        'Content-Type': 'application/json',
-        'Authorization': f'Bearer {api_key}',
-    }
-
-    data = {
-        'model': model,
-        'max_tokens': 512,
-        'messages': [
-            {'role': 'user', 'content': prompt}
-        ]
-    }
-
-    last_error = None
-    raw_response = None
-    for attempt in range(max_retries):
-        try:
-            response = requests.post(
-                'https://openrouter.ai/api/v1/chat/completions',
-                headers=headers,
-                json=data,
-                timeout=90,
-            )
-            response.raise_for_status()
-            raw_response = response.json()
-            break
-        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
-            last_error = e
-            if attempt < max_retries - 1:
-                wait_time = 2 ** attempt  # Exponential backoff: 1, 2, 4 seconds
-                time.sleep(wait_time)
-            continue
-        except requests.exceptions.RequestException as e:
-            # Non-retryable error
-            raise e
-    else:
-        # All retries failed
-        raise last_error
-
-    # Check if the response ended prematurely
-    finish_reason = raw_response['choices'][0].get('finish_reason', '')
-    if finish_reason == 'length':
-        parsed = {'classification': 'UNKNOWN', 'confidence': 'low', 'reasoning': 'Response ended prematurely'}
-        if return_full_interaction:
-            return {'result': parsed, 'prompt': prompt, 'raw_response': raw_response}
-        return parsed
-
-    content = raw_response['choices'][0]['message']['content']
-
-    # Check for empty or very short responses
-    if not content or len(content.strip()) < 10:
-        parsed = {'classification': 'UNKNOWN', 'confidence': 'low', 'reasoning': 'Empty or truncated response'}
-        if return_full_interaction:
-            return {'result': parsed, 'prompt': prompt, 'raw_response': raw_response}
-        return parsed
-
-    # Parse JSON from response
-    # First, strip markdown code blocks if present
-    content_stripped = content.strip()
-    if content_stripped.startswith('```'):
-        # Remove opening ```json or ``` line
-        lines = content_stripped.split('\n')
-        # Find start and end of code block
-        start_idx = 1  # Skip first line with ```
-        end_idx = len(lines)
-        for i in range(len(lines) - 1, 0, -1):
-            if lines[i].strip() == '```':
-                end_idx = i
-                break
-        content_stripped = '\n'.join(lines[start_idx:end_idx]).strip()
-
-    parsed = None
-    try:
-        parsed = json.loads(content_stripped)
-    except json.JSONDecodeError:
-        # Try to extract JSON from the response (handle nested braces)
-        json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', content)
-        if json_match:
-            try:
-                parsed = json.loads(json_match.group())
-            except json.JSONDecodeError:
-                pass
-
-    if parsed is None:
-        parsed = {'classification': 'UNKNOWN', 'confidence': 'low', 'reasoning': f'Failed to parse: {content}'}
-
-    if return_full_interaction:
-        return {'result': parsed, 'prompt': prompt, 'raw_response': raw_response}
-    return parsed
+## call_openrouter_api is imported from llm_utils
 
 
 def classify_paper_usage(

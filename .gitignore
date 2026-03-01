@@ -10,6 +10,9 @@ build/
 venv/
 .env
 
+# Classification cache
+.classification_cache/
+
 # Paper text cache
 .paper_cache/
 .paper_cache.zip

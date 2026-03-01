@@ -37,6 +37,7 @@ except ImportError:
 
 # Default cache directory for storing paper full text
 DEFAULT_CACHE_DIR = Path(__file__).parent / '.paper_cache'
+CACHE_DIR = DEFAULT_CACHE_DIR  # alias for classify_usage.py
 
 # Default cache directory for preprint-publication links
 DEFAULT_PREPRINT_CACHE_DIR = Path(__file__).parent / '.preprint_cache'
