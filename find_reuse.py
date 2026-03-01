@@ -104,6 +104,9 @@ ARCHIVE_PATTERNS = {
     'DANDI Archive': [
         # DOI format: 10.48324/dandi.000130 or 10.48324/dandi.000130/0.210914.1539
         (r'10\.48324/dandi\.(\d{6})(?:/[\d.]+)?', 'doi'),
+        # Placeholder DOI format (seen in some papers): 10.80507/dandi.123456/0.123456.1234
+        # This is not a real DOI prefix but captures intended DANDI references
+        (r'10\.80507/dandi\.(\d{6})(?:/[\d.]+)?', 'placeholder_doi'),
         # URL formats
         (r'dandiarchive\.org/dandiset/(\d{6})', 'url'),
         (r'gui\.dandiarchive\.org/#/dandiset/(\d{6})', 'gui_url'),
