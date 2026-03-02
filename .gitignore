@@ -13,6 +13,9 @@ venv/
 # Classification cache
 .classification_cache/
 .direct_ref_cache/
+.doi_date_cache.json
+.doi_title_cache.json
+.preprint_published_map.json
 
 # Paper text cache
 .paper_cache/

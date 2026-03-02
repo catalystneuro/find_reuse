@@ -86,6 +86,76 @@ def merge_data(refs_file: Path, citations_file: Path) -> dict:
             c_copy["source_type"] = "citation_analysis"
             merged.append(c_copy)
 
+    # Deduplicate preprints and their published versions
+    preprint_map_file = Path(__file__).parent / ".preprint_published_map.json"
+    preprint_dedup_count = 0
+    if preprint_map_file.exists():
+        with open(preprint_map_file) as f:
+            preprint_map = json.load(f)  # {preprint_doi: published_doi}
+
+        # Only remap if BOTH the preprint and published DOI are in merged
+        merged_dois = set(m["citing_doi"] for m in merged)
+        active_map = {}
+        for preprint_doi, pub_doi in preprint_map.items():
+            if preprint_doi in merged_dois and pub_doi.lower() in {d.lower() for d in merged_dois}:
+                # Find the actual casing of the published DOI in merged
+                pub_doi_actual = next(d for d in merged_dois if d.lower() == pub_doi.lower())
+                active_map[preprint_doi] = pub_doi_actual
+
+        if active_map:
+            # Classification priority for deduplication
+            cls_priority = {"REUSE": 0, "PRIMARY": 1, "MENTION": 2, "NEITHER": 3}
+
+            # Remap preprint entries to published DOI
+            for entry in merged:
+                if entry["citing_doi"] in active_map:
+                    entry["preprint_doi"] = entry["citing_doi"]
+                    entry["citing_doi"] = active_map[entry["citing_doi"]]
+
+            # Now deduplicate on (citing_doi, dandiset_id), keeping best classification
+            deduped = {}
+            for entry in merged:
+                key = (entry["citing_doi"], entry["dandiset_id"])
+                if key not in deduped:
+                    deduped[key] = entry
+                else:
+                    # Keep the entry with higher-priority classification
+                    existing_pri = cls_priority.get(deduped[key].get("classification", "NEITHER"), 3)
+                    new_pri = cls_priority.get(entry.get("classification", "NEITHER"), 3)
+                    if new_pri < existing_pri:
+                        entry["preprint_doi"] = entry.get("preprint_doi") or deduped[key].get("preprint_doi")
+                        deduped[key] = entry
+                    else:
+                        deduped[key]["preprint_doi"] = deduped[key].get("preprint_doi") or entry.get("preprint_doi")
+                    preprint_dedup_count += 1
+
+            merged = list(deduped.values())
+
+            # Enrich with published metadata (title, journal, date) where missing
+            for entry in merged:
+                if entry.get("preprint_doi") and not entry.get("citing_title"):
+                    # Try to get title from published version's other entries
+                    pub_doi = entry["citing_doi"]
+                    for other in merged:
+                        if other["citing_doi"] == pub_doi and other.get("citing_title"):
+                            entry["citing_title"] = other["citing_title"]
+                            break
+
+    # Enrich missing titles from OpenAlex title cache
+    title_cache_file = Path(__file__).parent / ".doi_title_cache.json"
+    if title_cache_file.exists():
+        with open(title_cache_file) as f:
+            title_cache = json.load(f)
+        titles_filled = 0
+        for entry in merged:
+            if not entry.get("citing_title"):
+                cached_title = title_cache.get(entry["citing_doi"], "")
+                if cached_title:
+                    entry["citing_title"] = cached_title
+                    titles_filled += 1
+        if titles_filled:
+            print(f"  Filled {titles_filled} missing titles from OpenAlex cache")
+
     # Build metadata
     ref_only = sum(1 for m in merged if m.get("source_type") == "direct_reference")
     cit_only = sum(1 for m in merged if m.get("source_type") == "citation_analysis")
@@ -122,6 +192,7 @@ def merge_data(refs_file: Path, citations_file: Path) -> dict:
             "citation_analysis_only": cit_only,
             "both_sources": both,
             "direct_ref_false_positives_excluded": skipped_neither,
+            "preprint_published_deduped": preprint_dedup_count,
         },
         "classification_counts": {
             "PRIMARY": primary_count,
@@ -254,8 +325,20 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
         .expand-icon { font-size: 1.1em; color: #bdc3c7; transition: transform 0.2s; }
         .paper-card.expanded .expand-icon { transform: rotate(180deg); }
-        .paper-details { display: none; padding: 12px 16px; border-top: 1px solid #ecf0f1; }
+        .paper-details { display: none; padding: 0; border-top: 1px solid #ecf0f1; }
         .paper-card.expanded .paper-details { display: block; }
+        .ds-tabs { display: flex; flex-wrap: wrap; gap: 0; border-bottom: 2px solid #ecf0f1; background: #f8f9fa; }
+        .ds-tab {
+            padding: 8px 14px; cursor: pointer; font-size: 0.82em; font-weight: 600;
+            border: none; background: none; color: #7f8c8d; border-bottom: 2px solid transparent;
+            margin-bottom: -2px; transition: color 0.15s, border-color 0.15s;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .ds-tab:hover { color: #2c3e50; background: #eef1f3; }
+        .ds-tab.active { color: #2c3e50; border-bottom-color: #3498db; }
+        .ds-tab .tab-badge { font-size: 0.8em; padding: 1px 6px; border-radius: 8px; }
+        .ds-tab-panel { display: none; padding: 12px 16px; }
+        .ds-tab-panel.active { display: block; }
 
         .reasoning {
             background: #f8f9fa; padding: 10px 14px; border-radius: 4px;
@@ -446,6 +529,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             `Direct reference pairs: ${sb.direct_reference_only || 0}`,
             `Citation analysis pairs: ${sb.citation_analysis_only || 0}`,
             `Both sources: ${sb.both_sources || 0}`,
+            sb.preprint_published_deduped ? `Preprint/published deduped: ${sb.preprint_published_deduped}` : '',
             `Total pairs: ${meta.total_pairs || 0}`,
             meta.citation_metadata && meta.citation_metadata.model ? `LLM: ${meta.citation_metadata.model}` : '',
         ].filter(Boolean).join(' | ');
@@ -576,9 +660,49 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             el.innerHTML = html;
         }
 
-        // Papers tab
+        // Papers tab — group all dandiset entries for a single paper under one card
         let currentPaperPage = 0;
         let currentFilteredPapers = [];
+
+        const CLS_PRIORITY = {REUSE: 0, PRIMARY: 1, MENTION: 2, NEITHER: 3};
+
+        function buildPaperGroups(items) {
+            const groups = {};
+            items.forEach(p => {
+                const doi = p.citing_doi;
+                if (!groups[doi]) {
+                    groups[doi] = {
+                        citing_doi: doi,
+                        citing_title: p.citing_title,
+                        citing_journal: p.citing_journal,
+                        citing_date: p.citing_date,
+                        preprint_doi: null,
+                        entries: [],
+                    };
+                }
+                const g = groups[doi];
+                // Keep best metadata
+                if (!g.citing_title && p.citing_title) g.citing_title = p.citing_title;
+                if (!g.citing_journal && p.citing_journal) g.citing_journal = p.citing_journal;
+                if (!g.citing_date && p.citing_date) g.citing_date = p.citing_date;
+                if (p.preprint_doi) g.preprint_doi = p.preprint_doi;
+                g.entries.push(p);
+            });
+            // Sort entries within each group: REUSE first, then by dandiset_id
+            Object.values(groups).forEach(g => {
+                g.entries.sort((a, b) => {
+                    const ca = CLS_PRIORITY[a.classification] ?? 3;
+                    const cb = CLS_PRIORITY[b.classification] ?? 3;
+                    return ca - cb || (a.dandiset_id || '').localeCompare(b.dandiset_id || '');
+                });
+                // Top-level classification = highest priority across entries
+                g.topCls = g.entries.reduce((best, e) => {
+                    const p = CLS_PRIORITY[e.classification] ?? 3;
+                    return p < best ? p : best;
+                }, 3);
+            });
+            return Object.values(groups).sort((a, b) => a.topCls - b.topCls);
+        }
 
         function renderMatchPatterns(patterns) {
             if (!patterns || !patterns.length) return '';
@@ -587,9 +711,8 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             }).join('');
         }
 
-        function renderPaperCard(p, globalIdx) {
+        function renderDandisetEntry(p, cardIdx, entryIdx) {
             const cls = clsKey(p.classification);
-            const title = p.citing_title || p.citing_doi || 'Unknown';
             const excerpts = (p.context_excerpts || []).map((e, ei) => {
                 const highlighted = highlightRef(escapeHtml(e.text || ''), e);
                 const plain = escapeHtml(e.text || '');
@@ -598,51 +721,89 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                     return `<div class="context-excerpt"><div class="context-method">Found via: ${escapeHtml(e.method || 'unknown')}</div>${highlighted}</div>`;
                 }
                 const truncated = plain.slice(0, LIMIT) + '...';
-                const eid = `exc-${globalIdx}-${ei}`;
+                const eid = `exc-${cardIdx}-${entryIdx}-${ei}`;
                 return `<div class="context-excerpt"><div class="context-method">Found via: ${escapeHtml(e.method || 'unknown')}</div><div class="excerpt-preview" id="${eid}" onclick="toggleExcerpt('${eid}')"><span class="excerpt-truncated">${truncated} <span class="excerpt-toggle">&#9654; Show all</span></span><span class="excerpt-full">${highlighted} <span class="excerpt-toggle">&#9650; Show less</span></span></div></div>`;
             }).join('');
             const matchPats = renderMatchPatterns(p.match_patterns);
 
             return `
-            <div class="paper-card" data-cls="${(p.classification||'').toUpperCase()}" data-idx="${globalIdx}">
+            <div style="padding:8px 0">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+                    <div>
+                        <a href="https://dandiarchive.org/dandiset/${p.dandiset_id}" target="_blank" style="color:#3498db;text-decoration:none;font-weight:600">${p.dandiset_id}</a>
+                        ${p.dandiset_name ? ' <span style="color:#7f8c8d;font-size:0.85em">' + escapeHtml(p.dandiset_name.substring(0, 60)) + (p.dandiset_name.length > 60 ? '...' : '') + '</span>' : ''}
+                    </div>
+                    <div><span class="badge ${cls}" style="font-size:0.7em;padding:3px 8px">${(p.classification || 'Neither').replace(/_/g, ' ')}</span>${sourceBadge(p)}${labBadge(p)}</div>
+                </div>
+                ${p.reasoning ? `<div class="reasoning" style="margin:6px 0"><strong>Reasoning</strong>${p.confidence != null ? `<span class="confidence ${confClass(p.confidence)}">${p.confidence}/10</span>` : ''}<br>${escapeHtml(p.reasoning)}</div>` : ''}
+                ${p.cited_doi ? `<div class="paper-meta">Cited paper: <a href="https://doi.org/${p.cited_doi}" target="_blank">${p.cited_doi}</a></div>` : ''}
+                ${matchPats ? `<div style="margin-top:6px"><strong>Dataset Reference Matches:</strong>${matchPats}</div>` : ''}
+                ${excerpts ? `<div style="margin-top:6px"><strong>Context Excerpts:</strong>${excerpts}</div>` : ''}
+            </div>`;
+        }
+
+        function renderPaperCard(group, globalIdx) {
+            const topClsName = ['REUSE','PRIMARY','MENTION','NEITHER'][group.topCls] || 'NEITHER';
+            const cls = clsKey(topClsName);
+            const title = group.citing_title || group.citing_doi || 'Unknown';
+            const nDs = group.entries.length;
+            const dsLabel = nDs > 1 ? `${nDs} dandisets` : '1 dandiset';
+
+            // Collect unique dandiset IDs for header preview
+            const dsIds = group.entries.map(e => e.dandiset_id);
+
+            // Build details: tabs for multi-dandiset, plain for single
+            let detailsHTML;
+            if (nDs === 1) {
+                detailsHTML = `<div style="padding:12px 16px">${renderDandisetEntry(group.entries[0], globalIdx, 0)}</div>`;
+            } else {
+                const tabsHTML = group.entries.map((e, ei) => {
+                    const eCls = clsKey(e.classification);
+                    return `<button class="ds-tab${ei === 0 ? ' active' : ''}" onclick="event.stopPropagation();switchDsTab(${globalIdx},${ei})">`
+                        + `${e.dandiset_id} <span class="tab-badge badge ${eCls}">${(e.classification || 'NEITHER').replace(/_/g,' ')}</span></button>`;
+                }).join('');
+                const panelsHTML = group.entries.map((e, ei) => {
+                    return `<div class="ds-tab-panel${ei === 0 ? ' active' : ''}" data-card="${globalIdx}" data-tab="${ei}">${renderDandisetEntry(e, globalIdx, ei)}</div>`;
+                }).join('');
+                detailsHTML = `<div class="ds-tabs" data-card="${globalIdx}">${tabsHTML}</div>${panelsHTML}`;
+            }
+
+            return `
+            <div class="paper-card" data-idx="${globalIdx}">
                 <div class="paper-header" onclick="toggleCard(${globalIdx})">
                     <div class="paper-info">
-                        <div class="paper-title"><a href="https://doi.org/${p.citing_doi}" target="_blank">${escapeHtml(title)}</a></div>
-                        <div class="paper-doi"><a href="https://doi.org/${p.citing_doi}" target="_blank">${p.citing_doi}</a></div>
+                        <div class="paper-title"><a href="https://doi.org/${group.citing_doi}" target="_blank">${escapeHtml(title)}</a></div>
+                        <div class="paper-doi"><a href="https://doi.org/${group.citing_doi}" target="_blank">${group.citing_doi}</a></div>
                         <div class="paper-meta">
-                            Dataset: <a href="https://dandiarchive.org/dandiset/${p.dandiset_id}" target="_blank">${p.dandiset_id}</a>
-                            ${p.dandiset_name ? ' (' + escapeHtml(p.dandiset_name.substring(0, 60)) + (p.dandiset_name.length > 60 ? '...' : '') + ')' : ''}
-                            ${p.citing_journal ? ' | ' + escapeHtml(p.citing_journal) : ''}
-                            ${p.citing_date ? ' | ' + p.citing_date : ''}
-                            ${p.num_contexts != null && p.num_contexts > 0 ? ' | ' + p.num_contexts + ' context(s)' : ''}
+                            ${dsLabel}: ${dsIds.map(id => '<a href="https://dandiarchive.org/dandiset/' + id + '" target="_blank">' + id + '</a>').join(', ')}
+                            ${group.citing_journal ? ' | ' + escapeHtml(group.citing_journal) : ''}
+                            ${group.citing_date ? ' | ' + group.citing_date : ''}
+                            ${group.preprint_doi ? ' | preprint: <a href="https://doi.org/' + group.preprint_doi + '" target="_blank">' + group.preprint_doi + '</a>' : ''}
                         </div>
                     </div>
-                    <span class="badge ${cls}">${(p.classification || 'Neither').replace(/_/g, ' ')}</span>${sourceBadge(p)}${labBadge(p)}
+                    <span class="badge ${cls}">${topClsName.replace(/_/g, ' ')}</span>
                     <span class="expand-icon">&#9660;</span>
                 </div>
                 <div class="paper-details">
-                    ${p.reasoning ? `<div class="reasoning"><strong>Reasoning</strong>${p.confidence != null ? `<span class="confidence ${confClass(p.confidence)}">${p.confidence}/10</span>` : ''}<br>${escapeHtml(p.reasoning)}</div>` : ''}
-                    ${p.cited_doi ? `<div class="paper-meta">Cited paper: <a href="https://doi.org/${p.cited_doi}" target="_blank">${p.cited_doi}</a></div>` : ''}
-                    ${matchPats ? `<div style="margin-top:10px"><strong>Dataset Reference Matches:</strong>${matchPats}</div>` : ''}
-                    ${excerpts ? `<div style="margin-top:10px"><strong>Context Excerpts:</strong>${excerpts}</div>` : ''}
+                    ${detailsHTML}
                 </div>
             </div>`;
         }
 
-        function renderPapers(items, page) {
+        function renderPapers(groups, page) {
             if (page == null) page = 0;
-            currentFilteredPapers = items;
+            currentFilteredPapers = groups;
             currentPaperPage = page;
             const list = document.getElementById('paperList');
-            if (!items.length) {
+            if (!groups.length) {
                 list.innerHTML = '<div class="no-results">No papers match your filters</div>';
                 document.getElementById('paperPagination').innerHTML = '';
                 return;
             }
             const start = page * PAGE_SIZE;
-            const pageItems = items.slice(start, start + PAGE_SIZE);
-            list.innerHTML = pageItems.map((p, i) => renderPaperCard(p, start + i)).join('');
-            renderPaginationControls('paperPagination', items.length, page, 'goToPaperPage');
+            const pageItems = groups.slice(start, start + PAGE_SIZE);
+            list.innerHTML = pageItems.map((g, i) => renderPaperCard(g, start + i)).join('');
+            renderPaginationControls('paperPagination', groups.length, page, 'goToPaperPage');
         }
 
         function goToPaperPage(page) {
@@ -655,6 +816,17 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             if (el) el.classList.toggle('expanded');
         }
 
+        function switchDsTab(cardIdx, tabIdx) {
+            const card = document.querySelector(`[data-idx="${cardIdx}"]`);
+            if (!card) return;
+            card.querySelectorAll(`.ds-tabs[data-card="${cardIdx}"] .ds-tab`).forEach((t, i) => {
+                t.classList.toggle('active', i === tabIdx);
+            });
+            card.querySelectorAll(`.ds-tab-panel[data-card="${cardIdx}"]`).forEach((p, i) => {
+                p.classList.toggle('active', i === tabIdx);
+            });
+        }
+
         function toggleExcerpt(eid) {
             document.getElementById(eid).classList.toggle('expanded');
         }
@@ -665,6 +837,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             const sources = Array.from(document.querySelectorAll('.source-cb:checked')).map(c => c.value);
             const sameLab = document.getElementById('filterSameLab').checked;
             const diffLab = document.getElementById('filterDiffLab').checked;
+            // Filter at the individual entry level, then group
             const filtered = classifications.filter(p => {
                 const cls = (p.classification || 'NEITHER').toUpperCase();
                 if (!checked.includes(cls)) return false;
@@ -680,7 +853,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
                 }
                 return true;
             });
-            renderPapers(filtered, 0);
+            renderPapers(buildPaperGroups(filtered), 0);
         }
 
         document.getElementById('search').addEventListener('input', filterPapers);
@@ -798,7 +971,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
         // Init
         renderSummary();
-        renderPapers(classifications, 0);
+        renderPapers(buildPaperGroups(classifications), 0);
     </script>
 </body>
 </html>'''
@@ -852,6 +1025,8 @@ def main():
     print(f"  Both sources: {meta['source_breakdown']['both_sources']}")
     if meta['source_breakdown'].get('direct_ref_false_positives_excluded'):
         print(f"  Direct ref false positives excluded: {meta['source_breakdown']['direct_ref_false_positives_excluded']}")
+    if meta['source_breakdown'].get('preprint_published_deduped'):
+        print(f"  Preprint/published deduped: {meta['source_breakdown']['preprint_published_deduped']}")
     print(f"  PRIMARY: {meta['classification_counts'].get('PRIMARY', 0)}")
     print(f"  REUSE: {meta['classification_counts']['REUSE']}")
     print(f"  MENTION: {meta['classification_counts']['MENTION']}")
