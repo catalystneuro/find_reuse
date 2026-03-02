@@ -36,6 +36,7 @@ from analyze_time_to_reuse import (
 from generate_combined_dashboard import merge_data
 
 TODAY = datetime(2026, 3, 1)
+DATA_CUTOFF = TODAY - timedelta(days=183)  # ~6 months; OpenAlex indexing delay
 
 
 def build_recurrent_event_data(
@@ -62,6 +63,8 @@ def build_recurrent_event_data(
             citing_date = datetime.strptime(citing_date_str, "%Y-%m-%d")
         except ValueError:
             continue
+        if citing_date > DATA_CUTOFF:
+            continue
         delay = (citing_date - creation_dates[ds_id]).days / 365.25
         if delay < 0:
             delay = 0.01
@@ -75,7 +78,7 @@ def build_recurrent_event_data(
 
     dandisets = []
     for ds_id, created in creation_dates.items():
-        age = (TODAY - created).days / 365.25
+        age = (DATA_CUTOFF - created).days / 365.25
         dandisets.append({"dandiset_id": ds_id, "age_years": age})
     dandisets_df = pd.DataFrame(dandisets)
 
@@ -344,6 +347,8 @@ def collect_paper_dates(
             dt = datetime.strptime(citing_date_str, "%Y-%m-%d")
         except ValueError:
             continue
+        if dt > DATA_CUTOFF:
+            continue
         dates.append(dt)
     return sorted(dates)
 
@@ -380,7 +385,7 @@ def predict_papers(
             creation_proj["quarter"] == q_label, "is_forecast"
         ].iloc[0]
         if not is_forecast:
-            q_date = min(q_date, TODAY)
+            q_date = min(q_date, DATA_CUTOFF)
         expected = 0.0
 
         # Historical dandisets
@@ -435,8 +440,8 @@ def plot_prediction(
 
     # Convert quarter labels to dates for the x-axis
     quarter_dates = [quarter_to_date(q) for q in all_quarters]
-    # Cap historical quarters at TODAY
-    quarter_dates = [min(d, TODAY) if not fc else d
+    # Cap historical quarters at DATA_CUTOFF (OpenAlex indexing delay)
+    quarter_dates = [min(d, DATA_CUTOFF) if not fc else d
                      for d, fc in zip(quarter_dates, is_forecast)]
 
     # Observed: cumulative curve incrementing by 1 at each paper date
