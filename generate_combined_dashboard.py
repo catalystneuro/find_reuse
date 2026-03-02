@@ -163,6 +163,20 @@ def merge_data(refs_file: Path, citations_file: Path) -> dict:
         filled = [f"{titles_filled} titles", f"{journals_filled} journals", f"{dates_filled} dates"]
         print(f"  Filled from OpenAlex cache: {', '.join(filled)}")
 
+    # Fix bioRxiv/medRxiv journal names for preprint DOIs
+    preprint_journal_fixed = 0
+    for entry in merged:
+        doi = entry.get("citing_doi", "")
+        journal = entry.get("citing_journal", "")
+        if "10.1101/" in doi and (
+            not journal
+            or journal in ("Cold Spring Harbor Laboratory", "openRxiv")
+        ):
+            entry["citing_journal"] = "bioRxiv"
+            preprint_journal_fixed += 1
+    if preprint_journal_fixed:
+        print(f"  Fixed journal name for {preprint_journal_fixed} bioRxiv preprints")
+
     # Build metadata
     ref_only = sum(1 for m in merged if m.get("source_type") == "direct_reference")
     cit_only = sum(1 for m in merged if m.get("source_type") == "citation_analysis")
@@ -557,49 +571,55 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
 
         // Render summary
         function renderSummary() {
-            // Count pairs and unique papers by source type and classification
+            // Count pairs, unique papers, and unique datasets by source type and classification
             let refTotal = 0, refPrimary = 0, refReuse = 0, refNeither = 0;
             let refReuseSame = 0, refReuseDiff = 0;
             const refTotalP = new Set(), refPrimaryP = new Set(), refReuseP = new Set(), refNeitherP = new Set();
             const refReuseSameP = new Set(), refReuseDiffP = new Set();
+            const refTotalD = new Set(), refPrimaryD = new Set(), refReuseD = new Set(), refNeitherD = new Set();
+            const refReuseSameD = new Set(), refReuseDiffD = new Set();
             let citeTotal = 0, citeReuse = 0, citeMention = 0, citeNeither = 0;
             let citeReuseSame = 0, citeReuseDiff = 0;
             const citeTotalP = new Set(), citeReuseP = new Set(), citeMentionP = new Set(), citeNeitherP = new Set();
             const citeReuseSameP = new Set(), citeReuseDiffP = new Set();
+            const citeTotalD = new Set(), citeReuseD = new Set(), citeMentionD = new Set(), citeNeitherD = new Set();
+            const citeReuseSameD = new Set(), citeReuseDiffD = new Set();
 
             classifications.forEach(p => {
                 const c = p.classification || 'NEITHER';
                 const st = p.source_type || 'citation_analysis';
                 const doi = p.citing_doi;
+                const ds = p.dandiset_id;
 
                 if (st === 'direct_reference' || st === 'both') {
-                    refTotal++; refTotalP.add(doi);
-                    if (c === 'PRIMARY') { refPrimary++; refPrimaryP.add(doi); }
+                    refTotal++; refTotalP.add(doi); refTotalD.add(ds);
+                    if (c === 'PRIMARY') { refPrimary++; refPrimaryP.add(doi); refPrimaryD.add(ds); }
                     else if (c === 'REUSE') {
-                        refReuse++; refReuseP.add(doi);
-                        if (p.same_lab === true) { refReuseSame++; refReuseSameP.add(doi); }
-                        else if (p.same_lab === false) { refReuseDiff++; refReuseDiffP.add(doi); }
+                        refReuse++; refReuseP.add(doi); refReuseD.add(ds);
+                        if (p.same_lab === true) { refReuseSame++; refReuseSameP.add(doi); refReuseSameD.add(ds); }
+                        else if (p.same_lab === false) { refReuseDiff++; refReuseDiffP.add(doi); refReuseDiffD.add(ds); }
                     }
-                    else if (c === 'NEITHER') { refNeither++; refNeitherP.add(doi); }
+                    else if (c === 'NEITHER') { refNeither++; refNeitherP.add(doi); refNeitherD.add(ds); }
                 }
 
                 if (st === 'citation_analysis' || st === 'both') {
-                    citeTotal++; citeTotalP.add(doi);
+                    citeTotal++; citeTotalP.add(doi); citeTotalD.add(ds);
                     if (c === 'REUSE') {
-                        citeReuse++; citeReuseP.add(doi);
-                        if (p.same_lab === true) { citeReuseSame++; citeReuseSameP.add(doi); }
-                        else if (p.same_lab === false) { citeReuseDiff++; citeReuseDiffP.add(doi); }
+                        citeReuse++; citeReuseP.add(doi); citeReuseD.add(ds);
+                        if (p.same_lab === true) { citeReuseSame++; citeReuseSameP.add(doi); citeReuseSameD.add(ds); }
+                        else if (p.same_lab === false) { citeReuseDiff++; citeReuseDiffP.add(doi); citeReuseDiffD.add(ds); }
                     }
-                    else if (c === 'MENTION') { citeMention++; citeMentionP.add(doi); }
-                    else if (c === 'NEITHER') { citeNeither++; citeNeitherP.add(doi); }
+                    else if (c === 'MENTION') { citeMention++; citeMentionP.add(doi); citeMentionD.add(ds); }
+                    else if (c === 'NEITHER') { citeNeither++; citeNeitherP.add(doi); citeNeitherD.add(ds); }
                 }
             });
 
-            function treeRow(label, pairs, papers, cls, indent) {
+            function treeRow(label, pairs, papers, datasets, cls, indent) {
                 const indentCls = indent ? ` indent${indent}` : '';
                 const countCls = cls ? ` ${cls}` : '';
-                const paperStr = papers !== pairs ? ` <span class="tree-papers">(${papers} papers)</span>` : '';
-                return `<div class="tree-row${indentCls}"><span class="tree-label">${label}</span><span class="tree-count${countCls}">${pairs}${paperStr}</span></div>`;
+                const extra = (papers !== pairs || datasets !== pairs)
+                    ? ` <span class="tree-papers">(${papers} papers, ${datasets} datasets)</span>` : '';
+                return `<div class="tree-row${indentCls}"><span class="tree-label">${label}</span><span class="tree-count${countCls}">${pairs}${extra}</span></div>`;
             }
 
             let html = '';
@@ -607,29 +627,29 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             // Direct references panel
             html += `<div class="summary-panel refs">`;
             html += `<div class="panel-title">Direct References</div>`;
-            html += `<div class="panel-total">${refTotal} pairs <span class="tree-papers">(${refTotalP.size} papers)</span></div>`;
+            html += `<div class="panel-total">${refTotal} pairs <span class="tree-papers">(${refTotalP.size} papers, ${refTotalD.size} datasets)</span></div>`;
             html += `<div class="summary-tree">`;
-            html += treeRow('Primary', refPrimary, refPrimaryP.size, 'primary', 1);
-            html += treeRow('Reuse', refReuse, refReuseP.size, 'reuse', 1);
+            html += treeRow('Primary', refPrimary, refPrimaryP.size, refPrimaryD.size, 'primary', 1);
+            html += treeRow('Reuse', refReuse, refReuseP.size, refReuseD.size, 'reuse', 1);
             if (refReuseSame + refReuseDiff > 0) {
-                html += treeRow('Same lab', refReuseSame, refReuseSameP.size, 'same-lab', 2);
-                html += treeRow('Different lab', refReuseDiff, refReuseDiffP.size, 'diff-lab', 2);
+                html += treeRow('Same lab', refReuseSame, refReuseSameP.size, refReuseSameD.size, 'same-lab', 2);
+                html += treeRow('Different lab', refReuseDiff, refReuseDiffP.size, refReuseDiffD.size, 'diff-lab', 2);
             }
-            html += treeRow('Neither', refNeither, refNeitherP.size, 'neither', 1);
+            html += treeRow('Neither', refNeither, refNeitherP.size, refNeitherD.size, 'neither', 1);
             html += `</div></div>`;
 
             // Citation analysis panel
             html += `<div class="summary-panel cites">`;
             html += `<div class="panel-title">Citation Analysis</div>`;
-            html += `<div class="panel-total">${citeTotal} pairs <span class="tree-papers">(${citeTotalP.size} papers)</span></div>`;
+            html += `<div class="panel-total">${citeTotal} pairs <span class="tree-papers">(${citeTotalP.size} papers, ${citeTotalD.size} datasets)</span></div>`;
             html += `<div class="summary-tree">`;
-            html += treeRow('Reuse', citeReuse, citeReuseP.size, 'reuse', 1);
+            html += treeRow('Reuse', citeReuse, citeReuseP.size, citeReuseD.size, 'reuse', 1);
             if (citeReuseSame + citeReuseDiff > 0) {
-                html += treeRow('Same lab', citeReuseSame, citeReuseSameP.size, 'same-lab', 2);
-                html += treeRow('Different lab', citeReuseDiff, citeReuseDiffP.size, 'diff-lab', 2);
+                html += treeRow('Same lab', citeReuseSame, citeReuseSameP.size, citeReuseSameD.size, 'same-lab', 2);
+                html += treeRow('Different lab', citeReuseDiff, citeReuseDiffP.size, citeReuseDiffD.size, 'diff-lab', 2);
             }
-            html += treeRow('Mention', citeMention, citeMentionP.size, 'mention', 1);
-            html += treeRow('Neither', citeNeither, citeNeitherP.size, 'neither', 1);
+            html += treeRow('Mention', citeMention, citeMentionP.size, citeMentionD.size, 'mention', 1);
+            html += treeRow('Neither', citeNeither, citeNeitherP.size, citeNeitherD.size, 'neither', 1);
             html += `</div></div>`;
 
             // Overall totals panel
@@ -639,14 +659,17 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
             const allReuseP = new Set([...refReuseP, ...citeReuseP]);
             const allReuseSameP = new Set([...refReuseSameP, ...citeReuseSameP]);
             const allReuseDiffP = new Set([...refReuseDiffP, ...citeReuseDiffP]);
+            const allReuseD = new Set([...refReuseD, ...citeReuseD]);
+            const allReuseSameD = new Set([...refReuseSameD, ...citeReuseSameD]);
+            const allReuseDiffD = new Set([...refReuseDiffD, ...citeReuseDiffD]);
             const reuseDs = meta.dandisets_with_reuse || 0;
             html += `<div class="summary-panel totals">`;
             html += `<div class="panel-title">Combined Totals</div>`;
             html += `<div class="panel-total">${reuseDs} dandisets with reuse</div>`;
             html += `<div class="summary-tree">`;
-            html += treeRow('Reuse', allReuse, allReuseP.size, 'reuse', 1);
-            html += treeRow('Same lab', allReuseSame, allReuseSameP.size, 'same-lab', 2);
-            html += treeRow('Different lab', allReuseDiff, allReuseDiffP.size, 'diff-lab', 2);
+            html += treeRow('Reuse', allReuse, allReuseP.size, allReuseD.size, 'reuse', 1);
+            html += treeRow('Same lab', allReuseSame, allReuseSameP.size, allReuseSameD.size, 'same-lab', 2);
+            html += treeRow('Different lab', allReuseDiff, allReuseDiffP.size, allReuseDiffD.size, 'diff-lab', 2);
             html += `</div></div>`;
 
             document.getElementById('summary').innerHTML = html;

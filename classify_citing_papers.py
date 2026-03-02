@@ -30,6 +30,7 @@ Usage:
 """
 
 import argparse
+import concurrent.futures
 import json
 import os
 import re
@@ -451,6 +452,7 @@ def classify_all_papers(
     use_cache: bool = True,
     show_progress: bool = True,
     fetch_text: bool = False,
+    workers: int = 10,
 ) -> dict:
     """
     Classify all citing papers.
@@ -461,11 +463,12 @@ def classify_all_papers(
         api_key: OpenRouter API key
         model: Model to use
         max_papers: Maximum papers to process (None for all)
-        rate_limit: Seconds between API calls
+        rate_limit: Seconds between API calls (unused with workers > 1)
         context_chars: Characters of context around citations
         use_cache: Whether to use classification cache
         show_progress: Whether to show progress bar
         fetch_text: Whether to fetch paper text for papers not in cache
+        workers: Number of parallel workers for API calls
 
     Returns:
         Dict with metadata and classifications list
@@ -476,20 +479,7 @@ def classify_all_papers(
     # Populate missing dandiset names
     fetch_dandiset_names(pairs)
 
-    session = requests.Session()
-    session.headers.update({
-        'User-Agent': 'CitingPaperClassifier/1.0 (mailto:ben.dichter@catalystneuro.com)'
-    })
-
-    # Create ArchiveFinder for fetching missing paper text
-    archive_finder = None
     if fetch_text:
-        archive_finder = ArchiveFinder(
-            verbose=False,
-            use_cache=True,
-            follow_references=False,
-            cache_dir=cache_dir,
-        )
         print("Text fetching enabled - will attempt to fetch missing papers", file=sys.stderr)
 
     classifications = []
@@ -501,15 +491,14 @@ def classify_all_papers(
         'by_classification': {},
     }
 
-    pbar = tqdm(pairs, desc="Classifying papers", disable=not show_progress)
-
-    for pair in pbar:
-        pbar.set_postfix({
-            'doi': pair['citing_doi'][:30],
-            'cache': stats['from_cache'],
-            'api': stats['api_calls'],
-        })
-
+    def _classify_one(pair):
+        """Worker function for a single classification."""
+        af = None
+        if fetch_text:
+            af = ArchiveFinder(
+                verbose=False, use_cache=True,
+                follow_references=False, cache_dir=cache_dir,
+            )
         result = classify_single_paper(
             citing_doi=pair['citing_doi'],
             cited_doi=pair['cited_doi'],
@@ -520,29 +509,55 @@ def classify_all_papers(
             model=model,
             context_chars=context_chars,
             use_cache=use_cache,
-            session=session,
-            archive_finder=archive_finder,
+            session=None,
+            archive_finder=af,
         )
-
-        # Add metadata from pair
         result['citing_title'] = pair.get('citing_title', '')
         result['citing_journal'] = pair.get('citing_journal', '')
         result['citing_date'] = pair.get('citing_date', '')
+        return result
 
-        classifications.append(result)
+    print(f"Classifying {len(pairs)} papers with {workers} workers...", file=sys.stderr)
 
-        # Track stats
-        cls = result.get('classification', 'NEITHER')
-        stats['by_classification'][cls] = stats['by_classification'].get(cls, 0) + 1
+    with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
+        futures = {executor.submit(_classify_one, pair): pair for pair in pairs}
+        pbar = tqdm(total=len(pairs), desc="Classifying papers", disable=not show_progress)
 
-        if result.get('from_cache'):
-            stats['from_cache'] += 1
-        elif result.get('error'):
-            stats['errors'] += 1
-        else:
-            stats['api_calls'] += 1
-            # Rate limit only for actual API calls
-            time.sleep(rate_limit)
+        for future in concurrent.futures.as_completed(futures):
+            try:
+                result = future.result()
+            except Exception as e:
+                pair = futures[future]
+                result = {
+                    'citing_doi': pair['citing_doi'],
+                    'cited_doi': pair['cited_doi'],
+                    'dandiset_id': pair['dandiset_id'],
+                    'classification': 'NEITHER',
+                    'confidence': 1,
+                    'reasoning': f'Worker error: {e}',
+                    'error': 'worker_exception',
+                    'citing_title': pair.get('citing_title', ''),
+                    'citing_journal': pair.get('citing_journal', ''),
+                    'citing_date': pair.get('citing_date', ''),
+                }
+
+            classifications.append(result)
+
+            # Track stats
+            cls = result.get('classification', 'NEITHER')
+            stats['by_classification'][cls] = stats['by_classification'].get(cls, 0) + 1
+
+            if result.get('from_cache'):
+                stats['from_cache'] += 1
+            elif result.get('error'):
+                stats['errors'] += 1
+            else:
+                stats['api_calls'] += 1
+
+            pbar.update(1)
+            pbar.set_postfix({'cache': stats['from_cache'], 'api': stats['api_calls']})
+
+        pbar.close()
 
     output = {
         'metadata': {
@@ -554,6 +569,7 @@ def classify_all_papers(
             'from_cache': stats['from_cache'],
             'errors': stats['errors'],
             'classification_counts': stats['by_classification'],
+            'workers': workers,
         },
         'classifications': classifications,
     }
@@ -628,6 +644,12 @@ def main():
         help='Attempt to fetch paper text for papers not already in cache'
     )
     parser.add_argument(
+        '--workers',
+        type=int,
+        default=10,
+        help='Number of parallel workers for API calls (default: 10)'
+    )
+    parser.add_argument(
         '--quiet',
         action='store_true',
         help='Suppress progress output'
@@ -675,6 +697,7 @@ def main():
         use_cache=not args.no_cache,
         show_progress=not args.quiet,
         fetch_text=args.fetch_text,
+        workers=args.workers,
     )
 
     # Print summary

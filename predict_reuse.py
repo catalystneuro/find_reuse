@@ -245,6 +245,19 @@ def plot_mcf(
             linestyle="--", linewidth=1.5, alpha=0.7,
             label=f"Diff lab fit: {params_diff[0]:.3f}t^{params_diff[1]:.2f}")
 
+    # Draw gridline at y=1 to its intersection with the diff-lab fit, then down
+    # Intersection: 1 = a * t^b  →  t = (1/a)^(1/b)
+    a_diff, b_diff = params_diff
+    if a_diff > 0 and b_diff > 0:
+        t_one = (1.0 / a_diff) ** (1.0 / b_diff)
+        ax.plot([0, t_one], [1, 1], color="gray", linewidth=0.8,
+                linestyle="--", zorder=0)
+        ax.plot([t_one, t_one], [0, 1], color="gray", linewidth=0.8,
+                linestyle="--", zorder=0)
+        ax.annotate(f"{t_one:.1f} yr", xy=(t_one, 0), fontsize=9,
+                    color="gray", ha="center", va="top",
+                    xytext=(0, -4), textcoords="offset points")
+
     ax.set_xlabel("Years since dandiset creation", fontsize=12)
     ax.set_ylabel("Expected cumulative reuse papers per dandiset", fontsize=12)
     ax.set_title("Mean Cumulative Function: Reuse Papers per Dandiset", fontsize=14)
@@ -330,8 +343,13 @@ def collect_paper_dates(
     creation_dates: dict[str, datetime],
     same_lab_filter: bool | None = None,
 ) -> list[datetime]:
-    """Collect sorted publication dates of reuse papers."""
-    dates = []
+    """Collect sorted publication dates of unique reuse papers.
+
+    Deduplicates by citing_doi so that a paper reusing multiple dandisets
+    is counted only once (using its earliest qualifying date).
+    """
+    # Map citing_doi -> earliest qualifying date
+    paper_dates: dict[str, datetime] = {}
     for entry in classifications:
         if entry.get("classification") != "REUSE":
             continue
@@ -341,7 +359,10 @@ def collect_paper_dates(
                 continue
         ds_id = entry.get("dandiset_id", "")
         citing_date_str = entry.get("citing_date", "")
+        citing_doi = entry.get("citing_doi", "")
         if not ds_id or not citing_date_str or ds_id not in creation_dates:
+            continue
+        if not citing_doi:
             continue
         try:
             dt = datetime.strptime(citing_date_str, "%Y-%m-%d")
@@ -349,8 +370,10 @@ def collect_paper_dates(
             continue
         if dt > DATA_CUTOFF:
             continue
-        dates.append(dt)
-    return sorted(dates)
+        # Keep earliest date for each unique paper
+        if citing_doi not in paper_dates or dt < paper_dates[citing_doi]:
+            paper_dates[citing_doi] = dt
+    return sorted(paper_dates.values())
 
 
 def predict_papers(
@@ -578,17 +601,50 @@ def main():
     mcf_pred_same = MCFPredictor(*mcf_same, params_same, max_age=max_age)
     mcf_pred_diff = MCFPredictor(*mcf_diff, params_diff, max_age=max_age)
 
+    # Compute multi-use discount: the MCF model predicts (paper, dandiset) pairs.
+    # We scale predictions by (unique papers / total pairs) to get unique paper counts.
+    def compute_dedup_ratio(classifications, same_lab_filter=None):
+        """Ratio of unique REUSE papers to total (paper, dandiset) pairs."""
+        dois = set()
+        total = 0
+        for entry in classifications:
+            if entry.get("classification") != "REUSE":
+                continue
+            if same_lab_filter is not None:
+                if (entry.get("same_lab") is True) != same_lab_filter:
+                    continue
+            ds_id = entry.get("dandiset_id", "")
+            citing_date_str = entry.get("citing_date", "")
+            citing_doi = entry.get("citing_doi", "")
+            if not ds_id or not citing_date_str or ds_id not in creation_dates:
+                continue
+            if not citing_doi:
+                continue
+            try:
+                dt = datetime.strptime(citing_date_str, "%Y-%m-%d")
+            except ValueError:
+                continue
+            if dt > DATA_CUTOFF:
+                continue
+            total += 1
+            dois.add(citing_doi)
+        return len(dois) / total if total > 0 else 1.0
+
+    dedup_same = compute_dedup_ratio(classifications, same_lab_filter=True)
+    dedup_diff = compute_dedup_ratio(classifications, same_lab_filter=False)
+    print(f"\n  Multi-use discount: same-lab={dedup_same:.3f}, diff-lab={dedup_diff:.3f}")
+
     # Predict future papers — two scenarios
     print("\n=== Generating Predictions ===")
     creation_proj = project_dandiset_creation(creation_dates, args.forecast_years)
 
     # Scenario 1: with new dandisets following trend
-    pred_same_trend = predict_papers(creation_dates, creation_proj, mcf_pred_same, include_forecast_dandisets=True)
-    pred_diff_trend = predict_papers(creation_dates, creation_proj, mcf_pred_diff, include_forecast_dandisets=True)
+    pred_same_trend = [v * dedup_same for v in predict_papers(creation_dates, creation_proj, mcf_pred_same, include_forecast_dandisets=True)]
+    pred_diff_trend = [v * dedup_diff for v in predict_papers(creation_dates, creation_proj, mcf_pred_diff, include_forecast_dandisets=True)]
 
     # Scenario 2: no new dandisets (only existing ones age)
-    pred_same_frozen = predict_papers(creation_dates, creation_proj, mcf_pred_same, include_forecast_dandisets=False)
-    pred_diff_frozen = predict_papers(creation_dates, creation_proj, mcf_pred_diff, include_forecast_dandisets=False)
+    pred_same_frozen = [v * dedup_same for v in predict_papers(creation_dates, creation_proj, mcf_pred_same, include_forecast_dandisets=False)]
+    pred_diff_frozen = [v * dedup_diff for v in predict_papers(creation_dates, creation_proj, mcf_pred_diff, include_forecast_dandisets=False)]
 
     dates_same = collect_paper_dates(classifications, creation_dates, same_lab_filter=True)
     dates_diff = collect_paper_dates(classifications, creation_dates, same_lab_filter=False)

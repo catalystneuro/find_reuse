@@ -46,10 +46,17 @@ import json
 import re
 import sys
 import time
+from datetime import datetime
+from pathlib import Path
 from typing import Optional
 
 import requests
 from tqdm import tqdm
+
+# Cache directory for preprint→published lookups (shared with find_reuse.py)
+PREPRINT_CACHE_DIR = Path('.preprint_cache')
+# Cache file for alternate DOI lookups (published→preprint)
+ALTERNATE_DOI_CACHE_FILE = Path('.alternate_doi_cache.json')
 
 
 # DANDI API base URL
@@ -264,8 +271,6 @@ def get_openalex_paper_data(
     Returns:
         Dictionary with publication_date, cited_by_count, and openalex_id, or None if not found
     """
-    from datetime import datetime
-
     # Clean up DOI
     doi_clean = doi.strip()
     if doi_clean.startswith('doi:') or doi_clean.startswith('DOI:'):
@@ -286,6 +291,195 @@ def get_openalex_paper_data(
     except requests.RequestException:
         pass
 
+    return None
+
+
+def _get_preprint_cache_path(doi: str) -> Path:
+    """Get cache file path for preprint lookup (shared format with find_reuse.py)."""
+    safe_doi = doi.replace('/', '_').replace(':', '_').replace('\\', '_')
+    return PREPRINT_CACHE_DIR / f"{safe_doi}.json"
+
+
+def _load_alternate_doi_cache() -> dict:
+    """Load the published→preprint alternate DOI cache."""
+    if ALTERNATE_DOI_CACHE_FILE.exists():
+        try:
+            with open(ALTERNATE_DOI_CACHE_FILE) as f:
+                return json.load(f)
+        except (json.JSONDecodeError, OSError):
+            pass
+    return {}
+
+
+def _save_alternate_doi_cache(cache: dict) -> None:
+    """Save the published→preprint alternate DOI cache."""
+    try:
+        with open(ALTERNATE_DOI_CACHE_FILE, 'w') as f:
+            json.dump(cache, f, indent=2)
+    except OSError:
+        pass
+
+
+def get_alternate_doi(
+    session: requests.Session,
+    doi: str,
+    alt_cache: Optional[dict] = None,
+) -> Optional[str]:
+    """
+    Look up the alternate version of a DOI (preprint↔published).
+
+    For preprints (10.1101/*): uses bioRxiv API to find published DOI.
+    For published papers: searches OpenAlex by title to find a preprint version.
+
+    Results are cached:
+    - Preprint lookups: .preprint_cache/ (shared with find_reuse.py)
+    - Published lookups: .alternate_doi_cache.json
+
+    Args:
+        session: requests Session object
+        doi: The DOI to look up an alternate version for
+        alt_cache: Optional pre-loaded alternate DOI cache dict (for published→preprint).
+                   If None, will be loaded from disk.
+
+    Returns:
+        The alternate version DOI if found, or None.
+    """
+    doi_clean = doi.strip().lower()
+
+    if doi_clean.startswith('10.1101/'):
+        # --- Preprint → Published: use bioRxiv API ---
+        return _lookup_published_version(session, doi_clean)
+    else:
+        # --- Published → Preprint: use OpenAlex title search ---
+        return _lookup_preprint_version(session, doi_clean, alt_cache)
+
+
+def _lookup_published_version(session: requests.Session, preprint_doi: str) -> Optional[str]:
+    """Look up published version of a bioRxiv/medRxiv preprint."""
+    PREPRINT_CACHE_DIR.mkdir(exist_ok=True)
+    cache_path = _get_preprint_cache_path(preprint_doi)
+
+    # Check cache first
+    if cache_path.exists():
+        try:
+            with open(cache_path) as f:
+                data = json.load(f)
+                pub_info = data.get('published_info')
+                if pub_info and pub_info.get('published_doi'):
+                    return pub_info['published_doi']
+                return None
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    # Query bioRxiv API
+    for server in ['biorxiv', 'medrxiv']:
+        url = f"https://api.biorxiv.org/pubs/{server}/{preprint_doi}"
+        try:
+            resp = session.get(url, timeout=30)
+            if resp.status_code == 200:
+                data = resp.json()
+                if data.get('collection') and len(data['collection']) > 0:
+                    pub_info = data['collection'][0]
+                    published_doi = pub_info.get('published_doi')
+
+                    result = {
+                        'published_doi': published_doi or '',
+                        'published_journal': pub_info.get('published_journal', ''),
+                        'published_date': pub_info.get('published_date', ''),
+                        'preprint_title': pub_info.get('preprint_title', ''),
+                    } if published_doi else None
+
+                    # Cache result
+                    try:
+                        with open(cache_path, 'w') as f:
+                            json.dump({
+                                'preprint_doi': preprint_doi,
+                                'published_info': result,
+                                'cached_at': datetime.now().isoformat(),
+                            }, f)
+                    except OSError:
+                        pass
+
+                    return published_doi if published_doi else None
+
+            time.sleep(0.3)
+        except requests.RequestException:
+            pass
+
+    # Cache negative result
+    try:
+        with open(cache_path, 'w') as f:
+            json.dump({
+                'preprint_doi': preprint_doi,
+                'published_info': None,
+                'cached_at': datetime.now().isoformat(),
+            }, f)
+    except OSError:
+        pass
+
+    return None
+
+
+def _lookup_preprint_version(
+    session: requests.Session,
+    published_doi: str,
+    alt_cache: Optional[dict] = None,
+) -> Optional[str]:
+    """Look up preprint version of a published paper via OpenAlex title search."""
+    # Check cache
+    if alt_cache is None:
+        alt_cache = _load_alternate_doi_cache()
+
+    if published_doi in alt_cache:
+        return alt_cache[published_doi] or None  # "" means cached negative
+
+    # Step 1: Get title from OpenAlex
+    try:
+        resp = session.get(
+            f"https://api.openalex.org/works/doi:{published_doi}",
+            params={'select': 'title'},
+            timeout=10,
+        )
+        if resp.status_code != 200:
+            return None
+        title = resp.json().get('title')
+        if not title or len(title) < 10:
+            return None
+    except requests.RequestException:
+        return None
+
+    time.sleep(0.05)
+
+    # Step 2: Search OpenAlex for preprints with matching title
+    try:
+        resp = session.get(
+            "https://api.openalex.org/works",
+            params={
+                'filter': f'title.search:"{title}",type:preprint',
+                'select': 'doi,title',
+                'per_page': 5,
+            },
+            timeout=10,
+        )
+        if resp.status_code != 200:
+            return None
+
+        results = resp.json().get('results', [])
+        for work in results:
+            work_doi = (work.get('doi') or '').replace('https://doi.org/', '').lower()
+            work_title = (work.get('title') or '').lower().strip()
+            if work_doi.startswith('10.1101/') and work_title == title.lower().strip():
+                # Found a matching preprint
+                alt_cache[published_doi] = work_doi
+                _save_alternate_doi_cache(alt_cache)
+                return work_doi
+
+    except requests.RequestException:
+        pass
+
+    # Cache negative result
+    alt_cache[published_doi] = ""
+    _save_alternate_doi_cache(alt_cache)
     return None
 
 
@@ -344,19 +538,30 @@ def add_citation_counts(
     Returns:
         Updated results with citation data added to each paper relation
     """
-    from datetime import datetime
-
     session = requests.Session()
     session.headers.update({
         'User-Agent': 'DANDIPrimaryPapers/1.0 (https://github.com/dandi; mailto:ben.dichter@catalystneuro.com)'
     })
 
-    # Step 1: Get OpenAlex data for all unique DOIs
+    # Step 1: Get OpenAlex data for all unique DOIs (including alternate versions)
     all_dois = set()
     for result in results:
         for paper in result['paper_relations']:
             if paper.get('doi'):
                 all_dois.add(paper['doi'])
+
+    # Also collect alternate DOIs (preprint↔published)
+    alt_doi_map = {}  # primary doi -> alternate doi
+    print("Looking up alternate DOIs (preprint↔published)...", file=sys.stderr)
+    for doi in tqdm(list(all_dois), desc="Looking up alternate DOIs", disable=not show_progress):
+        alt = get_alternate_doi(session, doi)
+        if alt:
+            alt_doi_map[doi] = alt
+            all_dois.add(alt)
+        time.sleep(rate_limit)
+
+    if alt_doi_map:
+        print(f"  Found {len(alt_doi_map)} alternate versions", file=sys.stderr)
 
     doi_data = {}
     pbar = tqdm(all_dois, desc="Fetching paper data from OpenAlex", disable=not show_progress)
@@ -368,7 +573,7 @@ def add_citation_counts(
             doi_data[doi] = data
         time.sleep(rate_limit)
 
-    # Step 2: For each paper, get citations after dandiset creation
+    # Step 2: For each paper, get citations after dandiset creation (both versions)
     pbar = tqdm(results, desc="Fetching citations after dandiset creation", disable=not show_progress)
 
     for result in pbar:
@@ -401,15 +606,35 @@ def add_citation_counts(
             paper['citation_count'] = paper_info['cited_by_count']
             total_citations += paper_info['cited_by_count'] or 0
 
+            # Also add citation count from alternate version
+            alt_doi = alt_doi_map.get(doi)
+            if alt_doi and alt_doi in doi_data:
+                alt_info = doi_data[alt_doi]
+                paper['citation_count'] = (paper['citation_count'] or 0) + (alt_info.get('cited_by_count') or 0)
+                total_citations += alt_info.get('cited_by_count') or 0
+                paper['alternate_doi'] = alt_doi
+
             # Get citations after dandiset creation
             if ds_created and paper_info.get('openalex_id'):
                 from_date = ds_created.strftime('%Y-%m-%d')
                 citations_after = get_citations_after_date(
                     session, paper_info['openalex_id'], from_date
                 )
-                paper['citations_after_dandiset_created'] = citations_after
-                if citations_after:
-                    total_citations_after += citations_after
+                paper['citations_after_dandiset_created'] = citations_after or 0
+
+                # Also count citations of alternate version after creation
+                if alt_doi and alt_doi in doi_data:
+                    alt_oa_id = doi_data[alt_doi].get('openalex_id')
+                    if alt_oa_id:
+                        alt_citations_after = get_citations_after_date(
+                            session, alt_oa_id, from_date
+                        )
+                        if alt_citations_after:
+                            paper['citations_after_dandiset_created'] += alt_citations_after
+                        time.sleep(rate_limit)
+
+                if paper['citations_after_dandiset_created']:
+                    total_citations_after += paper['citations_after_dandiset_created']
                 time.sleep(rate_limit)
             else:
                 paper['citations_after_dandiset_created'] = None
@@ -442,14 +667,25 @@ def get_citing_papers(
     if '/' in openalex_id:
         openalex_id = openalex_id.split('/')[-1]
 
-    url = f"https://api.openalex.org/works?filter=cites:{openalex_id},publication_date:>{after_date}&per_page={max_results}"
+    per_page = min(max_results, 200)  # OpenAlex max is 200
+    base_url = f"https://api.openalex.org/works?filter=cites:{openalex_id},publication_date:>{after_date}&per_page={per_page}&mailto=ben.dichter@catalystneuro.com"
 
-    try:
-        resp = session.get(url, timeout=30)
-        if resp.status_code == 200:
+    citing_papers = []
+    cursor = '*'
+
+    while cursor and len(citing_papers) < max_results:
+        url = f"{base_url}&cursor={cursor}"
+        try:
+            resp = session.get(url, timeout=30)
+            if resp.status_code != 200:
+                break
+
             data = resp.json()
-            citing_papers = []
-            for work in data.get('results', []):
+            results = data.get('results', [])
+            if not results:
+                break
+
+            for work in results:
                 doi = work.get('doi', '')
                 if doi:
                     # Clean up DOI format (OpenAlex returns full URL)
@@ -470,11 +706,18 @@ def get_citing_papers(
                     'journal': journal,
                     'openalex_id': work.get('id'),
                 })
-            return citing_papers
-    except requests.RequestException:
-        pass
 
-    return []
+                if len(citing_papers) >= max_results:
+                    break
+
+            # Get next cursor for pagination
+            meta = data.get('meta', {})
+            cursor = meta.get('next_cursor')
+
+        except requests.RequestException:
+            break
+
+    return citing_papers
 
 
 def fetch_citing_paper_texts(
@@ -532,46 +775,53 @@ def fetch_citing_paper_texts(
 
         # Parse dandiset creation date to get the filter date
         try:
-            from datetime import datetime
             ds_created = datetime.fromisoformat(ds_created_str.replace('Z', '+00:00'))
             from_date = ds_created.strftime('%Y-%m-%d')
         except ValueError:
             result['citing_papers'] = []
             continue
 
-        # Collect citing papers from all primary papers
+        # Collect citing papers from all primary papers (including alternate versions)
         all_citing = []
         seen_citing_dois = set()
 
         for paper in result['paper_relations']:
-            # Need OpenAlex ID to query citing papers
-            # This requires that add_citation_counts was called first
-            # We'll need to fetch OpenAlex ID if not present
             doi = paper.get('doi')
             if not doi:
                 continue
 
-            # Get OpenAlex ID for this paper if we don't have it
+            # Build list of (openalex_id, doi) for all versions of this paper
+            openalex_ids = []
+
             openalex_data = get_openalex_paper_data(session, doi)
-            if not openalex_data or not openalex_data.get('openalex_id'):
+            if openalex_data and openalex_data.get('openalex_id'):
+                openalex_ids.append((openalex_data['openalex_id'], doi))
+
+            # Look up alternate version (preprint↔published)
+            alt_doi = get_alternate_doi(session, doi)
+            if alt_doi:
+                alt_data = get_openalex_paper_data(session, alt_doi)
+                if alt_data and alt_data.get('openalex_id'):
+                    openalex_ids.append((alt_data['openalex_id'], alt_doi))
+
+            if not openalex_ids:
                 continue
 
-            openalex_id = openalex_data['openalex_id']
+            # Query citations from ALL versions of this paper
+            for oa_id, version_doi in openalex_ids:
+                citing = get_citing_papers(
+                    session, oa_id, from_date,
+                    max_results=max_citing_papers_per_dandiset
+                )
 
-            # Get citing papers
-            citing = get_citing_papers(
-                session, openalex_id, from_date,
-                max_results=max_citing_papers_per_dandiset
-            )
+                for c in citing:
+                    c_doi = c.get('doi')
+                    if c_doi and c_doi not in seen_citing_dois:
+                        c['cited_paper_doi'] = doi  # Always use original DOI from metadata
+                        all_citing.append(c)
+                        seen_citing_dois.add(c_doi)
 
-            for c in citing:
-                c_doi = c.get('doi')
-                if c_doi and c_doi not in seen_citing_dois:
-                    c['cited_paper_doi'] = doi  # Track which paper was cited
-                    all_citing.append(c)
-                    seen_citing_dois.add(c_doi)
-
-            time.sleep(rate_limit)
+                time.sleep(rate_limit)
 
             # Stop if we have enough citing papers
             if len(all_citing) >= max_citing_papers_per_dandiset:
@@ -597,30 +847,76 @@ def fetch_citing_paper_texts(
     else:
         print(f"Found {len(all_citing_dois)} unique citing papers to fetch", file=sys.stderr)
 
-    # Step 3: Fetch text for all unique citing paper DOIs
+    # Step 3: Fetch text for all unique citing paper DOIs (parallel)
     doi_texts = {}
-    pbar = tqdm(all_citing_dois, desc="Fetching citing paper texts", disable=not show_progress)
+    n_workers = 8
 
-    for doi in pbar:
-        pbar.set_postfix({'doi': doi[:40] if len(doi) > 40 else doi})
+    # Separate cached vs uncached DOIs for better progress tracking
+    cached_dois = []
+    uncached_dois = []
+    for doi in all_citing_dois:
+        safe = doi.replace('/', '_').replace(':', '_').replace('\\', '_')
+        cache_path = Path(cache_dir) / f"{safe}.json"
+        if cache_path.exists():
+            cached_dois.append(doi)
+        else:
+            uncached_dois.append(doi)
+
+    print(f"  {len(cached_dois)} already cached, {len(uncached_dois)} to fetch", file=sys.stderr)
+
+    # Fetch cached papers quickly (single-threaded, no rate limit needed)
+    for doi in tqdm(cached_dois, desc="Loading cached papers", disable=not show_progress):
         text, source, from_cache = finder.get_paper_text(doi)
         if text:
             doi_texts[doi] = {
-                'text': text,
-                'source': source,
-                'text_length': len(text),
+                'text': text, 'source': source, 'text_length': len(text),
             }
         else:
             doi_texts[doi] = {
-                'text': None,
-                'source': None,
-                'text_length': 0,
-                'error': 'Could not retrieve paper text'
+                'text': None, 'source': None, 'text_length': 0,
+                'error': 'Could not retrieve paper text',
             }
 
-        # Rate limiting - only if we made API calls (not from cache)
-        if not from_cache:
-            time.sleep(0.5)
+    # Fetch uncached papers in parallel
+    if uncached_dois:
+        import concurrent.futures
+        import threading
+
+        # Each thread gets its own ArchiveFinder (owns its own requests.Session)
+        thread_local = threading.local()
+
+        def get_finder():
+            if not hasattr(thread_local, 'finder'):
+                thread_local.finder = ArchiveFinder(
+                    verbose=verbose, use_cache=True, cache_dir=cache_dir
+                )
+            return thread_local.finder
+
+        def fetch_one(doi):
+            f = get_finder()
+            text, source, from_cache = f.get_paper_text(doi)
+            if not from_cache:
+                time.sleep(0.2)  # Light rate limit per thread
+            if text:
+                return doi, {
+                    'text': text, 'source': source, 'text_length': len(text),
+                }
+            else:
+                return doi, {
+                    'text': None, 'source': None, 'text_length': 0,
+                    'error': 'Could not retrieve paper text',
+                }
+
+        pbar = tqdm(total=len(uncached_dois), desc=f"Fetching paper texts ({n_workers} workers)",
+                    disable=not show_progress)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=n_workers) as executor:
+            futures = {executor.submit(fetch_one, doi): doi for doi in uncached_dois}
+            for future in concurrent.futures.as_completed(futures):
+                doi, result = future.result()
+                doi_texts[doi] = result
+                pbar.set_postfix({'doi': doi[:35]})
+                pbar.update(1)
+        pbar.close()
 
     # Step 4: Add text metadata to citing papers in results (text is stored in cache files)
     for result in results:

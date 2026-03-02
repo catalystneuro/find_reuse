@@ -17,6 +17,7 @@ venv/
 .doi_title_cache.json
 .doi_metadata_cache.json
 .preprint_published_map.json
+.alternate_doi_cache.json
 
 # Paper text cache
 .paper_cache/

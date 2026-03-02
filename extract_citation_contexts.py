@@ -81,6 +81,30 @@ def extract_all_citation_contexts(
         'User-Agent': 'CitationContextExtractor/1.0 (mailto:ben.dichter@catalystneuro.com)'
     })
 
+    # Build alternate DOI map (preprint↔published) for better citation finding
+    from dandi_primary_papers import get_alternate_doi
+    alt_doi_session = requests.Session()
+    alt_doi_session.headers.update({
+        'User-Agent': 'CitationContextExtractor/1.0 (mailto:ben.dichter@catalystneuro.com)'
+    })
+
+    # Collect all cited DOIs and look up alternates
+    all_cited_dois = set()
+    for result in results_data['results']:
+        for citing in result.get('citing_papers', []):
+            cited_doi = citing.get('cited_paper_doi')
+            if cited_doi:
+                all_cited_dois.add(cited_doi)
+
+    alt_doi_map = {}
+    for cited_doi in all_cited_dois:
+        alt = get_alternate_doi(alt_doi_session, cited_doi)
+        if alt:
+            alt_doi_map[cited_doi] = alt
+
+    if alt_doi_map:
+        print(f"Found {len(alt_doi_map)} alternate DOIs for citation context search", file=sys.stderr)
+
     # Collect all citing paper -> cited paper relationships
     citation_pairs = []
     for result in results_data['results']:
@@ -104,6 +128,7 @@ def extract_all_citation_contexts(
                 'citing_journal': citing.get('journal', ''),
                 'citing_date': citing.get('publication_date', ''),
                 'cited_doi': cited_doi,
+                'alt_cited_doi': alt_doi_map.get(cited_doi),
                 'dandiset_id': dandiset_id,
                 'dandiset_name': dandiset_name,
                 'cache_file': cache_file,
@@ -134,6 +159,18 @@ def extract_all_citation_contexts(
                 context_chars=context_chars,
                 session=session
             )
+
+            # If no citations found with primary DOI, try alternate version
+            if (result.get('num_citations', 0) == 0 and not result.get('error')
+                    and pair.get('alt_cited_doi')):
+                alt_result = find_citation_in_cached_paper(
+                    pair['cache_file'],
+                    pair['alt_cited_doi'],
+                    context_chars=context_chars,
+                    session=session
+                )
+                if alt_result.get('num_citations', 0) > 0:
+                    result = alt_result
 
             if result.get('error'):
                 if 'Insufficient' in result.get('error', ''):

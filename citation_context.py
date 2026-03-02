@@ -128,8 +128,8 @@ def find_reference_number_for_doi(text: str, doi: str) -> Optional[int]:
     search_start = max(0, doi_pos - 500)
     preceding_text = text[search_start:doi_pos]
 
-    # Pattern 1: Explicit numbered reference at start of line
-    # e.g., "42. Author" or "42 Author" but NOT "10.1016/..."
+    # Pattern 1a: Explicit numbered reference at start of line
+    # e.g., "\n42. Author" or "\n42 Author" but NOT "10.1016/..."
     ref_pattern = r'(?:^|\n)\s*(\d{1,3})(?:\.(?!\d)|[\s\)])(?![\d/])'
     ref_numbers = list(re.finditer(ref_pattern, preceding_text))
 
@@ -146,7 +146,29 @@ def find_reference_number_for_doi(text: str, doi: str) -> Optional[int]:
     if valid_refs:
         return valid_refs[-1]
 
+    # Pattern 1b: Reference number mid-line followed by ". AuthorName"
+    # Handles Europe PMC format: "PMC4126853 30. Huszár R..."
+    # Requires: space before number, period after, space(s), then capital letter
+    # This avoids matching page numbers like "691 704.e5" (no space after period)
+    ref_pattern_b = r'\s(\d{1,3})\.\s+[A-Z]'
+    ref_numbers_b = list(re.finditer(ref_pattern_b, preceding_text))
+
+    valid_refs_b = []
+    for m in ref_numbers_b:
+        num = int(m.group(1))
+        # Skip DOI-like patterns (10.xxxx)
+        if num == 10:
+            remaining = preceding_text[m.end()-1:m.end()+20]
+            if re.match(r'\d{4}/', remaining):
+                continue
+        valid_refs_b.append(num)
+
+    if valid_refs_b:
+        return valid_refs_b[-1]
+
     # Pattern 2: Europe PMC format - count DOI position in reference section
+    # Deduplicate DOIs to handle concatenated text sources (e.g., europe_pmc+crossref)
+    # where the same reference section appears twice
     ref_start = find_reference_section_start(text)
 
     if ref_start < len(text):
@@ -154,11 +176,17 @@ def find_reference_number_for_doi(text: str, doi: str) -> Optional[int]:
         ref_section = text[ref_start:]
         ref_dois = list(re.finditer(r'10\.\d{4,}/[^\s]+', ref_section))
 
-        # Find which DOI number matches our target
-        for i, m in enumerate(ref_dois):
-            if doi.lower() in m.group().lower():
-                # Reference numbers are 1-indexed
-                return i + 1
+        # Count unique DOIs only (first occurrence determines position)
+        seen_dois = set()
+        ref_number_counter = 0
+        for m in ref_dois:
+            # Normalize DOI: lowercase, strip trailing punctuation
+            doi_text = m.group().lower().rstrip('.,;:)')
+            if doi_text not in seen_dois:
+                seen_dois.add(doi_text)
+                ref_number_counter += 1
+                if doi.lower() in doi_text:
+                    return ref_number_counter
 
     return None
 
