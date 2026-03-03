@@ -96,7 +96,7 @@ CITING PAPER DOI (the paper we are classifying): {citing_doi}
     else:
         prompt += "No text was available for this paper.\n\n"
 
-    prompt += """Based on the text above, make TWO separate decisions:
+    prompt += """Based on the text above, make THREE separate decisions:
 
 DECISION 1 - Did this paper reuse the DATA from the dataset?
 - REUSE: The citing paper downloaded/accessed and reused the actual DATA (recordings, images, behavioral traces, etc.) for their own analysis. Look for phrases like "we used data from", "we downloaded", "we analyzed recordings from", "data were obtained from", or explicit mentions of using the DANDI archive.
@@ -112,10 +112,27 @@ IMPORTANT RULES:
 DECISION 2 - If REUSE, is it the same lab?
 Check whether the citing paper's author list shares names with the primary paper's authors. If the same group reused or extended their own data, same_lab is true. If a different group used it, same_lab is false.
 
-Respond ONLY with a JSON object (no markdown, no explanation outside the JSON):
-{"classification": "REUSE|MENTION|NEITHER", "confidence": <1-10>, "same_lab": <true|false>, "same_lab_confidence": <1-10>, "reasoning": "Brief 1-2 sentence explanation"}
+DECISION 3 - If REUSE, which data archive was used to access the data?
+Look for explicit mentions of how the data was accessed. Common archives include:
+- DANDI Archive (dandiarchive.org, DANDI)
+- CRCNS (crcns.org, Collaborative Research in Computational Neuroscience)
+- Dryad (datadryad.org)
+- Figshare (figshare.com)
+- EBRAINS (ebrains.eu, Human Brain Project)
+- OpenNeuro (openneuro.org)
+- Zenodo (zenodo.org)
+- OSF (osf.io, Open Science Framework)
+- GIN (gin.g-node.org, G-Node)
+- Allen Institute (brain-map.org, Allen Brain Observatory)
+- IBL (International Brain Laboratory data portal)
+- INDI (International Neuroimaging Data-sharing Initiative)
+- GitHub / institutional repository / lab website
+If the text explicitly states where the data was obtained from, set source_archive to that name. If the text does not clearly indicate which archive or repository was used, set source_archive to "unclear".
 
-Only include same_lab and same_lab_confidence when classification is REUSE.
+Respond ONLY with a JSON object (no markdown, no explanation outside the JSON):
+{"classification": "REUSE|MENTION|NEITHER", "confidence": <1-10>, "same_lab": <true|false>, "same_lab_confidence": <1-10>, "source_archive": "<archive name or unclear>", "reasoning": "Brief 1-2 sentence explanation"}
+
+Only include same_lab, same_lab_confidence, and source_archive when classification is REUSE.
 Confidence scale: 1 = pure guess, 5 = uncertain but leaning, 8 = fairly confident, 10 = certain."""
 
     return prompt
