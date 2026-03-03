@@ -106,6 +106,8 @@ DECISION 1 - Did this paper reuse the DATA from the dataset?
 IMPORTANT RULES:
 1. Using or adapting analytical SOFTWARE, code, algorithms, or methods from the primary paper is NOT data reuse. Only classify as REUSE if the actual recorded data (e.g., neural recordings, imaging data, behavioral data) was downloaded and reanalyzed. If a paper only uses software tools, analysis pipelines, or methodological approaches from the primary paper, that is MENTION.
 2. The citing paper must have reused data from THIS SPECIFIC dataset (described by the primary paper DOI above). If the paper reuses data from a DIFFERENT dataset but merely cites this primary paper for context, methodology, or as a reference, that is MENTION, not REUSE. Be precise about which dataset's data was actually used.
+3. A citation used only as background or to establish a fact (e.g., "X cells are found in region Y [ref]") is MENTION, not REUSE — even if the topic closely matches the dataset name. Pay attention to HOW the reference is cited: parenthetical citations in lists like (31, 32, 33) supporting a general statement are almost never data reuse.
+4. If the paper ran SIMULATIONS inspired by or parameterized from a different data source, and only cites the primary paper as background context, that is MENTION. Simulating a cell type described in the primary paper is not the same as reusing the primary paper's recorded data.
 
 DECISION 2 - If REUSE, is it the same lab?
 Check whether the citing paper's author list shares names with the primary paper's authors. If the same group reused or extended their own data, same_lab is true. If a different group used it, same_lab is false.

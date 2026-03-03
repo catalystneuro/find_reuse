@@ -19,7 +19,10 @@ import argparse
 import json
 import subprocess
 import sys
+import time
 from pathlib import Path
+
+import requests
 
 
 def merge_data(refs_file: Path, citations_file: Path) -> dict:
@@ -92,6 +95,40 @@ def merge_data(refs_file: Path, citations_file: Path) -> dict:
     if preprint_map_file.exists():
         with open(preprint_map_file) as f:
             preprint_map = json.load(f)  # {preprint_doi: published_doi}
+    else:
+        preprint_map = {}
+
+    # Auto-detect missing preprint->published mappings via bioRxiv API
+    merged_dois = set(m["citing_doi"] for m in merged)
+    preprint_dois = {d for d in merged_dois if d.startswith("10.1101/")} - set(preprint_map.keys())
+    if preprint_dois:
+        new_mappings = 0
+        for preprint_doi in sorted(preprint_dois):
+            for server in ["biorxiv", "medrxiv"]:
+                try:
+                    resp = requests.get(
+                        f"https://api.biorxiv.org/pubs/{server}/{preprint_doi}",
+                        timeout=15,
+                    )
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        if data.get("collection") and len(data["collection"]) > 0:
+                            pub_doi = data["collection"][0].get("published_doi")
+                            if pub_doi:
+                                preprint_map[preprint_doi] = pub_doi
+                                new_mappings += 1
+                                break
+                    time.sleep(0.3)
+                except Exception:
+                    pass
+        if new_mappings:
+            preprint_map = dict(sorted(preprint_map.items()))
+            with open(preprint_map_file, "w") as f:
+                json.dump(preprint_map, f, indent=2)
+                f.write("\n")
+            print(f"  Auto-discovered {new_mappings} preprint->published mappings")
+
+    if preprint_map:
 
         # Only remap if BOTH the preprint and published DOI are in merged
         merged_dois = set(m["citing_doi"] for m in merged)

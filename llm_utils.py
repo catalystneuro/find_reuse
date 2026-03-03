@@ -22,14 +22,29 @@ DEFAULT_MODEL = "google/gemini-3-flash-preview"
 
 def get_api_key() -> str:
     """
-    Get OpenRouter API key from environment.
+    Get OpenRouter API key from environment or .env file.
 
     Raises ValueError if no API key is found.
     """
     api_key = os.environ.get('OPENROUTER_API_KEY')
     if not api_key:
+        # Try loading from .env file in the project directory
+        env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
+        if os.path.exists(env_path):
+            with open(env_path) as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith('#') and '=' in line:
+                        key, _, value = line.partition('=')
+                        key = key.strip()
+                        value = value.strip().strip('"').strip("'")
+                        if key == 'OPENROUTER_API_KEY':
+                            api_key = value
+                            break
+    if not api_key:
         raise ValueError(
-            "No API key found. Set OPENROUTER_API_KEY environment variable."
+            "No API key found. Set OPENROUTER_API_KEY environment variable "
+            "or add it to .env file."
         )
     return api_key
 
