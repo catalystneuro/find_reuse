@@ -53,6 +53,12 @@ CLASSIFICATION_CACHE_DIR = Path(__file__).parent / '.classification_cache'
 # Valid classification values
 VALID_CLASSIFICATIONS = {'REUSE', 'MENTION', 'NEITHER'}
 
+# DOI patterns for non-research documents (peer review, editorial comments, etc.)
+NON_RESEARCH_DOI_PATTERNS = [
+    re.compile(r'\.sa\d+'),       # eLife sub-articles (peer review)
+    re.compile(r'/peer-review/'),  # explicit peer review paths
+]
+
 
 def build_classification_prompt(
     contexts: list[dict],
@@ -108,6 +114,9 @@ IMPORTANT RULES:
 2. The citing paper must have reused data from THIS SPECIFIC dataset (described by the primary paper DOI above). If the paper reuses data from a DIFFERENT dataset but merely cites this primary paper for context, methodology, or as a reference, that is MENTION, not REUSE. Be precise about which dataset's data was actually used.
 3. A citation used only as background or to establish a fact (e.g., "X cells are found in region Y [ref]") is MENTION, not REUSE — even if the topic closely matches the dataset name. Pay attention to HOW the reference is cited: parenthetical citations in lists like (31, 32, 33) supporting a general statement are almost never data reuse.
 4. If the paper ran SIMULATIONS inspired by or parameterized from a different data source, and only cites the primary paper as background context, that is MENTION. Simulating a cell type described in the primary paper is not the same as reusing the primary paper's recorded data.
+5. If the citing paper describes collecting its OWN new recordings or data and merely cites the primary paper for comparison, context, or analytical approach, that is MENTION, not REUSE. The citing paper must have downloaded and used data FROM the primary paper's dataset, not just performed a similar experiment.
+6. Using a figure, numerical value, or summary statistic from a published paper purely for comparison is NOT data reuse. However, downloading open data to use as input for simulations or models IS data reuse.
+7. If only an abstract or very short text is available, do NOT classify as REUSE unless the abstract explicitly states data was downloaded or reused from this specific dataset. Prefer MENTION when evidence is ambiguous.
 
 DECISION 2 - If REUSE, is it the same lab?
 Check whether the citing paper's author list shares names with the primary paper's authors. If the same group reused or extended their own data, same_lab is true. If a different group used it, same_lab is false.
@@ -213,6 +222,24 @@ def classify_single_paper(
                 cached['dandiset_name'] = dandiset_name
             return cached
 
+    # Pre-filter non-research DOIs (peer review documents, etc.)
+    for pattern in NON_RESEARCH_DOI_PATTERNS:
+        if pattern.search(citing_doi):
+            result = {
+                'citing_doi': citing_doi,
+                'cited_doi': cited_doi,
+                'dandiset_id': dandiset_id,
+                'dandiset_name': dandiset_name,
+                'from_cache': False,
+                'classification': 'NEITHER',
+                'confidence': 10,
+                'reasoning': 'DOI pattern indicates peer review or non-research document',
+                'error': 'non_research_doi',
+            }
+            if use_cache:
+                cache_classification(citing_doi, cited_doi, result)
+            return result
+
     result = {
         'citing_doi': citing_doi,
         'cited_doi': cited_doi,
@@ -304,6 +331,17 @@ def classify_single_paper(
         default_classification='NEITHER',
     )
     result.update(classification)
+
+    # Post-classification validation: confidence cap for short texts
+    if result.get('classification') == 'REUSE' and result.get('text_length', 0) < 15000:
+        result['confidence'] = min(result.get('confidence', 1), 5)
+        result['low_text_warning'] = True
+
+    # Flag high-confidence reuse for downstream consumers
+    result['high_confidence_reuse'] = (
+        result.get('classification') == 'REUSE'
+        and result.get('confidence', 0) >= 7
+    )
 
     # Include context excerpts in output (full text - viewer handles display)
     if contexts:
