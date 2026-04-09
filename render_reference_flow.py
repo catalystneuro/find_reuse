@@ -3,7 +3,7 @@ import graphviz
 import json
 
 # --- Load data ---
-with open('output/test_all_classifications.json') as f:
+with open('output/all_classifications.json') as f:
     classif = json.load(f)
 with open('output/direct_ref_classifications.json') as f:
     direct_classif = json.load(f)
