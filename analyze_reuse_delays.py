@@ -101,7 +101,14 @@ def draw_source_archive(ax, reuse_subset, dandi_frac=None):
     values = [main[n] for n in names]
 
     y = list(range(len(names)))
-    colors = ["#F57C00" if n == "unclear" else "#2196F3" for n in names]
+    colors = []
+    for n in names:
+        if n == "unclear":
+            colors.append("#F57C00")
+        elif n == "DANDI Archive":
+            colors.append("#2196F3")
+        else:
+            colors.append("#616161")
     bars = ax.barh(y, values, color=colors)
 
     # Add estimated share of unclear as dashed extension on each archive bar
@@ -133,13 +140,14 @@ def draw_source_archive(ax, reuse_subset, dandi_frac=None):
 
     from matplotlib.patches import Patch
     handles = [
-        Patch(facecolor="#2196F3", label="Known archive"),
+        Patch(facecolor="#2196F3", label="DANDI Archive"),
         Patch(facecolor="#F57C00", label="Unclear"),
+        Patch(facecolor="#616161", label="Other archive"),
     ]
     if dandi_frac is not None:
-        handles.append(Patch(facecolor="none", edgecolor="#2196F3",
+        handles.append(Patch(facecolor="none", edgecolor="#616161",
                              linestyle="--", label="Est. share of unclear"))
-    ax.legend(handles=handles, fontsize=6, loc="lower right")
+    ax.legend(handles=handles, fontsize=6, loc="lower right", frameon=False)
 
     for bar, val in zip(bars, values):
         ax.text(bar.get_width() + 0.5, bar.get_y() + bar.get_height() / 2,
@@ -188,13 +196,25 @@ def draw_delay_histogram(ax, delays, dandi_frac=None):
     ax.set_ylabel("Number of papers")
     ax.set_title("Delay: Dandiset Creation → Reuse Publication", fontsize=10, fontweight="bold")
 
-    if groups[0]:
+    # Median line using estimated DANDI distribution:
+    # DANDI confirmed + dandi_frac fraction of unclear
+    if groups[0] and dandi_frac is not None:
+        # Weight unclear by repeating each value int(round(dandi_frac * N)) times
+        # via bootstrap approximation: sample dandi_frac of unclear
+        n_unclear_est = int(round(len(groups[1]) * dandi_frac))
+        rng = np.random.default_rng(42)
+        unclear_sample = list(rng.choice(groups[1], size=n_unclear_est, replace=False)) if n_unclear_est > 0 and groups[1] else []
+        est_months = groups[0] + unclear_sample
+        median = np.median(est_months)
+        ax.axvline(median, color="#E53935", linestyle="--", linewidth=1.5)
+    elif groups[0]:
         median = np.median(groups[0])
-        ax.axvline(median, color="#E53935", linestyle="--", linewidth=1.5,
-                   label=f"Median (DANDI): {median:.0f} mo")
-    ax.legend(fontsize=6)
+        ax.axvline(median, color="#E53935", linestyle="--", linewidth=1.5)
 
-    stats_text = f"DANDI: {len(groups[0])}, Unclear: {len(groups[1])}"
+    stats_text = (
+        f"DANDI: {len(groups[0])}, Unclear: {len(groups[1])}\n"
+        f"Est. median: {median:.0f} mo"
+    )
     ax.text(
         0.97, 0.95, stats_text, transform=ax.transAxes, fontsize=8,
         va="top", ha="right",
@@ -242,7 +262,6 @@ def draw_reuse_by_year(ax, delays, dandi_frac=None):
     ax.set_xticks(range(len(all_years)))
     ax.set_xticklabels(all_years)
     ax.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-    ax.legend(fontsize=6)
 
 
 def draw_cumulative_reuse(ax, delays, dandi_frac=None):
@@ -281,8 +300,9 @@ def draw_cumulative_reuse(ax, delays, dandi_frac=None):
     ax.set_xlabel("Date")
     ax.set_ylabel("Cumulative papers")
     ax.set_title("Cumulative DANDI Reuse Over Time", fontsize=10, fontweight="bold")
+    ax.set_ylim(bottom=0)
+    ax.set_xlim(dates[0], dates[-1])
     ax.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-    ax.legend(fontsize=6)
 
 
 def _build_survival_data(delays_cutoff, dandiset_created):
@@ -375,102 +395,136 @@ def _compute_mcf(records, events_by_dandiset):
     return times, mcf_vals, mcf_lower, mcf_upper
 
 
-def draw_survival(ax_km, ax_mcf, delays_cutoff, dandiset_created):
+def draw_survival(ax_km, ax_mcf, delays_cutoff, dandiset_created, dandi_frac=None):
     """Draw both KM survival curve and MCF on two axes.
 
-    ax_km: Kaplan-Meier (time to first reuse)
-    ax_mcf: Mean Cumulative Function (expected reuse count per dandiset)
+    Shows three layers:
+    - Blue solid: DANDI-only (confirmed)
+    - Orange solid: DANDI + unclear (upper bound)
+    - Blue dashed: estimated (DANDI + dandi_frac * unclear)
 
     Returns (kmf, km_df) for stats printing.
     """
-    records, events_by_dandiset = _build_survival_data(delays_cutoff, dandiset_created)
-    df = pd.DataFrame(records)
-    n_total = len(df)
-    n_events = int(df["observed"].sum())
-    n_censored = n_total - n_events
-    total_reuse_events = sum(len(v) for v in events_by_dandiset.values())
+    # Split into DANDI-confirmed and unclear
+    dandi_delays = [d for d in delays_cutoff if d.get("source_archive") != "unclear"]
+    all_delays = delays_cutoff  # includes both DANDI and unclear
 
-    # ── Kaplan-Meier (time to first reuse) ──
-    kmf = KaplanMeierFitter()
-    kmf.fit(
-        durations=df["duration_months"],
-        event_observed=df["observed"],
-        label="Time to first DANDI-sourced reuse",
+    # Build survival data for both subsets
+    records_dandi, events_dandi = _build_survival_data(dandi_delays, dandiset_created)
+    records_all, events_all = _build_survival_data(all_delays, dandiset_created)
+
+    df_dandi = pd.DataFrame(records_dandi)
+    n_total = len(df_dandi)
+    n_events_dandi = int(df_dandi["observed"].sum())
+
+    # ── Kaplan-Meier ──
+    # Fit KM for DANDI-only (blue)
+    kmf_dandi = KaplanMeierFitter()
+    kmf_dandi.fit(
+        durations=df_dandi["duration_months"],
+        event_observed=df_dandi["observed"],
+        label="DANDI Archive",
     )
 
-    kmf.plot_survival_function(ax=ax_km, color="#2196F3", linewidth=2)
-    ax_km.fill_between(
-        kmf.survival_function_.index,
-        kmf.confidence_interval_.iloc[:, 0],
-        kmf.confidence_interval_.iloc[:, 1],
-        alpha=0.15, color="#2196F3",
+    # Fit KM for all (DANDI + unclear) = upper bound (orange)
+    df_all = pd.DataFrame(records_all)
+    kmf_all = KaplanMeierFitter()
+    kmf_all.fit(
+        durations=df_all["duration_months"],
+        event_observed=df_all["observed"],
+        label="DANDI + unclear",
     )
+
+    # Plot as CDF: P(>=1 reuse) = 1 - survival
+    # Upper bound (orange) - DANDI + unclear
+    t_all = kmf_all.survival_function_.index.values
+    cdf_all = 1 - kmf_all.survival_function_.values.ravel()
+    ci_all_lo = 1 - kmf_all.confidence_interval_.iloc[:, 1].values  # flipped
+    ci_all_hi = 1 - kmf_all.confidence_interval_.iloc[:, 0].values
+    ax_km.step(t_all, cdf_all, where="post", color="#F57C00", linewidth=1.5)
+    ax_km.fill_between(t_all, ci_all_lo, ci_all_hi, step="post", alpha=0.1, color="#F57C00")
+
+    # DANDI-only (blue)
+    t_dandi = kmf_dandi.survival_function_.index.values
+    cdf_dandi = 1 - kmf_dandi.survival_function_.values.ravel()
+    ci_d_lo = 1 - kmf_dandi.confidence_interval_.iloc[:, 1].values
+    ci_d_hi = 1 - kmf_dandi.confidence_interval_.iloc[:, 0].values
+    ax_km.step(t_dandi, cdf_dandi, where="post", color="#2196F3", linewidth=2)
+    ax_km.fill_between(t_dandi, ci_d_lo, ci_d_hi, step="post", alpha=0.15, color="#2196F3")
+
+    # Estimated CDF (dashed)
+    if dandi_frac is not None:
+        common_times = np.union1d(t_dandi, t_all)
+        surv_dandi = kmf_dandi.predict(common_times)
+        surv_all = kmf_all.predict(common_times)
+        surv_est = surv_dandi - dandi_frac * (surv_dandi - surv_all)
+        cdf_est = 1 - surv_est
+        ax_km.step(common_times, cdf_est, where="post", color="#1565C0",
+                   linestyle="--", linewidth=1.5)
 
     ax_km.set_xlabel("Months after dandiset creation")
-    ax_km.set_ylabel("P(no reuse yet)")
-    ax_km.set_title(
-        f"Kaplan-Meier: Time to First Reuse",
-        fontsize=10, fontweight="bold",
-    )
+    ax_km.set_ylabel("P(\u22651 reuse)")
+    ax_km.set_title("Kaplan-Meier: Time to First Reuse", fontsize=10, fontweight="bold")
 
-    median_survival = kmf.median_survival_time_
-    if not np.isinf(median_survival):
-        ax_km.axhline(0.5, color="gray", linestyle=":", linewidth=1, alpha=0.5)
-        ax_km.axvline(median_survival, color="gray", linestyle=":", linewidth=1, alpha=0.5)
-        ax_km.annotate(
-            f"Median: {median_survival:.0f} mo",
-            xy=(median_survival, 0.5), xytext=(15, -20),
-            textcoords="offset points", fontsize=9, color="#E53935",
-            fontweight="bold", arrowprops=dict(arrowstyle="->", color="#E53935"),
-        )
-
-    km_lines = [
-        f"n={n_total} dandisets",
-        f"{n_events} with reuse, {n_censored} censored",
-    ]
-    if np.isinf(median_survival):
-        km_lines.append("Median: not yet reached")
+    km_lines = [f"n={n_total} dandisets"]
     for t, label in [(12, "1yr"), (24, "2yr"), (36, "3yr"), (48, "4yr"), (60, "5yr")]:
         try:
-            pct = (1 - kmf.predict(t)) * 100
-            km_lines.append(f"Reused by {label}: {pct:.0f}%")
+            pct_d = (1 - kmf_dandi.predict(t)) * 100
+            pct_a = (1 - kmf_all.predict(t)) * 100
+            km_lines.append(f"By {label}: {pct_d:.0f}%\u2013{pct_a:.0f}%")
         except Exception:
             pass
 
     ax_km.text(
-        0.97, 0.97, "\n".join(km_lines), transform=ax_km.transAxes, fontsize=7,
-        va="top", ha="right",
+        0.03, 0.97, "\n".join(km_lines), transform=ax_km.transAxes, fontsize=7,
+        va="top", ha="left",
         bbox=dict(boxstyle="round,pad=0.3", facecolor="wheat", alpha=0.8),
     )
     ax_km.set_ylim(-0.02, 1.02)
+    ax_km.margins(x=0)
     ax_km.grid(axis="both", alpha=0.2)
-    ax_km.legend(loc="lower left", fontsize=8)
 
-    # ── Mean Cumulative Function (recurrent events) ──
-    times, mcf_vals, mcf_lower, mcf_upper = _compute_mcf(records, events_by_dandiset)
+    # ── Mean Cumulative Function ──
+    # MCF for DANDI-only (blue)
+    times_d, mcf_d, mcf_d_lo, mcf_d_hi = _compute_mcf(records_dandi, events_dandi)
+    # MCF for all (orange)
+    times_a, mcf_a, mcf_a_lo, mcf_a_hi = _compute_mcf(records_all, events_all)
 
-    ax_mcf.step(times, mcf_vals, where="post", color="#2196F3", linewidth=2,
-                label="Mean cumulative reuse")
-    ax_mcf.fill_between(times, mcf_lower, mcf_upper, step="post",
+    # Plot upper bound (orange) first
+    ax_mcf.step(times_a, mcf_a, where="post", color="#F57C00", linewidth=1.5,
+                label="DANDI + unclear")
+    ax_mcf.fill_between(times_a, mcf_a_lo, mcf_a_hi, step="post",
+                        alpha=0.1, color="#F57C00")
+
+    # DANDI-only (blue)
+    ax_mcf.step(times_d, mcf_d, where="post", color="#2196F3", linewidth=2,
+                label="DANDI Archive")
+    ax_mcf.fill_between(times_d, mcf_d_lo, mcf_d_hi, step="post",
                         alpha=0.15, color="#2196F3")
+
+    # Estimated MCF (dashed)
+    if dandi_frac is not None:
+        # Interpolate MCF at common time points
+        common_t = np.union1d(times_d, times_a)
+        mcf_d_interp = np.interp(common_t, times_d, mcf_d)
+        mcf_a_interp = np.interp(common_t, times_a, mcf_a)
+        mcf_est = mcf_d_interp + dandi_frac * (mcf_a_interp - mcf_d_interp)
+        ax_mcf.step(common_t, mcf_est, where="post", color="#1565C0",
+                    linestyle="--", linewidth=1.5,
+                    label=f"Est. ({dandi_frac:.0%} of unclear)")
 
     ax_mcf.set_xlabel("Months after dandiset creation")
     ax_mcf.set_ylabel("Expected reuse papers per dandiset")
-    ax_mcf.set_title(
-        "Mean Cumulative Function: Expected Reuse Count",
-        fontsize=10, fontweight="bold",
-    )
+    ax_mcf.set_title("MCF: Expected Reuse Count", fontsize=10, fontweight="bold")
+    ax_mcf.margins(x=0)
     ax_mcf.grid(axis="both", alpha=0.2)
-    ax_mcf.legend(loc="upper left", fontsize=8)
 
-    mcf_lines = [
-        f"n={n_total} dandisets, {total_reuse_events} total reuse events",
-        f"cutoff: {ANALYSIS_CUTOFF.strftime('%Y-%m-%d')}",
-    ]
+    mcf_lines = [f"cutoff: {ANALYSIS_CUTOFF.strftime('%Y-%m-%d')}"]
     for t, label in [(12, "1yr"), (24, "2yr"), (36, "3yr"), (48, "4yr"), (60, "5yr")]:
-        idx = np.searchsorted(times, t, side="right") - 1
-        if idx >= 0 and idx < len(mcf_vals):
-            mcf_lines.append(f"E[reuse] by {label}: {mcf_vals[idx]:.2f}")
+        idx_d = np.searchsorted(times_d, t, side="right") - 1
+        idx_a = np.searchsorted(times_a, t, side="right") - 1
+        if idx_d >= 0 and idx_a >= 0:
+            mcf_lines.append(f"E[reuse] by {label}: {mcf_d[idx_d]:.2f}–{mcf_a[idx_a]:.2f}")
 
     ax_mcf.text(
         0.03, 0.97, "\n".join(mcf_lines), transform=ax_mcf.transAxes, fontsize=7,
@@ -478,10 +532,96 @@ def draw_survival(ax_km, ax_mcf, delays_cutoff, dandiset_created):
         bbox=dict(boxstyle="round,pad=0.3", facecolor="wheat", alpha=0.8),
     )
 
-    return kmf, df
+    return kmf_dandi, df_dandi
 
 
 # ── Individual figure saving (for standalone PNGs) ──────────────────────
+
+
+def _normalize_journal(name):
+    """Normalize journal name variants."""
+    name = name.strip()
+    if 'biorxiv' in name.lower() or 'cold spring harbor' in name.lower():
+        return 'bioRxiv'
+    if 'arxiv' in name.lower() and 'cornell' in name.lower():
+        return 'arXiv'
+    if 'research square' in name.lower():
+        return 'Research Square'
+    if 'medrxiv' in name.lower():
+        return 'medRxiv'
+    if 'ssrn' in name.lower():
+        return 'SSRN'
+    return name
+
+
+PREPRINT_SERVERS = {'bioRxiv', 'arXiv', 'Research Square', 'medRxiv', 'SSRN'}
+
+JOURNAL_ABBREVIATIONS = {
+    'Proceedings of the National Academy of Sciences': 'PNAS',
+    'PLoS Computational Biology': 'PLoS Comp. Biol.',
+    'Nature Communications': 'Nat. Commun.',
+    'Nature Neuroscience': 'Nat. Neurosci.',
+    'Nature Methods': 'Nat. Methods',
+    'Nature Computational Science': 'Nat. Comput. Sci.',
+    'Cell Reports': 'Cell Rep.',
+    'Journal of Neuroscience': 'J. Neurosci.',
+    'Frontiers in Computational Neuroscience': 'Front. Comput. Neurosci.',
+    'Scientific Reports': 'Sci. Rep.',
+    'Scientific Data': 'Sci. Data',
+    'Journal of Open Source Education': 'JOSE',
+    'Frontiers in Human Neuroscience': 'Front. Hum. Neurosci.',
+    'Journal of Neural Engineering': 'J. Neural Eng.',
+    'Journal of Neuroscience Methods': 'J. Neurosci. Methods',
+    'Current Opinion in Neurobiology': 'Curr. Opin. Neurobiol.',
+    'Communications Biology': 'Commun. Biol.',
+    'PLoS ONE': 'PLoS ONE',
+    'Research Square': 'Res. Sq.',
+}
+
+
+def draw_journals(ax, reuse_subset, dandi_frac=None):
+    """Horizontal bar chart of top journals, stacked DANDI vs unclear with estimate."""
+    subset = [c for c in reuse_subset if c.get('citing_journal')]
+    dandi_sub = [c for c in subset if c.get('source_archive') != 'unclear']
+    unclear_sub = [c for c in subset if c.get('source_archive') == 'unclear']
+
+    dandi_journals = Counter(_normalize_journal(c['citing_journal']) for c in dandi_sub)
+    unclear_journals = Counter(_normalize_journal(c['citing_journal']) for c in unclear_sub)
+
+    # Rank by total
+    all_journals = Counter()
+    for j in [dandi_journals, unclear_journals]:
+        all_journals.update(j)
+
+    top = all_journals.most_common(15)
+    names_raw = [n for n, _ in reversed(top)]
+    names = [JOURNAL_ABBREVIATIONS.get(n, n) for n in names_raw]
+
+    dandi_vals = [dandi_journals[n] for n in names_raw]
+    unclear_vals = [unclear_journals[n] for n in names_raw]
+
+    y = range(len(names))
+    ax.barh(y, dandi_vals, color="#2196F3")
+    ax.barh(y, unclear_vals, left=dandi_vals, color="#F57C00")
+
+    # Dashed estimate rectangles
+    if dandi_frac is not None:
+        for i, name in enumerate(names):
+            est = dandi_vals[i] + dandi_frac * unclear_vals[i]
+            if unclear_vals[i] > 0:
+                ax.plot(
+                    [est, est], [i - 0.4, i + 0.4],
+                    color="#1565C0", linestyle="--", linewidth=1.5,
+                )
+
+    ax.set_yticks(y)
+    ax.set_yticklabels(names, fontsize=8)
+    ax.set_xlabel("Number of papers")
+    ax.set_title("Top Journals (REUSE papers)", fontsize=10, fontweight="bold")
+
+    for i in range(len(names)):
+        total = dandi_vals[i] + unclear_vals[i]
+        ax.text(total + 0.3, i, str(total), va="center", fontsize=7)
 
 
 def draw_per_dandiset(ax, delays, dandiset_created):
@@ -586,37 +726,52 @@ def plot_combined_for_lab_type(
     """Create a 6-panel combined figure for one lab type (same or different)."""
     dandi_frac = compute_dandi_fraction(reuse_subset)
 
-    fig = plt.figure(figsize=(18, 17))
-    gs = fig.add_gridspec(3, 2, height_ratios=[1, 1, 1], hspace=0.35, wspace=0.3)
+    fig = plt.figure(figsize=(11.5, 16))
+    gs = fig.add_gridspec(
+        4, 2,
+        height_ratios=[0.8, 1, 1, 1],
+        width_ratios=[1, 1],
+        hspace=0.35, wspace=0.35,
+    )
 
     ax1 = fig.add_subplot(gs[0, 0])
     draw_source_archive(ax1, reuse_subset, dandi_frac=dandi_frac)
 
     ax2 = fig.add_subplot(gs[0, 1])
-    draw_delay_histogram(ax2, delays_subset, dandi_frac=dandi_frac)
+    draw_journals(ax2, reuse_subset, dandi_frac=dandi_frac)
 
     ax3 = fig.add_subplot(gs[1, 0])
-    draw_reuse_by_year(ax3, delays_subset, dandi_frac=dandi_frac)
+    draw_cumulative_reuse(ax3, delays_subset, dandi_frac=dandi_frac)
 
     ax4 = fig.add_subplot(gs[1, 1])
-    draw_cumulative_reuse(ax4, delays_subset, dandi_frac=dandi_frac)
+    draw_reuse_by_year(ax4, delays_subset, dandi_frac=dandi_frac)
 
     ax5 = fig.add_subplot(gs[2, 0])
-    ax6 = fig.add_subplot(gs[2, 1])
-    draw_survival(ax5, ax6, delays_cutoff_subset, dandiset_created)
+    draw_delay_histogram(ax5, delays_subset, dandi_frac=dandi_frac)
 
-    for label, ax in zip("ABCDEF", [ax1, ax2, ax3, ax4, ax5, ax6]):
+    ax6 = fig.add_subplot(gs[2, 1])
+    ax7 = fig.add_subplot(gs[3, 0])
+    draw_survival(ax6, ax7, delays_cutoff_subset, dandiset_created, dandi_frac=dandi_frac)
+
+    ax8 = fig.add_subplot(gs[3, 1])
+    ax8.axis("off")
+
+    axes = [ax1, ax2, ax3, ax4, ax5, ax6, ax7]
+    for label, ax in zip("ABCDEFG", axes):
         ax.text(
             -0.08, 1.08, label, transform=ax.transAxes,
             fontsize=16, fontweight="bold", va="top",
         )
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
 
     fig.suptitle(
         f"DANDI Archive Data Reuse Analysis — {lab_label}\n"
         f"Papers that explicitly accessed data from DANDI",
-        fontsize=15, fontweight="bold", y=0.99,
+        fontsize=15, fontweight="bold", y=0.93,
     )
 
+    fig.tight_layout(rect=[0, 0, 1, 0.92])
     fig.savefig(FIGURES_DIR / filename, dpi=150, bbox_inches="tight")
     plt.close(fig)
     print(f"  Saved {filename}")
@@ -735,7 +890,8 @@ def main():
 
     # Stats from other-lab survival analysis
     fig_tmp, (ax_tmp1, ax_tmp2) = plt.subplots(1, 2)
-    kmf, km_df = draw_survival(ax_tmp1, ax_tmp2, other_delays_cutoff, dandiset_created)
+    dandi_frac_other = compute_dandi_fraction(reuse_other_lab)
+    kmf, km_df = draw_survival(ax_tmp1, ax_tmp2, other_delays_cutoff, dandiset_created, dandi_frac=dandi_frac_other)
     plt.close(fig_tmp)
 
     print_summary_stats(delays, reuse, reuse_other_lab, kmf, km_df)
