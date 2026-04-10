@@ -7,14 +7,16 @@ It tries multiple sources in a fallback chain:
   1. Europe PMC (XML full text)
   2. NCBI PubMed Central (XML full text)
   3. CrossRef (metadata + references)
-  4. Unpaywall (OA PDF)
-  5. Publisher HTML (direct scraping)
-  6. Playwright-based browser fetching (bioRxiv, PMC, publisher)
+  4. Elsevier ScienceDirect API (for 10.1016/ DOIs, requires API key)
+  5. Unpaywall (OA PDF)
+  6. Publisher HTML (direct scraping)
+  7. Playwright-based browser fetching (bioRxiv, PMC, publisher)
 
 Text is cached locally to avoid redundant API calls.
 """
 
 import json
+import os
 import re
 import sys
 import time
@@ -591,6 +593,51 @@ class PaperFetcher:
             self.log(f"PDF extraction error: {e}")
             return None
 
+    def get_text_from_elsevier(self, doi: str) -> Optional[str]:
+        """Get paper full text via Elsevier ScienceDirect API."""
+        api_key = os.environ.get('ELSEVIER_API_KEY')
+        if not api_key:
+            # Try loading from .env
+            env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
+            if os.path.exists(env_path):
+                with open(env_path) as f:
+                    for line in f:
+                        line = line.strip()
+                        if line.startswith('ELSEVIER_API_KEY='):
+                            api_key = line.split('=', 1)[1].strip().strip('"').strip("'")
+                            break
+        if not api_key:
+            return None
+
+        # Only try for Elsevier DOIs
+        if not doi.startswith('10.1016/'):
+            return None
+
+        self.log(f"Trying Elsevier API for DOI: {doi}")
+        try:
+            resp = self.session.get(
+                f"https://api.elsevier.com/content/article/doi/{doi}",
+                headers={
+                    'X-ELS-APIKey': api_key,
+                    'Accept': 'text/plain',
+                },
+                timeout=30,
+            )
+            if resp.status_code == 200:
+                text = resp.text.strip()
+                if len(text) > 500:
+                    self.log(f"Got text from Elsevier API ({len(text)} chars)")
+                    return text
+            elif resp.status_code == 401:
+                self.log("Elsevier API: unauthorized (check API key)")
+            elif resp.status_code == 403:
+                self.log("Elsevier API: forbidden (subscription required)")
+            else:
+                self.log(f"Elsevier API: status {resp.status_code}")
+        except Exception as e:
+            self.log(f"Elsevier API error: {e}")
+        return None
+
     def get_text_from_unpaywall(self, doi: str) -> Optional[str]:
         """Get paper text via Unpaywall OA PDF lookup."""
         self.log(f"Trying Unpaywall for DOI: {doi}")
@@ -711,6 +758,14 @@ class PaperFetcher:
                         sources_used[0] = 'pmc_playwright'
 
             # If we don't have PMC full text, try other sources
+            if not sources_used or sources_used == ['crossref']:
+                # Try Elsevier API (for 10.1016/ DOIs)
+                elsevier_text = self.get_text_from_elsevier(doi)
+                if elsevier_text and len(elsevier_text) > 1000:
+                    self.log(f"Got text from Elsevier API ({len(elsevier_text)} chars)")
+                    text_parts.append(elsevier_text)
+                    sources_used.append('elsevier')
+
             if not sources_used or sources_used == ['crossref']:
                 # Try Unpaywall for OA PDF
                 unpaywall_text = self.get_text_from_unpaywall(doi)

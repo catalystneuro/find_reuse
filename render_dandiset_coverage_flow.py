@@ -17,19 +17,39 @@ import graphviz
 import requests
 
 
+def get_nonempty_dandiset_ids(session):
+    """Get IDs of dandisets that have at least one asset."""
+    ids = set()
+    page = 1
+    while True:
+        resp = session.get(
+            f"https://api.dandiarchive.org/api/dandisets/?page_size=200&page={page}",
+            timeout=15,
+        )
+        data = resp.json()
+        for ds in data.get("results", []):
+            draft = ds.get("draft_version", {})
+            if draft.get("asset_count", 0) > 0 or draft.get("size", 0) > 0:
+                ids.add(ds["identifier"])
+        if not data.get("next"):
+            break
+        page += 1
+    return ids
+
+
 def load_counts():
     """Compute all counts for the flowchart."""
-    # Total dandisets from API
     session = requests.Session()
-    resp = session.get(
-        "https://api.dandiarchive.org/api/dandisets/?page_size=1", timeout=15
-    )
-    total = resp.json()["count"]
 
-    # Formal paper associations (regex/metadata)
+    # Only count non-empty dandisets
+    nonempty_ids = get_nonempty_dandiset_ids(session)
+    total = len(nonempty_ids)
+
+    # Formal paper associations (regex/metadata), filtered to non-empty
     with open("output/dandi_primary_papers_results.json") as f:
         results = json.load(f)
-    formal_ids = set(r["dandiset_id"] for r in results["results"])
+    formal_ids = set(r["dandiset_id"] for r in results["results"]) & nonempty_ids
+    results_filtered = [r for r in results["results"] if r["dandiset_id"] in nonempty_ids]
     n_formal = len(formal_ids)
 
     # Breakdown of formal: which relation types
@@ -39,7 +59,7 @@ def load_counts():
     n_published_in = 0
     n_description_doi = 0
     n_formal_papers = 0  # total unique papers across all formal dandisets
-    for r in results["results"]:
+    for r in results_filtered:
         relations = set(p["relation"] for p in r.get("paper_relations", []))
         sources = set(p.get("source") for p in r.get("paper_relations", []))
         n_formal_papers += len(r.get("paper_relations", []))
@@ -56,7 +76,7 @@ def load_counts():
 
     # Deduplicate formal papers by DOI
     formal_dois = set()
-    for r in results["results"]:
+    for r in results_filtered:
         for p in r.get("paper_relations", []):
             doi = p.get("doi")
             if doi:
@@ -70,11 +90,14 @@ def load_counts():
         with open(cache_file) as f:
             cache = json.load(f)
 
+    # Filter LLM entries to non-empty dandisets with validated DOIs
     llm_found_entries = [
-        v for v in cache.values()
+        v for k, v in cache.items()
         if v.get("found") and v.get("confidence", 0) >= 6
-        and v.get("doi_validated") is True  # only explicitly validated
+        and v.get("doi_validated") is True
+        and k in nonempty_ids
     ]
+
     n_llm_found = len(llm_found_entries)
     # Count unique LLM papers by DOI (some may lack DOI)
     llm_dois = set()
@@ -89,18 +112,18 @@ def load_counts():
 
     # Count invalidated as "no paper found"
     n_llm_invalidated = sum(
-        1 for v in cache.values()
-        if v.get("found") and v.get("doi_validated") is False
+        1 for k, v in cache.items()
+        if v.get("found") and v.get("doi_validated") is False and k in nonempty_ids
     )
-    n_test = sum(1 for v in cache.values() if v.get("reason") == "test_dandiset")
+    n_test = sum(1 for k, v in cache.items() if v.get("reason") == "test_dandiset" and k in nonempty_ids)
     n_llm_not_found = sum(
-        1 for v in cache.values()
-        if not v.get("found") and v.get("reason") != "test_dandiset"
+        1 for k, v in cache.items()
+        if not v.get("found") and v.get("reason") != "test_dandiset" and k in nonempty_ids
     )
-    n_llm_checked = len(cache)
+    n_llm_checked_nonempty = sum(1 for k in cache if k in nonempty_ids)
 
-    # Remaining unchecked
-    n_remaining = total - n_formal - n_llm_checked
+    # Remaining unchecked (non-empty, not formal, not in cache)
+    n_remaining = total - n_formal - n_llm_checked_nonempty
 
     # No paper detectable = not found by LLM + invalidated + remaining
     n_no_paper = n_llm_not_found + n_llm_invalidated + n_remaining
@@ -121,11 +144,12 @@ def load_counts():
         "llm_found": n_llm_found,
         "llm_unique_papers": n_llm_unique_papers,
         "llm_not_found": n_llm_not_found,
-        "llm_checked": n_llm_checked,
+        "llm_checked": n_llm_checked_nonempty,
         "test": n_test,
         "no_paper": n_no_paper,
         "remaining": n_remaining,
         "total_unique_papers": n_total_unique_papers,
+        "_nonempty_ids": nonempty_ids,
     }
 
 
@@ -146,7 +170,7 @@ def render(counts, cache):
     # Root
     dot.node(
         "ROOT",
-        f"All DANDI Dandisets\n{total}",
+        f"All public, non-empty Dandisets\n{total}",
         shape="box", style="filled,rounded,bold",
         fillcolor="#e8d5f5", color="#7b1fa2", fontcolor="#4a148c",
         fontsize="14", penwidth="2.5",
@@ -207,13 +231,10 @@ def render(counts, cache):
     dot.edge("FORMAL", "DESC_DOI", color="#43a047")
 
     # Level 2b: No formal breakdown
-    n_llm_all = sum(
-        1 for v in cache.values()
-        if v.get("found") and v.get("confidence", 0) >= 6
-    )
+    nonempty_ids = counts["_nonempty_ids"]
     dot.node(
         "LLM_FOUND",
-        f'LLM-identified paper\n{n_llm_all} dandisets ({pct(n_llm_all, total)})',
+        f'LLM-identified paper\n{counts["llm_found"]} dandisets ({pct(counts["llm_found"], total)})\n{counts["llm_unique_papers"]} unique papers',
         shape="box", style="filled,rounded",
         fillcolor="#bbdefb", color="#1565c0", fontcolor="#0d47a1",
         penwidth="2",
@@ -233,36 +254,9 @@ def render(counts, cache):
         penwidth="2",
     )
 
-    # LLM sub-breakdown: validated DOI vs unresolvable DOI
-    n_llm_validated = sum(
-        1 for v in cache.values()
-        if v.get("found") and v.get("confidence", 0) >= 6 and v.get("doi_validated") is True
-    )
-    n_llm_invalid = sum(
-        1 for v in cache.values()
-        if v.get("found") and v.get("confidence", 0) >= 6 and v.get("doi_validated") is False
-    )
-
-    dot.edge("NO_FORMAL", "LLM_FOUND", label=f' {n_llm_validated + n_llm_invalid}', color="#1565c0", fontcolor="#1565c0")
+    dot.edge("NO_FORMAL", "LLM_FOUND", label=f' {counts["llm_found"]}', color="#1565c0", fontcolor="#1565c0")
     dot.edge("NO_FORMAL", "TEST", label=f' {counts["test"]}', color="#616161", fontcolor="#616161")
     dot.edge("NO_FORMAL", "NO_PAPER", label=f' {counts["no_paper"]}', color="#e64a19", fontcolor="#e64a19")
-
-    dot.node(
-        "LLM_VALID",
-        f'DOI validated or recovered\n{n_llm_validated}',
-        shape="box", style="filled,rounded",
-        fillcolor="#90caf9", color="#1565c0", fontcolor="#0d47a1",
-        fontsize="9",
-    )
-    dot.node(
-        "LLM_INVALID",
-        f'DOI unresolvable\n{n_llm_invalid}',
-        shape="box", style="filled,rounded",
-        fillcolor="#ffccbc", color="#e64a19", fontcolor="#bf360c",
-        fontsize="9",
-    )
-    dot.edge("LLM_FOUND", "LLM_VALID", color="#1565c0")
-    dot.edge("LLM_FOUND", "LLM_INVALID", color="#e64a19")
 
     # Note about remaining
     if counts["remaining"] > 0:
@@ -285,7 +279,7 @@ def render(counts, cache):
         fontsize="14", penwidth="2.5",
     )
     dot.edge("FORMAL", "ALL_PAPERS", color="#2e7d32", penwidth="2")
-    dot.edge("LLM_VALID", "ALL_PAPERS", color="#1565c0", penwidth="2")
+    dot.edge("LLM_FOUND", "ALL_PAPERS", color="#1565c0", penwidth="2")
 
     dot.render("output/dandiset_coverage_flow", cleanup=True)
     print("Rendered to output/dandiset_coverage_flow.png")
