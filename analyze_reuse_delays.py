@@ -51,14 +51,15 @@ def load_data():
     reuse = [c for c in classifications if c.get("classification") == "REUSE"]
     reuse_other_lab = [c for c in reuse if c.get("same_lab") is False]
 
-    # Dandiset creation dates
+    # When data became publicly accessible:
+    # Use embargoedUntil (actual unembargo date) if available, else dandiset_created
     dandiset_created = {}
     for r in dandi_data["results"]:
         did = r["dandiset_id"]
-        created = r.get("dandiset_created", "")
-        if created:
+        accessible = r.get("data_accessible") or r.get("dandiset_created", "")
+        if accessible:
             dandiset_created[did] = datetime.fromisoformat(
-                created.replace("Z", "+00:00")
+                accessible.replace("Z", "+00:00")
             ).replace(tzinfo=None)
 
     reuse_same_lab = [c for c in reuse if c.get("same_lab") is True]

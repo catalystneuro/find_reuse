@@ -1105,13 +1105,26 @@ def find_dandisets_with_primary_papers(
                 seen_dois.add(doi)
 
         if paper_resources:
+            # Determine when data became publicly accessible:
+            # 1. embargoedUntil (set on unembargo, available since dandi-archive v0.23.0)
+            # 2. Fall back to dandiset creation date
+            embargoed_until = None
+            for access_entry in metadata.get('access', []):
+                eu = access_entry.get('embargoedUntil')
+                if eu:
+                    embargoed_until = eu
+                    break
+
             results.append({
                 'dandiset_id': ds_id,
                 'dandiset_name': version_info.get('name'),
                 'dandiset_version': version,
                 'dandiset_url': f"https://dandiarchive.org/dandiset/{ds_id}/{version}",
                 'dandiset_doi': metadata.get('doi'),
-                'dandiset_created': ds.get('created'),  # Populate on first run
+                'dandiset_created': ds.get('created'),
+                'embargo_status': ds.get('embargo_status'),
+                'embargoed_until': embargoed_until,
+                'data_accessible': embargoed_until or ds.get('created'),
                 'draft_modified': draft_version.get('modified') if draft_version else None,
                 'contact_person': ds.get('contact_person'),
                 'paper_relations': paper_resources,
