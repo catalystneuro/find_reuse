@@ -13,7 +13,8 @@ with open('output/ref_list_analysis.json') as f:
     ref_analysis = json.load(f)
 
 cite_reuse_dois = set(c['citing_doi'] for c in classif['classifications']
-                      if c.get('classification') == 'REUSE')
+                      if c.get('classification') == 'REUSE'
+                      and c.get('source_type') in ('citation', 'both', ''))
 direct_reuse_dois = set()
 direct_reuse_pairs = set()
 for c in direct_classif['classifications']:

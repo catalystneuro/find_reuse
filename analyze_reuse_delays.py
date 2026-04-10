@@ -395,6 +395,72 @@ def _compute_mcf(records, events_by_dandiset):
     return times, mcf_vals, mcf_lower, mcf_upper
 
 
+def _compute_rate_function(records, events_by_dandiset, bandwidth=3.0):
+    """Compute kernel-smoothed reuse rate function (derivative of MCF).
+
+    The rate function gives the expected number of reuse events per dandiset
+    per month at each time point. A Gaussian kernel with the given bandwidth
+    (in months) is used for smoothing.
+
+    Confidence bands use the variance of the kernel-smoothed Nelson-Aalen
+    increments (1/n_at_risk^2 per event), which naturally grows when fewer
+    dandisets are under observation.
+
+    Returns (eval_times, rate, rate_lower, rate_upper) arrays.
+    """
+    all_events = []
+    for did, times in events_by_dandiset.items():
+        for t in times:
+            all_events.append(t)
+    all_events.sort()
+
+    if not all_events:
+        return np.array([0]), np.array([0]), np.array([0]), np.array([0])
+
+    # Compute raw increments and variances
+    event_times = []
+    increments = []
+    variances = []
+    for t in all_events:
+        n_at_risk = sum(1 for r in records if r["obs_months"] >= t)
+        if n_at_risk == 0:
+            break
+        event_times.append(t)
+        increments.append(1.0 / n_at_risk)
+        variances.append(1.0 / (n_at_risk ** 2))
+
+    event_times = np.array(event_times)
+    increments = np.array(increments)
+    variances = np.array(variances)
+
+    # Evaluate on a regular grid up to the max observation time
+    max_t = max(r["obs_months"] for r in records)
+    eval_times = np.linspace(0, max_t, 200)
+
+    # Boundary-corrected Gaussian kernel smoothing of rate and variance.
+    # At each eval point, normalize the kernel by the portion that falls
+    # within the observation window [0, max_t], preventing boundary bias.
+    rate = np.zeros_like(eval_times)
+    rate_var = np.zeros_like(eval_times)
+    for t_e, inc, var in zip(event_times, increments, variances):
+        raw_weights = np.exp(-0.5 * ((eval_times - t_e) / bandwidth) ** 2)
+        # Compute normalization: fraction of kernel within [0, max_t]
+        # for each eval point (accounts for truncation at boundaries)
+        from scipy.stats import norm
+        norm_factor = (norm.cdf((max_t - eval_times) / bandwidth)
+                       - norm.cdf((0 - eval_times) / bandwidth))
+        norm_factor = np.maximum(norm_factor, 1e-10)
+        weights = raw_weights / (bandwidth * np.sqrt(2 * np.pi) * norm_factor)
+        rate += inc * weights
+        rate_var += var * weights ** 2
+
+    rate_se = np.sqrt(rate_var)
+    rate_lower = np.maximum(rate - 1.96 * rate_se, 0)
+    rate_upper = rate + 1.96 * rate_se
+
+    return eval_times, rate, rate_lower, rate_upper
+
+
 def draw_survival(ax_km, ax_mcf, delays_cutoff, dandiset_created, dandi_frac=None):
     """Draw both KM survival curve and MCF on two axes.
 
@@ -491,27 +557,23 @@ def draw_survival(ax_km, ax_mcf, delays_cutoff, dandiset_created, dandi_frac=Non
     times_a, mcf_a, mcf_a_lo, mcf_a_hi = _compute_mcf(records_all, events_all)
 
     # Plot upper bound (orange) first
-    ax_mcf.step(times_a, mcf_a, where="post", color="#F57C00", linewidth=1.5,
-                label="DANDI + unclear")
+    ax_mcf.step(times_a, mcf_a, where="post", color="#F57C00", linewidth=1.5)
     ax_mcf.fill_between(times_a, mcf_a_lo, mcf_a_hi, step="post",
                         alpha=0.1, color="#F57C00")
 
     # DANDI-only (blue)
-    ax_mcf.step(times_d, mcf_d, where="post", color="#2196F3", linewidth=2,
-                label="DANDI Archive")
+    ax_mcf.step(times_d, mcf_d, where="post", color="#2196F3", linewidth=2)
     ax_mcf.fill_between(times_d, mcf_d_lo, mcf_d_hi, step="post",
                         alpha=0.15, color="#2196F3")
 
     # Estimated MCF (dashed)
     if dandi_frac is not None:
-        # Interpolate MCF at common time points
         common_t = np.union1d(times_d, times_a)
         mcf_d_interp = np.interp(common_t, times_d, mcf_d)
         mcf_a_interp = np.interp(common_t, times_a, mcf_a)
         mcf_est = mcf_d_interp + dandi_frac * (mcf_a_interp - mcf_d_interp)
         ax_mcf.step(common_t, mcf_est, where="post", color="#1565C0",
-                    linestyle="--", linewidth=1.5,
-                    label=f"Est. ({dandi_frac:.0%} of unclear)")
+                    linestyle="--", linewidth=1.5)
 
     ax_mcf.set_xlabel("Months after dandiset creation")
     ax_mcf.set_ylabel("Expected reuse papers per dandiset")
@@ -519,20 +581,152 @@ def draw_survival(ax_km, ax_mcf, delays_cutoff, dandiset_created, dandi_frac=Non
     ax_mcf.margins(x=0)
     ax_mcf.grid(axis="both", alpha=0.2)
 
-    mcf_lines = [f"cutoff: {ANALYSIS_CUTOFF.strftime('%Y-%m-%d')}"]
-    for t, label in [(12, "1yr"), (24, "2yr"), (36, "3yr"), (48, "4yr"), (60, "5yr")]:
-        idx_d = np.searchsorted(times_d, t, side="right") - 1
-        idx_a = np.searchsorted(times_a, t, side="right") - 1
-        if idx_d >= 0 and idx_a >= 0:
-            mcf_lines.append(f"E[reuse] by {label}: {mcf_d[idx_d]:.2f}–{mcf_a[idx_a]:.2f}")
-
-    ax_mcf.text(
-        0.03, 0.97, "\n".join(mcf_lines), transform=ax_mcf.transAxes, fontsize=7,
-        va="top", ha="left",
-        bbox=dict(boxstyle="round,pad=0.3", facecolor="wheat", alpha=0.8),
-    )
-
     return kmf_dandi, df_dandi
+
+
+def _draw_mcf_only(ax, delays_cutoff, dandiset_created, dandi_frac=None):
+    """Draw just the MCF panel."""
+    dandi_delays = [d for d in delays_cutoff if d.get("source_archive") != "unclear"]
+    all_delays = delays_cutoff
+
+    records_dandi, events_dandi = _build_survival_data(dandi_delays, dandiset_created)
+    records_all, events_all = _build_survival_data(all_delays, dandiset_created)
+
+    times_d, mcf_d, mcf_d_lo, mcf_d_hi = _compute_mcf(records_dandi, events_dandi)
+    times_a, mcf_a, mcf_a_lo, mcf_a_hi = _compute_mcf(records_all, events_all)
+
+    ax.step(times_a, mcf_a, where="post", color="#F57C00", linewidth=1.5)
+    ax.fill_between(times_a, mcf_a_lo, mcf_a_hi, step="post", alpha=0.1, color="#F57C00")
+
+    ax.step(times_d, mcf_d, where="post", color="#2196F3", linewidth=2)
+    ax.fill_between(times_d, mcf_d_lo, mcf_d_hi, step="post", alpha=0.15, color="#2196F3")
+
+    if dandi_frac is not None:
+        common_t = np.union1d(times_d, times_a)
+        mcf_d_interp = np.interp(common_t, times_d, mcf_d)
+        mcf_a_interp = np.interp(common_t, times_a, mcf_a)
+        mcf_est = mcf_d_interp + dandi_frac * (mcf_a_interp - mcf_d_interp)
+        ax.step(common_t, mcf_est, where="post", color="#1565C0",
+                linestyle="--", linewidth=1.5)
+
+    ax.set_xlabel("Months after dandiset creation")
+    ax.set_ylabel("Expected reuse papers per dandiset")
+    ax.set_title("MCF: Expected Reuse Count", fontsize=10, fontweight="bold")
+    ax.margins(x=0)
+    ax.grid(axis="both", alpha=0.2)
+
+
+def draw_rate_function(ax, delays_cutoff, dandiset_created, dandi_frac=None, bin_width=6):
+    """Draw binned reuse rate (events / dandiset-months at risk)."""
+    dandi_delays = [d for d in delays_cutoff if d.get("source_archive") != "unclear"]
+    unclear_delays = [d for d in delays_cutoff if d.get("source_archive") == "unclear"]
+    all_delays = delays_cutoff
+
+    # Build records (all dandisets, for exposure calculation)
+    records = []
+    for did, created in dandiset_created.items():
+        if created >= ANALYSIS_CUTOFF:
+            continue
+        obs = (ANALYSIS_CUTOFF - created).days / 30.44
+        records.append({"dandiset_id": did, "obs_months": obs})
+
+    max_t = max(r["obs_months"] for r in records)
+    bins = np.arange(0, max_t + bin_width, bin_width)
+
+    # Exposure per bin (dandiset-months at risk)
+    risk_months = np.zeros(len(bins) - 1)
+    for i in range(len(bins) - 1):
+        for r in records:
+            overlap = min(bins[i + 1], r["obs_months"]) - bins[i]
+            if overlap > 0:
+                risk_months[i] += overlap
+
+    def _bin_rate(delay_list):
+        event_times = []
+        for d in delay_list:
+            did = d["dandiset_id"]
+            if did in dandiset_created:
+                t = (datetime.strptime(d["pub_date"], "%Y-%m-%d") - dandiset_created[did]).days / 30.44
+                event_times.append(t)
+        counts, _ = np.histogram(event_times, bins=bins)
+        return np.where(risk_months > 0, counts / risk_months, 0)
+
+    rate_dandi = _bin_rate(dandi_delays)
+    rate_all = _bin_rate(all_delays)
+    rate_unclear = rate_all - rate_dandi
+
+    # Omit last bin (too few dandisets at risk)
+    n_bins = len(bins) - 2  # skip last bin
+    x = bins[:n_bins]
+    w = bin_width * 0.9
+    centers = x + bin_width / 2
+
+    rate_dandi = rate_dandi[:n_bins]
+    rate_all = rate_all[:n_bins]
+    rate_unclear = rate_unclear[:n_bins]
+    risk_months_trimmed = risk_months[:n_bins]
+
+    # Stacked bars: DANDI (blue) + unclear (orange)
+    ax.bar(x, rate_dandi, width=w, align="edge", color="#2196F3")
+    ax.bar(x, rate_unclear, width=w, align="edge", bottom=rate_dandi, color="#F57C00")
+
+    # Poisson CIs around estimated DANDI rate
+    from scipy.stats import chi2
+    if dandi_frac is not None:
+        # Event counts per bin
+        all_event_times = [
+            (datetime.strptime(d["pub_date"], "%Y-%m-%d") - dandiset_created[d["dandiset_id"]]).days / 30.44
+            for d in all_delays if d["dandiset_id"] in dandiset_created
+        ]
+        dandi_event_times = [
+            (datetime.strptime(d["pub_date"], "%Y-%m-%d") - dandiset_created[d["dandiset_id"]]).days / 30.44
+            for d in dandi_delays if d["dandiset_id"] in dandiset_created
+        ]
+        unclear_event_times = [
+            (datetime.strptime(d["pub_date"], "%Y-%m-%d") - dandiset_created[d["dandiset_id"]]).days / 30.44
+            for d in unclear_delays if d["dandiset_id"] in dandiset_created
+        ]
+
+        counts_dandi, _ = np.histogram(dandi_event_times, bins=bins)
+        counts_unclear, _ = np.histogram(unclear_event_times, bins=bins)
+        counts_dandi = counts_dandi[:n_bins]
+        counts_unclear = counts_unclear[:n_bins]
+
+        # Estimated count = dandi_count + dandi_frac * unclear_count
+        # Use exact Poisson CIs on each component, then combine
+        # For Poisson count k: CI_lo = chi2(0.025, 2k)/2, CI_hi = chi2(0.975, 2(k+1))/2
+        est_count = counts_dandi + dandi_frac * counts_unclear
+
+        ci_lo_dandi = np.where(counts_dandi > 0, chi2.ppf(0.025, 2 * counts_dandi) / 2, 0)
+        ci_hi_dandi = chi2.ppf(0.975, 2 * (counts_dandi + 1)) / 2
+        ci_lo_unclear = np.where(counts_unclear > 0, chi2.ppf(0.025, 2 * counts_unclear) / 2, 0)
+        ci_hi_unclear = chi2.ppf(0.975, 2 * (counts_unclear + 1)) / 2
+
+        # Combine: est = dandi + frac*unclear, propagate Poisson CIs
+        ci_lo_count = ci_lo_dandi + dandi_frac * ci_lo_unclear
+        ci_hi_count = ci_hi_dandi + dandi_frac * ci_hi_unclear
+
+        rate_est = np.where(risk_months_trimmed > 0, est_count / risk_months_trimmed, 0)
+        ci_lo_rate = np.where(risk_months_trimmed > 0, ci_lo_count / risk_months_trimmed, 0)
+        ci_hi_rate = np.where(risk_months_trimmed > 0, ci_hi_count / risk_months_trimmed, 0)
+
+        # Draw estimate dashed lines and error bars
+        for i in range(n_bins):
+            ax.plot(
+                [x[i], x[i] + w], [rate_est[i], rate_est[i]],
+                color="#1565C0", linestyle="--", linewidth=1.5,
+            )
+        ax.errorbar(
+            centers, rate_est,
+            yerr=[rate_est - ci_lo_rate, ci_hi_rate - rate_est],
+            fmt="none", ecolor="#1565C0", elinewidth=1, capsize=3, capthick=1,
+        )
+
+    ax.set_xlabel("Months after dandiset creation")
+    ax.set_ylabel("Reuse rate (events/dandiset-mo)")
+    ax.set_title("Reuse Rate", fontsize=10, fontweight="bold")
+    ax.set_ylim(bottom=0)
+    ax.grid(axis="y", alpha=0.3)
 
 
 # ── Individual figure saving (for standalone PNGs) ──────────────────────
@@ -726,10 +920,10 @@ def plot_combined_for_lab_type(
     """Create a 6-panel combined figure for one lab type (same or different)."""
     dandi_frac = compute_dandi_fraction(reuse_subset)
 
-    fig = plt.figure(figsize=(11.5, 16))
+    fig = plt.figure(figsize=(11.5, 13))
     gs = fig.add_gridspec(
-        4, 2,
-        height_ratios=[0.8, 1, 1, 1],
+        3, 2,
+        height_ratios=[0.8, 1, 1],
         width_ratios=[1, 1],
         hspace=0.35, wspace=0.35,
     )
@@ -747,17 +941,13 @@ def plot_combined_for_lab_type(
     draw_reuse_by_year(ax4, delays_subset, dandi_frac=dandi_frac)
 
     ax5 = fig.add_subplot(gs[2, 0])
-    draw_delay_histogram(ax5, delays_subset, dandi_frac=dandi_frac)
+    _draw_mcf_only(ax5, delays_cutoff_subset, dandiset_created, dandi_frac=dandi_frac)
 
     ax6 = fig.add_subplot(gs[2, 1])
-    ax7 = fig.add_subplot(gs[3, 0])
-    draw_survival(ax6, ax7, delays_cutoff_subset, dandiset_created, dandi_frac=dandi_frac)
+    draw_rate_function(ax6, delays_cutoff_subset, dandiset_created, dandi_frac=dandi_frac)
 
-    ax8 = fig.add_subplot(gs[3, 1])
-    ax8.axis("off")
-
-    axes = [ax1, ax2, ax3, ax4, ax5, ax6, ax7]
-    for label, ax in zip("ABCDEFG", axes):
+    axes = [ax1, ax2, ax3, ax4, ax5, ax6]
+    for label, ax in zip("ABCDEF", axes):
         ax.text(
             -0.08, 1.08, label, transform=ax.transAxes,
             fontsize=16, fontweight="bold", va="top",
@@ -775,6 +965,43 @@ def plot_combined_for_lab_type(
     fig.savefig(FIGURES_DIR / filename, dpi=150, bbox_inches="tight")
     plt.close(fig)
     print(f"  Saved {filename}")
+
+    # Separate delay figure (histogram + rate)
+    delay_filename = filename.replace("combined_", "delay_")
+    fig_d, (ax_hist, ax_rate) = plt.subplots(1, 2, figsize=(12, 5))
+    draw_delay_histogram(ax_hist, delays_subset, dandi_frac=dandi_frac)
+    draw_rate_function(ax_rate, delays_cutoff_subset, dandiset_created, dandi_frac=dandi_frac)
+    for label, ax in zip("AB", [ax_hist, ax_rate]):
+        ax.text(-0.08, 1.08, label, transform=ax.transAxes,
+                fontsize=16, fontweight="bold", va="top")
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+    fig_d.suptitle(
+        f"Reuse Delay Analysis — {lab_label}",
+        fontsize=13, fontweight="bold",
+    )
+    fig_d.tight_layout()
+    fig_d.savefig(FIGURES_DIR / delay_filename, dpi=150, bbox_inches="tight")
+    plt.close(fig_d)
+    print(f"  Saved {delay_filename}")
+
+    # Separate survival figure (KM + MCF)
+    surv_filename = filename.replace("combined_", "survival_")
+    fig_s, (ax_km, ax_mcf) = plt.subplots(1, 2, figsize=(12, 5))
+    draw_survival(ax_km, ax_mcf, delays_cutoff_subset, dandiset_created, dandi_frac=dandi_frac)
+    for label, ax in zip("AB", [ax_km, ax_mcf]):
+        ax.text(-0.08, 1.08, label, transform=ax.transAxes,
+                fontsize=16, fontweight="bold", va="top")
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+    fig_s.suptitle(
+        f"Survival Analysis — {lab_label}",
+        fontsize=13, fontweight="bold",
+    )
+    fig_s.tight_layout()
+    fig_s.savefig(FIGURES_DIR / surv_filename, dpi=150, bbox_inches="tight")
+    plt.close(fig_s)
+    print(f"  Saved {surv_filename}")
 
 
 # ── Summary stats ───────────────────────────────────────────────────────

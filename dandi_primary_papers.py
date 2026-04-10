@@ -68,11 +68,11 @@ PRIMARY_PAPER_RELATIONS = {
     'dcite:IsDescribedBy',   # Most common - dataset is described by the paper
     'dcite:IsPublishedIn',   # Dataset is published in the paper
     'dcite:IsSupplementTo',  # Dataset supplements the paper (data for the paper)
+    'dcite:Describes',       # Inverse of IsDescribedBy (some dandisets use this)
 }
 
 # Additional relation types that may link to papers but aren't primary descriptors
 SECONDARY_PAPER_RELATIONS = {
-    'dcite:Describes',       # Reverse of IsDescribedBy (paper describes dataset)
     'dcite:IsCitedBy',       # Dataset is cited by papers
     'dcite:IsReferencedBy',  # Dataset is referenced by papers
     'dcite:Cites',           # Dataset cites papers
@@ -253,6 +253,20 @@ def extract_doi_from_resource(resource: dict) -> Optional[str]:
             match = re.search(r'(10\.\d+/[^\s/v]+)', url)
             if match:
                 return match.group(1)
+        # eLife: https://elifesciences.org/articles/55130 → 10.7554/eLife.55130
+        match = re.match(r'https?://elifesciences\.org/articles/(\d+)', url)
+        if match:
+            return f'10.7554/eLife.{match.group(1)}'
+        # Nature: https://www.nature.com/articles/XXXX → 10.1038/XXXX
+        match = re.match(r'https?://(?:www\.)?nature\.com/articles/([^\s?#]+)', url)
+        if match:
+            return f'10.1038/{match.group(1)}'
+        # Cell Press: https://www.cell.com/neuron/fulltext/S0896-... → need CrossRef lookup
+        # PubMed: https://pubmed.ncbi.nlm.nih.gov/XXXXX → need API lookup
+        # Generic: try extracting any DOI-like pattern from URL
+        match = re.search(r'(10\.\d{4,9}/[^\s,;)]+)', url)
+        if match:
+            return match.group(1)
 
     return None
 
