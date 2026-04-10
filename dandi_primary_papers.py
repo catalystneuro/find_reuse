@@ -986,7 +986,8 @@ def extract_dois_from_description(description: str) -> list[str]:
 def find_dandisets_with_primary_papers(
     include_secondary: bool = False,
     show_progress: bool = True,
-    rate_limit: float = 0.1
+    rate_limit: float = 0.1,
+    previous_results: Optional[list[dict]] = None,
 ) -> list[dict]:
     """
     Find all dandisets that have relatedResource entries linking to primary papers.
@@ -995,6 +996,8 @@ def find_dandisets_with_primary_papers(
         include_secondary: If True, also include secondary relation types
         show_progress: Whether to show progress bars
         rate_limit: Delay between API calls in seconds
+        previous_results: If provided, skip version metadata fetch for dandisets
+            whose draft_modified timestamp hasn't changed since the last scan.
 
     Returns:
         List of dictionaries with dandiset info and paper references
@@ -1009,10 +1012,17 @@ def find_dandisets_with_primary_papers(
     if include_secondary:
         target_relations.update(SECONDARY_PAPER_RELATIONS)
 
+    # Build cache of previous results keyed by dandiset ID
+    prev_by_id = {}
+    if previous_results:
+        for r in previous_results:
+            prev_by_id[r['dandiset_id']] = r
+
     # Fetch all dandisets
     dandisets = get_all_dandisets(session, show_progress)
 
     results = []
+    cache_hits = 0
 
     # Process each dandiset
     pbar = tqdm(dandisets, desc="Checking paper relations", disable=not show_progress)
@@ -1033,6 +1043,16 @@ def find_dandisets_with_primary_papers(
             version_info = draft_version
         else:
             continue
+
+        # Cache validation: skip if draft hasn't been modified since last scan
+        draft_modified = draft_version.get('modified') if draft_version else None
+        if ds_id in prev_by_id and draft_modified:
+            prev_draft_modified = prev_by_id[ds_id].get('draft_modified')
+            if prev_draft_modified and prev_draft_modified == draft_modified:
+                # Metadata unchanged — reuse previous result
+                results.append(prev_by_id[ds_id])
+                cache_hits += 1
+                continue
 
         # Fetch full version metadata
         metadata = get_dandiset_version_metadata(session, ds_id, version)
@@ -1092,11 +1112,15 @@ def find_dandisets_with_primary_papers(
                 'dandiset_url': f"https://dandiarchive.org/dandiset/{ds_id}/{version}",
                 'dandiset_doi': metadata.get('doi'),
                 'dandiset_created': ds.get('created'),  # Populate on first run
+                'draft_modified': draft_version.get('modified') if draft_version else None,
                 'contact_person': ds.get('contact_person'),
                 'paper_relations': paper_resources,
             })
 
         time.sleep(rate_limit)
+
+    if cache_hits and show_progress:
+        print(f"  Cache hits (unchanged draft): {cache_hits}/{len(dandisets)}", file=sys.stderr)
 
     return results
 
@@ -1179,10 +1203,24 @@ def main():
 
     args = parser.parse_args()
 
+    # Load previous results for cache validation (if output file exists)
+    previous_results = None
+    if args.output:
+        output_path = Path(args.output)
+        if output_path.exists():
+            try:
+                with open(output_path) as f:
+                    prev_data = json.load(f)
+                previous_results = prev_data.get('results', [])
+                print(f"Loaded {len(previous_results)} previous results for cache validation", file=sys.stderr)
+            except (json.JSONDecodeError, OSError):
+                pass
+
     # Find dandisets with paper relations
     results = find_dandisets_with_primary_papers(
         include_secondary=args.all_relations,
         show_progress=not args.no_progress,
+        previous_results=previous_results,
     )
 
     # Optionally fetch citation counts
