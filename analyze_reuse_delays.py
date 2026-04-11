@@ -76,10 +76,81 @@ def apply_cutoff(delays):
 
 
 def compute_dandi_fraction(reuse_subset):
-    """Compute fraction of known-source papers that used DANDI Archive."""
+    """Compute estimated fraction of unclear papers that used DANDI Archive.
+
+    Uses constrained estimation: NLB unclear → DANDI, Allen capped,
+    remainder distributed proportionally among non-Allen archives.
+    """
+    unclear = [c for c in reuse_subset if c.get("source_archive") in ("unclear", None)]
+    if not unclear:
+        return 0.0
+    estimates = estimate_unclear_per_archive(reuse_subset)
+    dandi_est = estimates.get("DANDI Archive", 0)
+    return dandi_est / len(unclear) if len(unclear) > 0 else 0.0
+
+
+# Dandiset IDs known to be Allen Institute datasets
+ALLEN_DANDISET_IDS = {
+    "000020", "000039", "000049", "000108", "000253", "000336",
+    "000340", "000569", "000570", "000635", "000711", "000768",
+    "000769", "000871", "000934", "001046", "001245", "001351",
+    "001359", "001464", "001475", "001625", "001626",
+}
+
+# Neural Latents Benchmark dandiset IDs — data only on DANDI
+NLB_DANDISET_IDS = {
+    "000128", "000129", "000127", "000130", "000138", "000139",
+    "000140", "000688", "000950", "000954",
+}
+
+
+def estimate_unclear_per_archive(reuse_subset):
+    """Estimate how unclear-source papers distribute across archives.
+
+    Uses constrained estimation:
+    - Allen Institute: capped at actual unclear count from Allen dandisets
+    - Neural Latents Benchmark: assigned to DANDI (only available on DANDI)
+    - Remaining: distributed proportionally among non-Allen archives
+
+    Returns dict of {archive_name: estimated_additional_from_unclear}.
+    """
+    from collections import Counter
+
+    unclear = [c for c in reuse_subset if c.get("source_archive") in ("unclear", None)]
     known = [c for c in reuse_subset if c.get("source_archive") not in ("unclear", None)]
-    dandi = [c for c in known if c.get("source_archive") == "DANDI Archive"]
-    return len(dandi) / len(known) if known else 0.0
+
+    if not unclear or not known:
+        return {}
+
+    n_unclear = len(unclear)
+
+    # Count unclear from Allen dandisets and NLB dandisets
+    n_unclear_allen = sum(1 for c in unclear if c.get("dandiset_id") in ALLEN_DANDISET_IDS)
+    n_unclear_nlb = sum(1 for c in unclear if c.get("dandiset_id") in NLB_DANDISET_IDS)
+    n_unclear_other = n_unclear - n_unclear_allen - n_unclear_nlb
+
+    # Known archive counts (excluding Allen Institute for proportional dist)
+    known_counts = Counter(c.get("source_archive") for c in known)
+    known_non_allen = {k: v for k, v in known_counts.items() if k != "Allen Institute"}
+    total_known_non_allen = sum(known_non_allen.values())
+
+    estimates = {}
+
+    # Allen: capped at actual unclear from Allen dandisets
+    estimates["Allen Institute"] = n_unclear_allen
+
+    # NLB unclear → DANDI
+    dandi_from_nlb = n_unclear_nlb
+
+    # Remaining unclear distributed proportionally among non-Allen archives
+    for archive, count in known_non_allen.items():
+        frac = count / total_known_non_allen if total_known_non_allen > 0 else 0
+        est = n_unclear_other * frac
+        if archive == "DANDI Archive":
+            est += dandi_from_nlb
+        estimates[archive] = est
+
+    return estimates
 
 
 # ── Panel drawing functions (each takes an ax) ──────────────────────────
@@ -92,13 +163,17 @@ def draw_source_archive(ax, reuse_subset, dandi_frac=None):
     Shows estimated DANDI contribution from unclear as a dashed outline on DANDI bar.
     """
     counts = Counter(c.get("source_archive", "unclear") for c in reuse_subset)
-    threshold = 3
+    threshold = 5
     main = {k: v for k, v in counts.items() if v >= threshold}
     other_count = sum(v for k, v in counts.items() if v < threshold)
     if other_count > 0:
         main["Other"] = other_count
 
     names = sorted(main, key=main.get, reverse=True)
+    # Move "Other" to the bottom
+    if "Other" in names:
+        names.remove("Other")
+        names.append("Other")
     values = [main[n] for n in names]
 
     y = list(range(len(names)))
@@ -112,17 +187,15 @@ def draw_source_archive(ax, reuse_subset, dandi_frac=None):
             colors.append("#616161")
     bars = ax.barh(y, values, color=colors)
 
-    # Add estimated share of unclear as dashed extension on each archive bar
+    # Add estimated share of unclear per archive (constrained estimation)
     if dandi_frac is not None and "unclear" in names:
-        unclear_count = counts.get("unclear", 0)
-        known = {k: v for k, v in counts.items() if k not in ("unclear", None)}
-        total_known = sum(known.values())
+        archive_estimates = estimate_unclear_per_archive(reuse_subset)
         for i, name in enumerate(names):
-            if name in ("unclear", "Other") or total_known == 0:
+            if name in ("unclear", "Other") or name not in archive_estimates:
                 continue
-            archive_count = counts.get(name, 0)
-            archive_frac = archive_count / total_known
-            estimated = unclear_count * archive_frac
+            estimated = archive_estimates[name]
+            if estimated < 0.5:
+                continue
             ax.barh(
                 i, estimated, left=values[i],
                 color="none", edgecolor=colors[i], linewidth=1.5, linestyle="--",
@@ -138,6 +211,7 @@ def draw_source_archive(ax, reuse_subset, dandi_frac=None):
     ax.invert_yaxis()
     ax.set_xlabel("Number of papers")
     ax.set_title("Source Archive (REUSE papers)", fontsize=10, fontweight="bold")
+    ax.grid(axis="x", alpha=0.3)
 
     from matplotlib.patches import Patch
     handles = [
@@ -257,12 +331,19 @@ def draw_reuse_by_year(ax, delays, dandi_frac=None):
             ax.text(i, total + 0.3, str(total), ha="center", va="bottom",
                     fontsize=9, fontweight="bold")
 
+    # Shade years affected by incomplete data (within last 6 months)
+    cutoff_year = ANALYSIS_CUTOFF.year
+    for i, y in enumerate(all_years):
+        if int(y) >= cutoff_year:
+            ax.axvspan(i - 0.5, i + 0.5, alpha=0.15, color="gray", zorder=0)
+
     ax.set_xlabel("Publication year")
     ax.set_ylabel("Number of papers")
     ax.set_title("DANDI Reuse Papers by Year", fontsize=10, fontweight="bold")
     ax.set_xticks(range(len(all_years)))
     ax.set_xticklabels(all_years)
     ax.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+    ax.grid(axis="y", alpha=0.3)
 
 
 def draw_cumulative_reuse(ax, delays, dandi_frac=None):
@@ -303,7 +384,12 @@ def draw_cumulative_reuse(ax, delays, dandi_frac=None):
     ax.set_title("Cumulative DANDI Reuse Over Time", fontsize=10, fontweight="bold")
     ax.set_ylim(bottom=0)
     ax.set_xlim(dates[0], dates[-1])
-    ax.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+    ax.yaxis.set_major_locator(ticker.MultipleLocator(100))
+    ax.grid(axis="y", alpha=0.3)
+
+    # Shade recent 6 months as incomplete data
+    ax.axvspan(pd.Timestamp(ANALYSIS_CUTOFF), dates[-1],
+               alpha=0.15, color="gray", zorder=0)
 
 
 def _build_survival_data(delays_cutoff, dandiset_created):
@@ -596,28 +682,28 @@ def _draw_mcf_only(ax, delays_cutoff, dandiset_created, dandi_frac=None):
     times_d, mcf_d, mcf_d_lo, mcf_d_hi = _compute_mcf(records_dandi, events_dandi)
     times_a, mcf_a, mcf_a_lo, mcf_a_hi = _compute_mcf(records_all, events_all)
 
-    ax.step(times_a, mcf_a, where="post", color="#F57C00", linewidth=1.5)
-    ax.fill_between(times_a, mcf_a_lo, mcf_a_hi, step="post", alpha=0.1, color="#F57C00")
+    ax.step(times_a / 12, mcf_a, where="post", color="#F57C00", linewidth=1.5)
+    ax.fill_between(times_a / 12, mcf_a_lo, mcf_a_hi, step="post", alpha=0.1, color="#F57C00")
 
-    ax.step(times_d, mcf_d, where="post", color="#2196F3", linewidth=2)
-    ax.fill_between(times_d, mcf_d_lo, mcf_d_hi, step="post", alpha=0.15, color="#2196F3")
+    ax.step(times_d / 12, mcf_d, where="post", color="#2196F3", linewidth=2)
+    ax.fill_between(times_d / 12, mcf_d_lo, mcf_d_hi, step="post", alpha=0.15, color="#2196F3")
 
     if dandi_frac is not None:
         common_t = np.union1d(times_d, times_a)
         mcf_d_interp = np.interp(common_t, times_d, mcf_d)
         mcf_a_interp = np.interp(common_t, times_a, mcf_a)
         mcf_est = mcf_d_interp + dandi_frac * (mcf_a_interp - mcf_d_interp)
-        ax.step(common_t, mcf_est, where="post", color="#1565C0",
+        ax.step(common_t / 12, mcf_est, where="post", color="#1565C0",
                 linestyle="--", linewidth=1.5)
 
-    ax.set_xlabel("Months after dandiset creation")
+    ax.set_xlabel("Years after dandiset creation")
     ax.set_ylabel("Expected reuse papers per dandiset")
     ax.set_title("MCF: Expected Reuse Count", fontsize=10, fontweight="bold")
     ax.margins(x=0)
     ax.grid(axis="both", alpha=0.2)
 
 
-def draw_rate_function(ax, delays_cutoff, dandiset_created, dandi_frac=None, bin_width=6):
+def draw_rate_function(ax, delays_cutoff, dandiset_created, dandi_frac=None, bin_width=12):
     """Draw binned reuse rate (events / dandiset-months at risk)."""
     dandi_delays = [d for d in delays_cutoff if d.get("source_archive") != "unclear"]
     unclear_delays = [d for d in delays_cutoff if d.get("source_archive") == "unclear"]
@@ -662,9 +748,9 @@ def draw_rate_function(ax, delays_cutoff, dandiset_created, dandi_frac=None, bin
     w = bin_width * 0.9
     centers = x + bin_width / 2
 
-    rate_dandi = rate_dandi[:n_bins]
-    rate_all = rate_all[:n_bins]
-    rate_unclear = rate_unclear[:n_bins]
+    rate_dandi = rate_dandi[:n_bins] * 12  # convert to per-year
+    rate_all = rate_all[:n_bins] * 12
+    rate_unclear = rate_all - rate_dandi
     risk_months_trimmed = risk_months[:n_bins]
 
     # Stacked bars: DANDI (blue) + unclear (orange)
@@ -707,9 +793,9 @@ def draw_rate_function(ax, delays_cutoff, dandiset_created, dandi_frac=None, bin
         ci_lo_count = ci_lo_dandi + dandi_frac * ci_lo_unclear
         ci_hi_count = ci_hi_dandi + dandi_frac * ci_hi_unclear
 
-        rate_est = np.where(risk_months_trimmed > 0, est_count / risk_months_trimmed, 0)
-        ci_lo_rate = np.where(risk_months_trimmed > 0, ci_lo_count / risk_months_trimmed, 0)
-        ci_hi_rate = np.where(risk_months_trimmed > 0, ci_hi_count / risk_months_trimmed, 0)
+        rate_est = np.where(risk_months_trimmed > 0, est_count / risk_months_trimmed * 12, 0)
+        ci_lo_rate = np.where(risk_months_trimmed > 0, ci_lo_count / risk_months_trimmed * 12, 0)
+        ci_hi_rate = np.where(risk_months_trimmed > 0, ci_hi_count / risk_months_trimmed * 12, 0)
 
         # Draw estimate dashed lines and error bars
         for i in range(n_bins):
@@ -723,10 +809,12 @@ def draw_rate_function(ax, delays_cutoff, dandiset_created, dandi_frac=None, bin
             fmt="none", ecolor="#1565C0", elinewidth=1, capsize=3, capthick=1,
         )
 
-    ax.set_xlabel("Months after dandiset creation")
-    ax.set_ylabel("Reuse rate (events/dandiset-mo)")
+    ax.set_xlabel("Years after dandiset creation")
+    ax.set_ylabel("Reuse rate (events/dandiset/yr)")
     ax.set_title("Reuse Rate", fontsize=10, fontweight="bold")
     ax.set_ylim(bottom=0)
+    ax.set_xticks([12, 24, 36, 48, 60])
+    ax.set_xticklabels(["1", "2", "3", "4", "5"])
     ax.grid(axis="y", alpha=0.3)
 
 
@@ -813,6 +901,7 @@ def draw_journals(ax, reuse_subset, dandi_frac=None):
     ax.set_yticklabels(names, fontsize=8)
     ax.set_xlabel("Number of papers")
     ax.set_title("Top Journals (REUSE papers)", fontsize=10, fontweight="bold")
+    ax.grid(axis="x", alpha=0.3)
 
     for i in range(len(names)):
         total = dandi_vals[i] + unclear_vals[i]
@@ -921,6 +1010,16 @@ def plot_combined_for_lab_type(
     """Create a 6-panel combined figure for one lab type (same or different)."""
     dandi_frac = compute_dandi_fraction(reuse_subset)
 
+    # Panels C-F use only DANDI+unclear delays (matching the blue/orange stacking)
+    dandi_unclear_delays = [
+        d for d in delays_subset
+        if d.get("source_archive") in ("DANDI Archive", "unclear", None)
+    ]
+    dandi_unclear_cutoff = [
+        d for d in delays_cutoff_subset
+        if d.get("source_archive") in ("DANDI Archive", "unclear", None)
+    ]
+
     fig = plt.figure(figsize=(11.5, 13))
     gs = fig.add_gridspec(
         3, 2,
@@ -936,16 +1035,16 @@ def plot_combined_for_lab_type(
     draw_journals(ax2, reuse_subset, dandi_frac=dandi_frac)
 
     ax3 = fig.add_subplot(gs[1, 0])
-    draw_cumulative_reuse(ax3, delays_subset, dandi_frac=dandi_frac)
+    draw_cumulative_reuse(ax3, dandi_unclear_delays, dandi_frac=dandi_frac)
 
     ax4 = fig.add_subplot(gs[1, 1])
-    draw_reuse_by_year(ax4, delays_subset, dandi_frac=dandi_frac)
+    draw_reuse_by_year(ax4, dandi_unclear_delays, dandi_frac=dandi_frac)
 
     ax5 = fig.add_subplot(gs[2, 0])
-    _draw_mcf_only(ax5, delays_cutoff_subset, dandiset_created, dandi_frac=dandi_frac)
+    _draw_mcf_only(ax5, dandi_unclear_cutoff, dandiset_created, dandi_frac=dandi_frac)
 
     ax6 = fig.add_subplot(gs[2, 1])
-    draw_rate_function(ax6, delays_cutoff_subset, dandiset_created, dandi_frac=dandi_frac)
+    draw_rate_function(ax6, dandi_unclear_cutoff, dandiset_created, dandi_frac=dandi_frac)
 
     axes = [ax1, ax2, ax3, ax4, ax5, ax6]
     for label, ax in zip("ABCDEF", axes):
@@ -1114,6 +1213,13 @@ def main():
     plot_combined_for_lab_type(
         reuse_same_lab, same_delays, same_delays_cutoff, dandiset_created,
         "Same Lab", "combined_same_lab.png",
+    )
+
+    print("\nGenerating combined (all labs) figure...")
+    all_delays_cutoff = apply_cutoff(delays)
+    plot_combined_for_lab_type(
+        reuse, delays, all_delays_cutoff, dandiset_created,
+        "All Labs", "combined_all_labs.png",
     )
 
     # Stats from other-lab survival analysis

@@ -4,7 +4,7 @@ import json
 from collections import Counter
 
 # --- Load and analyze results ---
-with open('output/dandi_results_crossversion.json') as f:
+with open('output/all_dandiset_papers.json') as f:
     data = json.load(f)
 
 # Deduplicate by DOI
@@ -38,7 +38,7 @@ for doi, paper in preprints.items():
 # Non-preprint analysis
 np_total = len(non_preprints)
 np_epmc = np_ncbi = np_pmc_pw_supplement = np_unpaywall = 0
-np_publisher = np_pmc_pw_fallback = np_crossref_only = np_no_text = 0
+np_elsevier = np_publisher = np_pmc_pw_fallback = np_crossref_only = np_no_text = 0
 for doi, paper in non_preprints.items():
     source = paper.get('text_source', '')
     tlen = int(paper.get('text_length', 0))
@@ -51,6 +51,8 @@ for doi, paper in non_preprints.items():
         np_ncbi += 1
     elif parts[0] == 'pmc_playwright':
         np_pmc_pw_supplement += 1
+    elif 'elsevier' in parts:
+        np_elsevier += 1
     elif 'unpaywall' in parts:
         np_unpaywall += 1
     elif 'publisher_html' in parts:
@@ -139,7 +141,8 @@ with dot.subgraph(name='cluster_nonpreprint') as c:
     decision('SHORT', 'PMC text\n< 15K chars?')
     source_node('PW_SHORT', f'PMC Playwright (supplement)\n✓ {np_pmc_pw_supplement} ({pct(np_pmc_pw_supplement, np_total)})')
     decision('FULL_CHECK', 'Have full\ntext?')
-    source_node('UNPAYWALL', f'Unpaywall (OA PDF → PyMuPDF)\n✓ {np_unpaywall} ({pct(np_unpaywall, np_total)})*')
+    source_node('ELSEVIER', f'Elsevier API (ScienceDirect)\n✓ {np_elsevier} ({pct(np_elsevier, np_total)})')
+    source_node('UNPAYWALL', f'Unpaywall (OA PDF → PyMuPDF)\n✓ {np_unpaywall} ({pct(np_unpaywall, np_total)})')
     source_node('PUB', f'Publisher HTML (scrape doi.org)\n✓ {np_publisher:,} ({pct(np_publisher, np_total)})')
     decision('HAS_PMCID', 'Have\nPMCID?')
     source_node('PW_FALLBACK', f'PMC Playwright (last resort)\n✓ {np_pmc_pw_fallback} ({pct(np_pmc_pw_fallback, np_total)})')
@@ -188,9 +191,13 @@ np_had_fulltext = np_epmc + np_ncbi + np_pmc_pw_supplement
 np_no_fulltext = np_total - np_had_fulltext
 dot.edge('FULL_CHECK', 'COMBINE', label=f'  Yes\n  {np_had_fulltext:,} ({pct(np_had_fulltext, np_total)})',
          color='#388e3c', fontcolor='#388e3c')
-dot.edge('FULL_CHECK', 'UNPAYWALL', label=f'  No ({np_no_fulltext:,})', color='#d32f2f', fontcolor='#d32f2f')
+dot.edge('FULL_CHECK', 'ELSEVIER', label=f'  No ({np_no_fulltext:,})', color='#d32f2f', fontcolor='#d32f2f')
 
-np_unpaywall_failed = np_no_fulltext - np_unpaywall
+np_elsevier_failed = np_no_fulltext - np_elsevier
+dot.edge('ELSEVIER', 'COMBINE', label=f'  ✓ {np_elsevier}', color='#388e3c', fontcolor='#388e3c')
+dot.edge('ELSEVIER', 'UNPAYWALL', label=f'  ✗ {np_elsevier_failed:,}', color='#d32f2f', fontcolor='#d32f2f')
+
+np_unpaywall_failed = np_elsevier_failed - np_unpaywall
 dot.edge('UNPAYWALL', 'COMBINE', label=f'  ✓ {np_unpaywall}', color='#388e3c', fontcolor='#388e3c')
 dot.edge('UNPAYWALL', 'PUB', label=f'  ✗ {np_unpaywall_failed:,}', color='#d32f2f', fontcolor='#d32f2f')
 
@@ -214,10 +221,6 @@ dot.edge('SAVE', 'RETURN')
 dot.edge('COMBINE', 'NO_TEXT', label=f'  empty ({no_text_total})', style='dashed',
          color='#d32f2f', fontcolor='#d32f2f')
 
-# Add footnote
-dot.node('NOTE', '* Unpaywall added after this run;\ncounts will be non-zero in future runs',
-         shape='note', style='filled', fillcolor='#fffde7', color='#fbc02d',
-         fontsize='9', fontcolor='#827717')
 
 dot.render('output/paper_fetching_flow', cleanup=True)
 print("Rendered to output/paper_fetching_flow.png")
