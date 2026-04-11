@@ -74,7 +74,7 @@ with dot.subgraph() as s:
            fillcolor='#e3f2fd', color='#1565c0', fontcolor='#0d47a1',
            penwidth='2')
     s.node('DIRECT_REF',
-           f'Reference dandiset in text\n{len(has_direct)} ({pct(len(has_direct))})',
+           f'Reference dandiset in text\n{len(has_direct)} papers, {len(direct_reuse_pairs)} references ({pct(len(has_direct))})',
            shape='box', style='filled,rounded',
            fillcolor='#fff9c4', color='#f9a825', fontcolor='#f57f17',
            penwidth='2')
@@ -123,15 +123,8 @@ dot.edge('DIRECT_REF', 'INLINE_ONLY',
          color='#e64a19', fontcolor='#e64a19')
 
 # ── Row 3: Reference type sub-boxes under Inline mention only ──
-dot.node('OVERLAP',
-         f'{len(both)} papers ({pct(len(both))})\ndo both',
-         shape='note', style='filled',
-         fillcolor='#fffde7', color='#f9a825', fontcolor='#827717',
-         fontsize='8')
-
 with dot.subgraph() as s:
     s.attr(rank='same')
-    s.node('OVERLAP')
     s.node('REF_DOI',
            f'DOI\n{len(doi_refs)} ({pct(len(doi_refs))})',
            shape='box', style='filled,rounded',
@@ -148,8 +141,6 @@ with dot.subgraph() as s:
            fillcolor='#ffccbc', color='#e64a19', fontcolor='#bf360c',
            fontsize='9')
 
-# Pull overlap to lower left
-dot.edge('CITE_ONLY', 'OVERLAP', style='invis')
 dot.edge('INLINE_ONLY', 'REF_DOI',
          label=f' {len(doi_refs)}', color='#e64a19', fontcolor='#e64a19')
 dot.edge('INLINE_ONLY', 'REF_URL',
@@ -157,9 +148,6 @@ dot.edge('INLINE_ONLY', 'REF_URL',
 dot.edge('INLINE_ONLY', 'REF_OTHER',
          label=f' {len(other_refs)}', color='#e64a19', fontcolor='#e64a19')
 
-# Dotted lines connecting overlap
-dot.edge('CITE_PLUS', 'OVERLAP', style='dotted', color='#f9a825',
-         arrowhead='none', constraint='false')
 
 dot.render('output/dandiset_reference_flow', cleanup=True)
 print(f"Rendered to output/dandiset_reference_flow.png")

@@ -84,7 +84,7 @@ def load_stats():
 
     # REUSE by source
     n_reuse_citation = sum(1 for c in reuse if c.get("source_type") in ("citation", "both", ""))
-    n_reuse_direct = sum(1 for c in reuse if c.get("source_type") == "direct_reference")
+    n_reuse_direct = sum(1 for c in reuse if c.get("source_type") in ("direct_reference", "both"))
 
     # NEITHER that actually went through LLM (exclude no-text)
     n_neither_llm = sum(1 for c in cls if c["classification"] == "NEITHER" and c.get("text_length", 0) > 200)
@@ -177,17 +177,18 @@ def render(stats):
     )
     dot.edge("OPENALEX", "CITING", color="#1565c0")
 
-    # Row 3: Text fetching
+    # Row 3: Text fetching (operates on pairs, not unique papers)
+    total_pairs = stats["n_with_text"] + stats["n_no_text"]
     dot.node(
         "WITH_TEXT",
-        f'Full text retrieved\n{stats["n_with_text"]} ({pct(stats["n_with_text"], stats["n_classified"])})',
+        f'Full text retrieved\n{stats["n_with_text"]} pairs ({pct(stats["n_with_text"], total_pairs)})',
         shape="box", style="filled,rounded",
         fillcolor="#c8e6c9", color="#2e7d32", fontcolor="#1b5e20",
         penwidth="2",
     )
     dot.node(
         "NO_TEXT",
-        f'No text available\n{stats["n_no_text"]} ({pct(stats["n_no_text"], stats["n_classified"])})',
+        f'No text available\n{stats["n_no_text"]} pairs ({pct(stats["n_no_text"], total_pairs)})',
         shape="box", style="filled,rounded",
         fillcolor="#ffccbc", color="#e64a19", fontcolor="#bf360c",
     )
@@ -201,7 +202,7 @@ def render(stats):
     # Row 4: LLM Classification (only papers with text)
     dot.node(
         "LLM",
-        f'LLM classification\n{stats["n_with_text"]} paper-dandiset pairs',
+        f'LLM classification\n{stats["n_with_text"]} pairs',
         shape="box", style="filled,rounded",
         fillcolor="#e8d5f5", color="#7b1fa2", fontcolor="#4a148c",
         penwidth="2",
@@ -222,7 +223,7 @@ def render(stats):
         s.attr(rank="same")
         s.node(
             "REUSE",
-            f'REUSE\n{stats["n_reuse"]} total',
+            f'REUSE\n{stats["n_reuse"]} ({pct(stats["n_reuse"], stats["n_with_text"])})',
             shape="box", style="filled,rounded",
             fillcolor="#2196F3", color="#1565c0", fontcolor="white",
             fontsize="12", penwidth="2",
@@ -255,64 +256,6 @@ def render(stats):
              label=f' {stats["n_neither_llm"]}',
              color="#616161", fontcolor="#616161")
 
-    # Row 6: Same lab vs different lab
-    with dot.subgraph() as s:
-        s.attr(rank="same")
-        s.node(
-            "DIFF_LAB",
-            f'Different lab\n{stats["n_diff_lab"]} ({pct(stats["n_diff_lab"], stats["n_reuse"])})',
-            shape="box", style="filled,rounded",
-            fillcolor="#1565c0", color="#0d47a1", fontcolor="white",
-            fontsize="11", penwidth="2",
-        )
-        s.node(
-            "SAME_LAB",
-            f'Same lab\n{stats["n_same_lab"]} ({pct(stats["n_same_lab"], stats["n_reuse"])})',
-            shape="box", style="filled,rounded",
-            fillcolor="#90caf9", color="#1565c0", fontcolor="#0d47a1",
-            fontsize="11", penwidth="2",
-        )
-
-    dot.edge("REUSE", "DIFF_LAB",
-             label=f' {stats["n_diff_lab"]}',
-             color="#1565c0", fontcolor="#1565c0", penwidth="2")
-    dot.edge("REUSE", "SAME_LAB",
-             label=f' {stats["n_same_lab"]}',
-             color="#90caf9", fontcolor="#1565c0")
-
-    # Row 7: Archive used (under each lab type)
-    for prefix, parent, parent_n, color in [
-        ("DIFF", "DIFF_LAB", stats["n_diff_lab"], "#1565c0"),
-        ("SAME", "SAME_LAB", stats["n_same_lab"], "#1565c0"),
-    ]:
-        n_dandi = stats[f"n_{prefix.lower()}_dandi"]
-        n_other = stats[f"n_{prefix.lower()}_other"]
-        n_unclear = stats[f"n_{prefix.lower()}_unclear"]
-
-        dot.node(
-            f"{prefix}_DANDI",
-            f'DANDI\n{n_dandi}',
-            shape="box", style="filled,rounded",
-            fillcolor="#2196F3", color="#1565c0", fontcolor="white",
-            fontsize="9",
-        )
-        dot.node(
-            f"{prefix}_OTHER",
-            f'Other archive\n{n_other}',
-            shape="box", style="filled,rounded",
-            fillcolor="#616161", color="#424242", fontcolor="white",
-            fontsize="9",
-        )
-        dot.node(
-            f"{prefix}_UNCLEAR",
-            f'Unclear\n{n_unclear}',
-            shape="box", style="filled,rounded",
-            fillcolor="#F57C00", color="#e65100", fontcolor="white",
-            fontsize="9",
-        )
-        dot.edge(parent, f"{prefix}_DANDI", color="#2196F3")
-        dot.edge(parent, f"{prefix}_OTHER", color="#616161")
-        dot.edge(parent, f"{prefix}_UNCLEAR", color="#F57C00")
 
     dot.render("output/phase2_citation_flow", cleanup=True)
     print("Rendered to output/phase2_citation_flow.png")
