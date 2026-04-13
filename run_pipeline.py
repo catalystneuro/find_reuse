@@ -14,7 +14,8 @@ Steps:
 9. Classify source archive
 10. Classify reuse type
 11. Update delay data
-12. Regenerate all figures and flowcharts
+12. Andersen-Gill Cox PH regression
+13. Regenerate all figures and flowcharts
 
 Usage:
     python run_pipeline.py              # Full run
@@ -240,10 +241,18 @@ def step8_update_delays():
     print(f"  Added {added} delays, synced {synced} archives (total: {len(existing)})", file=sys.stderr)
 
 
-def step9_regenerate_figures():
+def step9_andersen_gill():
+    """Run Andersen-Gill Cox PH regression analysis."""
+    run(
+        ["python3", "andersen_gill_analysis.py"],
+        "Step 9: Andersen-Gill Cox PH regression",
+    )
+
+
+def step10_regenerate_figures():
     """Regenerate all figures and flowcharts."""
     print("\n" + "="*60, file=sys.stderr)
-    print("  Step 9: Regenerate all figures", file=sys.stderr)
+    print("  Step 10: Regenerate all figures", file=sys.stderr)
     print("="*60, file=sys.stderr, flush=True)
 
     scripts = [
@@ -257,6 +266,10 @@ def step9_regenerate_figures():
         if Path(script).exists():
             run(["python3", script], f"  {desc}")
 
+    # Regenerate Andersen-Gill forest plot from cached results
+    if Path("output/andersen_gill_results.json").exists():
+        run(["python3", "andersen_gill_analysis.py", "--plot-only"], "  Andersen-Gill forest plot")
+
 
 def main():
     parser = argparse.ArgumentParser(description="Run complete DANDI reuse analysis pipeline")
@@ -269,7 +282,7 @@ def main():
     start = time.time()
 
     if args.figures_only:
-        step9_regenerate_figures()
+        step10_regenerate_figures()
     else:
         if not args.skip_fetch:
             step1_discover_dandisets()
@@ -280,7 +293,8 @@ def main():
         step6_fetch_text_and_classify()
         step7_classify_reuse_type()
         step8_update_delays()
-        step9_regenerate_figures()
+        step9_andersen_gill()
+        step10_regenerate_figures()
 
     elapsed = time.time() - start
     print(f"\n{'='*60}", file=sys.stderr)
