@@ -29,3 +29,4 @@ venv/
 
 # Output results
 output/
+paper_cache.zip
