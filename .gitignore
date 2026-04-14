@@ -12,6 +12,8 @@ venv/
 
 # Classification cache
 .classification_cache/
+.reuse_type_cache/
+.source_archive_cache/
 .direct_ref_cache/
 .doi_date_cache.json
 .doi_title_cache.json
