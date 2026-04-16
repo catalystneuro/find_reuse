@@ -77,7 +77,7 @@ subprocess.run([
     "--results-file", DATASETS_FILE,
     "--cache-dir", ".paper_cache",
     "-o", cite_cls_file,
-    "--fetch-text", "--workers", "4",
+    "--fetch-text", "--workers", "16",
 ], check=True)
 
 # Step 4: Convert direct references to classifications
