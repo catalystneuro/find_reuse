@@ -167,7 +167,7 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
 
-    # === Panel B: Reuse Rate (points with Poisson CIs) ===
+    # === Panel B: Reuse Rate (data points + model derivative) ===
     ax = axes[0, 1]
     max_year = 18
     for label, delay_list, color, marker in [
@@ -191,7 +191,17 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
 
         ax.errorbar(centers, rate, yerr=[rate - ci_lo, ci_hi - rate],
                     fmt=marker, color=color, markersize=5, capsize=3,
-                    linewidth=1.2, label=label)
+                    linewidth=1.2, label=label, alpha=0.5)
+
+        # Overlay derivative of MCF fit from Panel A
+        if label in fit_results:
+            fr = fit_results[label]
+            t_smooth = np.linspace(0.1, max(centers) + 1, 200)
+            mcf_smooth = fr["func"](t_smooth, *fr["params"])
+            # Numerical derivative (per year)
+            dt = t_smooth[1] - t_smooth[0]
+            rate_smooth = np.gradient(mcf_smooth, dt)
+            ax.plot(t_smooth, rate_smooth, color=color, linewidth=2)
 
     ax.set_xlabel("Years after dataset creation")
     ax.set_ylabel("Reuse rate (events/dataset/yr)")
