@@ -130,6 +130,18 @@ ARCHIVE_PATTERNS = {
         # Capture additional IDs after "and" within DANDI parentheses
         (r'DANDI\s*\([^)]*\band\s+(\d{6})\)', 'dataset_ids_paren_and'),
     ],
+    'CRCNS': [
+        # DOI format: 10.6080/K0XXXXX — capture full suffix for later resolution
+        (r'10\.6080/(K[A-Za-z0-9]+)', 'doi'),
+        # URL formats: crcns.org/data-sets/hc/hc-3
+        (r'crcns\.org/data-sets/\w+/([a-z]{2,5}-\d{1,3})', 'url'),
+        # CRCNS dataset code with context: "CRCNS hc-3" or "CRCNS dataset hc-3"
+        (r'CRCNS\s+(?:dataset\s+)?([a-z]{2,5}-\d{1,3})', 'text_crcns'),
+        # "from CRCNS (hc-3)" or "CRCNS (hc-3, ret-1)"
+        (r'CRCNS\s*\(([a-z]{2,5}-\d{1,3})', 'text_paren'),
+        # Direct text: "the hc-3 dataset" when near "CRCNS" or "crcns.org"
+        (r'(?:CRCNS|crcns\.org)[^.]{0,100}\b([a-z]{2,5}-\d{1,3})\b', 'text_nearby'),
+    ],
     'OpenNeuro': [
         # DOI format: 10.18112/openneuro.ds000001
         (r'10\.18112/openneuro\.(ds\d{6})', 'doi'),
