@@ -279,6 +279,38 @@ def step10_regenerate_figures():
         run(["python3", "andersen_gill_analysis.py", "--plot-only"], "  Andersen-Gill forest plot")
 
 
+def mirror_to_dandi_dir():
+    """Copy key outputs to output/dandi/ for multi-archive consistency."""
+    import shutil
+    dandi_dir = Path("output/dandi")
+    dandi_dir.mkdir(parents=True, exist_ok=True)
+    (dandi_dir / "figures").mkdir(exist_ok=True)
+
+    # Key data files
+    file_map = {
+        "output/all_dandiset_papers.json": "output/dandi/datasets.json",
+        "output/all_classifications.json": "output/dandi/classifications.json",
+        "output/results_dandi.json": "output/dandi/direct_refs.json",
+        "output/direct_ref_classifications.json": "output/dandi/direct_ref_classifications.json",
+        "output/dandi_reuse_delays.json": "output/dandi/delays.json",
+        "output/andersen_gill_results.json": "output/dandi/andersen_gill_results.json",
+    }
+    for src, dst in file_map.items():
+        if Path(src).exists():
+            shutil.copy2(src, dst)
+
+    # Figures
+    if Path("output/figures").exists():
+        for fig in Path("output/figures").glob("*.png"):
+            shutil.copy2(fig, dandi_dir / "figures" / fig.name)
+
+    # Flowcharts
+    for flowchart in Path("output").glob("*.png"):
+        shutil.copy2(flowchart, dandi_dir / "figures" / flowchart.name)
+
+    print("  Mirrored outputs to output/dandi/", file=sys.stderr)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Run complete DANDI reuse analysis pipeline")
     parser.add_argument("--skip-fetch", action="store_true",
@@ -304,6 +336,9 @@ def main():
         step8_update_delays()
         step9_andersen_gill()
         step10_regenerate_figures()
+
+    # Mirror outputs to output/dandi/ for multi-archive consistency
+    mirror_to_dandi_dir()
 
     elapsed = time.time() - start
     print(f"\n{'='*60}", file=sys.stderr)
