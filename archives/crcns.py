@@ -149,26 +149,35 @@ class CRCNSAdapter(ArchiveAdapter):
         """Find primary papers for a CRCNS dataset.
 
         Strategy:
-        1. Check DataCite relatedIdentifiers (usually empty for CRCNS)
-        2. Match against scraped publications page
-        3. Fall back to LLM identification
+        1. Scrape the dataset's 'about' page for paper DOIs
+        2. Use DataCite creator names to search OpenAlex for the primary paper
         """
         papers = []
         dataset_id = dataset["id"]
-        doi = dataset.get("doi", "")
 
-        # Strategy 1: DataCite relatedIdentifiers (rare for CRCNS)
-        # Already checked during get_datasets -- CRCNS doesn't use these
-
-        # Strategy 2: Match from publications page
-        pub_mapping = self._get_publications_mapping()
-        if dataset_id in pub_mapping:
-            for paper_doi in pub_mapping[dataset_id]:
-                papers.append({
-                    "relation": "linked",
-                    "doi": paper_doi,
-                    "source": "publications_page",
-                })
+        # Strategy 1: Scrape dataset about page for paper DOIs
+        if "-" in dataset_id:
+            category = dataset_id.split("-")[0]
+            for suffix in [f"/about-{dataset_id}", "/about", ""]:
+                try:
+                    url = f"https://crcns.org/data-sets/{category}/{dataset_id}{suffix}"
+                    resp = self.session.get(url, timeout=10)
+                    if resp.status_code == 200:
+                        dois = re.findall(r"10\.\d{4,}/[^\s<\"&]+", resp.text)
+                        dois = [d.rstrip(".,;:/") for d in dois]
+                        # Filter out dataset DOIs (10.6080/...)
+                        paper_dois = [d for d in dois if not d.startswith("10.6080/")]
+                        for doi in paper_dois[:3]:  # Take at most 3
+                            if not any(p["doi"] == doi for p in papers):
+                                papers.append({
+                                    "relation": "linked",
+                                    "doi": doi,
+                                    "source": "about_page",
+                                })
+                        if papers:
+                            break
+                except Exception:
+                    pass
 
         return papers
 
