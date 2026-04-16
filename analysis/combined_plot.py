@@ -104,19 +104,27 @@ def plot_combined(reuse, delays, created, output_path, archive_name="Archive",
     if shade_end > shade_start:
         ax.axvspan(shade_start, shade_end, color="gray", alpha=0.1)
 
-    # === Panel D: Reuse by Year ===
+    # === Panel D: Reuse by Year (stacked: diff + same lab) ===
     ax = fig.add_subplot(gs[1, 1])
-    years = Counter()
+    years_diff = Counter()
+    years_same = Counter()
     for d in delays:
         try:
             y = d["pub_date"].year
             if 2005 <= y <= 2025:
-                years[y] += 1
+                if d["same_lab"] is True:
+                    years_same[y] += 1
+                else:
+                    years_diff[y] += 1
         except (AttributeError, ValueError):
             pass
-    if years:
-        ys = sorted(years.keys())
-        ax.bar(ys, [years[y] for y in ys], color="#2E7D32", alpha=0.8)
+    all_years = sorted(set(years_diff) | set(years_same))
+    if all_years:
+        diff_vals = [years_diff.get(y, 0) for y in all_years]
+        same_vals = [years_same.get(y, 0) for y in all_years]
+        ax.bar(all_years, diff_vals, color="#2E7D32", alpha=0.8, label="Different lab")
+        ax.bar(all_years, same_vals, bottom=diff_vals, color="#7B1FA2", alpha=0.8, label="Same lab")
+        ax.legend(fontsize=8)
     ax.set_xlabel("Year")
     ax.set_ylabel("Reuse papers")
 

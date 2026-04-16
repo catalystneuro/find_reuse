@@ -265,23 +265,28 @@ def plot_reuse_type(reuse):
     print("Saved reuse_type.png")
 
 
-def plot_top_datasets(reuse_diff, datasets):
-    """Top 10 most reused datasets."""
-    counts = Counter(c.get("dandiset_id", "") for c in reuse_diff)
-    top = counts.most_common(10)
+def plot_top_datasets(reuse, datasets):
+    """Top 10 most reused datasets, stacked by same/different lab."""
+    diff_counts = Counter(c.get("dandiset_id", "") for c in reuse if c.get("same_lab") is False)
+    same_counts = Counter(c.get("dandiset_id", "") for c in reuse if c.get("same_lab") is True)
+    total_counts = Counter(c.get("dandiset_id", "") for c in reuse)
+    top = total_counts.most_common(10)
 
-    # Get names
     name_map = {r["dandiset_id"]: r["dandiset_name"][:40] for r in datasets["results"]}
 
     fig, ax = plt.subplots(figsize=(7, 4))
     labels = [f"{did}: {name_map.get(did, did)}" for did, _ in top]
-    values = [n for _, n in top]
+    diff_vals = [diff_counts.get(did, 0) for did, _ in top]
+    same_vals = [same_counts.get(did, 0) for did, _ in top]
+    y_pos = range(len(labels))
 
-    ax.barh(range(len(labels)), values, color="#2196F3")
-    ax.set_yticks(range(len(labels)))
+    ax.barh(y_pos, diff_vals, color="#2E7D32", alpha=0.8, label="Different lab")
+    ax.barh(y_pos, same_vals, left=diff_vals, color="#7B1FA2", alpha=0.8, label="Same lab")
+    ax.set_yticks(y_pos)
     ax.set_yticklabels(labels, fontsize=8)
-    ax.set_xlabel("Different-lab reuse papers")
+    ax.set_xlabel("Reuse papers")
     ax.set_title("Most Reused CRCNS Datasets", fontweight="bold")
+    ax.legend(fontsize=8)
     ax.invert_yaxis()
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
@@ -645,7 +650,7 @@ def main():
     plot_mcf(delays, created, "same")
     plot_mcf_modeled(delays, created)
     plot_reuse_type(reuse)
-    plot_top_datasets(reuse_diff, datasets)
+    plot_top_datasets(reuse, datasets)
 
     # 2x2 modeling figure (shared method)
     from analysis.reuse_modeling import plot_model_2x2
