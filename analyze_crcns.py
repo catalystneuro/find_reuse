@@ -292,6 +292,341 @@ def plot_top_datasets(reuse_diff, datasets):
     print("Saved top_datasets.png")
 
 
+def plot_mcf_modeled(delays, created):
+    """MCF with model fit and reuse rate derivative, 2-panel figure."""
+    from scipy.optimize import curve_fit
+
+    diff_delays = [d for d in delays if d["same_lab"] is False]
+    same_delays = [d for d in delays if d["same_lab"] is True]
+
+    obs_months = {did: (ANALYSIS_CUTOFF - c).days / 30.44
+                  for did, c in created.items() if (ANALYSIS_CUTOFF - c).days > 0}
+
+    def compute_mcf(delay_list):
+        event_times = sorted(d["delay_months"] for d in delay_list)
+        t = [0]
+        mcf_vals = [0]
+        for et in event_times:
+            n_at_risk = sum(1 for obs in obs_months.values() if obs >= et)
+            if n_at_risk > 0:
+                t.append(et)
+                mcf_vals.append(mcf_vals[-1] + 1.0 / n_at_risk)
+        return np.array(t), np.array(mcf_vals)
+
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+
+    # --- Panel A: MCF with fits ---
+    ax = axes[0]
+    for label, delay_list, color in [
+        ("Different lab", diff_delays, "#2E7D32"),
+        ("Same lab", same_delays, "#7B1FA2"),
+    ]:
+        if not delay_list:
+            continue
+        t, mcf_vals = compute_mcf(delay_list)
+        t_years = t / 12
+        ax.step(t_years, mcf_vals, where="post", color=color, linewidth=2, alpha=0.5)
+
+        # Fit saturating exponential: MCF(t) = K * (1 - exp(-t/tau))
+        def sat_exp(t, K, tau):
+            return K * (1 - np.exp(-t / tau))
+
+        try:
+            popt, _ = curve_fit(sat_exp, t_years[1:], mcf_vals[1:],
+                                p0=[mcf_vals[-1] * 1.5, 5], maxfev=5000)
+            K, tau = popt
+            t_fit = np.linspace(0, 20, 200)
+            ax.plot(t_fit, sat_exp(t_fit, K, tau), color=color, linewidth=2,
+                    label=f"{label} (K={K:.1f}, τ={tau:.0f}yr)")
+        except Exception:
+            ax.plot([], [], color=color, label=label)
+
+    ax.set_xlabel("Years after dataset creation")
+    ax.set_ylabel("Expected reuse papers per dataset")
+    ax.set_title("A. MCF: Model Fits", fontweight="bold")
+    ax.legend(fontsize=9)
+    ax.set_xlim(0, 18)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+    # --- Panel B: Reuse rate (derivative) ---
+    ax = axes[1]
+    for label, delay_list, color in [
+        ("Different lab", diff_delays, "#2E7D32"),
+        ("Same lab", same_delays, "#7B1FA2"),
+    ]:
+        if not delay_list:
+            continue
+        # Bin by year and compute rate
+        delay_years = [d["delay_months"] / 12 for d in delay_list]
+        max_year = int(max(delay_years)) + 1
+        bins = np.arange(0, min(max_year + 1, 18))
+
+        counts_per_bin = np.histogram(delay_years, bins=bins)[0]
+
+        # At-risk dandisets per bin
+        at_risk = []
+        for yr in bins[:-1]:
+            n = sum(1 for obs in obs_months.values() if obs >= yr * 12)
+            at_risk.append(max(n, 1))
+        at_risk = np.array(at_risk)
+
+        rate = counts_per_bin / at_risk
+        bin_centers = (bins[:-1] + bins[1:]) / 2
+
+        # Poisson confidence intervals
+        from scipy.stats import chi2
+        alpha = 0.05
+        ci_lo = chi2.ppf(alpha / 2, 2 * counts_per_bin) / (2 * at_risk)
+        ci_hi = chi2.ppf(1 - alpha / 2, 2 * (counts_per_bin + 1)) / (2 * at_risk)
+        ci_lo = np.nan_to_num(ci_lo, 0)
+
+        ax.bar(bin_centers, rate, width=0.8, alpha=0.6, color=color, label=label)
+        ax.vlines(bin_centers, ci_lo, ci_hi, color=color, linewidth=1.5)
+
+    ax.set_xlabel("Years after dataset creation")
+    ax.set_ylabel("Reuse rate (events/dataset/yr)")
+    ax.set_title("B. Reuse Rate", fontweight="bold")
+    ax.legend(fontsize=9)
+    ax.set_xlim(-0.5, 17)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+    fig.tight_layout()
+    fig.savefig(FIGURES_DIR / "mcf_model.png", dpi=150, bbox_inches="tight")
+    plt.close()
+    print("Saved mcf_model.png")
+
+
+def run_andersen_gill(classifications, created, datasets):
+    """Run Andersen-Gill Cox PH regression for CRCNS."""
+    import time as _time
+    import requests
+    import pandas as pd
+    from lifelines import CoxPHFitter
+    from archives.crcns import CRCNSAdapter
+
+    adapter = CRCNSAdapter()
+
+    # Get metadata for each dataset
+    print("Fetching metadata for Andersen-Gill...", flush=True)
+    meta = {}
+    for ds in datasets["results"]:
+        did = ds["dandiset_id"]
+        m = adapter._parse_metadata_from_description(ds)
+        m["dandiset_created"] = ds.get("dandiset_created", ds.get("data_accessible", ""))
+        meta[did] = m
+
+    # Get citation counts from datasets.json
+    citations = {}
+    for ds in datasets["results"]:
+        did = ds["dandiset_id"]
+        citations[did] = sum(p.get("citation_count", 0) or 0 for p in ds.get("paper_relations", []))
+
+    # Get journal h-index via OpenAlex
+    print("Fetching journal h-index...", flush=True)
+    session = requests.Session()
+    session.headers.update({"User-Agent": "FindReuse/1.0"})
+    journal_cache = {}
+    impact_factors = {}
+
+    for ds in datasets["results"]:
+        did = ds["dandiset_id"]
+        for p in ds.get("paper_relations", []):
+            doi = p.get("doi", "")
+            if not doi:
+                continue
+            try:
+                resp = session.get(f"https://api.openalex.org/works/doi:{doi}", timeout=10)
+                if resp.status_code == 200:
+                    w = resp.json()
+                    source = (w.get("primary_location") or {}).get("source") or {}
+                    source_id = source.get("id", "")
+                    if source_id and source_id not in journal_cache:
+                        api_url = source_id.replace("https://openalex.org/", "https://api.openalex.org/sources/")
+                        try:
+                            resp2 = session.get(api_url, timeout=10)
+                            if resp2.status_code == 200:
+                                journal_cache[source_id] = resp2.json().get("summary_stats", {}).get("h_index", 0) or 0
+                            else:
+                                journal_cache[source_id] = 0
+                        except Exception:
+                            journal_cache[source_id] = 0
+                    impact_factors[did] = journal_cache.get(source_id, 0)
+                    break
+            except Exception:
+                pass
+            _time.sleep(0.05)
+        if did not in impact_factors:
+            impact_factors[did] = 0
+
+    print(f"  h-index for {sum(1 for v in impact_factors.values() if v > 0)}/{len(impact_factors)} datasets")
+
+    # Build counting process data (different-lab only)
+    diff_events = {}
+    for c in classifications:
+        if c["classification"] != "REUSE" or c.get("same_lab") is not False:
+            continue
+        did = c.get("dandiset_id", "")
+        date_str = c.get("citing_date") or c.get("cached_at", "")[:10]
+        if not date_str or did not in meta:
+            continue
+        try:
+            pub = datetime.strptime(date_str[:10], "%Y-%m-%d")
+        except ValueError:
+            continue
+        created_str = meta[did].get("dandiset_created", "")
+        if not created_str:
+            continue
+        try:
+            c_date = datetime.fromisoformat(created_str.replace("Z", "+00:00")).replace(tzinfo=None)
+        except ValueError:
+            try:
+                c_date = datetime.strptime(created_str[:10], "%Y-%m-%d")
+            except ValueError:
+                continue
+        if pub <= c_date or pub > ANALYSIS_CUTOFF:
+            continue
+        age_months = (pub - c_date).days / 30.44
+        diff_events.setdefault(did, []).append(age_months)
+
+    rows = []
+    for did, m in meta.items():
+        created_str = m.get("dandiset_created", "")
+        if not created_str:
+            continue
+        try:
+            c_date = datetime.fromisoformat(created_str.replace("Z", "+00:00")).replace(tzinfo=None)
+        except ValueError:
+            try:
+                c_date = datetime.strptime(created_str[:10], "%Y-%m-%d")
+            except ValueError:
+                continue
+        if c_date >= ANALYSIS_CUTOFF:
+            continue
+
+        obs_months = (ANALYSIS_CUTOFF - c_date).days / 30.44
+        event_times = sorted(diff_events.get(did, []))
+
+        log_citations = np.log10(max(citations.get(did, 0), 1))
+        log_impact = np.log10(max(impact_factors.get(did, 0), 1))
+
+        prev_time = 0
+        for et in event_times:
+            if et > obs_months:
+                break
+            rows.append({
+                "dandiset_id": did, "start": prev_time, "stop": et, "event": 1,
+                "species_mouse": 1 if m.get("species") == "mouse" else 0,
+                "species_human": 1 if m.get("species") == "human" else 0,
+                "species_nhp": 1 if m.get("species") == "nhp" else 0,
+                "modality_imaging": 1 if m.get("modality") == "imaging" else 0,
+                "log_citations": log_citations,
+                "log_impact_factor": log_impact,
+            })
+            prev_time = et
+
+        if prev_time < obs_months:
+            rows.append({
+                "dandiset_id": did, "start": prev_time, "stop": obs_months, "event": 0,
+                "species_mouse": 1 if m.get("species") == "mouse" else 0,
+                "species_human": 1 if m.get("species") == "human" else 0,
+                "species_nhp": 1 if m.get("species") == "nhp" else 0,
+                "modality_imaging": 1 if m.get("modality") == "imaging" else 0,
+                "log_citations": log_citations,
+                "log_impact_factor": log_impact,
+            })
+
+    df = pd.DataFrame(rows)
+    if df.empty:
+        print("No data for Andersen-Gill model")
+        return
+    df.loc[df["stop"] <= df["start"], "stop"] = df["start"] + 0.01
+
+    print(f"  {len(df)} intervals, {df['event'].sum():.0f} events, {df['dandiset_id'].nunique()} datasets")
+
+    covariates = [
+        "species_mouse", "species_human", "species_nhp",
+        "modality_imaging", "log_citations", "log_impact_factor",
+    ]
+
+    # Drop zero-variance columns
+    for cov in covariates[:]:
+        if df[cov].nunique() <= 1:
+            print(f"  Dropping {cov} (zero variance)")
+            covariates.remove(cov)
+
+    cph = CoxPHFitter()
+    cph.fit(
+        df[["start", "stop", "event"] + covariates],
+        duration_col="stop", event_col="event", entry_col="start",
+        show_progress=False,
+    )
+
+    print(cph.summary[["coef", "exp(coef)", "p", "exp(coef) lower 95%", "exp(coef) upper 95%"]])
+    print(f"Concordance: {cph.concordance_index_:.3f}")
+
+    # Save results
+    results = {"concordance": cph.concordance_index_, "covariates": {}}
+    for cov in covariates:
+        results["covariates"][cov] = {
+            "hr": float(cph.summary.loc[cov, "exp(coef)"]),
+            "p": float(cph.summary.loc[cov, "p"]),
+            "hr_lower": float(cph.summary.loc[cov, "exp(coef) lower 95%"]),
+            "hr_upper": float(cph.summary.loc[cov, "exp(coef) upper 95%"]),
+        }
+    with open(OUTPUT_DIR / "andersen_gill_results.json", "w") as f:
+        json.dump(results, f, indent=2)
+
+    # Forest plot
+    labels = {
+        "log_citations": "Primary paper citations\n(per 10x increase)",
+        "log_impact_factor": "Journal impact factor\n(per 10x increase in h-index)",
+        "species_nhp": "Non-human primate\n(vs other species)",
+        "species_human": "Human\n(vs other species)",
+        "species_mouse": "Mouse\n(vs other species)",
+        "modality_imaging": "Calcium imaging\n(vs other modality)",
+    }
+
+    order = sorted(covariates, key=lambda c: -results["covariates"][c]["hr"])
+    y_pos = np.arange(len(order))
+    hr = np.array([results["covariates"][c]["hr"] for c in order])
+    ci_lo = np.array([results["covariates"][c]["hr_lower"] for c in order])
+    ci_hi = np.array([results["covariates"][c]["hr_upper"] for c in order])
+    pvals = np.array([results["covariates"][c]["p"] for c in order])
+    names = [labels.get(c, c) for c in order]
+
+    colors = ["#2E7D32" if p < 0.05 and h > 1 else "#E53935" if p < 0.05 and h < 1 else "#9E9E9E"
+              for p, h in zip(pvals, hr)]
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+    for i in range(len(hr)):
+        ax.plot([ci_lo[i], ci_hi[i]], [y_pos[i], y_pos[i]], color=colors[i], linewidth=2.5, solid_capstyle="round")
+    ax.scatter(hr, y_pos, color=colors, s=90, zorder=3, edgecolors="white", linewidth=0.5)
+    ax.axvline(1.0, color="gray", linestyle="--", linewidth=1, zorder=1)
+    ax.set_xscale("log")
+
+    for i, (h, p) in enumerate(zip(hr, pvals)):
+        sig = "***" if p < 0.001 else "**" if p < 0.01 else "*" if p < 0.05 else ""
+        if sig:
+            ax.text(ci_hi[i] * 1.1, i, sig, va="center", fontsize=10, fontweight="bold",
+                    color="#2E7D32" if h > 1 else "#E53935")
+
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(names, fontsize=9)
+    ax.set_xlabel("Hazard Ratio (log scale)", fontsize=11)
+    ax.set_title("Predictors of Different-Lab Reuse (CRCNS)\nAndersen-Gill Cox Proportional Hazards",
+                 fontsize=11, fontweight="bold")
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.grid(axis="x", alpha=0.2, which="both")
+
+    fig.tight_layout()
+    fig.savefig(FIGURES_DIR / "andersen_gill_forest.png", dpi=150, bbox_inches="tight")
+    plt.close()
+    print("Saved andersen_gill_forest.png")
+
+
 def main():
     classifications, reuse, reuse_diff, reuse_same, created, datasets = load_data()
 
@@ -308,8 +643,10 @@ def main():
     plot_cumulative_reuse(reuse_diff, reuse_same)
     plot_mcf(delays, created, "different")
     plot_mcf(delays, created, "same")
+    plot_mcf_modeled(delays, created)
     plot_reuse_type(reuse)
     plot_top_datasets(reuse_diff, datasets)
+    run_andersen_gill(classifications, created, datasets)
 
     print(f"\nAll figures saved to {FIGURES_DIR}/")
 
