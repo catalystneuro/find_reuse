@@ -148,38 +148,50 @@ class CRCNSAdapter(ArchiveAdapter):
     def get_primary_papers(self, dataset: dict) -> list[dict]:
         """Find primary papers for a CRCNS dataset.
 
-        Strategy:
-        1. Scrape the dataset's 'about' page for paper DOIs
-        2. Use DataCite creator names to search OpenAlex for the primary paper
+        Scrapes the dataset's 'about' page for paper DOIs. Uses the actual
+        scraped URL from .crcns_codes.json (since URL category paths don't
+        always match dataset code prefixes, e.g. pvc-5 is under /vc/ not /pvc/).
         """
         papers = []
         dataset_id = dataset["id"]
 
-        # Strategy 1: Scrape dataset about page for paper DOIs
-        if "-" in dataset_id:
-            category = dataset_id.split("-")[0]
-            for suffix in [f"/about-{dataset_id}", "/about", ""]:
-                try:
-                    url = f"https://crcns.org/data-sets/{category}/{dataset_id}{suffix}"
-                    resp = self.session.get(url, timeout=10)
-                    if resp.status_code == 200:
-                        dois = re.findall(r"10\.\d{4,}/[^\s<\"&]+", resp.text)
-                        dois = [d.rstrip(".,;:/") for d in dois]
-                        # Filter out dataset DOIs (10.6080/...)
-                        paper_dois = [d for d in dois if not d.startswith("10.6080/")]
-                        for doi in paper_dois[:3]:  # Take at most 3
-                            if not any(p["doi"] == doi for p in papers):
-                                papers.append({
-                                    "relation": "linked",
-                                    "doi": doi,
-                                    "source": "about_page",
-                                })
-                        if papers:
-                            break
-                except Exception:
-                    pass
+        # Get the actual URL for this dataset
+        base_url = self._get_dataset_url(dataset_id)
+        if not base_url:
+            return papers
+
+        for suffix in ["/about", f"/about-{dataset_id}", ""]:
+            try:
+                url = base_url.rstrip("/") + suffix
+                resp = self.session.get(url, timeout=10)
+                if resp.status_code != 200:
+                    continue
+                dois = re.findall(r"10\.\d{4,}/[^\s<\"&]+", resp.text)
+                dois = [d.rstrip(".,;:/") for d in dois]
+                paper_dois = [d for d in dois if not d.startswith("10.6080/")]
+                for doi in paper_dois[:3]:
+                    if not any(p["doi"] == doi for p in papers):
+                        papers.append({
+                            "relation": "linked",
+                            "doi": doi,
+                            "source": "about_page",
+                        })
+                if papers:
+                    break
+            except Exception:
+                pass
 
         return papers
+
+    def _get_dataset_url(self, dataset_id: str) -> str:
+        """Get the actual CRCNS URL for a dataset code using scraped mapping."""
+        codes_path = Path(".crcns_codes.json")
+        if codes_path.exists():
+            with open(codes_path) as f:
+                codes = json.load(f)
+            if dataset_id in codes:
+                return codes[dataset_id]
+        return ""
 
     def get_metadata(self, dataset_id: str) -> dict:
         """Extract metadata from DataCite record and dataset description.
