@@ -652,6 +652,15 @@ def main():
     plot_model_2x2(delays, created, datasets, FIGURES_DIR / "reuse_rate_model.png",
                    archive_name="CRCNS", analysis_cutoff=ANALYSIS_CUTOFF)
 
+    # 6-panel combined figures (shared method)
+    from analysis.combined_plot import plot_combined
+    plot_combined(reuse, delays, created, FIGURES_DIR / "combined_all_labs.png",
+                  archive_name="CRCNS", analysis_cutoff=ANALYSIS_CUTOFF, lab_type="all")
+    plot_combined(reuse, delays, created, FIGURES_DIR / "combined_different_lab.png",
+                  archive_name="CRCNS", analysis_cutoff=ANALYSIS_CUTOFF, lab_type="different")
+    plot_combined(reuse, delays, created, FIGURES_DIR / "combined_same_lab.png",
+                  archive_name="CRCNS", analysis_cutoff=ANALYSIS_CUTOFF, lab_type="same")
+
     run_andersen_gill(classifications, created, datasets)
 
     print(f"\nAll figures saved to {FIGURES_DIR}/")

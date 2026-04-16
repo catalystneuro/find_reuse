@@ -371,6 +371,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Classify/normalize source_archive for REUSE entries")
     parser.add_argument("--resolve-unclear", action="store_true", help="Resolve unclear entries via LLM")
     parser.add_argument("--write", action="store_true", help="Write results back to classifications file")
+    parser.add_argument("--input", type=str, default=None, help="Input classifications file (default: output/all_classifications.json)")
     args = parser.parse_args()
+
+    if args.input:
+        global CLASSIFICATIONS_FILE
+        CLASSIFICATIONS_FILE = Path(args.input)
 
     classify_source_archives(resolve_unclear=args.resolve_unclear, write=args.write)

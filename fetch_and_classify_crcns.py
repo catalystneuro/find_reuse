@@ -123,8 +123,16 @@ with open(CLASSIFICATIONS_FILE, "w") as f:
 
 print(f"Classifications: {dict(counts)}", file=sys.stderr)
 
-# Step 6: Deduplicate preprints
-print("\n=== Step 6: Deduplicate preprints ===", file=sys.stderr, flush=True)
+# Step 6: Normalize source_archive
+print("\n=== Step 6: Normalize source_archive ===", file=sys.stderr, flush=True)
+subprocess.run([
+    "python3", "classify_source_archive.py",
+    "--input", CLASSIFICATIONS_FILE,
+    "--resolve-unclear", "--write",
+], check=False)  # may fail if no unclear entries, that's fine
+
+# Step 7: Deduplicate preprints
+print("\n=== Step 7: Deduplicate preprints ===", file=sys.stderr, flush=True)
 from deduplicate_preprints import deduplicate, is_preprint_doi, normalize_title
 
 with open(CLASSIFICATIONS_FILE) as f:
