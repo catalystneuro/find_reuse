@@ -930,58 +930,72 @@ class ArchiveFinder:
         
         return result, from_cache
     
-    def search_openalex(self, search_terms: list[str], max_results: int = 200) -> list[dict]:
+    def search_openalex(self, search_terms: list[str], max_results: int = 1000) -> list[dict]:
         """
         Search OpenAlex for papers matching search terms in full text.
-        
+
         OpenAlex provides fulltext search for papers including preprints not in Europe PMC.
-        
+        Uses cursor-based pagination to retrieve all results.
+
         Returns list of papers with DOI and title.
         """
         self.log(f"Searching OpenAlex for terms: {search_terms}")
-        
+
         openalex_url = "https://api.openalex.org/works"
         papers = []
         seen_dois = set()
-        
+
         try:
             for term in search_terms:
-                params = {
-                    'filter': f'fulltext.search:{term}',
-                    'per_page': min(50, max_results),
-                    'mailto': 'ben.dichter@catalystneuro.com'
-                }
-                
-                resp = self.session.get(openalex_url, params=params, timeout=60)
-                if resp.status_code != 200:
-                    self.log(f"OpenAlex error for '{term}': {resp.status_code}")
-                    continue
-                
-                data = resp.json()
-                count = data.get('meta', {}).get('count', 0)
-                self.log(f"OpenAlex found {count} papers for '{term}'")
-                
-                for item in data.get('results', []):
-                    doi = item.get('doi', '')
-                    if doi:
-                        # Clean up DOI format (OpenAlex returns full URL)
-                        doi = doi.replace('https://doi.org/', '')
-                        if doi not in seen_dois:
-                            seen_dois.add(doi)
-                            papers.append({
-                                'doi': doi,
-                                'title': item.get('title', ''),
-                                'openalex_id': item.get('id', ''),
-                            })
-                
-                time.sleep(0.5)  # Rate limiting
-                
+                cursor = '*'
+                term_count = 0
+                while len(papers) < max_results:
+                    params = {
+                        'filter': f'fulltext.search:{term}',
+                        'per_page': 200,
+                        'cursor': cursor,
+                        'mailto': 'ben.dichter@catalystneuro.com'
+                    }
+
+                    resp = self.session.get(openalex_url, params=params, timeout=60)
+                    if resp.status_code != 200:
+                        self.log(f"OpenAlex error for '{term}': {resp.status_code}")
+                        break
+
+                    data = resp.json()
+                    if term_count == 0:
+                        total = data.get('meta', {}).get('count', 0)
+                        self.log(f"OpenAlex found {total} papers for '{term}'")
+
+                    results = data.get('results', [])
+                    if not results:
+                        break
+
+                    for item in results:
+                        doi = item.get('doi', '')
+                        if doi:
+                            doi = doi.replace('https://doi.org/', '')
+                            if doi not in seen_dois:
+                                seen_dois.add(doi)
+                                papers.append({
+                                    'doi': doi,
+                                    'title': item.get('title', ''),
+                                    'openalex_id': item.get('id', ''),
+                                })
+
+                    term_count += len(results)
+                    cursor = data.get('meta', {}).get('next_cursor')
+                    if not cursor:
+                        break
+
+                    time.sleep(0.1)
+
                 if len(papers) >= max_results:
                     break
-            
+
             self.log(f"Found {len(papers)} unique papers from OpenAlex")
             return papers[:max_results]
-            
+
         except Exception as e:
             self.log(f"OpenAlex search error: {e}")
             return []
@@ -1073,7 +1087,7 @@ class ArchiveFinder:
         
         return query
     
-    def discover_papers(self, max_results: int = 100, archives: list[str] | None = None) -> dict:
+    def discover_papers(self, max_results: int = 1000, archives: list[str] | None = None) -> dict:
         """
         Discover papers that reference datasets from any supported archive.
         

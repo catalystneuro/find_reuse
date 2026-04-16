@@ -133,6 +133,14 @@ def step6_fetch_text_and_classify():
     )
 
 
+def step6b_deduplicate_preprints():
+    """Remove preprint/published duplicate entries."""
+    run(
+        ["python3", "deduplicate_preprints.py"],
+        "Step 6b: Deduplicate preprint/published pairs",
+    )
+
+
 def step7_classify_reuse_type():
     """Classify reuse type for all REUSE papers."""
     run(
@@ -291,6 +299,7 @@ def main():
             step4_fetch_citations()
             step5_direct_refs()
         step6_fetch_text_and_classify()
+        step6b_deduplicate_preprints()
         step7_classify_reuse_type()
         step8_update_delays()
         step9_andersen_gill()

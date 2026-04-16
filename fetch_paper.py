@@ -187,13 +187,15 @@ class PaperFetcher:
                     try:
                         ft_resp = self.session.get(fulltext_url, timeout=30)
                         if ft_resp.status_code == 200:
-                            soup = BeautifulSoup(ft_resp.content, 'lxml-xml')
+                            # Use html.parser for more complete text extraction
+                            # (lxml-xml truncates table content in STAR Methods)
+                            soup = BeautifulSoup(ft_resp.content, 'html.parser')
                             text = soup.get_text(separator=' ', strip=True)
 
-                            # Also extract hyperlink URLs (ext-link elements contain href attributes)
+                            # Also extract hyperlink URLs from ext-link elements
                             ext_links = []
                             for link in soup.find_all('ext-link'):
-                                href = link.get('xlink:href', '')
+                                href = link.get('xlink:href', '') or link.get('href', '')
                                 if href:
                                     ext_links.append(href)
 
@@ -215,12 +217,12 @@ class PaperFetcher:
                         try:
                             ft_resp = self.session.get(fulltext_url, timeout=30)
                             if ft_resp.status_code == 200:
-                                soup = BeautifulSoup(ft_resp.content, 'lxml-xml')
+                                soup = BeautifulSoup(ft_resp.content, 'html.parser')
                                 text = soup.get_text(separator=' ', strip=True)
 
                                 ext_links = []
                                 for link in soup.find_all('ext-link'):
-                                    href = link.get('xlink:href', '')
+                                    href = link.get('xlink:href', '') or link.get('href', '')
                                     if href:
                                         ext_links.append(href)
 
