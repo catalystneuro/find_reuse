@@ -128,9 +128,18 @@ def load_counts():
     # No paper detectable = not found by LLM + invalidated + remaining
     n_no_paper = n_llm_not_found + n_llm_invalidated + n_remaining
 
-    # Total unique papers (formal + LLM, deduplicated)
-    all_dois = formal_dois | llm_dois
-    n_total_unique_papers = len(all_dois) + llm_no_doi
+    # Total unique papers (formal + LLM, deduplicated, non-empty only)
+    with open("output/all_dandiset_papers.json") as f:
+        all_papers = json.load(f)
+    nonempty_dois = set()
+    for r in all_papers["results"]:
+        if r["dandiset_id"] in nonempty_ids:
+            for p in r.get("paper_relations", []):
+                doi = p.get("doi")
+                if doi:
+                    nonempty_dois.add(doi.strip().lower())
+    all_dois = nonempty_dois
+    n_total_unique_papers = len(all_dois)
 
     return cache, {
         "total": total,
@@ -258,16 +267,6 @@ def render(counts, cache):
     dot.edge("NO_FORMAL", "TEST", label=f' {counts["test"]}', color="#616161", fontcolor="#616161")
     dot.edge("NO_FORMAL", "NO_PAPER", label=f' {counts["no_paper"]}', color="#e64a19", fontcolor="#e64a19")
 
-    # Note about remaining
-    if counts["remaining"] > 0:
-        dot.node(
-            "NOTE",
-            f'({counts["remaining"]} not yet checked by LLM)',
-            shape="note", style="filled",
-            fillcolor="#fffde7", color="#f9a825", fontcolor="#827717",
-            fontsize="8",
-        )
-        dot.edge("NO_PAPER", "NOTE", style="dotted", arrowhead="none", color="#f9a825")
 
     # Bottom: total dandisets with linked papers (formal + LLM)
     n_with_paper = counts["formal"] + counts["llm_found"]

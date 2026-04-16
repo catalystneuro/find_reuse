@@ -210,15 +210,6 @@ def render(stats):
     dot.edge("WITH_TEXT", "LLM", color="#7b1fa2")
 
     # Row 5: Classification results
-    # Direct references (inline dandiset mentions) — separate from citation pipeline
-    dot.node(
-        "DIRECT_REF",
-        f'Direct dandiset references\n(DOI/URL in paper text)\n{stats["n_reuse_direct"]} REUSE',
-        shape="box", style="filled,rounded",
-        fillcolor="#fff9c4", color="#f9a825", fontcolor="#f57f17",
-        penwidth="2",
-    )
-
     with dot.subgraph() as s:
         s.attr(rank="same")
         s.node(
@@ -246,9 +237,6 @@ def render(stats):
     dot.edge("LLM", "REUSE",
              label=f' {stats["n_reuse_citation"]}',
              color="#2196F3", fontcolor="#1565c0", penwidth="2")
-    dot.edge("DIRECT_REF", "REUSE",
-             label=f' {stats["n_reuse_direct"]}',
-             color="#f9a825", fontcolor="#f57f17")
     dot.edge("LLM", "MENTION",
              label=f' {stats["n_mention"]}',
              color="#FF9800", fontcolor="#e65100")
