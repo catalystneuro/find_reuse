@@ -24,6 +24,34 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import chi2
 
+# Normalize source archive names across all archives
+ARCHIVE_NORMALIZE = {
+    "DANDI": "DANDI Archive",
+    "dandi": "DANDI Archive",
+    "DANDI archive": "DANDI Archive",
+    "crcns": "CRCNS",
+    "Crcns": "CRCNS",
+    "crcns.org": "CRCNS",
+}
+
+# Clean up journal/venue names
+JOURNAL_NORMALIZE = {
+    "bioRxiv (Cold Spring Harbor Laboratory)": "bioRxiv",
+    "Cold Spring Harbor Laboratory": "bioRxiv",
+    "arXiv (Cornell University)": "arXiv",
+    "Cornell University": "arXiv",
+    "medRxiv (Cold Spring Harbor Laboratory)": "medRxiv",
+    "Research Square (Research Square)": "Research Square",
+}
+
+
+def normalize_archive(name):
+    return ARCHIVE_NORMALIZE.get(name, name)
+
+
+def normalize_journal(name):
+    return JOURNAL_NORMALIZE.get(name, name)
+
 
 def plot_combined(reuse, delays, created, output_path, archive_name="Archive",
                   analysis_cutoff=None, lab_type="all"):
@@ -63,7 +91,7 @@ def plot_combined(reuse, delays, created, output_path, archive_name="Archive",
 
     # === Panel A: Source Archives ===
     ax = fig.add_subplot(gs[0, 0])
-    archives = Counter(c.get("source_archive", "unclear") or "unclear" for c in reuse)
+    archives = Counter(normalize_archive(c.get("source_archive", "unclear") or "unclear") for c in reuse)
     top_archives = archives.most_common(8)
     names = [a for a, _ in top_archives]
     counts = [n for _, n in top_archives]
@@ -77,7 +105,7 @@ def plot_combined(reuse, delays, created, output_path, archive_name="Archive",
     ax = fig.add_subplot(gs[0, 1])
     journals = Counter()
     for c in reuse:
-        j = c.get("citing_journal", "") or ""
+        j = normalize_journal(c.get("citing_journal", "") or "")
         if j:
             journals[j] += 1
     top_journals = journals.most_common(10)
@@ -125,6 +153,8 @@ def plot_combined(reuse, delays, created, output_path, archive_name="Archive",
         ax.bar(all_years, diff_vals, color="#2E7D32", alpha=0.8, label="Different lab")
         ax.bar(all_years, same_vals, bottom=diff_vals, color="#7B1FA2", alpha=0.8, label="Same lab")
         ax.legend(fontsize=8)
+        # Whole-number year ticks
+        ax.set_xticks([y for y in all_years if y % 2 == 0])
     ax.set_xlabel("Year")
     ax.set_ylabel("Reuse papers")
 

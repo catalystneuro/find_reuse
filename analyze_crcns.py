@@ -610,6 +610,11 @@ def run_andersen_gill(classifications, created, datasets):
     ax.scatter(hr, y_pos, color=colors, s=90, zorder=3, edgecolors="white", linewidth=0.5)
     ax.axvline(1.0, color="gray", linestyle="--", linewidth=1, zorder=1)
     ax.set_xscale("log")
+    from matplotlib.ticker import FixedLocator, FixedFormatter
+    ax.xaxis.set_major_locator(FixedLocator([0.5, 1, 2, 3, 4, 5]))
+    ax.xaxis.set_major_formatter(FixedFormatter(["0.5", "1", "2", "3", "4", "5"]))
+    ax.xaxis.set_minor_locator(FixedLocator([]))
+    ax.grid(axis="x", alpha=0.2)
 
     for i, (h, p) in enumerate(zip(hr, pvals)):
         sig = "***" if p < 0.001 else "**" if p < 0.01 else "*" if p < 0.05 else ""
