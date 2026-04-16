@@ -131,8 +131,36 @@ subprocess.run([
     "--resolve-unclear", "--write",
 ], check=False)  # may fail if no unclear entries, that's fine
 
-# Step 7: Deduplicate preprints
-print("\n=== Step 7: Deduplicate preprints ===", file=sys.stderr, flush=True)
+# Step 7: Set source_archive=CRCNS for papers that cite CRCNS datasets directly
+print("\n=== Step 7: Assign CRCNS archive for direct dataset citations ===", file=sys.stderr, flush=True)
+import re
+with open(CLASSIFICATIONS_FILE) as f:
+    cls_data = json.load(f)
+
+n_assigned = 0
+for c in cls_data["classifications"]:
+    if c["classification"] != "REUSE":
+        continue
+    if c.get("source_archive") and c["source_archive"] != "unclear":
+        continue
+    # Check if paper text contains CRCNS DOI or URL
+    doi = c["citing_doi"]
+    safe_doi = doi.replace("/", "_")
+    cache_file = Path(f".paper_cache/{safe_doi}.json")
+    if cache_file.exists():
+        with open(cache_file) as f2:
+            paper = json.load(f2)
+        text = paper.get("text", "")
+        if re.search(r"10\.6080/|crcns\.org/data-sets/|\bCRCNS\b", text):
+            c["source_archive"] = "CRCNS"
+            n_assigned += 1
+
+with open(CLASSIFICATIONS_FILE, "w") as f:
+    json.dump(cls_data, f, indent=2)
+print(f"Assigned CRCNS archive to {n_assigned} REUSE entries based on direct citations", file=sys.stderr)
+
+# Step 8: Deduplicate preprints
+print("\n=== Step 8: Deduplicate preprints ===", file=sys.stderr, flush=True)
 from deduplicate_preprints import deduplicate, is_preprint_doi, normalize_title
 
 with open(CLASSIFICATIONS_FILE) as f:
