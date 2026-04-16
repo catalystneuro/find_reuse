@@ -646,6 +646,12 @@ def main():
     plot_mcf_modeled(delays, created)
     plot_reuse_type(reuse)
     plot_top_datasets(reuse_diff, datasets)
+
+    # 2x2 modeling figure (shared method)
+    from analysis.reuse_modeling import plot_model_2x2
+    plot_model_2x2(delays, created, datasets, FIGURES_DIR / "reuse_rate_model.png",
+                   archive_name="CRCNS", analysis_cutoff=ANALYSIS_CUTOFF)
+
     run_andersen_gill(classifications, created, datasets)
 
     print(f"\nAll figures saved to {FIGURES_DIR}/")
