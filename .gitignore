@@ -26,7 +26,9 @@ venv/
 .paper_cache/
 .paper_cache.zip
 .preprint_cache/
+.patchseq_filter_cache/
 
 # Output results
 output/
 paper_cache.zip
+.review_author_cache.json
