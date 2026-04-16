@@ -27,10 +27,16 @@ class CRCNSAdapter(ArchiveAdapter):
         self.session.headers.update({"User-Agent": "FindReuse/1.0"})
         self._datacite_cache = None
         self._publications_cache = None
+        self._doi_to_code_cache_path = Path(".crcns_doi_to_code.json")
 
     def get_datasets(self) -> list[dict]:
-        """Fetch all CRCNS datasets from DataCite API (DOI prefix 10.6080)."""
-        datasets = []
+        """Fetch all CRCNS datasets from DataCite API (DOI prefix 10.6080).
+
+        Resolves DOIs to CRCNS dataset codes (e.g., hc-3, pvc-11) by following
+        DOI redirects to crcns.org URLs. Results are cached.
+        """
+        # Fetch from DataCite
+        datacite_records = []
         page = 1
         page_size = 100
 
@@ -53,12 +59,6 @@ class CRCNSAdapter(ArchiveAdapter):
                 title = titles[0].get("title", "") if titles else ""
                 creators = [c.get("name", "") for c in attrs.get("creators", [])]
                 year = attrs.get("publicationYear")
-
-                # Extract dataset ID from title or DOI
-                # CRCNS titles often contain the code like "pvc-1" or "hc-3"
-                dataset_id = self._extract_dataset_id(title, doi)
-
-                # Dates
                 dates = attrs.get("dates", [])
                 created = ""
                 for d in dates:
@@ -68,15 +68,13 @@ class CRCNSAdapter(ArchiveAdapter):
                 if not created and year:
                     created = f"{year}-01-01"
 
-                datasets.append({
-                    "id": dataset_id or doi,
-                    "name": title,
-                    "description": self._get_description(attrs),
-                    "created": created,
+                datacite_records.append({
                     "doi": doi,
-                    "url": f"https://doi.org/{doi}",
-                    "contributors": creators,
-                    "publication_year": year,
+                    "title": title,
+                    "description": self._get_description(attrs),
+                    "creators": creators,
+                    "year": year,
+                    "created": created,
                 })
 
             total = data.get("meta", {}).get("total", 0)
@@ -85,9 +83,67 @@ class CRCNSAdapter(ArchiveAdapter):
             page += 1
             time.sleep(0.5)
 
+        self.log(f"Found {len(datacite_records)} records in DataCite")
+
+        # Resolve DOIs to CRCNS codes
+        doi_to_code = self._resolve_doi_codes([r["doi"] for r in datacite_records])
+
+        # Build dataset list
+        datasets = []
+        for rec in datacite_records:
+            code = doi_to_code.get(rec["doi"], "")
+            dataset_id = code or rec["doi"]
+            datasets.append({
+                "id": dataset_id,
+                "name": rec["title"],
+                "description": rec["description"],
+                "created": rec["created"],
+                "doi": rec["doi"],
+                "url": f"https://crcns.org/data-sets/{code.split('-')[0]}/{code}" if code else f"https://doi.org/{rec['doi']}",
+                "contributors": rec["creators"],
+                "publication_year": rec["year"],
+            })
+
         self._datacite_cache = datasets
-        self.log(f"Found {len(datasets)} CRCNS datasets in DataCite")
+        n_with_code = sum(1 for d in datasets if "-" in d["id"])
+        self.log(f"Resolved {n_with_code}/{len(datasets)} to CRCNS codes")
         return datasets
+
+    def _resolve_doi_codes(self, dois: list[str]) -> dict[str, str]:
+        """Resolve DataCite DOIs to CRCNS dataset codes via HTTP redirect.
+
+        Caches results to avoid repeated lookups.
+        """
+        # Load cache
+        if self._doi_to_code_cache_path.exists():
+            with open(self._doi_to_code_cache_path) as f:
+                cache = json.load(f)
+        else:
+            cache = {}
+
+        need_resolve = [d for d in dois if d not in cache]
+        if need_resolve:
+            self.log(f"Resolving {len(need_resolve)} DOIs to CRCNS codes...")
+            for i, doi in enumerate(need_resolve):
+                try:
+                    resp = self.session.head(
+                        f"https://doi.org/{doi}", allow_redirects=True, timeout=15
+                    )
+                    match = re.search(r"crcns\.org/(?:data-sets/\w+|[\w]+)/([\w]+-\d+)", resp.url)
+                    if match:
+                        cache[doi] = match.group(1)
+                    else:
+                        cache[doi] = ""  # mark as attempted
+                except Exception:
+                    cache[doi] = ""
+                if (i + 1) % 30 == 0:
+                    self.log(f"  {i + 1}/{len(need_resolve)}")
+                time.sleep(0.3)
+
+            with open(self._doi_to_code_cache_path, "w") as f:
+                json.dump(cache, f, indent=2)
+
+        return {doi: code for doi, code in cache.items() if code}
 
     def get_primary_papers(self, dataset: dict) -> list[dict]:
         """Find primary papers for a CRCNS dataset.
@@ -131,19 +187,6 @@ class CRCNSAdapter(ArchiveAdapter):
     def get_test_dataset_ids(self) -> set[str]:
         """CRCNS is curated -- no test datasets."""
         return set()
-
-    def _extract_dataset_id(self, title: str, doi: str) -> str:
-        """Extract CRCNS dataset code (e.g., 'hc-3', 'pvc-11') from title."""
-        # Common patterns: "hc-3", "pvc-11", "ret-1", "fcx-1"
-        match = re.search(r"\b([a-z]{2,5}-\d{1,3})\b", title.lower())
-        if match:
-            return match.group(1)
-        # Try extracting from DOI suffix
-        suffix = doi.split("/")[-1] if "/" in doi else ""
-        match = re.search(r"([a-z]{2,5}\d{1,3})", suffix.lower())
-        if match:
-            return match.group(1)
-        return ""
 
     def _get_description(self, attrs: dict) -> str:
         """Extract description from DataCite attributes."""

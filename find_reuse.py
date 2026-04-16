@@ -66,6 +66,12 @@ ARCHIVE_SEARCH_TERMS = {
             'dandi district', 'lake dandi', 'meta robi',  # Geographic: Ethiopian locations
         ],
     },
+    'CRCNS': {
+        'names': ['crcns'],
+        'urls': ['crcns.org'],
+        'search_terms': ['CRCNS'],
+        'doi_prefixes': ['10.6080'],
+    },
     'OpenNeuro': {
         'names': ['openneuro'],
         'urls': ['openneuro.org'],
