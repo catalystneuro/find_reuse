@@ -49,6 +49,26 @@ subprocess.run([
     "-o", CONTEXTS_FILE,
 ], check=True)
 
+# Step 2b: Pre-populate classification cache from direct references
+print("\n=== Step 2b: Pre-populate cache from direct refs ===", file=sys.stderr, flush=True)
+if Path(DIRECT_CLASSIFICATIONS_FILE).exists():
+    with open(DIRECT_CLASSIFICATIONS_FILE) as f:
+        direct_cls = json.load(f)
+    from classify_citing_papers import get_cache_path, CLASSIFICATION_CACHE_DIR
+    CLASSIFICATION_CACHE_DIR.mkdir(exist_ok=True)
+    n_cached = 0
+    for c in direct_cls.get("classifications", []):
+        cited_doi = c.get("cited_doi", "")
+        citing_doi = c.get("citing_doi", "")
+        if not cited_doi or not citing_doi:
+            continue
+        cache_path = get_cache_path(citing_doi, cited_doi)
+        if not cache_path.exists():
+            with open(cache_path, "w") as f:
+                json.dump(c, f, indent=2)
+            n_cached += 1
+    print(f"Pre-cached {n_cached} direct ref classifications", file=sys.stderr)
+
 # Step 3: Classify
 print("\n=== Step 3: Classify ===", file=sys.stderr, flush=True)
 cite_cls_file = "output/crcns/classifications_cite.json"
