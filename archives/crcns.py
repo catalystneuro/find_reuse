@@ -11,6 +11,12 @@ from bs4 import BeautifulSoup
 from .base import ArchiveAdapter
 
 
+# DOIs that appear on many CRCNS about pages but are not dataset-specific primary papers
+CRCNS_INFRASTRUCTURE_DOIS = {
+    "10.1007/s12021-008-9009-y",  # "Data Sharing for Computational Neuroscience" (Teeters et al. 2008)
+}
+
+
 class CRCNSAdapter(ArchiveAdapter):
     name = "CRCNS"
     short_name = "crcns"
@@ -168,7 +174,9 @@ class CRCNSAdapter(ArchiveAdapter):
                     continue
                 dois = re.findall(r"10\.\d{4,}/[^\s<\"&]+", resp.text)
                 dois = [d.rstrip(".,;:/") for d in dois]
-                paper_dois = [d for d in dois if not d.startswith("10.6080/")]
+                paper_dois = [d for d in dois
+                              if not d.startswith("10.6080/")
+                              and d.lower() not in CRCNS_INFRASTRUCTURE_DOIS]
                 for doi in paper_dois[:3]:
                     if not any(p["doi"] == doi for p in papers):
                         papers.append({
