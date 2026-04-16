@@ -159,8 +159,20 @@ with open(CLASSIFICATIONS_FILE, "w") as f:
     json.dump(cls_data, f, indent=2)
 print(f"Assigned CRCNS archive to {n_assigned} REUSE entries based on direct citations", file=sys.stderr)
 
-# Step 8: Deduplicate preprints
-print("\n=== Step 8: Deduplicate preprints ===", file=sys.stderr, flush=True)
+# Step 8: Remove DANDI ID leakage (6-digit IDs from DANDI pattern matching)
+print("\n=== Step 8: Remove DANDI ID leakage ===", file=sys.stderr, flush=True)
+with open(CLASSIFICATIONS_FILE) as f:
+    cls_data = json.load(f)
+before = len(cls_data["classifications"])
+cls_data["classifications"] = [c for c in cls_data["classifications"]
+                                if not re.match(r"^\d{6}$", c.get("dandiset_id", ""))]
+after = len(cls_data["classifications"])
+with open(CLASSIFICATIONS_FILE, "w") as f:
+    json.dump(cls_data, f, indent=2)
+print(f"Removed {before - after} DANDI-leaked entries", file=sys.stderr)
+
+# Step 9: Deduplicate preprints
+print("\n=== Step 9: Deduplicate preprints ===", file=sys.stderr, flush=True)
 from deduplicate_preprints import deduplicate, is_preprint_doi, normalize_title
 
 with open(CLASSIFICATIONS_FILE) as f:
