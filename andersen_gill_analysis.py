@@ -80,12 +80,17 @@ def fetch_dandiset_metadata():
             n_subjects = summary.get("numberOfSubjects") or 0
             n_files = summary.get("numberOfFiles") or 0
 
+            # License (CC-0 vs CC-BY vs other)
+            license_id = m.get("license", [""])[0] if m.get("license") else ""
+            is_cc0 = 1 if "cc-0" in license_id.lower() or "spdx:CC0" in license_id else 0
+
             meta[did] = {
                 "species": species,
                 "modality": modality,
                 "size_gb": size_gb,
                 "n_subjects": n_subjects,
                 "n_files": n_files,
+                "is_cc0": is_cc0,
                 "dandiset_created": r.get("dandiset_created", ""),
             }
         except Exception:
@@ -294,6 +299,7 @@ def build_counting_process_data(meta, citations, impact_factors):
                 "is_benchmark": is_benchmark,
                 "is_allen": is_allen,
                 "log_impact_factor": log_impact_factor,
+                "is_cc0": m.get("is_cc0", 0),
             })
             prev_time = et
 
@@ -315,6 +321,7 @@ def build_counting_process_data(meta, citations, impact_factors):
                 "is_benchmark": is_benchmark,
                 "is_allen": is_allen,
                 "log_impact_factor": log_impact_factor,
+                "is_cc0": m.get("is_cc0", 0),
             })
 
     df = pd.DataFrame(rows)
@@ -389,7 +396,8 @@ def plot_forest(results_path="output/andersen_gill_results.json"):
         "log_subjects": "Number of subjects\n(per 10x increase)",
         "log_size": "Dataset size\n(per 10x increase)",
         "modality_ephys": "Electrophysiology\n(vs other modality)",
-        "modality_imaging": "Imaging\n(vs other modality)",
+        "modality_imaging": "Calcium imaging\n(vs other modality)",
+        "is_cc0": "CC-0 license\n(vs CC-BY)",
     }
 
     # Order by effect size descending
@@ -475,7 +483,7 @@ def main():
     print("\nCovariate summary:", file=sys.stderr)
     for col in ["species_mouse", "species_human", "species_nhp",
                 "modality_ephys", "modality_imaging",
-                "is_benchmark", "is_allen"]:
+                "is_benchmark", "is_allen", "is_cc0"]:
         n = df.groupby("dandiset_id")[col].first().sum()
         print(f"  {col}: {n:.0f} dandisets", file=sys.stderr)
     median_if = df.groupby("dandiset_id")["log_impact_factor"].first().median()
