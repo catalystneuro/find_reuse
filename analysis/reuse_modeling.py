@@ -246,6 +246,22 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
             except Exception:
                 pass
 
+            def richards_growth(t, K, r, t0, nu):
+                return K / (1 + nu * np.exp(-r * (t - t0))) ** (1 / nu)
+
+            try:
+                popt_rg, _ = curve_fit(richards_growth, t_fit_data, c_fit_data,
+                                       p0=[c_fit_data[-1] * 1.5, 0.5, t_fit_data[-1] / 2, 1],
+                                       maxfev=10000,
+                                       bounds=([c_fit_data[-1] * 0.5, 0.01, 0, 0.1],
+                                               [c_fit_data[-1] * 5, 5, 50, 20]))
+                pred = richards_growth(t_fit_data, *popt_rg)
+                bic_rg = len(t_fit_data) * np.log(np.mean((c_fit_data - pred)**2)) + 4 * np.log(len(t_fit_data))
+                fit_models["richards"] = {"params": popt_rg, "bic": bic_rg, "func": richards_growth,
+                                          "label": f"Richards (K={popt_rg[0]:.0f})"}
+            except Exception:
+                pass
+
             if growth_model == "auto" and fit_models:
                 best = min(fit_models, key=lambda k: fit_models[k]["bic"])
             elif growth_model in fit_models:
@@ -290,54 +306,48 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
         now = analysis_cutoff
         t0_date = creation_dates[0]
         future_end = now + timedelta(days=project_years * 365.25)
-        eval_dates = [t0_date + timedelta(days=d) for d in
-                      range(0, int((future_end - t0_date).days), 30)]
 
-        for label, color in [("Different lab", "#2E7D32"), ("Same lab", "#7B1FA2")]:
+        for label, color, is_same in [("Different lab", "#2E7D32", False), ("Same lab", "#7B1FA2", True)]:
             if label not in fit_results:
                 continue
             fr = fit_results[label]
 
-            # For each eval date, sum MCF(age) over all datasets that exist by that date
-            # Use growth model for future datasets, actual dates for past
+            # Past: plot observed cumulative counts
+            obs_dates = sorted(d["pub_date"] for d in delays if d["same_lab"] == is_same)
+            if obs_dates:
+                ax.plot(obs_dates, range(1, len(obs_dates) + 1),
+                        color=color, linewidth=2,
+                        label=f"{label} ({len(obs_dates)})")
+
+            # Future: project from now using growth model + MCF
+            future_dates = [now + timedelta(days=d) for d in
+                            range(0, int((future_end - now).days), 30)]
             proj = []
-            for eval_date in eval_dates:
+            for eval_date in future_dates:
                 total = 0
                 t_eval_years = (eval_date - t0_date).days / 365.25
 
-                if eval_date <= now:
-                    # Use actual creation dates
-                    for c_date in creation_dates:
-                        age_years = (eval_date - c_date).days / 365.25
-                        if age_years > 0:
-                            total += fr["func"](age_years, *fr["params"])
-                elif growth_func is not None:
-                    # Projected: use growth model for number of datasets
+                if growth_func is not None:
                     n_datasets = int(growth_func(t_eval_years, *growth_params))
-                    # Distribute dataset creation times uniformly up to eval_date
-                    for i in range(min(n_datasets, len(creation_dates))):
-                        age_years = (eval_date - creation_dates[i]).days / 365.25
-                        if age_years > 0:
-                            total += fr["func"](age_years, *fr["params"])
-                    # For projected new datasets beyond current count
-                    for j in range(len(creation_dates), n_datasets):
-                        # Assume new datasets created uniformly between now and eval_date
-                        frac = (j - len(creation_dates)) / max(n_datasets - len(creation_dates), 1)
-                        c_date = now + timedelta(days=frac * (eval_date - now).days)
-                        age_years = (eval_date - c_date).days / 365.25
-                        if age_years > 0:
-                            total += fr["func"](age_years, *fr["params"])
+                else:
+                    n_datasets = len(creation_dates)
+
+                # Existing datasets
+                for c_date in creation_dates:
+                    age_years = (eval_date - c_date).days / 365.25
+                    if age_years > 0:
+                        total += fr["func"](age_years, *fr["params"])
+                # Projected new datasets
+                for j in range(len(creation_dates), n_datasets):
+                    frac = (j - len(creation_dates)) / max(n_datasets - len(creation_dates), 1)
+                    c_date = now + timedelta(days=frac * (eval_date - now).days)
+                    age_years = (eval_date - c_date).days / 365.25
+                    if age_years > 0:
+                        total += fr["func"](age_years, *fr["params"])
                 proj.append(total)
 
-            ax.plot(eval_dates, proj, color=color, linewidth=2,
-                    label=f"Proj. {label.lower()} (~{int(proj[-1])})")
-
-            # Also plot observed
-            obs_dates = sorted(d["pub_date"] for d in delays if d["same_lab"] == (label == "Same lab"))
-            if obs_dates:
-                ax.plot(obs_dates, range(1, len(obs_dates) + 1),
-                        color=color, linewidth=1.5, alpha=0.4,
-                        label=f"Est. {label.lower()} ({len(obs_dates)})")
+            ax.plot(future_dates, proj, "--", color=color, linewidth=2,
+                    label=f"Proj. (~{int(proj[-1])})")
 
         ax.axvline(now, color="gray", linestyle=":", alpha=0.5)
         ax.set_xlabel("Date")
