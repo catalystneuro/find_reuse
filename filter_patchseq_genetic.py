@@ -25,7 +25,7 @@ from pathlib import Path
 import requests
 
 CACHE_DIR = Path(".patchseq_filter_cache")
-MODEL = "google/gemini-2.5-flash"
+MODEL = "google/gemini-3-flash-preview"
 
 PROMPT = """You are classifying what type of data a paper reused from a Patch-seq dataset.
 

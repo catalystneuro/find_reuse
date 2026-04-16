@@ -26,7 +26,7 @@ Usage:
     python classify_citing_papers.py --results-file output/dandi_all_results.json
     python classify_citing_papers.py --contexts-file output/citation_contexts.json
     python classify_citing_papers.py --results-file output/dandi_all_results.json --max-papers 10
-    python classify_citing_papers.py --results-file output/dandi_all_results.json --model google/gemini-2.5-flash
+    python classify_citing_papers.py --results-file output/dandi_all_results.json --model google/gemini-3-flash-preview
 """
 
 import argparse
