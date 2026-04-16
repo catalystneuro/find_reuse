@@ -109,7 +109,7 @@ def fit_mcf(t_years, mcf_vals, model="auto"):
 
 
 def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive",
-                   analysis_cutoff=None, project_years=5):
+                   analysis_cutoff=None, project_years=5, growth_model="auto"):
     """Generate 2x2 modeling figure.
 
     Args:
@@ -167,12 +167,12 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
 
-    # === Panel B: Reuse Rate ===
+    # === Panel B: Reuse Rate (points with Poisson CIs) ===
     ax = axes[0, 1]
     max_year = 18
-    for label, delay_list, color in [
-        ("Different lab", diff_delays, "#2E7D32"),
-        ("Same lab", same_delays, "#7B1FA2"),
+    for label, delay_list, color, marker in [
+        ("Different lab", diff_delays, "#2E7D32", "s"),
+        ("Same lab", same_delays, "#7B1FA2", "D"),
     ]:
         if not delay_list:
             continue
@@ -189,8 +189,9 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
         ci_hi = chi2.ppf(1 - alpha / 2, 2 * (counts + 1)) / (2 * at_risk)
         ci_lo = np.nan_to_num(ci_lo, 0)
 
-        ax.bar(centers, rate, width=0.8, alpha=0.6, color=color, label=label)
-        ax.vlines(centers, ci_lo, ci_hi, color=color, linewidth=1.5)
+        ax.errorbar(centers, rate, yerr=[rate - ci_lo, ci_hi - rate],
+                    fmt=marker, color=color, markersize=5, capsize=3,
+                    linewidth=1.2, label=label)
 
     ax.set_xlabel("Years after dataset creation")
     ax.set_ylabel("Reuse rate (events/dataset/yr)")
@@ -204,39 +205,82 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
     creation_dates = sorted(created.values())
     if creation_dates:
         t0_date = creation_dates[0]
-        t_months_growth = [(d - t0_date).days / 30.44 for d in creation_dates]
+        t_years_growth = np.array([(d - t0_date).days / 365.25 for d in creation_dates])
         cumulative = np.arange(1, len(creation_dates) + 1)
 
-        ax.plot([t0_date + timedelta(days=m * 30.44) for m in t_months_growth],
+        ax.plot([t0_date + timedelta(days=t * 365.25) for t in t_years_growth],
                 cumulative, color="#1565c0", linewidth=2)
 
-        # Power law fit
-        t_years_growth = np.array([(d - t0_date).days / 365.25 for d in creation_dates])
-        t_years_growth = t_years_growth[t_years_growth > 0]
-        if len(t_years_growth) > 5:
+        mask = t_years_growth > 0
+        t_fit_data = t_years_growth[mask]
+        c_fit_data = cumulative[mask]
+
+        if len(t_fit_data) > 5:
+            # Try both power law and logistic, pick best BIC
+            fit_models = {}
+
             def power_law(t, a, b):
                 return a * t ** b
-            try:
-                popt, _ = curve_fit(power_law, t_years_growth, cumulative[:len(t_years_growth)],
-                                    p0=[10, 1.5], maxfev=5000)
-                a, b = popt
 
-                # Project forward
-                max_t = t_years_growth[-1] + project_years
+            def logistic_growth(t, K, r, t0):
+                return K / (1 + np.exp(-r * (t - t0)))
+
+            try:
+                popt_pl, _ = curve_fit(power_law, t_fit_data, c_fit_data,
+                                       p0=[10, 1.5], maxfev=5000)
+                pred = power_law(t_fit_data, *popt_pl)
+                bic_pl = len(t_fit_data) * np.log(np.mean((c_fit_data - pred)**2)) + 2 * np.log(len(t_fit_data))
+                fit_models["power_law"] = {"params": popt_pl, "bic": bic_pl, "func": power_law,
+                                           "label": f"N ∝ t^{popt_pl[1]:.2f}"}
+            except Exception:
+                pass
+
+            try:
+                popt_lg, _ = curve_fit(logistic_growth, t_fit_data, c_fit_data,
+                                       p0=[c_fit_data[-1] * 1.5, 0.5, t_fit_data[-1] / 2],
+                                       maxfev=5000, bounds=([c_fit_data[-1] * 0.5, 0.01, 0], [c_fit_data[-1] * 5, 5, 50]))
+                pred = logistic_growth(t_fit_data, *popt_lg)
+                bic_lg = len(t_fit_data) * np.log(np.mean((c_fit_data - pred)**2)) + 3 * np.log(len(t_fit_data))
+                fit_models["logistic"] = {"params": popt_lg, "bic": bic_lg, "func": logistic_growth,
+                                          "label": f"Logistic (K={popt_lg[0]:.0f})"}
+            except Exception:
+                pass
+
+            if growth_model == "auto" and fit_models:
+                best = min(fit_models, key=lambda k: fit_models[k]["bic"])
+            elif growth_model in fit_models:
+                best = growth_model
+            elif fit_models:
+                best = list(fit_models.keys())[0]
+            else:
+                best = None
+
+            if best:
+                fm = fit_models[best]
+                max_t = t_fit_data[-1] + project_years
                 t_proj = np.linspace(0.1, max_t, 200)
                 dates_proj = [t0_date + timedelta(days=t * 365.25) for t in t_proj]
-                ax.plot(dates_proj, power_law(t_proj, a, b), "--", color="#1565c0",
-                        linewidth=1.5, label=f"N ∝ t^{b:.2f}")
+                ax.plot(dates_proj, fm["func"](t_proj, *fm["params"]), "--", color="#1565c0",
+                        linewidth=1.5, label=fm["label"])
+
+                # Store for Panel D projection
+                growth_func = fm["func"]
+                growth_params = fm["params"]
+
                 ax.axvline(creation_dates[-1], color="gray", linestyle=":", alpha=0.5)
                 ax.text(creation_dates[-1], cumulative[-1] * 0.8,
                         f" {len(creation_dates)} today", fontsize=9, color="#1565c0")
                 ax.legend(fontsize=9)
-            except Exception:
-                pass
+            else:
+                growth_func = None
+                growth_params = None
+        else:
+            growth_func = None
+            growth_params = None
 
     ax.set_xlabel("Date")
     ax.set_ylabel(f"Cumulative {archive_name} datasets")
-    ax.set_title(f"C. Dataset Growth", fontweight="bold")
+    ax.set_title("C. Dataset Growth", fontweight="bold")
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
 
@@ -244,31 +288,56 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
     ax = axes[1, 1]
     if creation_dates and fit_results:
         now = analysis_cutoff
+        t0_date = creation_dates[0]
         future_end = now + timedelta(days=project_years * 365.25)
-        eval_dates = [now + timedelta(days=d) for d in range(0, int((future_end - now).days), 30)]
+        eval_dates = [t0_date + timedelta(days=d) for d in
+                      range(0, int((future_end - t0_date).days), 30)]
 
         for label, color in [("Different lab", "#2E7D32"), ("Same lab", "#7B1FA2")]:
             if label not in fit_results:
                 continue
             fr = fit_results[label]
 
-            # For each eval date, sum MCF(age) for all existing datasets
+            # For each eval date, sum MCF(age) over all datasets that exist by that date
+            # Use growth model for future datasets, actual dates for past
             proj = []
             for eval_date in eval_dates:
                 total = 0
-                for c_date in creation_dates:
-                    age_years = (eval_date - c_date).days / 365.25
-                    if age_years > 0:
-                        total += fr["func"](age_years, *fr["params"])
+                t_eval_years = (eval_date - t0_date).days / 365.25
+
+                if eval_date <= now:
+                    # Use actual creation dates
+                    for c_date in creation_dates:
+                        age_years = (eval_date - c_date).days / 365.25
+                        if age_years > 0:
+                            total += fr["func"](age_years, *fr["params"])
+                elif growth_func is not None:
+                    # Projected: use growth model for number of datasets
+                    n_datasets = int(growth_func(t_eval_years, *growth_params))
+                    # Distribute dataset creation times uniformly up to eval_date
+                    for i in range(min(n_datasets, len(creation_dates))):
+                        age_years = (eval_date - creation_dates[i]).days / 365.25
+                        if age_years > 0:
+                            total += fr["func"](age_years, *fr["params"])
+                    # For projected new datasets beyond current count
+                    for j in range(len(creation_dates), n_datasets):
+                        # Assume new datasets created uniformly between now and eval_date
+                        frac = (j - len(creation_dates)) / max(n_datasets - len(creation_dates), 1)
+                        c_date = now + timedelta(days=frac * (eval_date - now).days)
+                        age_years = (eval_date - c_date).days / 365.25
+                        if age_years > 0:
+                            total += fr["func"](age_years, *fr["params"])
                 proj.append(total)
 
-            ax.plot(eval_dates, proj, color=color, linewidth=2, label=f"Proj. {label.lower()} (~{int(proj[-1])})")
+            ax.plot(eval_dates, proj, color=color, linewidth=2,
+                    label=f"Proj. {label.lower()} (~{int(proj[-1])})")
 
             # Also plot observed
             obs_dates = sorted(d["pub_date"] for d in delays if d["same_lab"] == (label == "Same lab"))
             if obs_dates:
                 ax.plot(obs_dates, range(1, len(obs_dates) + 1),
-                        color=color, linewidth=1.5, alpha=0.4, label=f"Est. {label.lower()} ({len(obs_dates)})")
+                        color=color, linewidth=1.5, alpha=0.4,
+                        label=f"Est. {label.lower()} ({len(obs_dates)})")
 
         ax.axvline(now, color="gray", linestyle=":", alpha=0.5)
         ax.set_xlabel("Date")
