@@ -367,7 +367,9 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
 
-    fig.tight_layout()
+    fig.suptitle(f"{archive_name} Reuse Modeling and Projections",
+                 fontsize=15, fontweight="bold", y=0.98)
+    fig.tight_layout(rect=[0, 0, 1, 0.95])
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output_path, dpi=150, bbox_inches="tight")
     plt.close()
