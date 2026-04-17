@@ -253,7 +253,7 @@ def plot_reuse_type(reuse):
         print("No reuse types available, skipping")
         return
 
-    fig, ax = plt.subplots(figsize=(6, 4))
+    fig, ax = plt.subplots(figsize=(6, 3.6))
     label_map = {
         "TOOL_DEMO": "Tool demo",
         "NOVEL_ANALYSIS": "Novel analysis",
@@ -275,7 +275,7 @@ def plot_reuse_type(reuse):
     ax.set_yticklabels([label_map.get(t, t) for t in names], fontsize=9)
     ax.set_xlabel("Count")
     ax.set_title("Reuse Types (CRCNS)", fontweight="bold")
-    ax.legend(fontsize=8)
+    ax.legend(fontsize=8, frameon=False)
     ax.invert_yaxis()
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
