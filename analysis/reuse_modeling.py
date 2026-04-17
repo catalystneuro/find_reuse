@@ -160,6 +160,14 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
     # === Panel A: MCF Model Fits ===
     ax = ax_a
     fit_results = {}
+
+    # When combined, show same/diff lab MCF curves as background
+    if not split_labs and diff_delays and same_delays:
+        t_d, mcf_d = compute_mcf(diff_delays, obs_months)
+        t_s, mcf_s = compute_mcf(same_delays, obs_months)
+        ax.step(t_d / 12, mcf_d, where="post", color="#2E7D32", linewidth=1.2, alpha=0.5, label="Different lab")
+        ax.step(t_s / 12, mcf_s, where="post", color="#7B1FA2", linewidth=1.2, alpha=0.5, label="Same lab")
+
     for label, delay_list, color in mcf_series:
         if not delay_list:
             continue
@@ -167,7 +175,8 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
         t_years = t / 12
 
         # Plot data
-        ax.step(t_years, mcf_vals, where="post", color="black", linewidth=1.5)
+        mcf_label = "Combined" if not split_labs else None
+        ax.step(t_years, mcf_vals, where="post", color="black", linewidth=1.5, label=mcf_label)
 
         # Bootstrap confidence interval for MCF
         rng = np.random.default_rng(42)
