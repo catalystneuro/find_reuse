@@ -17,7 +17,9 @@ from collections import Counter
 from datetime import datetime, timedelta
 from pathlib import Path
 
+import matplotlib
 import matplotlib.pyplot as plt
+matplotlib.rcParams["font.family"] = "Helvetica"
 import numpy as np
 
 OUTPUT_DIR = Path("output/crcns")
@@ -98,7 +100,7 @@ def plot_source_archives(reuse):
     ax.spines["right"].set_visible(False)
 
     fig.tight_layout()
-    fig.savefig(FIGURES_DIR / "source_archives.png", dpi=150, bbox_inches="tight")
+    fig.savefig(FIGURES_DIR / "source_archives.png", dpi=300, bbox_inches="tight")
     plt.close()
     print("Saved source_archives.png")
 
@@ -133,7 +135,7 @@ def plot_reuse_by_year(reuse_diff, reuse_same):
     ax.spines["right"].set_visible(False)
 
     fig.tight_layout()
-    fig.savefig(FIGURES_DIR / "reuse_by_year.png", dpi=150, bbox_inches="tight")
+    fig.savefig(FIGURES_DIR / "reuse_by_year.png", dpi=300, bbox_inches="tight")
     plt.close()
     print("Saved reuse_by_year.png")
 
@@ -166,7 +168,7 @@ def plot_cumulative_reuse(reuse_diff, reuse_same):
     ax.spines["right"].set_visible(False)
 
     fig.tight_layout()
-    fig.savefig(FIGURES_DIR / "cumulative_reuse.png", dpi=150, bbox_inches="tight")
+    fig.savefig(FIGURES_DIR / "cumulative_reuse.png", dpi=300, bbox_inches="tight")
     plt.close()
     print("Saved cumulative_reuse.png")
 
@@ -215,7 +217,7 @@ def plot_mcf(delays, created, lab_type="different"):
     ax.set_xlim(0, 15)
 
     fig.tight_layout()
-    fig.savefig(FIGURES_DIR / f"mcf_{lab_type}_lab.png", dpi=150, bbox_inches="tight")
+    fig.savefig(FIGURES_DIR / f"mcf_{lab_type}_lab.png", dpi=300, bbox_inches="tight")
     plt.close()
     print(f"Saved mcf_{lab_type}_lab.png")
 
@@ -281,7 +283,7 @@ def plot_reuse_type(reuse):
     ax.spines["right"].set_visible(False)
 
     fig.tight_layout()
-    fig.savefig(FIGURES_DIR / "reuse_type.png", dpi=150, bbox_inches="tight")
+    fig.savefig(FIGURES_DIR / "reuse_type.png", dpi=300, bbox_inches="tight")
     plt.close()
     print("Saved reuse_type.png")
 
@@ -313,7 +315,7 @@ def plot_top_datasets(reuse, datasets):
     ax.spines["right"].set_visible(False)
 
     fig.tight_layout()
-    fig.savefig(FIGURES_DIR / "top_datasets.png", dpi=150, bbox_inches="tight")
+    fig.savefig(FIGURES_DIR / "top_datasets.png", dpi=300, bbox_inches="tight")
     plt.close()
     print("Saved top_datasets.png")
 
@@ -419,7 +421,7 @@ def plot_mcf_modeled(delays, created):
     ax.spines["right"].set_visible(False)
 
     fig.tight_layout()
-    fig.savefig(FIGURES_DIR / "mcf_model.png", dpi=150, bbox_inches="tight")
+    fig.savefig(FIGURES_DIR / "mcf_model.png", dpi=300, bbox_inches="tight")
     plt.close()
     print("Saved mcf_model.png")
 
@@ -653,7 +655,7 @@ def run_andersen_gill(classifications, created, datasets):
     ax.grid(axis="x", alpha=0.2, which="both")
 
     fig.tight_layout()
-    fig.savefig(FIGURES_DIR / "andersen_gill_forest.png", dpi=150, bbox_inches="tight")
+    fig.savefig(FIGURES_DIR / "andersen_gill_forest.png", dpi=300, bbox_inches="tight")
     plt.close()
     print("Saved andersen_gill_forest.png")
 

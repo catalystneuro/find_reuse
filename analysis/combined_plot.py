@@ -20,7 +20,9 @@ from collections import Counter
 from datetime import datetime, timedelta
 from pathlib import Path
 
+import matplotlib
 import matplotlib.pyplot as plt
+matplotlib.rcParams["font.family"] = "Helvetica"
 import numpy as np
 from scipy.stats import chi2
 
@@ -212,6 +214,6 @@ def plot_combined(reuse, delays, created, output_path, archive_name="Archive",
 
     fig.tight_layout(rect=[0, 0, 1, 0.92])
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(output_path, dpi=150, bbox_inches="tight")
+    fig.savefig(output_path, dpi=300, bbox_inches="tight")
     plt.close(fig)
     print(f"Saved {output_path}")

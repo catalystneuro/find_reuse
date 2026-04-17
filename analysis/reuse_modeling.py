@@ -17,7 +17,9 @@ import json
 from datetime import datetime, timedelta
 from pathlib import Path
 
+import matplotlib
 import matplotlib.pyplot as plt
+matplotlib.rcParams["font.family"] = "Helvetica"
 import numpy as np
 from scipy.optimize import curve_fit
 from scipy.stats import chi2
@@ -440,6 +442,6 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
     fig.suptitle(f"{archive_name} Reuse Modeling and Projections",
                  fontsize=15, fontweight="bold", y=1.0)
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(output_path, dpi=150, bbox_inches="tight")
+    fig.savefig(output_path, dpi=300, bbox_inches="tight")
     plt.close()
     print(f"Saved {output_path}")
