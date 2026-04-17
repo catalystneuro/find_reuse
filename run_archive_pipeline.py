@@ -133,6 +133,7 @@ def step_direct_refs(adapter):
     run(
         ["python3", "find_reuse.py", "--discover",
          "--archives", adapter.name, "--deduplicate",
+         "--max-results", "9999",
          "-o", str(output_path), "-v"],
         f"Direct reference discovery for {adapter.name}",
     )
