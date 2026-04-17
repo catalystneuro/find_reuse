@@ -255,7 +255,7 @@ def plot_reuse_type(reuse):
         print("No reuse types available, skipping")
         return
 
-    fig, ax = plt.subplots(figsize=(6, 3.6))
+    fig, ax = plt.subplots(figsize=(5.4, 3.2))
     label_map = {
         "TOOL_DEMO": "Tool demo",
         "NOVEL_ANALYSIS": "Novel analysis",
