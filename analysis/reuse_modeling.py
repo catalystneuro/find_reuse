@@ -274,15 +274,18 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
             except Exception:
                 pass
 
+            n_current = c_fit_data[-1]
+
             def richards_growth(t, K, r, t0, nu):
                 return K / (1 + nu * np.exp(-r * (t - t0))) ** (1 / nu)
 
+            # Constrain K >= current count so the fit passes through today's value
             try:
                 popt_rg, _ = curve_fit(richards_growth, t_fit_data, c_fit_data,
-                                       p0=[c_fit_data[-1] * 1.5, 0.5, t_fit_data[-1] / 2, 1],
+                                       p0=[n_current * 1.5, 0.5, t_fit_data[-1] / 2, 1],
                                        maxfev=10000,
-                                       bounds=([c_fit_data[-1] * 0.5, 0.01, 0, 0.1],
-                                               [c_fit_data[-1] * 5, 5, 50, 20]))
+                                       bounds=([n_current, 0.01, 0, 0.1],
+                                               [n_current * 5, 5, 50, 20]))
                 pred = richards_growth(t_fit_data, *popt_rg)
                 bic_rg = len(t_fit_data) * np.log(np.mean((c_fit_data - pred)**2)) + 4 * np.log(len(t_fit_data))
                 fit_models["richards"] = {"params": popt_rg, "bic": bic_rg, "func": richards_growth,
