@@ -112,7 +112,7 @@ def fit_mcf(t_years, mcf_vals, model="auto"):
 
 def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive",
                    analysis_cutoff=None, project_years=5, growth_model="auto",
-                   split_labs=True, mcf_xlim=None):
+                   split_labs=True, mcf_xlim=None, show_k_lines=True):
     """Generate 2x2 modeling figure for any archive.
 
     Panels:
@@ -192,8 +192,9 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
             if model_bg:
                 K_bg = params_bg[0]
                 ax.plot(t_fit_bg, mcf_fit_bg, "--", color=bg_color, linewidth=1.5, alpha=0.7)
-                ax.axhline(K_bg, color=bg_color, linestyle=":", linewidth=0.8, alpha=0.4)
-                ax.text(0.3, K_bg, f" K={K_bg:.1f}", fontsize=7, color=bg_color, va="bottom", alpha=0.7)
+                if show_k_lines:
+                    ax.axhline(K_bg, color=bg_color, linestyle=":", linewidth=0.8, alpha=0.4)
+                    ax.text(0.3, K_bg, f" K={K_bg:.1f}", fontsize=7, color=bg_color, va="bottom", alpha=0.7)
 
     for label, delay_list, color in mcf_series:
         if not delay_list:
@@ -243,8 +244,10 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
                 K, r, t0, nu = params
                 fit_label = f"Richards (K={K:.1f})"
             ax.plot(t_fit, mcf_fit, "--", color=color, linewidth=2, label=fit_label)
-            ax.axhline(K, color=color, linestyle=":", linewidth=0.8, alpha=0.5)
-            ax.text(0.3, K, f" K={K:.1f}", fontsize=7, color=color, va="bottom", alpha=0.8)
+            if show_k_lines:
+                ax.axhline(K, color=color, linestyle=":", linewidth=0.8, alpha=0.5)
+            if show_k_lines:
+                ax.text(0.3, K, f" K={K:.1f}", fontsize=7, color=color, va="bottom", alpha=0.8)
             fit_results[label] = {"model": model_name, "params": params,
                                   "func": sat_exp if model_name == "saturating" else richards}
 
@@ -527,48 +530,39 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
         ax.axvline(now, color="gray", linestyle=":", alpha=0.5)
 
         # Saturation lines: numerically compute the actual asymptote
-        # by evaluating the convolution far into the future
-        def _compute_saturation(mcf_func, mcf_params):
-            """Sum MCF(age) over all datasets at t=infinity (use 100 years)."""
-            far_future = now + timedelta(days=100 * 365)
-            total = 0
-            # Use growth model for total dataset count
-            if growth_func is not None:
-                t_far = (far_future - t0_date).days / 365.25
-                try:
-                    n_ds_max = int(growth_func(t_far, *growth_params))
-                except Exception:
-                    n_ds_max = len(creation_dates)
-            else:
-                n_ds_max = len(creation_dates)
-            for c_date in creation_dates:
-                age = (far_future - c_date).days / 365.25
-                if age > 0:
-                    total += mcf_func(age, *mcf_params)
-            return int(total)
+        if show_k_lines:
+            def _compute_saturation(mcf_func, mcf_params):
+                """Sum MCF(age) over all datasets at t=infinity (use 100 years)."""
+                far_future = now + timedelta(days=100 * 365)
+                total = 0
+                for c_date in creation_dates:
+                    age = (far_future - c_date).days / 365.25
+                    if age > 0:
+                        total += mcf_func(age, *mcf_params)
+                return int(total)
 
-        # Combined saturation
-        if "All labs" in fit_results:
-            fr = fit_results["All labs"]
-            sat_combined = _compute_saturation(fr["func"], fr["params"])
-            ax.axhline(sat_combined, color="black", linestyle=":", linewidth=0.8, alpha=0.5)
-            ax.text(ax.get_xlim()[1], sat_combined, f" {sat_combined}", fontsize=7,
-                    va="bottom", ha="right", color="black", alpha=0.7)
+            # Combined saturation
+            if "All labs" in fit_results:
+                fr = fit_results["All labs"]
+                sat_combined = _compute_saturation(fr["func"], fr["params"])
+                ax.axhline(sat_combined, color="black", linestyle=":", linewidth=0.8, alpha=0.5)
+                ax.text(ax.get_xlim()[1], sat_combined, f" {sat_combined}", fontsize=7,
+                        va="bottom", ha="right", color="black", alpha=0.7)
 
-        # Same/diff lab saturation
-        if not split_labs and diff_delays and same_delays:
-            for bg_label, bg_color, bg_delays_m in [
-                ("Different lab", "#2E7D32", diff_delays),
-                ("Same lab", "#7B1FA2", same_delays),
-            ]:
-                t_bg, mcf_bg = compute_mcf(bg_delays_m, obs_months)
-                model_bg, params_bg, _, _ = fit_mcf(t_bg / 12, mcf_bg, model="auto")
-                if model_bg:
-                    func_bg = sat_exp if model_bg == "saturating" else richards
-                    sat_bg = _compute_saturation(func_bg, params_bg)
-                    ax.axhline(sat_bg, color=bg_color, linestyle=":", linewidth=0.8, alpha=0.5)
-                    ax.text(ax.get_xlim()[1], sat_bg, f" {sat_bg}", fontsize=7,
-                            va="bottom", ha="right", color=bg_color, alpha=0.7)
+            # Same/diff lab saturation
+            if not split_labs and diff_delays and same_delays:
+                for bg_label, bg_color, bg_delays_m in [
+                    ("Different lab", "#2E7D32", diff_delays),
+                    ("Same lab", "#7B1FA2", same_delays),
+                ]:
+                    t_bg, mcf_bg = compute_mcf(bg_delays_m, obs_months)
+                    model_bg, params_bg, _, _ = fit_mcf(t_bg / 12, mcf_bg, model="auto")
+                    if model_bg:
+                        func_bg = sat_exp if model_bg == "saturating" else richards
+                        sat_bg = _compute_saturation(func_bg, params_bg)
+                        ax.axhline(sat_bg, color=bg_color, linestyle=":", linewidth=0.8, alpha=0.5)
+                        ax.text(ax.get_xlim()[1], sat_bg, f" {sat_bg}", fontsize=7,
+                                va="bottom", ha="right", color=bg_color, alpha=0.7)
 
         ax.set_xlabel("Date")
         ax.set_ylabel(f"Est. cumulative {archive_name} reuse papers")
