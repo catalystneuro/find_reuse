@@ -78,14 +78,26 @@ def save_classification_cache(doi: str, dandiset_id: str, result: dict):
 
 
 def extract_contexts_for_dataset(text: str, dandiset_id: str) -> list[dict]:
-    """Extract context excerpts around mentions of a specific dandiset in paper text.
+    """Extract context excerpts around mentions of a specific dataset in paper text.
 
-    Returns list of context excerpt dicts matching the citation classification schema.
+    Works for any archive by searching for the dataset ID directly in text,
+    in addition to archive-specific patterns.
     """
+    # Try archive-specific patterns first (DANDI, OpenNeuro, etc.)
     mentions = find_dandi_mentions_with_positions(text)
-
-    # Filter to mentions of this specific dandiset
     ds_mentions = [m for m in mentions if m["id"] == dandiset_id]
+
+    # Also search for the dataset ID as a literal string (works for any archive)
+    if not ds_mentions:
+        import re
+        for match in re.finditer(re.escape(dandiset_id), text, re.IGNORECASE):
+            ds_mentions.append({
+                "id": dandiset_id,
+                "pattern_type": "literal",
+                "matched_string": match.group(0),
+                "start": match.start(),
+                "end": match.end(),
+            })
 
     if not ds_mentions:
         return []
