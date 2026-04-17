@@ -144,7 +144,7 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
         mcf_series = [("Different lab", diff_delays, "#2E7D32"),
                       ("Same lab", same_delays, "#7B1FA2")]
     else:
-        mcf_series = [("All labs", all_delay_months, "#1565c0")]
+        mcf_series = [("All labs", all_delay_months, "#000000")]
 
     fig, axes = plt.subplots(2, 2, figsize=(12, 10))
 
@@ -176,7 +176,8 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
     ax.set_xlabel("Years after dataset creation")
     ax.set_ylabel("Expected reuse papers per dataset")
     ax.set_title("A. MCF: Model Fits", fontweight="bold")
-    ax.legend(fontsize=9)
+    if split_labs:
+        ax.legend(fontsize=9)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
 
@@ -187,7 +188,7 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
         rate_series = [("Different lab", diff_delays, "#2E7D32", "s"),
                        ("Same lab", same_delays, "#7B1FA2", "D")]
     else:
-        rate_series = [("All labs", all_delay_months, "#1565c0", "o")]
+        rate_series = [("All labs", all_delay_months, "#000000", "o")]
     for label, delay_list, color, marker in rate_series:
         if not delay_list:
             continue
@@ -221,7 +222,8 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
     ax.set_xlabel("Years after dataset creation")
     ax.set_ylabel("Reuse rate (events/dataset/yr)")
     ax.set_title("B. Reuse Rate", fontweight="bold")
-    ax.legend(fontsize=9)
+    if split_labs:
+        ax.legend(fontsize=9)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
 
@@ -335,7 +337,7 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
         if split_labs:
             proj_series = [("Different lab", "#2E7D32", False), ("Same lab", "#7B1FA2", True)]
         else:
-            proj_series = [("All labs", "#1565c0", None)]
+            proj_series = [("All labs", "#000000", None)]
         for label, color, is_same in proj_series:
             if label not in fit_results:
                 continue
