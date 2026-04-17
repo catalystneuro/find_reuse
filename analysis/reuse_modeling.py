@@ -404,7 +404,7 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
                 growth_func = fm["func"]
                 growth_params = fm["params"]
 
-                ax.axvline(creation_dates[-1], color="gray", linestyle=":", alpha=0.5)
+                ax.axvline(analysis_cutoff, color="gray", linestyle=":", alpha=0.5)
                 ax.text(creation_dates[-1], cumulative[-1] * 0.8,
                         f" {len(creation_dates)} today", fontsize=9, color=growth_color)
 
