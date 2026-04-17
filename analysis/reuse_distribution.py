@@ -121,19 +121,15 @@ def plot_reuse_distribution(reuse, created, output_path, archive_name="Archive",
             ax.text(0.95, 0.95, f"med={median:.0f}\nmean={mean:.1f}\n{pct_zero:.0f}% zero",
                     transform=ax.transAxes, ha="right", va="top", fontsize=7)
 
-        # Pie chart inset
+        # Pie chart inset (only if there are incomplete datasets)
         n_complete = len(counts_c_vals)
         n_incomplete = len(counts_i_vals)
-        inset = ax.inset_axes([0.42, 0.40, 0.22, 0.38])
         if n_incomplete > 0:
+            inset = ax.inset_axes([0.42, 0.40, 0.22, 0.38])
             inset.pie([n_complete, n_incomplete], colors=["black", "#BBBBBB"],
                       startangle=90, counterclock=False)
             inset.text(0, -1.6, f"{n_complete} complete", fontsize=7, ha="center", color="black")
             inset.text(0, 1.6, f"{n_incomplete} incomplete", fontsize=7, ha="center", color="#888")
-        else:
-            inset.pie([1], colors=["black"], startangle=90)
-            inset.text(0, -1.6, f"{n_complete} complete", fontsize=7, ha="center", color="black")
-            inset.text(0, 1.6, "0 incomplete", fontsize=7, ha="center", color="#888")
 
         # On the primary window panel (first), overlay NB fit
         if idx == 0 and len(counts_c_vals) > 5:
