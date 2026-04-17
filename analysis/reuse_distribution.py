@@ -19,6 +19,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy import stats
 
 
 def _count_reuse_per_dataset(reuse, created, cutoff, window_years=None):
@@ -134,6 +135,18 @@ def plot_reuse_distribution(reuse, created, output_path, archive_name="Archive",
             inset.text(0, -1.6, f"{n_complete} complete", fontsize=7, ha="center", color="black")
             inset.text(0, 1.6, "0 incomplete", fontsize=7, ha="center", color="#888")
 
+        # On the primary window panel (first), overlay NB fit
+        if idx == 0 and len(counts_c_vals) > 5:
+            c_arr = np.array(counts_c_vals)
+            if c_arr.var() > c_arr.mean() > 0:
+                r_fit = c_arr.mean()**2 / (c_arr.var() - c_arr.mean())
+                p_fit = c_arr.mean() / c_arr.var()
+                x_fit = np.arange(0, max_count + 1)
+                y_fit = len(counts_c_vals) * stats.nbinom.pmf(x_fit, r_fit, p_fit)
+                ax.plot(x_fit, y_fit, "--", color="#E53935", alpha=0.5,
+                        linewidth=1.5, label=f"NB fit (r={r_fit:.2f})", zorder=5)
+                ax.legend(fontsize=7, frameon=False)
+
         # Annotate top datasets on last panel
         if idx == n_panels - 1 and top_n_annotate > 0:
             for did, n in top_datasets:
@@ -147,3 +160,74 @@ def plot_reuse_distribution(reuse, created, output_path, archive_name="Archive",
     fig.savefig(output_path, dpi=300, bbox_inches="tight")
     plt.close()
     print(f"Saved {output_path}")
+
+    # Fit negative binomial to the primary window (first non-None) and print stats
+    primary_window = windows[0]
+    complete, incomplete = _count_reuse_per_dataset(reuse, created, analysis_cutoff, primary_window)
+    counts_arr = np.array([n for _, n in complete])
+
+    if len(counts_arr) > 5 and counts_arr.var() > counts_arr.mean() > 0:
+        n_obs = len(counts_arr)
+        mean = counts_arr.mean()
+        var = counts_arr.var()
+        n_zeros = (counts_arr == 0).sum()
+
+        # Negative binomial fit (method of moments)
+        r_nb = mean**2 / (var - mean)
+        p_nb = mean / var
+
+        # Cameron-Trivedi dispersion test
+        aux = ((counts_arr - mean)**2 - counts_arr) / mean
+        alpha_hat = aux.mean() / mean
+        t_stat = alpha_hat / (aux.std() / np.sqrt(n_obs) / mean)
+
+        # Log-likelihoods and BIC
+        ll_poisson = stats.poisson.logpmf(counts_arr, mean).sum()
+        ll_nb = stats.nbinom.logpmf(counts_arr, r_nb, p_nb).sum()
+        bic_poisson = -2 * ll_poisson + 1 * np.log(n_obs)
+        bic_nb = -2 * ll_nb + 2 * np.log(n_obs)
+
+        expected_zeros_poisson = n_obs * stats.poisson.pmf(0, mean)
+        expected_zeros_nb = n_obs * stats.nbinom.pmf(0, r_nb, p_nb)
+
+        # Save stats
+        dist_stats = {
+            "archive": archive_name,
+            "window_years": primary_window,
+            "n_datasets_complete": n_obs,
+            "n_datasets_incomplete": len(incomplete),
+            "mean": round(mean, 2),
+            "variance": round(var, 2),
+            "variance_mean_ratio": round(var / mean, 1),
+            "n_zeros": int(n_zeros),
+            "pct_zero": round(100 * n_zeros / n_obs, 1),
+            "nb_r": round(r_nb, 3),
+            "nb_p": round(p_nb, 3),
+            "nb_expected_zeros": round(expected_zeros_nb, 0),
+            "poisson_expected_zeros": round(expected_zeros_poisson, 0),
+            "dispersion_test_alpha": round(alpha_hat, 3),
+            "dispersion_test_t": round(t_stat, 2),
+            "dispersion_test_significant": bool(t_stat > 1.96),
+            "ll_poisson": round(ll_poisson, 1),
+            "ll_nb": round(ll_nb, 1),
+            "bic_poisson": round(bic_poisson, 1),
+            "bic_nb": round(bic_nb, 1),
+            "preferred_model": "negative_binomial" if bic_nb < bic_poisson else "poisson",
+        }
+
+        import json
+        stats_path = Path(output_path).parent / "reuse_distribution_stats.json"
+        with open(stats_path, "w") as f:
+            json.dump(dist_stats, f, indent=2)
+
+        print(f"\n{'='*60}")
+        print(f"  {archive_name} Reuse Distribution Stats ({primary_window}-year window)")
+        print(f"{'='*60}")
+        print(f"  Datasets: {n_obs} complete, {len(incomplete)} incomplete")
+        print(f"  Mean: {mean:.2f}, Variance: {var:.2f} (ratio: {var/mean:.1f})")
+        print(f"  Zeros: {n_zeros}/{n_obs} ({100*n_zeros/n_obs:.0f}%)")
+        print(f"  NB fit: r={r_nb:.3f}, p={p_nb:.3f}")
+        print(f"  NB expected zeros: {expected_zeros_nb:.0f} (Poisson: {expected_zeros_poisson:.0f})")
+        print(f"  Dispersion test: alpha={alpha_hat:.3f}, t={t_stat:.2f} ({'*' if t_stat > 1.96 else 'ns'})")
+        print(f"  BIC: Poisson={bic_poisson:.0f}, NB={bic_nb:.0f} -> {dist_stats['preferred_model']}")
+        print(f"  Saved {stats_path}")
