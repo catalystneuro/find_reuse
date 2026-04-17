@@ -74,6 +74,7 @@ def compute_delays(reuse_entries, created):
         delay_months = (pub - created[did]).days / 30.44
         delays.append({
             "dandiset_id": did,
+            "citing_doi": c.get("citing_doi", ""),
             "pub_date": pub,
             "created": created[did],
             "delay_months": delay_months,

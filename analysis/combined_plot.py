@@ -141,7 +141,7 @@ def plot_combined(reuse, delays, created, output_path, archive_name="Archive",
     # === Panel C: Cumulative Reuse (stacked area by source archive) ===
     ax = fig.add_subplot(gs[1, 0])
 
-    # Build source archive lookup from reuse entries
+    # Build per-entry source archive lookup from reuse entries
     def _archive_cat(sa):
         sa = normalize_archive(sa or "unclear")
         if sa == archive_name:
@@ -151,17 +151,18 @@ def plot_combined(reuse, delays, created, output_path, archive_name="Archive",
         else:
             return "other"
 
-    # Map (dandiset_id, same_lab, pub_date_str) -> archive category
+    # Map (citing_doi, dandiset_id) -> archive category
     reuse_archive_map = {}
     for c in reuse:
         sa = c.get("source_archive", "unclear")
-        did = c.get("dandiset_id", "")
-        reuse_archive_map[did] = _archive_cat(sa)  # last one wins per dataset
+        key = (c.get("citing_doi", ""), c.get("dandiset_id", ""))
+        reuse_archive_map[key] = _archive_cat(sa)
 
     # Assign each delay to an archive category
     delay_cats = []
     for d in delays:
-        cat = reuse_archive_map.get(d["dandiset_id"], "unclear")
+        key = (d.get("citing_doi", ""), d.get("dandiset_id", ""))
+        cat = reuse_archive_map.get(key, "unclear")
         delay_cats.append(cat)
 
     # Sort by date and build cumulative counts by category
