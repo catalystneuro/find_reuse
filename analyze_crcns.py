@@ -661,7 +661,7 @@ def main():
     from analysis.reuse_modeling import plot_model_2x2
     plot_model_2x2(delays, created, datasets, FIGURES_DIR / "reuse_rate_model.png",
                    archive_name="CRCNS", analysis_cutoff=ANALYSIS_CUTOFF, split_labs=False,
-                   project_years=5)
+                   project_years=6)
 
     # 6-panel combined figures (shared method)
     from analysis.combined_plot import plot_combined
