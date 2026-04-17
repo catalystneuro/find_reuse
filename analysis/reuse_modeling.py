@@ -171,7 +171,7 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
         ]:
             t_bg, mcf_bg = compute_mcf(bg_delays, obs_months)
             t_bg_yr = t_bg / 12
-            ax.step(t_bg_yr, mcf_bg, where="post", color=bg_color, linewidth=1.2, alpha=0.5, label=bg_label)
+            ax.step(t_bg_yr, mcf_bg, where="post", color=bg_color, linewidth=1.5, alpha=0.7, label=bg_label)
 
             # Bootstrap CI
             boot_curves_bg = []
@@ -191,7 +191,7 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
             model_bg, params_bg, t_fit_bg, mcf_fit_bg = fit_mcf(t_bg_yr, mcf_bg, model="auto")
             if model_bg:
                 K_bg = params_bg[0]
-                ax.plot(t_fit_bg, mcf_fit_bg, "--", color=bg_color, linewidth=1.2, alpha=0.5)
+                ax.plot(t_fit_bg, mcf_fit_bg, "--", color=bg_color, linewidth=1.5, alpha=0.7)
                 ax.axhline(K_bg, color=bg_color, linestyle=":", linewidth=0.8, alpha=0.4)
                 ax.text(0.3, K_bg, f" K={K_bg:.1f}", fontsize=7, color=bg_color, va="bottom", alpha=0.7)
 
@@ -250,7 +250,7 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
 
     ax.set_ylabel("Expected reuse papers\nper dataset")
     ax.set_title("A. MCF: Model Fits", fontweight="bold")
-    ax.legend(fontsize=9)
+    ax.legend(fontsize=9, frameon=False)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.tick_params(labelbottom=False)
@@ -313,7 +313,7 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
     ax.set_ylabel("Reuse rate (events/dataset/yr)")
     ax.set_title("B. Reuse Rate", fontweight="bold")
     if split_labs:
-        ax.legend(fontsize=9)
+        ax.legend(fontsize=9, frameon=False)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
 
@@ -415,7 +415,7 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
                         ax.axvline(dandi_start, color="gray", linestyle=":", alpha=0.7)
                         ax.text(dandi_start, cumulative[-1] * 0.4, " DANDI\n launched",
                                 fontsize=8, color="gray", ha="left")
-                ax.legend(fontsize=9)
+                ax.legend(fontsize=9, frameon=False)
             else:
                 growth_func = None
                 growth_params = None
@@ -436,13 +436,43 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
         t0_date = creation_dates[0]
         future_end = now + timedelta(days=project_years * 365.25)
 
-        # When combined, show same/diff lab observed lines as background
-        if not split_labs:
-            for bg_label, bg_color, bg_same in [("Different lab", "#2E7D32", False), ("Same lab", "#7B1FA2", True)]:
+        # When combined, show same/diff lab observed + projected lines
+        if not split_labs and diff_delays and same_delays:
+            for bg_label, bg_color, bg_same, bg_delays_m in [
+                ("Different lab", "#2E7D32", False, diff_delays),
+                ("Same lab", "#7B1FA2", True, same_delays),
+            ]:
+                # Observed
                 bg_dates = sorted(d["pub_date"] for d in delays if d["same_lab"] == bg_same)
                 if bg_dates:
                     ax.plot(bg_dates, range(1, len(bg_dates) + 1),
-                            color=bg_color, linewidth=1.2, alpha=0.5, label=f"{bg_label} ({len(bg_dates)})")
+                            color=bg_color, linewidth=1.5, alpha=0.7, label=f"{bg_label} ({len(bg_dates)})")
+
+                # Projected
+                t_bg, mcf_bg = compute_mcf(bg_delays_m, obs_months)
+                model_bg, params_bg, _, _ = fit_mcf(t_bg / 12, mcf_bg, model="auto")
+                if model_bg and growth_func is not None:
+                    func_bg = sat_exp if model_bg == "saturating" else richards
+                    future_dates_bg = [now + timedelta(days=d) for d in
+                                       range(0, int((future_end - now).days), 30)]
+                    proj_bg = []
+                    for eval_date in future_dates_bg:
+                        total_bg = 0
+                        t_eval_yr = (eval_date - t0_date).days / 365.25
+                        n_ds = int(growth_func(t_eval_yr, *growth_params)) if growth_func else len(creation_dates)
+                        for c_date in creation_dates:
+                            age_yr = (eval_date - c_date).days / 365.25
+                            if age_yr > 0:
+                                total_bg += func_bg(age_yr, *params_bg)
+                        for j in range(len(creation_dates), n_ds):
+                            frac = (j - len(creation_dates)) / max(n_ds - len(creation_dates), 1)
+                            c_date = now + timedelta(days=frac * (eval_date - now).days)
+                            age_yr = (eval_date - c_date).days / 365.25
+                            if age_yr > 0:
+                                total_bg += func_bg(age_yr, *params_bg)
+                        proj_bg.append(total_bg)
+                    ax.plot(future_dates_bg, proj_bg, "--", color=bg_color, linewidth=1.5, alpha=0.7,
+                            label=f"Proj. (~{int(proj_bg[-1])})")
 
         if split_labs:
             proj_series = [("Different lab", "#2E7D32", False), ("Same lab", "#7B1FA2", True)]
@@ -497,7 +527,7 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
         ax.set_xlabel("Date")
         ax.set_ylabel(f"Est. cumulative {archive_name} reuse papers")
         ax.set_title("D. Projected Reuse", fontweight="bold")
-        ax.legend(fontsize=8)
+        ax.legend(fontsize=8, frameon=False)
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
 
