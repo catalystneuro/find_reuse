@@ -146,13 +146,14 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
     else:
         mcf_series = [("All labs", all_delay_months, "#000000")]
 
-    fig, axes = plt.subplots(2, 2, figsize=(8.6, 7.2))
+    fig = plt.figure(figsize=(8.6, 7.2))
     # Layout: A (top-left) + B (bottom-left) share x-axis
     #          C (top-right) + D (bottom-right) share x-axis
-    ax_a = axes[0, 0]
-    ax_b = axes[1, 0]
-    ax_c = axes[0, 1]
-    ax_d = axes[1, 1]
+    gs = fig.add_gridspec(2, 2, hspace=0.08, wspace=0.35)
+    ax_a = fig.add_subplot(gs[0, 0])
+    ax_b = fig.add_subplot(gs[1, 0], sharex=ax_a)
+    ax_c = fig.add_subplot(gs[0, 1])
+    ax_d = fig.add_subplot(gs[1, 1], sharex=ax_c)
 
     # === Panel A: MCF Model Fits ===
     ax = ax_a
@@ -409,8 +410,7 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
         ax.spines["right"].set_visible(False)
 
     fig.suptitle(f"{archive_name} Reuse Modeling and Projections",
-                 fontsize=15, fontweight="bold", y=0.98)
-    fig.tight_layout(rect=[0, 0, 1, 0.95])
+                 fontsize=15, fontweight="bold", y=1.0)
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output_path, dpi=150, bbox_inches="tight")
     plt.close()
