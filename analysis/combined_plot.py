@@ -83,12 +83,8 @@ def plot_combined(reuse, delays, created, output_path, archive_name="Archive",
     else:
         lab_label = "All Labs"
 
-    delays_cutoff = [d for d in delays if d["pub_date"] <= analysis_cutoff]
-    obs_months = {did: (analysis_cutoff - c).days / 30.44
-                  for did, c in created.items() if (analysis_cutoff - c).days > 0}
-
-    fig = plt.figure(figsize=(11.5, 13))
-    gs = fig.add_gridspec(3, 2, height_ratios=[0.8, 1, 1],
+    fig = plt.figure(figsize=(11.5, 9))
+    gs = fig.add_gridspec(2, 2, height_ratios=[0.8, 1],
                           hspace=0.35, wspace=0.35)
 
     # === Panel A: Source Archives ===
@@ -96,8 +92,8 @@ def plot_combined(reuse, delays, created, output_path, archive_name="Archive",
     archives = Counter(normalize_archive(c.get("source_archive", "unclear") or "unclear") for c in reuse)
     top_archives = archives.most_common(8)
     names = [a for a, _ in top_archives]
-    counts = [n for _, n in top_archives]
-    ax.barh(range(len(names)), counts, color="#2196F3")
+    counts_a = [n for _, n in top_archives]
+    ax.barh(range(len(names)), counts_a, color="black")
     ax.set_yticks(range(len(names)))
     ax.set_yticklabels(names, fontsize=9)
     ax.set_xlabel("REUSE papers")
@@ -120,88 +116,85 @@ def plot_combined(reuse, delays, created, output_path, archive_name="Archive",
     ax.set_xlabel("REUSE papers")
     ax.invert_yaxis()
 
-    # === Panel C: Cumulative Reuse ===
+    # === Panel C: Cumulative Reuse (stacked area by source archive) ===
     ax = fig.add_subplot(gs[1, 0])
-    pub_dates = sorted(d["pub_date"] for d in delays)
-    if pub_dates:
-        ax.plot(pub_dates, range(1, len(pub_dates) + 1), color="#2E7D32", linewidth=2)
+
+    # Build source archive lookup from reuse entries
+    def _archive_cat(sa):
+        sa = normalize_archive(sa or "unclear")
+        if sa == archive_name:
+            return "archive"
+        elif sa == "unclear":
+            return "unclear"
+        else:
+            return "other"
+
+    # Map (dandiset_id, same_lab, pub_date_str) -> archive category
+    reuse_archive_map = {}
+    for c in reuse:
+        sa = c.get("source_archive", "unclear")
+        did = c.get("dandiset_id", "")
+        reuse_archive_map[did] = _archive_cat(sa)  # last one wins per dataset
+
+    # Assign each delay to an archive category
+    delay_cats = []
+    for d in delays:
+        cat = reuse_archive_map.get(d["dandiset_id"], "unclear")
+        delay_cats.append(cat)
+
+    # Sort by date and build cumulative counts by category
+    sorted_indices = sorted(range(len(delays)), key=lambda i: delays[i]["pub_date"])
+    sorted_dates = [delays[i]["pub_date"] for i in sorted_indices]
+    sorted_cats = [delay_cats[i] for i in sorted_indices]
+
+    if sorted_dates:
+        cum_archive = np.cumsum([1 if c == "archive" else 0 for c in sorted_cats])
+        cum_unclear = np.cumsum([1 if c == "unclear" else 0 for c in sorted_cats])
+        cum_other = np.cumsum([1 if c == "other" else 0 for c in sorted_cats])
+
+        ax.fill_between(sorted_dates, 0, cum_archive, alpha=0.7, color="#2196F3", label=archive_name)
+        ax.fill_between(sorted_dates, cum_archive, cum_archive + cum_unclear, alpha=0.7, color="#FF9800", label="Unclear")
+        ax.fill_between(sorted_dates, cum_archive + cum_unclear, cum_archive + cum_unclear + cum_other, alpha=0.7, color="#9E9E9E", label="Other")
+        ax.legend(fontsize=8, frameon=False)
     ax.set_xlabel("Date")
     ax.set_ylabel("Cumulative reuse papers")
 
-    # Gray shading for incomplete recent data
-    shade_start = analysis_cutoff
-    shade_end = pub_dates[-1] if pub_dates else analysis_cutoff
-    if shade_end > shade_start:
-        ax.axvspan(shade_start, shade_end, color="gray", alpha=0.1)
-
-    # === Panel D: Reuse by Year (stacked: diff + same lab) ===
+    # === Panel D: Reuse by Year (stacked by source archive) ===
     ax = fig.add_subplot(gs[1, 1])
-    years_diff = Counter()
-    years_same = Counter()
-    for d in delays:
+    years_arch = Counter()
+    years_unclear = Counter()
+    years_other = Counter()
+    for i, d in enumerate(delays):
         try:
             y = d["pub_date"].year
-            if 2005 <= y <= 2025:
-                if d["same_lab"] is True:
-                    years_same[y] += 1
+            if 2005 <= y <= 2026:
+                cat = delay_cats[i]
+                if cat == "archive":
+                    years_arch[y] += 1
+                elif cat == "unclear":
+                    years_unclear[y] += 1
                 else:
-                    years_diff[y] += 1
+                    years_other[y] += 1
         except (AttributeError, ValueError):
             pass
-    all_years = sorted(set(years_diff) | set(years_same))
+
+    all_years = sorted(set(years_arch) | set(years_unclear) | set(years_other))
     if all_years:
-        diff_vals = [years_diff.get(y, 0) for y in all_years]
-        same_vals = [years_same.get(y, 0) for y in all_years]
-        ax.bar(all_years, diff_vals, color="#2E7D32", alpha=0.8, label="Different lab")
-        ax.bar(all_years, same_vals, bottom=diff_vals, color="#7B1FA2", alpha=0.8, label="Same lab")
-        ax.legend(fontsize=8)
-        # Whole-number year ticks
+        arch_vals = [years_arch.get(y, 0) for y in all_years]
+        unclear_vals = [years_unclear.get(y, 0) for y in all_years]
+        other_vals = [years_other.get(y, 0) for y in all_years]
+        ax.bar(all_years, arch_vals, color="#2196F3", alpha=0.7, label=archive_name)
+        ax.bar(all_years, unclear_vals, bottom=arch_vals, color="#FF9800", alpha=0.7, label="Unclear")
+        bottom2 = [a + u for a, u in zip(arch_vals, unclear_vals)]
+        ax.bar(all_years, other_vals, bottom=bottom2, color="#9E9E9E", alpha=0.7, label="Other")
+        ax.legend(fontsize=8, frameon=False)
         ax.set_xticks([y for y in all_years if y % 2 == 0])
     ax.set_xlabel("Year")
     ax.set_ylabel("Reuse papers")
 
-    # === Panel E: MCF ===
-    ax = fig.add_subplot(gs[2, 0])
-    event_times = sorted(d["delay_months"] for d in delays_cutoff)
-    t_mcf = [0.0]
-    mcf = [0.0]
-    for et in event_times:
-        n_at_risk = sum(1 for obs in obs_months.values() if obs >= et)
-        if n_at_risk > 0:
-            t_mcf.append(et)
-            mcf.append(mcf[-1] + 1.0 / n_at_risk)
-
-    t_years = [t / 12 for t in t_mcf]
-    ax.step(t_years, mcf, where="post", color="#2E7D32", linewidth=2)
-    ax.set_xlabel("Years after dataset creation")
-    ax.set_ylabel("Expected reuse papers\nper dataset")
-
-    # === Panel F: Reuse Rate ===
-    ax = fig.add_subplot(gs[2, 1])
-    delay_years = [d["delay_months"] / 12 for d in delays_cutoff]
-    if delay_years:
-        max_yr = min(int(max(delay_years)) + 2, 20)
-        bins = np.arange(0, max_yr)
-        counts_per_bin = np.histogram(delay_years, bins=bins)[0]
-        at_risk = np.array([max(sum(1 for obs in obs_months.values() if obs >= yr * 12), 1)
-                            for yr in bins[:-1]])
-        rate = counts_per_bin / at_risk
-        centers = (bins[:-1] + bins[1:]) / 2
-
-        alpha_ci = 0.05
-        ci_lo = chi2.ppf(alpha_ci / 2, 2 * counts_per_bin) / (2 * at_risk)
-        ci_hi = chi2.ppf(1 - alpha_ci / 2, 2 * (counts_per_bin + 1)) / (2 * at_risk)
-        ci_lo = np.nan_to_num(ci_lo, 0)
-
-        ax.errorbar(centers, rate, yerr=[rate - ci_lo, ci_hi - rate],
-                    fmt="s", color="#2E7D32", markersize=5, capsize=3, linewidth=1.2)
-
-    ax.set_xlabel("Years after dataset creation")
-    ax.set_ylabel("Reuse rate\n(events/dataset/yr)")
-
     # Panel labels and despine
     all_axes = list(fig.axes)
-    for label, ax in zip("ABCDEF", all_axes):
+    for label, ax in zip("ABCD", all_axes):
         ax.text(-0.08, 1.08, label, transform=ax.transAxes,
                 fontsize=16, fontweight="bold", va="top")
         ax.spines["top"].set_visible(False)
@@ -209,10 +202,10 @@ def plot_combined(reuse, delays, created, output_path, archive_name="Archive",
 
     fig.suptitle(
         f"{archive_name} Data Reuse Analysis — {lab_label}",
-        fontsize=15, fontweight="bold", y=0.93,
+        fontsize=15, fontweight="bold", y=0.98,
     )
 
-    fig.tight_layout(rect=[0, 0, 1, 0.92])
+    fig.tight_layout(rect=[0, 0, 1, 0.95])
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output_path, dpi=300, bbox_inches="tight")
     plt.close(fig)
