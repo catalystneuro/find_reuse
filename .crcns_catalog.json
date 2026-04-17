@@ -1,0 +1,1912 @@
+[
+  {
+    "doi": "10.6080/k09w0cqp",
+    "code": "pfc-9",
+    "title": "Large-scale simultaneous recordings from medial prefrontal cortex and amygdala in sleeping and freely-behaving rats.",
+    "creators": [
+      "Pompili, Marco N.",
+      "Ralitsa Todorova",
+      "Boucly, C\u00e9line J.",
+      "Leroux, Eulalie M.",
+      "Wiener, Sidney I.",
+      "Zugaro, Micha\u00ebl"
+    ],
+    "year": 2025,
+    "description": "The data set contains large-scale simultaneous recordings from medial\nprefrontal cortex and amygdala in sleeping and freely-behaving rats. The data\nwere used to provide support for an alternative ('br"
+  },
+  {
+    "doi": "10.6080/k0rn35sv",
+    "code": "pvc-2",
+    "title": "Extracellular recording from cells in cat primary visual cortex",
+    "creators": [
+      "Dan, Yang",
+      "Felsen, Gidon",
+      "Touryan, Jon"
+    ],
+    "year": 2009,
+    "description": "These experiments were performed to measure the spatiotemporal receptive fields \n of cortical cells. The data were obtained with extra-cellular recordings from\n the primary visual cortex of anesthetiz"
+  },
+  {
+    "doi": "10.6080/k0cc0xmd",
+    "code": "pvc-4",
+    "title": "Single electrode recordings from primary visual cortex",
+    "creators": [
+      "David, Stephen V.",
+      "Vinje, William E.",
+      "Gallant, Jack L."
+    ],
+    "year": 2009,
+    "description": "This data consists of single electrode recordings from V1 in awake behaving\n macaque monkeys who fixated at a central point on the screen, while stimuli\n were presented to the cell's receptive field. "
+  },
+  {
+    "doi": "10.6080/k0qn64ng",
+    "code": "vim-1",
+    "title": "fMRI of human visual areas in response to natural images",
+    "creators": [
+      "Lescroart, Mark",
+      "Kay, Kendrick",
+      "Naselaris, Thomas",
+      "Prenger, Ryan",
+      "Oliver, Michael",
+      "Gallant, Jack"
+    ],
+    "year": 2011,
+    "description": "This data set contains BOLD fMRI responses in human subjects viewing natural\n images. Analysis of this data showed that it was possible to determine which\n of many images a human subject was looking a"
+  },
+  {
+    "doi": "10.6080/k0kw5cxr",
+    "code": "ac-1",
+    "title": "Auditory cortex and thalamic neuronal responses to various natural and synthetic sounds",
+    "creators": [
+      "Asari, Hiroki",
+      "Wehr, Michael",
+      "Machens, Christian K.",
+      "Zador, Anthony M."
+    ],
+    "year": 2009,
+    "description": "The data consists of electrophysiology data recorded from neuronal responses\n to various natural and synthetic sounds were recorded using whole-cell and\n cell-attached recording techniques in the prim"
+  },
+  {
+    "doi": "10.6080/k0g44n6r",
+    "code": "ac-2",
+    "title": "Whole cell recordings from neurons in the primary auditory cortex of rat in response to pure tones of different frequency and amplitude, along with recordings of nearby local field potential (LFP).",
+    "creators": [
+      "Deweese, Michael R.",
+      "Zador, Anthony M."
+    ],
+    "year": 2011,
+    "description": "The data consists of in vivo whole-cell patch clamp (voltage response) recordings\n from 40 neurons in the primary auditory cortex of rat in response to 25 ms long\n pure tones of different frequencies "
+  },
+  {
+    "doi": "10.6080/k0bg2kwb",
+    "code": "ia-1",
+    "title": "Recordings from grasshopper (Locusta Migratoria) auditory receptor cells.",
+    "creators": [
+      "Rokem, A..",
+      "Watzl, S.",
+      "Gollisch, T.",
+      "Stemmler, M.",
+      "Herz, A.V.M.",
+      "Samengo, I."
+    ],
+    "year": 2009,
+    "description": "This data contains recordings from the grasshopper (Locusta migratoria) auditory receptor cell."
+  },
+  {
+    "doi": "10.6080/k0z60kz9",
+    "code": "hc-2",
+    "title": "Multi-unit recordings from the rat hippocampus made during open field foraging.",
+    "creators": [
+      "Mizuseki, K.",
+      "Sirota, A.",
+      "Pastalkova, E.",
+      "Buzs\u00e1ki, G."
+    ],
+    "year": 2009,
+    "description": "The data set contains multichannel simultaneous recordings made from layer CA1 of the right dorsal\n hippocampus of three Long-Evans rats during open field tasks in which the animals chased randomly pl"
+  },
+  {
+    "doi": "10.6080/k0pn93h3",
+    "code": "ch-epfl-2009",
+    "title": "Quantitative Single-Neuron Modeling Competition for year 2009, developed by researchers at EPFL. Data from Wistar rat cortical neurons and rhesus monkey lateral geniculate nucleus and retinal ganglion cells.",
+    "creators": [
+      "Gerstner, Wulfram",
+      "Naud, Richard",
+      "Carandini, Matteo",
+      "Sincich, Lawrence C.",
+      "Horton, Jonathan C.",
+      "Adams, Daniel L.",
+      "Economides, John R."
+    ],
+    "year": 2009,
+    "description": "This data was used for the 2009 quantitative single-neuron modeling competition developed\n by researchers at EPFL. There are four challenges). Data for the first three challenges\n are from Wistar rat "
+  },
+  {
+    "doi": "10.6080/k0f769gp",
+    "code": "aa-1",
+    "title": "Single-unit recordings from two auditory areas in male zebra finches",
+    "creators": [
+      "Theunissen, Frederic E.",
+      "Hauber, ME",
+      "Woolley, Sarah M. N.",
+      "Gill, Patrick",
+      "Shaevitz, SS",
+      "Amin, Noopur",
+      "Hsu, A",
+      "Singh, NC",
+      "Grace, GA",
+      "Fremouw, Thane",
+      "Zhang, Junli",
+      "Cassey, P",
+      "Doupe, AJ",
+      "David, SV",
+      "Vinje, WE"
+    ],
+    "year": 2009,
+    "description": "Data consists of simultaneous single-unit recordings from two auditory areas in male zebra finches."
+  },
+  {
+    "doi": "10.6080/k05q4t1n",
+    "code": "lgn-1",
+    "title": "Spiking responses of LGN neurons in the mouse to drifting grating",
+    "creators": [
+      "Scholl, Benjamin",
+      "Tan, Andrew Y.Y.",
+      "Corey, Joe",
+      "Priebe, Nicholas"
+    ],
+    "year": 2013,
+    "description": "This data consists of spiking responses of LGN neurons in the mouse\n to drifting gratings of different orientations. Responses\n from 72 neurons included."
+  },
+  {
+    "doi": "10.6080/k0x63jtx",
+    "code": "mt-1",
+    "title": "Spiking activity in area MT of awake adult macaques in response to complex motion features.",
+    "creators": [
+      "Cui, Yuwei",
+      "Liu, Dave L.",
+      "Khawaja, Farhan A.",
+      "Pack, Chris C.",
+      "Butts, Danial A."
+    ],
+    "year": 2013,
+    "description": "The data set contains recordings of spiking response from 84 neurons\n in area MT of awake adult macaque monkeys in response to complex motion stimuli."
+  },
+  {
+    "doi": "10.6080/k0np22c8",
+    "code": "am-2",
+    "title": "Neural population spiking activity during singing: adult and longitudinal developmental recordings in the zebra finch",
+    "creators": [
+      "Crandall, Shane R.",
+      "Nick, Teresa A."
+    ],
+    "year": 2014,
+    "description": "This data set contains recordings from the zebra finch cortical song nucleus HVC during singing.\n Most animals had only one electrode, but some had two electrodes within HVC.\n These data have been use"
+  },
+  {
+    "doi": "10.6080/k0j1012k",
+    "code": "pvc-5",
+    "title": "Multi-electrode recordings of ongoing activity and responses to parametric stimuli in macaque V1.",
+    "creators": [
+      "Chu, Cheng",
+      "Chien, Ping",
+      "Hung, Chou"
+    ],
+    "year": 2014,
+    "description": "The data was recorded from primary visual cortex (V1) of the macaque monkey\n with 64 site multi-electrode arrays (8 shanks, 8 sites per shank). The data\n is comprised in two parts. One is a 15 minutes"
+  },
+  {
+    "doi": "10.6080/k0w66hpj",
+    "code": "pfc-1",
+    "title": "Spiking responses of neurons in rodent prefrontal cortex and auditory cortex during a novel stimulus selection task.",
+    "creators": [
+      "Rodgers, Chris C.",
+      "Deweese, Michael R."
+    ],
+    "year": 2014,
+    "description": "The data consists of in vivo extracellular recordings from 121\n neurons in the medial prefrontal cortex (mPFC) and 99 neurion in auditory cortex (A1)\n in rats while they were performing either of two "
+  },
+  {
+    "doi": "10.6080/k0rf5rzt",
+    "code": "ret-1",
+    "title": "Multi-electrode recordings from retinal ganglion cells",
+    "creators": [
+      "Zhang, Yi-Feng",
+      "Asari, Hiroki",
+      "Meister, Markus"
+    ],
+    "year": 2014,
+    "description": "Neuronal responses of retinal ganglion cells to various visual stimuli were recorded in\n the isolated retina from lab mice (Mus Musculus) using a 61-electrode array.\n Recordings from 16 retina prepara"
+  },
+  {
+    "doi": "10.6080/k0h12zxd",
+    "code": "pvc-6",
+    "title": "In vitro whole-cell patch clamp recordings from visual cortex neurons in the adult mouse.",
+    "creators": [
+      "Berg, Jim"
+    ],
+    "year": 2014,
+    "description": "The data sets consist of whole cell current clamp slice electrophysiology\n recordings made from single neurons from coronal sections of the visual\n cortex of adult male mice. The experiments were perf"
+  },
+  {
+    "doi": "10.6080/k0qj7f75",
+    "code": "hc-4",
+    "title": "Extracellular recordings from multi-site silicon probes used for clustering of neuron responses in rat hippocampal and entorhinal regions.",
+    "creators": [
+      "Mizuseki, K.",
+      "Sirota, A.",
+      "Pastalkova, E.",
+      "Diba, K.",
+      "Peyrache, A.",
+      "Buzs\u00e1ki, G."
+    ],
+    "year": 2014,
+    "description": "The data set contains additional data that is associated with sessions in the CRCNS.org hc-3 data set,\n but not included in that data set. Specifically, for a given electrode placement, this data set "
+  },
+  {
+    "doi": "10.6080/k0ks6phf",
+    "code": "hc-5",
+    "title": "Simultaneous extracellular recordings from left and right hippocampal areas CA1 and right entorhinal cortex from a rat performing a left / right alternation task and other behaviors.",
+    "creators": [
+      "Pastalkova, E.",
+      "Mizuseki, K.",
+      "Wang, Y..",
+      "Buzs\u00e1ki, G."
+    ],
+    "year": 2015,
+    "description": "The data set contains recordings made using a silicon probe from three areas from\n a single rat that was performing different behavioral tasks. The three regions\n recorded from are left and right hipp"
+  },
+  {
+    "doi": "10.6080/k0tb14tn",
+    "code": "ssc-2",
+    "title": "Volumetric calcium imaging data recorded during performance of a single whisker object localization task, sampling activity in the majority of the relevant superficial barrel cortex neurons (75 %, 12,000 neurons per mouse).",
+    "creators": [
+      "Peron, Simon",
+      "Freeman, Jeremy",
+      "Iyer, Vijay",
+      "Guo, Caiying",
+      "Svoboda, Karel"
+    ],
+    "year": 2015,
+    "description": "The dataset comprises calcium imaging data from vibrissal S1 in mice performing\n a pole localization task. Volumetric calcium imaging in mice\n expressing GCaMP6s and nuclear red fluorescent proteins w"
+  },
+  {
+    "doi": "10.6080/k0js9nc2",
+    "code": "vim-3",
+    "title": "fMRI responses of human visual cortex (v1, v2, v3) to natural image patches obtained from above and below the centre of gaze of an observer freely-navigating an outdoor environment.",
+    "creators": [
+      "Mannion, Damien J."
+    ],
+    "year": 2011,
+    "description": "The data set contains functional magnetic resonance imaging (fMRI) measurements of the\n magnitude of evoked activity in the visual areas V1, V2, and V3 in seven humans in response\n to image patches, d"
+  },
+  {
+    "doi": "10.6080/k01v5bwk",
+    "code": "pfc-2",
+    "title": "Simultaneous electrophysiological recordings of ensembles of isolated neurons in rat medial prefrontal cortex and intermediate CA1 area of the hippocampus during a working memory task.",
+    "creators": [
+      "Fujisawa, Shigeyoshi",
+      "Asohan Amarasingham",
+      "Harrison, Matthew T",
+      "Buzs\u00e1ki, Gy\u00f6rgy"
+    ],
+    "year": 2014,
+    "description": "This dataset of multi single neuron recording was acquired in rats performing\n a working memory task. Neuronal activity was monitored simultaneously in the PFC\n (64 channels) and the intermediate area"
+  },
+  {
+    "doi": "10.6080/k0ht2m77",
+    "code": "bst-1",
+    "title": "Activity of multiple neurons in the brain stem (Inferior colliculus and Pontine Nucleus) of anesthetized rats during white noise auditory stimulus",
+    "creators": [
+      "Nossenson, Nir",
+      "Magal, Ari",
+      "Messer, Hagit"
+    ],
+    "year": 2016,
+    "description": "This data set consists of 20 recordings of multiunit activity from the Pontine Nucleus\n and Inferior Colliculus of eight anesthetized rats using either TiN electrode with\n 8 tips or a twisted wire tet"
+  },
+  {
+    "doi": "10.6080/k0rb72jw",
+    "code": "",
+    "title": "Data and simulations related to: Robust neuronal dynamics in premotor cortex during motor planning. Li, Daie, Svoboda, Druckman, Nature 2016.",
+    "creators": [
+      "Li, Nuo",
+      "Kayvon Daie",
+      "Svoboda, Karel",
+      "Druckmann, Shaul"
+    ],
+    "year": 2016,
+    "description": "These experiments measure neuronal responses after transiently silencing parts of\n mouse premotor cortex (anterior lateral motor cortex, ALM). The data represent\n extracellular recordings from ALM neu"
+  },
+  {
+    "doi": "10.6080/k0mk69t5",
+    "code": "hc-7",
+    "title": "Temporal properties of mouse hippocampal CA3 area PV and CCK inhibitory neuron transmission measured by physiologically relevant action potential sequences.",
+    "creators": [
+      "Kohus, Zsolt",
+      "Guly\u00e1s, Attila I"
+    ],
+    "year": 2016,
+    "description": "The data set contains raw data and values of inhibitory transmission parameters\n (IPSC rise, decay, amplitude and short-term plasticity) between interneurons and\n their interneuron/pyramidal cell targ"
+  },
+  {
+    "doi": "10.6080/k07d2s2f",
+    "code": "ssc-3",
+    "title": "Spontaneous spiking activity of hundreds of neurons in mouse somatosensory cortex slice cultures recorded using a dense 512 electrode array.",
+    "creators": [
+      "Ito, Shinya",
+      "Fang-Chin Yeh",
+      "Timme, Nicholas M.",
+      "Hottowy, Pawel",
+      "Litke, Alan M.",
+      "Beggs, John M."
+    ],
+    "year": 2016,
+    "description": "These data contain a record of neuron spiking activity in mouse somatosensory\n cortex. The recordings were performed in organotypic slice cultures after\n 2 to 4 weeks in vitro. The recordings were per"
+  },
+  {
+    "doi": "10.6080/k0zw1hvd",
+    "code": "pfc-3",
+    "title": "Single-neuron spike train recordings from macaque prefrontal cortex during a visual working memory task before and after training.",
+    "creators": [
+      "Constantinidis, Christos",
+      "Qi, Xue-Lian",
+      "Meyer, Travis"
+    ],
+    "year": 2016,
+    "description": "This dataset contains the recordings from prefrontal cortex of four monkeys. It encompasses two\n tasks (spatial task and feature task) and both pre-training and post-training recordings.\n This dataset"
+  },
+  {
+    "doi": "10.6080/k02n506q",
+    "code": "fcx-1",
+    "title": "Multi-unit spiking activity recorded from rat frontal cortex (brain regions mPFC, OFC, ACC, and M2) during wake-sleep episode wherein at least 7 minutes of wake are followed by 20 minutes of sleep.",
+    "creators": [
+      "Watson, BO",
+      "Levenstein, D",
+      "Greene, JP",
+      "Gelinas, JN",
+      "Buzs\u00e1ki, G"
+    ],
+    "year": 2016,
+    "description": "Data was recorded using silicon probe electrodes in the frontal cortices of male Long\n Evans rats between 4-7 months of age. The design was to have no specific behavior, task\n or stimulus, rather the "
+  },
+  {
+    "doi": "10.6080/k0xw4gq1",
+    "code": "tes-1",
+    "title": "Recordings of electrical potentials in the in vivo human brain induced by transcranial electrical stimulation",
+    "creators": [
+      "Huang, Y.",
+      "Liu, A.",
+      "Lafon, B.",
+      "Friedman, D.",
+      "Dayan, M.",
+      "Wang, X.",
+      "Bikson, M.",
+      "Devinsky, O.",
+      "Parra, L."
+    ],
+    "year": 2016,
+    "description": "The data set contains the voltage magnitudes at intracranial electrodes induced\n by transcranial electrical stimulation (tES). It is derived from the in vivo electrocorticography\n (ECoG) recordings of"
+  },
+  {
+    "doi": "10.6080/k05d8ps8",
+    "code": "cai-3",
+    "title": "Simultaneous two-photon imaging and electrophysiological recordings from neurons in the mouse retina and primary visual cortex using OGB and GCamp6",
+    "creators": [
+      "Berens, P",
+      "Theis, L.",
+      "Froudarakis, E.",
+      "Reimer, J.",
+      "Ros\u00f3n, M. R.",
+      "Baden, T.",
+      "Euler, T.",
+      "Tolias, A.S.",
+      "Bethge, M."
+    ],
+    "year": 2016,
+    "description": "This dataset provides data from N=50 neurons measured simultaneously using two-photon\n calcium imaging and electrophysiology in the mouse retina and visual cortex using different\n recording techniques"
+  },
+  {
+    "doi": "10.6080/k00p0wxq",
+    "code": "hc-10",
+    "title": "Intracellular, in vitro somatic membrane potential recordings from whole cell patch clamped rodent hippocampal CA1 neurons.",
+    "creators": [
+      "Lee, Sang-Hun",
+      "Krook-Magnuson, Esther",
+      "Bezaire, Marianne",
+      "Soltesz, Ivan"
+    ],
+    "year": 2016,
+    "description": "This data set contains the raw data files of current injection sweeps (generated by AxoClamp,\n in ATF (text) format) from somatic injections of the experimental cells (mouse and rat under\n standard \u201cc"
+  },
+  {
+    "doi": "10.6080/k0vx0dft",
+    "code": "",
+    "title": "Extracellular recordings of dentate granule cells, mossy cells and CA3 neurons during spatial navigation and sleep in mice",
+    "creators": [
+      "Senzai, Yuta",
+      "Gyorgy Buzsaki"
+    ],
+    "year": 2016,
+    "description": "This data set is expected to be available sometime during early 2017."
+  },
+  {
+    "doi": "10.6080/k03f4mh2",
+    "code": "",
+    "title": "Data related to: A thalamocortical loop underlies selective persistent activity in frontal cortex Zengcai V. Guo, Hidehiko K. Inagaki, Kayvon Daie, Shaul Druckmann, Charles R. Gerfen &amp; Karel Svoboda Nature. 2017.",
+    "creators": [
+      "Zengcai V. Guo",
+      "Inagaki, Hidehiko K.",
+      "Kayvon Daie",
+      "Druckmann, Shaul",
+      "Gerfen, Charles R.",
+      "Svoboda, Karel"
+    ],
+    "year": 2016,
+    "description": "(This data is not yet available but is expected to be sometime during 2017)."
+  },
+  {
+    "doi": "10.6080/k0zc811b",
+    "code": "pfc-5",
+    "title": "64-channel human scalp EEG from 14 unilateral PFC patients and 20 healthy controls performing a lateralized visuospatial working memory task.",
+    "creators": [
+      "Johnson, Elizabeth L."
+    ],
+    "year": 2017,
+    "description": "Human scalp EEG collected using a 64 + 8 channel BioSemi ActiveTwo amplifier with Ag-AgCl pin-type active\n electrodes mounted on an elastic cap according to the extended 10-20 system (BioSemi, Amsterd"
+  },
+  {
+    "doi": "10.6080/k06q1vd5",
+    "code": "ieeg-1",
+    "title": "High frequency oscillations detected in the intracranial EEG of epilepsy patients during interictal sleep, patients\u2019 electrode location and outcome of epilepsy surgery",
+    "creators": [
+      "Fedele, T.",
+      "Burnos, S.",
+      "Boran, E.",
+      "Krayenb\u00fchl, N.",
+      "Hilfiker, P.",
+      "Grunwald, T.",
+      "Sarnthein, J."
+    ],
+    "year": 2017,
+    "description": "This data set contains samples of long-term invasive recordings (iEEG) from 20\n patients who subsequently underwent epilepsy surgery. Recordings were made using\n subdural strip and grid electrodes as "
+  },
+  {
+    "doi": "10.6080/k01v5c44",
+    "code": "hc-16",
+    "title": "Extracellular CA1 spike trains recorded from Fmr1-null and wild-type mice during free exploration in a variety of environments that include a small and a large box, a ring, and a circular open field that is either stationary or rotating.",
+    "creators": [
+      "Sparks, F.T.",
+      "Talbot, Z.N.",
+      "Dvorak, D.",
+      "Fenton, A.A."
+    ],
+    "year": 2018,
+    "description": "The data are extracellular single unit action potential, spike trains recorded from the hippocampus CA1\n region of freely-behaving wild-type (WT) and Fmr1-null mice. The recordings were made using tet"
+  },
+  {
+    "doi": "10.6080/k0kh0kh5",
+    "code": "pfc-6",
+    "title": "Activity of neurons in rat medial prefrontal cortex during learning and sleep.",
+    "creators": [
+      "Peyrache, Adrien",
+      "Khamassi, Mehdi",
+      "Benchenane, Karim",
+      "Wiener, Sidney I",
+      "Battaglia, Francesco"
+    ],
+    "year": 2018,
+    "description": "This dataset contains neuronal ensemble recordings from the medial prefrontal\n cortex (mostly prelimbic cortex) of freely moving rats, using tetrodes. Data were\n collected while the animals learned a "
+  },
+  {
+    "doi": "10.6080/k0q23xdv",
+    "code": "hc-17",
+    "title": "Extracellular DG spike trains recorded from wild-type mice during free exploration in a variety of environments that include a circle and a large box, and a circular rotating open field during an active place avoidance task with changing shock zone locations.",
+    "creators": [
+      "Van Dijk, M.T.",
+      "Fenton, A.A."
+    ],
+    "year": 2018,
+    "description": "Results from these data are reported in van Dijk and Fenton, (in press), as well as BioRxiv\n doi: https://www.biorxiv.org/content/early/2017/12/17/235473\n The data are extracellular single unit action"
+  },
+  {
+    "doi": "10.6080/k00c4szb",
+    "code": "pcx-1",
+    "title": "Simultaneous extracellular recordings from mice olfactory bulb (OB) and piriform cortex (PCx) and respiration data in response to odor stimuli and optogenetic stimulation of OB.",
+    "creators": [
+      "Bolding, Kevin",
+      "Franks, Kevin"
+    ],
+    "year": 2018,
+    "description": "This dataset contains extracellular recordings from mouse olfactory bulb (OB) and piriform cortex (PCx)\n and respiration data, including simultaneous OB-PCx recordings in response to odor stimuli at v"
+  },
+  {
+    "doi": "10.6080/k0j67f4t",
+    "code": "spe-1",
+    "title": "Simultaneous patch-clamp and dense CMOS probe extracellular recordings from the same cortical neuron in anaesthetized rats",
+    "creators": [
+      "Marques-Smith, Andr\u00e9",
+      "Neto, Joana P.",
+      "Lopes, Gon\u00e7alo",
+      "Nogueira, Joana",
+      "Calcaterra, Lorenza",
+      "Fraz\u00e3o, Jo\u00e3o",
+      "Danbee Kim",
+      "Phillips, Matthew G.",
+      "Dimitriadis, George",
+      "Kampff, Adam R."
+    ],
+    "year": 2018,
+    "description": "In this dataset, we recorded simultaneously from the same cortical neuron using patch-clamp and extracellular (Neuropixel, 384 channel) probes, in urethane-anaesthetized rats (no stimulus, just sponta"
+  },
+  {
+    "doi": "10.6080/k07p8wkf",
+    "code": "stc-1",
+    "title": "Extracellular recordings from areas MSTd and VIP of macaque monkeys during a heading discrimination task",
+    "creators": [
+      "Gu, Yong",
+      "Aihua Chen",
+      "Liu, Sheng",
+      "Fetsch, Christopher",
+      "Y, Yang",
+      "Adhira Sunkara",
+      "Lakshminarasimhan, Kaushik J",
+      "Xaq Pitkow",
+      "DeAngelis, Gregory",
+      "Angelaki, Dora"
+    ],
+    "year": 2018,
+    "description": "This dataset contains neural recordings carried out from two different brain areas \u2013\n dorsal Medial superior temporal cortex (MSTd) and ventral intraparietal cortex (VIP)\n \u2013 of eleven rhesus macaques."
+  },
+  {
+    "doi": "10.6080/k0cc0xw0",
+    "code": "spe-2",
+    "title": "Polytrode extracellular recordings with paired juxtacellular recordings",
+    "creators": [
+      "Neto, Joana P.",
+      "Lopes, Gon\u00e7alo",
+      "Fraz\u00e3o, Jo\u00e3o",
+      "Nogueira, Joana",
+      "Lacerda, Pedro",
+      "Bai\u00e3o, Pedro",
+      "Aarts, Arno",
+      "Andrei, Alexandru",
+      "Musa, Silke",
+      "Fortunato, Elvira",
+      "Barquinha, Pedro",
+      "Kampff, Adam R."
+    ],
+    "year": 2018,
+    "description": "Simultaneous extracellular and juxtacellular recordings were obtained from the cortex of ketamine-anesthetized rats (spontaneous activity). Extracellular recordings were carried either using polytrode"
+  },
+  {
+    "doi": "10.6080/k07m064m",
+    "code": "evi-1",
+    "title": "Extracellular recordings using a dense electrode array allowing direct comparison of the same neural signal measured with low and high impedance electrodes",
+    "creators": [
+      "Neto, Joana P.",
+      "Bai\u00e3o, Pedro",
+      "Lopes, Gon\u00e7alo",
+      "Fraz\u00e3o, Jo\u00e3o",
+      "Nogueira, Joana",
+      "Fortunato, Elvira",
+      "Barquinha, Pedro",
+      "Kampff, Adam R."
+    ],
+    "year": 2018,
+    "description": "To help resolve whether the impedance of an electrode matters for recording neural activity with a modern polytrode, we collected a dataset in which neighboring electrodes within a dense array had a 1"
+  },
+  {
+    "doi": "10.6080/k02v2d9z",
+    "code": "hdr-1",
+    "title": "Extracellular recordings using an ultra-high density array from many brain areas of anesthetized rat",
+    "creators": [
+      "Neto, Joana P.",
+      "Dimitriadis, George",
+      "Lopes, Gon\u00e7alo",
+      "Nogueira, Joana",
+      "Kampff, Adam R."
+    ],
+    "year": 2018,
+    "description": "Does the optimal size and density of electrodes depend on the brain region recorded? To help address this question, we collected a survey of recordings with an ultra-high density array of 255 extracel"
+  },
+  {
+    "doi": "10.6080/k0pn93t4",
+    "code": "hc-19",
+    "title": "Extracellular recordings from rat hippocampal area CA1 during rest and exploration of a 3-arm maze along with results of real-time and offline detection of hippocampal replay content.",
+    "creators": [
+      "Ciliberti, Davide",
+      "Michon, Fr\u00e9d\u00e9ric",
+      "Kloosterman, Fabian"
+    ],
+    "year": 2018,
+    "description": "This data set was used in Ciliberti et al. (2018) to demonstrate and characterize the real-time detection of hippocampal memory replay events. The data set contains three daily sessions with tetrode r"
+  },
+  {
+    "doi": "10.6080/k0sf2tdn",
+    "code": "hc-20",
+    "title": "Extracellular single unit action potential spike trains recorded from the medial entorhinal cortex of freely-behaving rats performing place avoidance tasks in both a stable and continuously rotating arena",
+    "creators": [
+      "Park, Eun Hye",
+      "Fenton, Andr\u00e9 A."
+    ],
+    "year": 2018,
+    "description": "The data are extracellular single unit action potential, spike trains recorded from the medial entorhinal cortex region of freely-behaving rats. The recordings were made using tetrodes and the Axona d"
+  },
+  {
+    "doi": "10.6080/k06h4fmz",
+    "code": "ix1p-1",
+    "title": "Inscopix Annotated One-photon Calcium Imaging Datasets",
+    "creators": [
+      "Schachter, Michael J.",
+      "Fowler, Boyd",
+      "Wang, Lucas",
+      "Srishti Gulati",
+      "Cheng, David",
+      "Resendez, Shanna L.",
+      "Tsang, Chris",
+      "Damez-Werno, Diane",
+      "Parker, Jones G.",
+      "Indersmitten, Tim",
+      "Tuce Tombaz",
+      "Komorowski, Robert W.",
+      "Whitlock, Jonathan R.",
+      "Bear, Mark F.",
+      "Schnitzer, Mark J.",
+      "Stamatakis, Alice",
+      "Nassi, Jonathan J."
+    ],
+    "year": 2018,
+    "description": "This dataset contains one-photon calcium imaging recordings using Inscopix nVista v2 and v3, and nVoke1 microscopes. The recordings have been performed in a variety of awake behaving mice exploring an"
+  },
+  {
+    "doi": "10.6080/k0s75dh3",
+    "code": "",
+    "title": "Slice patch clamp recordings from GABAergic neurons in the Substantia Nigra pars reticulata (SNr) of Thy1-ChR2 mice during proximal and full-field optogenetic stimulation.",
+    "creators": [
+      "Tiroshi, Lior",
+      "Goldberg, Joshua A"
+    ],
+    "year": 2018,
+    "description": "Raw data of slice patch clamp recordings of GABAergic neurons in the Substantia Nigra pars reticulata (SNr) of Thy1-ChR2 mice. In all experiments, SNr neurons were optogenetically stimulated using 470"
+  },
+  {
+    "doi": "10.6080/k0mg7mqw",
+    "code": "bf-2",
+    "title": "Basal forebrain extracellular recordings of anesthetized mice with somatostatin positive neurons optogenetically inhibited. CRCNS.org.",
+    "creators": [
+      "Espinosa N",
+      "A, Alonso",
+      "Lara-Vasquez A",
+      "Fuentealba P"
+    ],
+    "year": 2018,
+    "description": "Electrophysiological datasets were obtained from urethane anesthetized mice (mus musculus). These transgenic animals express halorhodopsin in somatostatin positive neurons and we used green light puls"
+  },
+  {
+    "doi": "10.6080/k01j97zn",
+    "code": "fly-1",
+    "title": "Whole-brain recordings of adult Drosophila using light field microscopy along with corresponding behavior or stimuli data.",
+    "creators": [
+      "Aimon, Sophie",
+      "Katsuki, Takeo",
+      "Tongqiu Jia",
+      "Grosenick, Logan",
+      "Broxton, Michael",
+      "Deisseroth, Karl",
+      "Sejnowski, Terrence J.",
+      "Greenspan, Ralph J"
+    ],
+    "year": 2019,
+    "description": "This dataset contains whole brain calcium or voltage recordings of adult Drosophila. They were recorded with light field microscopy, which permits ultra-fast whole-brain acquisition (up to 200Hz) albe"
+  },
+  {
+    "doi": "10.6080/k0862dc5",
+    "code": "hc-11",
+    "title": "Recordings from hippocampal area CA1, PRE, during and POST novel spatial learning.",
+    "creators": [
+      "Grosmark, A.D.",
+      "Long, J.",
+      "Buzs\u00e1ki, G."
+    ],
+    "year": 2016,
+    "description": "This data set is composed of eight bilateral silicon-probe multi-cellular electrophysiological\n                recordings performed on four male Long-Evans rats. These recordings were performed to ass"
+  },
+  {
+    "doi": "10.6080/k02r3pmn",
+    "code": "cai-1",
+    "title": "Simultaneous imaging and loose-seal cell-attached electrical recordings \n                       from neurons expressing a variety of genetically encoded calcium indicators.",
+    "creators": [
+      "GENIE Project, Janelia Farm Campus"
+    ],
+    "year": 2015,
+    "description": "This data set contains hard won calibration data for in vivo imaging data using a\n                variety of genetically encoded calcium indicators. Spikes were recorded independently\n                "
+  },
+  {
+    "doi": "10.6080/k0sb43p8",
+    "code": "pvc-8",
+    "title": "Multi-electrode recordings of anesthetized macaque V1 responses\n                   to static natural images and gratings",
+    "creators": [
+      "Kohn, Adam",
+      "Coen-Cagli, Ruben"
+    ],
+    "year": 2015,
+    "description": "This data consist of multi-electrode recordings from V1 in anesthetized macaque\n                monkeys, while natural images and gratings were flashed on the screen. Recordings\n                were p"
+  },
+  {
+    "doi": "10.6080/k0ft8j72",
+    "code": "",
+    "title": "Extracellular neural recordings from macaque primary and dorsal premotor\n                        motor cortex during a sequential reaching task",
+    "creators": [
+      "Perich, Matthew G.",
+      "Lawlor, Patrick N.",
+      "Kording, Konrad P.",
+      "Miller, Lee E."
+    ],
+    "year": 2018,
+    "description": "This data set includes extracellular recordings and behavior of macaque\n                used in Lawlor, P.N. et al 2018 (under review as of 1/2018). The data was collected\n                by Matthew G"
+  },
+  {
+    "doi": "10.6080/k0nk3bzj",
+    "code": "hc-6",
+    "title": "Simultaneous extracellular recordings from hippocampal areas CA1 and CA3\n                   (or MEC and CA1) from rats performing an alternation task in two W-shaped\n                   tracks that are geometrically identically but visually distinct.",
+    "creators": [
+      "Karlsson, Mattias",
+      "Carr, Margaret",
+      "Frank, Loren M."
+    ],
+    "year": 2015,
+    "description": "The data was recorded in the lab of Loren Frank at UCSF from hippocampus\n                regions in nine male Long-Evans rats before, during and after the animals performed\n                an alternat"
+  },
+  {
+    "doi": "10.6080/k05h7d60",
+    "code": "sim-1",
+    "title": "Simulation results from full scale and rationally reduced network\n                 models of the isolated hippocampal CA1 subfield in rat",
+    "creators": [
+      "Bezaire, Marianne J.",
+      "Raikov, Ivan",
+      "Burk, Kelly",
+      "Dhrumil Vyas",
+      "Soltesz, Ivan"
+    ],
+    "year": 2014,
+    "description": "The data contains results from all simulations included in the publication Bezaire et al. (2015)."
+  },
+  {
+    "doi": "10.6080/k0mk6b2q",
+    "code": "bf-1",
+    "title": "Basal forebrain LFP recordings from rats in home cage and during arena exploration",
+    "creators": [
+      "Jayakrishnen Nair",
+      "Arndt-Lukas Klaassen",
+      "Jozsef Arato",
+      "Vyssotski, Alexei L.",
+      "Harvey, Michael",
+      "Rainer, Gregor"
+    ],
+    "year": 2018,
+    "description": "The dataset contains LFP recordings from rats (wild type rattus norvegicus) obtained\n                under two conditions (a) resting condition while animal is in home cage; (b) exploration\n          "
+  },
+  {
+    "doi": "10.6080/k02z13fp",
+    "code": "hc-1",
+    "title": "Simultaneous intracellular and extracellular recordings from hippocampus\n\t\t\tregion CA1 of anesthetized rats.",
+    "creators": [
+      "Henze, D.A.",
+      "Harris, K.D.",
+      "Borhegyi, Z.",
+      "Csicsvari, J.",
+      "Mamiya, A.",
+      "Hirase, H.",
+      "Sirota, A.",
+      "Buzs\u00e1ki, G."
+    ],
+    "year": 2009,
+    "description": "The data set is recorded from the CA1 hippocampal region. They contain recordings from the\n                same neuron recorded both intracellularly and extracellularly.  Part of this data set has bee"
+  },
+  {
+    "doi": "10.6080/k0nc5z4x",
+    "code": "pvc-11",
+    "title": "Utah array extracellular recordings of spontaneous and visually evoked\n                activity from anesthetized macaque primary visual cortex (V1).",
+    "creators": [
+      "Kohn, A.",
+      "Smith, M.A."
+    ],
+    "year": 2016,
+    "description": "The data comprise two conditions: spontaneous and evoked V1 activity. The data were\n                recorded by Matthew Smith and Adam Kohn, in the Kohn lab at the Albert Einstein College\n            "
+  },
+  {
+    "doi": "10.6080/k09g5jrz",
+    "code": "hc-3",
+    "title": "Multiple single unit recordings from different rat hippocampal and entorhinal regions\n                        while the animals were performing multiple behavioral tasks.",
+    "creators": [
+      "Mizuseki, K.",
+      "Sirota, A.",
+      "Pastalkova, E.",
+      "Diba, K.",
+      "Buzs\u00e1ki, G."
+    ],
+    "year": 2013,
+    "description": "The data set contains recordings made from multiple hippocampal areas in Long-Evans rats,\n                including: Cornu Ammonis: CA1 and CA3; dentate gyrus (DG), and entorhinal cortex: EC2, EC3, EC"
+  },
+  {
+    "doi": "10.6080/k01j97x6",
+    "code": "vta-1",
+    "title": "Spiking activity of dopaminergic neurons in mouse ventral\n                tegmental area (VTA) during chemogenetic suppression of the mPFC, during\n                two classical conditioning tasks",
+    "creators": [
+      "Starkweather, Clara Kwon",
+      "Gershman, Samuel J.",
+      "Naoshige Uchida"
+    ],
+    "year": 2018,
+    "description": "This is a dataset consisting of spike timings of optogenetically-identified dopamine neurons\n                in the mouse ventral tegmental area (VTA) during classical conditioning. The conditioned\n  "
+  },
+  {
+    "doi": "10.6080/k0ms3qnt",
+    "code": "",
+    "title": "Extracellular recordings from anterior lateral motor cortex (ALM) neurons of adult mice \n                performing a tactile decision behavior",
+    "creators": [
+      "Li, Nuo",
+      "Gerfen, Charles R",
+      "Svoboda, Karel"
+    ],
+    "year": 2014,
+    "description": "These experiments probe neural dynamics in the anterior motor cortex (ALM) and its\n                relationship to voluntary movement.  The data represent extracellular recordings from ALM\n           "
+  },
+  {
+    "doi": "10.6080/k0g15xs1",
+    "code": "th-1",
+    "title": "Extracellular recordings from multi-site silicon probes in the anterior thalamus and subicular formation of freely moving mice.",
+    "creators": [
+      "Peyrache, A.",
+      "Petersen, P.",
+      "Buzs\u00e1ki, G."
+    ],
+    "year": 2015,
+    "description": "The data set contains recordings made from multiple anterior thalamic nuclei, mainly the antero-dorsal (AD) nucleus, and subicular areas, mainly the post-subiculum (PoS), in freely moving mice. Thalam"
+  },
+  {
+    "doi": "10.6080/k0td9v7f",
+    "code": "eye-1",
+    "title": "Eye-tracking data from human volunteers watching complex video stimuli.",
+    "creators": [
+      "Itti, Laurent",
+      "Carmi, Ran"
+    ],
+    "year": 2009,
+    "description": "This freely shared dataset consists of a body of 520 human eye-tracking data traces obtained while normal,\n                young adult human volunteers freely watched complex video stimuli (TV program"
+  },
+  {
+    "doi": "10.6080/k00z715x",
+    "code": "vim-2",
+    "title": "Gallant Lab Natural Movie 4T fMRI Data",
+    "creators": [
+      "Nishimoto, Shinji",
+      "Vu, An T.",
+      "Naselaris, Thomas",
+      "Benjamini, Yuval",
+      "Yu, Bin",
+      "Gallant, Jack"
+    ],
+    "year": 2014,
+    "description": "This data set contains BOLD fMRI responses in human subjects viewing natural\n                  movies.\n                  The data were originally published in:\n                  Nishimoto, S., Vu, A. "
+  },
+  {
+    "doi": "10.6080/k0tt4p5q",
+    "code": "aa-5",
+    "title": "Simultaneous extracellular recordings of avian auditory neurons in freely behaving zebra finches presented with all the repertoire of vocalizations used by this species for vocal communication",
+    "creators": [
+      "Robotka, Hermina",
+      "Gahr, Manfred",
+      "Theunissen, Frederic"
+    ],
+    "year": 2022,
+    "description": "These data consist of neurophysiological and audio recordings from 2 male and 2 female zebra finches performed by Hermina Robotka and Fr\u00e9d\u00e9ric Theunissen in the laboratory of Manfred Gahr at the Max P"
+  },
+  {
+    "doi": "10.6080/k0q23xgr",
+    "code": "bst-3",
+    "title": "Neuropixels recordings from 21 brainstem regions in rats during fear discrimination",
+    "creators": [
+      "Strickland, Jasmin",
+      "McDannald, Michael"
+    ],
+    "year": 2022,
+    "description": "These data were collected using chronically implanted Neuropixels probes from 10 Long Evans rats (4 females) during a fear discrimination procedure. 1812 Single units were recorded from 21 brainstem r"
+  },
+  {
+    "doi": "10.6080/k0gh9g5x",
+    "code": "hc-30",
+    "title": "Functional calcium imaging recordings of hippocampal area CA1 from mice performing a linear track task",
+    "creators": [
+      "Jercog, Pablo",
+      "Schnitze, Mark"
+    ],
+    "year": 2022,
+    "description": "This data set contains functional calcium imaging recordings from mice CA1 hippocampal region. We tracked the concurrent calcium dynamics of hundreds of CA1 pyramidal neurons in 12 mice (151-497 neuro"
+  },
+  {
+    "doi": "10.6080/k0fn14dz",
+    "code": "",
+    "title": "ECoG Recorded from rhesus macaque monkey\u2019s brain (motor cortex, dorsolateral prefrontal cortex, ventrolateral prefrontal cortex) during ipsilateral, contralateral, and bilateral movements.",
+    "creators": [
+      "Behraz Farrokhi",
+      "Erfanian, Abbas"
+    ],
+    "year": 2022,
+    "description": "The experiments were conducted on an adult healthy male rhesus macaque monkey. The monkey was trained to retrieve food from experimenter at random locations. Three different experimental paradigms wer"
+  },
+  {
+    "doi": "10.6080/k0bv7dt2",
+    "code": "hc-31",
+    "title": "Extracellular CA1 activity from rats during exploration of a novel 48m track",
+    "creators": [
+      "Rich, Dylan",
+      "HuaPeng Liaw",
+      "Lee, Albert K"
+    ],
+    "year": 2022,
+    "description": "This dataset is tetrode recorded single units and LFP from dorsal CA1 of 5 rats are they explored a novel 48-m long linear track. A repeat exposure to the track is included as well as a second smaller"
+  },
+  {
+    "doi": "10.6080/k0736p4h",
+    "code": "v4-2",
+    "title": "Simultaneous extracellular recordings from visual areas V1 and V4 from macaque monkeys viewing crowded displays",
+    "creators": [
+      "Henry, Christopher A.",
+      "Kohn, Adam"
+    ],
+    "year": 2022,
+    "description": "These data comprise extracellular recordings of neural activity in visual areas V1 and V4 of macaque monkeys passively viewing drifting grating target stimuli in isolation and under conditions of crow"
+  },
+  {
+    "doi": "10.6080/k0gq6w0k",
+    "code": "am-4",
+    "title": "Single unit electrophysiological recordings in Nucleus Interface in juvenile birds singing and listening to a tutor, including HVC-projectors.",
+    "creators": [
+      "Mackevicius, EL",
+      "Happ, MTL",
+      "Fee, MS"
+    ],
+    "year": 2020,
+    "description": "This data set is expected to be available in August 2020."
+  },
+  {
+    "doi": "10.6080/k0dn4374",
+    "code": "mt-2",
+    "title": "Extracellular recordings from area MT of awake macaques in response to naturalistic movies",
+    "creators": [
+      "Nishimoto, Shinji",
+      "Gallant, Jack L."
+    ],
+    "year": 2018,
+    "description": "The dataset contains activity of 45 neurons in the area MT of awake macaques in\n                response to naturalistic movies. The data were originally published in:\n                Shinji Nishimoto"
+  },
+  {
+    "doi": "10.6080/k0b27shn",
+    "code": "v1v2-1",
+    "title": "Paired V1-V2 neuronal spiking responses in anesthetized macaque monkey",
+    "creators": [
+      "Zandvakili, Amin",
+      "Kohn, Adam"
+    ],
+    "year": 2019,
+    "description": "These data consist of simultaneous extracellular recordings of neuronal populations in visual areas V1 and V2 of sufentanil-anesthetized macaca fascicularis. V1 recordings were performed using a Utah "
+  },
+  {
+    "doi": "10.6080/k0b85697",
+    "code": "cb-1",
+    "title": "Eyelid behavior and spike activity of cerebellar interpositus\n                       nucleus neurons during eyeblink conditioning in awake behaving mice.",
+    "creators": [
+      "Brinke, Michiel M. Ten",
+      "Heiney, Shane A.",
+      "Xiaolu Wang",
+      "Proietti-Onori, Martina",
+      "Henk-Jan Boele",
+      "Bakermans, Jacob",
+      "Medina, Javier F.",
+      "Zhenyu Gao",
+      "Zeeuw, Christiaan I. De"
+    ],
+    "year": 2017,
+    "description": "The objective was to record cerebellar interpositus nucleus neurons in awake\n                behaving mice during or after training in a delay eyeblink conditioning paradigm.\n                The exper"
+  },
+  {
+    "doi": "10.6080/k03x84v3",
+    "code": "bst-2",
+    "title": "Multi-site neural recordings in the auditory midbrain of unanesthetized rabbits listening natural texture sounds and sound correlation auditory models",
+    "creators": [
+      "Sadeghi, Mina",
+      "Zhai, Xiu",
+      "Stevenson, Ian H.",
+      "Escabi, Monty A."
+    ],
+    "year": 2019,
+    "description": "The accompanying neural data, sounds, and models are outlined in the publication: Mina Sadeghi, Xiu Zhai, Ian H. Stevenson, Monty A. Escab\u00ed, A Neural Ensemble Correlation Code for Sound Category Ident"
+  },
+  {
+    "doi": "10.6080/k0m906vb",
+    "code": "nac-1",
+    "title": "Recordings from nucleus accumbens core neurons in female rats undergoing fear discrimination",
+    "creators": [
+      "Ray, Madelyn H.",
+      "Moaddab, Mahsa",
+      "McDannald, Michael A."
+    ],
+    "year": 2022,
+    "description": "These data were collected from the nucleus accumbens core (NAcc) of 7 adult female Long Evans rats using 16 wire drivable microelectrode bundles. Data include 368 single units recorded from 95 behavio"
+  },
+  {
+    "doi": "10.6080/k0r20zkp",
+    "code": "pfc-8",
+    "title": "Single unit and LFP recordings of medial prefrontal cortex and ventral and medial striatum of rats alternating between visual and spatial discrimination tasks in a T-maze",
+    "creators": [
+      "V.J. Oberto",
+      "HY Gao",
+      "SI Wiener"
+    ],
+    "year": 2021,
+    "description": "Action potentials and local field potentials (LFPs) were simultaneously recorded from medial prefrontal cortex (mPFC), ventral striatum (vSTR) and dorsomedial striatum (dmSTR) of six Long-Evans rats d"
+  },
+  {
+    "doi": "10.6080/k0vt1q93",
+    "code": "ac-7",
+    "title": "Recordings and simulations of ECoG responses from rat auditory cortex during presentation of pure tone pips",
+    "creators": [
+      "Baratham, Vyassa L.",
+      "Dougherty, Maximilian E.",
+      "Ledochowitsch, Peter",
+      "Maharbiz, Michel M.",
+      "Bouchard, Kristofer E"
+    ],
+    "year": 2021,
+    "description": "This data set includes: 1.) \u00b5ECoG data recorded from auditory cortex of anesthetized rats during presentation of pure tone pips. 4 recording sessions from 3 animals are included. Each recording sessio"
+  },
+  {
+    "doi": "10.6080/k04b2zj5",
+    "code": "rrf-1",
+    "title": "Recordings from retrorubral field neurons in male rats undergoing fear discrimination",
+    "creators": [
+      "Moaddab, Mahsa",
+      "McDannald, Michael A."
+    ],
+    "year": 2021,
+    "description": "These data were collected from the retrorubral field (RRF) of 11 adult male Long Evans rats using 16 wire drivable microelectrode bundles. Data include 743 single units recorded from 228 behavior sess"
+  },
+  {
+    "doi": "10.6080/k0833q7f",
+    "code": "pag-2",
+    "title": "Recordings from periaqueductal gray/dorsal raphe in adult female rats that underwent early adolescent adversity",
+    "creators": [
+      "Moaddab, Mahsa",
+      "McDannald, Michael A."
+    ],
+    "year": 2021,
+    "description": "These data were collected from the periaqueductal gray/dorsal raphe of 20 female Long Evans rats using 16 wire drivable microelectrode bundles. Data include 151 single units in 8 Control rats over 72 "
+  },
+  {
+    "doi": "10.6080/k0hh6h8v",
+    "code": "bf-3",
+    "title": "Recordings from ventral pallidum neurons in male rats undergoing fear discrimination",
+    "creators": [
+      "Moaddab, Mahsa",
+      "McDannald, Michael A."
+    ],
+    "year": 2021,
+    "description": "These data were collected from the ventral pallidum of 14 adult male Long Evans rats using 16 wire drivable microelectrode bundles. Data include 435 single units recorded from 194 behavior sessions. F"
+  },
+  {
+    "doi": "10.6080/k0n8780k",
+    "code": "eeg-1",
+    "title": "64-channel human scalp EEG from 24 subjects examining spontaneous thought using experience sampling",
+    "creators": [
+      "Kam, Julia"
+    ],
+    "year": 2020,
+    "description": "This document describes a dataset containing human scalp EEG collected using a 64 + 6 channel BioSemi ActiveTwo amplifier with Ag-AgCl pin-type active electrodes mounted on an elastic cap according to"
+  },
+  {
+    "doi": "10.6080/k0s180qw",
+    "code": "sim-2",
+    "title": "Simulated extracellular neural recordings, with white noise of physiologically relevant variance, and firing rates in the range of 0-100 Hz, generated using the action potential of a putative pyramidal neuron recorded from the primary motor cortex of an awake behaving rat",
+    "creators": [
+      "Okatan, Murat",
+      "Kocat\u00fcrk, Mehmet"
+    ],
+    "year": 2020,
+    "description": "This is a simulated extracellular recording dataset that was generated using a real action potential waveform and analyzed in Okatan (2018a, 2018b). The method for generating these data was first expl"
+  },
+  {
+    "doi": "10.6080/k0668bdf",
+    "code": "vim-4",
+    "title": "Whole-brain BOLD activity recorded by fMRI during a visual attention task and a video game task",
+    "creators": [
+      "Zhang, Tianjiao",
+      "Gao, James S.",
+      "Cukur, Tolga",
+      "Gallant, Jack L."
+    ],
+    "year": 2020,
+    "description": "This dataset contains data from two tasks: a visual attention task, and a video game task. In both tasks, fMRI was used to record whole-brain BOLD activity with a 2.0045 s TR from healthy human subjec"
+  },
+  {
+    "doi": "10.6080/k0gx48r9",
+    "code": "hc-21",
+    "title": "Extracellular recordings from macaque hippocampus while navigating via a joystick\n                a familiar and unfamiliar virtual maze projected in stereo, and binocular eye movements.",
+    "creators": [
+      "Wirth, S",
+      "Barraduc, P",
+      "Plant\u00e9, P",
+      "Spin\u00e8de, S",
+      "Duhamel, "
+    ],
+    "year": 2018,
+    "description": "The dataset is made of 101 cells recorded in the hippocampus from two Rhesus macaques. Recordings were made extracellularly with either single tungsten electrodes or 16 contact u-probes. Activity was "
+  },
+  {
+    "doi": "10.6080/k0ns0s26",
+    "code": "",
+    "title": "Extracellular recordings from anterior lateral motor cortex (ALM) and\n                cerebellar nucleus neurons of adult mice performing a tactile decision behavior.",
+    "creators": [
+      "Li, Nuo"
+    ],
+    "year": 2018,
+    "description": "These experiments measure neuronal responses from anterior lateral motor cortex (ALM) and deep cerebellar nucleus (CN) of adult mice performing pole location discrimination with a short-term memory. I"
+  },
+  {
+    "doi": "10.6080/k0z899mm",
+    "code": "hc-18",
+    "title": "Bilateral recordings from dorsal hippocampal area CA1 from rats transported\n                on a model train and sleeping.",
+    "creators": [
+      "C. Drieu",
+      "R. Todorova",
+      "M. Zugaro"
+    ],
+    "year": 2018,
+    "description": "Action potentials and local field potentials (LFPs) were recorded from the dorsal\n                hippocampus (CA1) of five Long-Evans rats during sleep and behavior. During behavior,\n                "
+  },
+  {
+    "doi": "10.6080/k0pz5712",
+    "code": "pfc-7",
+    "title": "Recordings from three subregions of macaque prefrontal cortex during an\n                information search and choice task",
+    "creators": [
+      "Hunt, L.T.",
+      "Malalasekera W.M.N",
+      "Kennerley, S.W."
+    ],
+    "year": 2018,
+    "description": "This dataset contains single unit recordings made from several different subregions of prefrontal\n                cortex in 2 macaque monkeys (dorsolateral prefrontal cortex; orbitofrontal cortex; ant"
+  },
+  {
+    "doi": "10.6080/k0vm49gf",
+    "code": "ofc-3",
+    "title": "High-frequency activity of human orbitofrontal sites during decision-making play.",
+    "creators": [
+      "Saez, Ignacio",
+      "Lin, Jack",
+      "Stolk, Arjen",
+      "Chang, Edward",
+      "Parvizi, Josef",
+      "Schalk, Gerwin",
+      "Knight, Robert T.",
+      "Hsu, Ming"
+    ],
+    "year": 2018,
+    "description": "This dataset contains electrocorticography (ECoG) recordings from the orbitofrontal cortex\n                (OFC) of n=10 neurosurgical patients being operated on for the treatment of epilepsy. During\n"
+  },
+  {
+    "doi": "10.6080/k0vt1q8n",
+    "code": "hc-15",
+    "title": "Extracellular voltage recordings of spontaneous action potentials from cultured\n                mouse hippocampal neurons showing action potential propagation in single neurons.",
+    "creators": [
+      "Tovar, Kenneth R.",
+      "Bridges, Daniel C.",
+      "Wu, Bian",
+      "Hansma, Paul K.",
+      "Kosik, Kenneth S."
+    ],
+    "year": 2018,
+    "description": "The data presented here are raw extracellular voltage recordings of spontaneous\n                action potentials from cultured mouse hippocampal neurons, recorded with multi-electrode\n               "
+  },
+  {
+    "doi": "10.6080/k09021x1",
+    "code": "ac-3",
+    "title": "High-density extracellular recordings from the primary auditory cortex in\n                anesthetized rats listening to dynamic broadband stimuli",
+    "creators": [
+      "Jermyn Z. See",
+      "Atencio, Craig A.",
+      "Schreiner, Christoph E."
+    ],
+    "year": 2018,
+    "description": "The data contain dense single-unit recordings from the primary auditory cortex (AI)\n                of rats anesthetized with ketamine/xylazine during the presentation of dynamic\n                broad"
+  },
+  {
+    "doi": "10.6080/k0vx0dqd",
+    "code": "fcx-2",
+    "title": "Intracranial EEG recordings of medial temporal, lateral frontal, and orbitofrontal regions in\n                10 human adults performing a visuospatial working memory task.",
+    "creators": [
+      "Johnson, Elizabeth"
+    ],
+    "year": 2018,
+    "description": "This dataset contains intracranial EEG (iEEG) recordings of medial temporal, lateral\n                frontal, and orbitofrontal regions in 10 human adults performing a visuospatial working\n           "
+  },
+  {
+    "doi": "10.6080/k05d8q1t",
+    "code": "pvc-12",
+    "title": "Single-neuron extracellular recordings from area V1 of awake\n                 behaving rhesus monkeys viewing brightness illusions based on Victor Vasarely\u2019s artworks",
+    "creators": [
+      "Martinez-Conde., Susana",
+      "Otero-Millan, Jorge",
+      "Xoana G. Troncoso",
+      "McCamy, Michael B.",
+      "Macknik, Stephen L."
+    ],
+    "year": 2018,
+    "description": "We recorded single-neuron responses from area V1 of two adult rhesus monkeys\n                (Macaca Mulatta, one male and one female), during the presentation of brightness\n                illusions "
+  },
+  {
+    "doi": "10.6080/k0ms3qxd",
+    "code": "hc-14",
+    "title": "Simultaneous large-scale recordings in dorsal hippocampus, basolateral \n                amygdala and neighbouring deep nuclei and structures in rats performing\n                a spatial aversive task and sleeping.",
+    "creators": [
+      "G. Girardeau",
+      "I. Inema",
+      "G. Buzsaki"
+    ],
+    "year": 2017,
+    "description": "This data set consists of simultaneous recordings from 4 rats in the dorsal \n                hippocampus and amygdala (including BLA, CeN and neighboring nuclei and structures\n                such as "
+  },
+  {
+    "doi": "10.6080/k0x63k3x",
+    "code": "ssc-8",
+    "title": "Two photon calcium imaging recordings of spontaneous activity from mouse somatosensory\n                cortex in wild-type and Fmr1 knock-out mice from three developmental age groups.",
+    "creators": [
+      "Gon\u00e7alves, J.T",
+      "O\u2019Donnell, C.",
+      "Sejnowski, T.J.",
+      "Portera-Cailliau, C."
+    ],
+    "year": 2017,
+    "description": "This dataset contains in vivo two photon Ca2+ imaging recordings obtained from\n                Layer 2/3 somatosensory cortex of several mice of two genotypes (wild-type C57/B6\n                and Fmr"
+  },
+  {
+    "doi": "10.6080/k0h41pk8",
+    "code": "hc-13",
+    "title": "Simultaneous extracellular recordings from hippocampal area CA1 and dorsal\n                medial prefrontal cortex from rats performing a foraging task.",
+    "creators": [
+      "Yu, Jai Y.",
+      "Liu, Daniel",
+      "Grossrubatscher, Irene",
+      "Frank, Loren M."
+    ],
+    "year": 2015,
+    "description": "This data set contains recordings from hippocampus regions CA1 and dorsal medial\n                prefrontal cortex (PFC) from rats performing a foraging task. The data was used\n                to dete"
+  },
+  {
+    "doi": "10.6080/k0sn074b",
+    "code": "apl-1",
+    "title": "Voltage sensitive dye recording of multiple bouts\n       of escape locomotion in the pedal ganglion of Aplysia californica",
+    "creators": [
+      "Bruno, Angela M.",
+      "Frost, William N."
+    ],
+    "year": 2017,
+    "description": "The data set was collected from fast-voltage sensitive dye recordings of the\n                pedal ganglion of Aplysia californica during fictive escape locomotion. The neural\n                activity"
+  },
+  {
+    "doi": "10.6080/k0s180f9",
+    "code": "",
+    "title": "A map of anticipatory activity in mouse motor cortex, measured with calcium imaging\n                and silicon probes, as described in Chen et al 2017",
+    "creators": [
+      "Tsai-Wen Chen",
+      "Li, Nuo",
+      "Kayvon Daie",
+      "Svoboda, Karel"
+    ],
+    "year": 2017,
+    "description": "(This data is not yet available but is expected to be sometime during 2017)."
+  },
+  {
+    "doi": "10.6080/k02f7kcp",
+    "code": "ssc-6",
+    "title": "Interspersed Distribution of Selectivity to Kinematic Stimulus Features in Supragranular\n                Layers of Mouse Barrel Cortex.",
+    "creators": [
+      "Martini, Francisco J.",
+      "Molano-Maz\u00f3n, Manuel",
+      "Maravall, Miguel"
+    ],
+    "year": 2017,
+    "description": "The data contain 2-photon calcium population recordings of responses to\n                controlled whisker stimulation in the barrel cortex of anesthetized mice.\n                The aim was to investi"
+  },
+  {
+    "doi": "10.6080/k0gq6vp4",
+    "code": "aa-3",
+    "title": "Behavioral and electrophysiological studies of the avian thalamic song\n                    nucleus Uvaeformis including multiunit recordings in awake, behaving birds\n                    and song recordings from adult birds pre- and post-lesion of Uva.",
+    "creators": [
+      "Danish, Husain H",
+      "Aronov, Dmitriy",
+      "Michale S Fee"
+    ],
+    "year": 2017,
+    "description": "This data set contains multiunit recordings of neurons in the thalamic nucleus\n                Uvaeformis (Uva) of adult male zebra finches (Taeniopygia gutatta) during singing\n                (n=3 bi"
+  },
+  {
+    "doi": "10.6080/k0mg7mdv",
+    "code": "ssc-5",
+    "title": "Juxtacellular recordings from primary somatosensory cortex (vS1) neurons of adult mice \n                performing whisker-mediated object localization.",
+    "creators": [
+      "S. Andrew Hires",
+      "Gutnisky, Diego",
+      "Jianing Yu",
+      "Svoboda, Karel"
+    ],
+    "year": 2017,
+    "description": "These experiments probe neural dynamics in the mouse vibrissal primary somatosensory cortex (S1)\n                and its relationship to active touch. The data contain 52 juxtacellular loose-seal reco"
+  },
+  {
+    "doi": "10.6080/k0r49nqv",
+    "code": "hc-12",
+    "title": "Extracellular recordings from monkey hippocampus performing a virtual navigation task",
+    "creators": [
+      "Wirth, Sylvia",
+      "Baraduc, Pierre",
+      "Plant\u00e9, Aur\u00e9lie",
+      "Pin\u00e8de, Serge",
+      "Jean-Ren\u00e9 Duhamel"
+    ],
+    "year": 2016,
+    "description": "The dataset is made of 189 cells recorded in the hippocampus from two Rhesus macaques.\n                Recordings were made extracellularly with either single tungsten electrodes or 16\n               "
+  },
+  {
+    "doi": "10.6080/k0cz353k",
+    "code": "ppc-1",
+    "title": "Multimodal spike data recorded from posterior parietal cortex of non-human primates \n                performing a reaction-time task involving combined eye and arm movements while in \n                a virtual reality environment.",
+    "creators": [
+      "Buneo, Christopher A.",
+      "Shi, Ying",
+      "Apker, Gregory",
+      "VanGilder, Paul"
+    ],
+    "year": 2016,
+    "description": "This data was collected from the Parietal Cortex of two male rhesus macaques (macaca mulatta)\n                using single microelectrodes.  For each recording session, single-cell recordings (N=343; "
+  },
+  {
+    "doi": "10.6080/k0hq3wth",
+    "code": "hc-9",
+    "title": "Firing pattern of O-LM cells in mouse hippocampal CA1",
+    "creators": [
+      "Quattrocolo, Giulia",
+      "Maccaferri, Gianmaria"
+    ],
+    "year": 2016,
+    "description": "This data set includes the raw data files from some experimental O-LM cells featured in Quattrocolo and Maccaferri (2013)\n                that were later used to constrain the model cells of the model"
+  },
+  {
+    "doi": "10.6080/k0s46pv7",
+    "code": "",
+    "title": "Simultaneous calcium imaging using GCaMP sensors and electrophysiology in L2/3\n                       pyramidal neurons of the visual cortex in thy1 transgenic mice",
+    "creators": [
+      "Bei-Jung Lin",
+      "Tsai-Wen Chen",
+      "Kim, Douglas S.",
+      "Svoboda, Karel"
+    ],
+    "year": 2016,
+    "description": "(This data set is not yet available but should be sometime in late 2016, early 2017).\n                This data set contains simultaneous calcium imaging and electrophysiology in L2/3\n                "
+  },
+  {
+    "doi": "10.6080/k01n7z2z",
+    "code": "am-3",
+    "title": "Single-unit extracellular recordings of projection neurons in the premotor\n                 cortical area HVC of juvenile male zebra finches during singing.",
+    "creators": [
+      "Okubo TS",
+      "Mackevicius EL",
+      "Payne HL",
+      "Lynch GF",
+      "MS, Fee"
+    ],
+    "year": 2016,
+    "description": "This data set contains extracellular recordings of projection neurons in the premotor\n                cortical area HVC of juvenile male zebra finches (Taeniopygia gutatta) during singing\n            "
+  },
+  {
+    "doi": "10.6080/k0jm27jz",
+    "code": "mgsm-1",
+    "title": "MatLab tools for building Mixture of Gaussian Scale Mixture (MGSM) models, and perform inference and learning.",
+    "creators": [
+      "Coen-Cagli, Ruben",
+      "Dayan, Peter",
+      "Odelia Schwartz"
+    ],
+    "year": 2016,
+    "description": "This package contains some MatLab tools for building Mixture of Gaussian Scale Mixture\n                (MGSM) models, and perform inference and learning.  MGSM models, and their application\n          "
+  },
+  {
+    "doi": "10.6080/k0pc308p",
+    "code": "hc-8",
+    "title": "Spontaneous spiking activity of thousands of neurons in rat hippocampal dissociated cultures.",
+    "creators": [
+      "Timme, Nicholas M.",
+      "Najja Marshall",
+      "Bennett, Nicholas",
+      "Ripp, Monica",
+      "Lautzenhiser, Edward",
+      "Beggs, John M."
+    ],
+    "year": 2016,
+    "description": "These data contain a record of neuron spiking activity in rat hippocampal dissociated cultures.\n                The recordings were performed for days in vitro (DIV) 6 through 35 with all cultures bei"
+  },
+  {
+    "doi": "10.6080/k0t43r01",
+    "code": "ssc-7",
+    "title": "Data related to: Layer 4 fast-spiking interneurons filter thalamocortical signals during\n                active somatosensation.  Yu, Gutnisky, Hires, Svoboda, Nature Neurosci. 2016.",
+    "creators": [
+      "Jianing Yu",
+      "Gutnisky, Diego",
+      "Hires, Samuel Andrew",
+      "Svoboda, Karel"
+    ],
+    "year": 2017,
+    "description": "These experiments measure spikes and membrane potential in the mouse somatosensory\n                thalamocortical system (Yu, Gutnisky et al Nat. Neurosci. 2016). Mice performed an active\n           "
+  },
+  {
+    "doi": "10.6080/k06d5qxn",
+    "code": "ssc-4",
+    "title": "Extracellular recordings in rat barrel cortex during a whisker based discrimination task of tactile stimuli that \n                varied in whisker deflection speed at short and fast time scales.",
+    "creators": [
+      "McGuire, Leah M.",
+      "Telian, Gregory",
+      "Laboy-Ju\u00e1rez, Keven",
+      "Miyashita, Toshio",
+      "Lee, Daniel J.",
+      "Smith, Katherine A.",
+      "Feldman, Daniel E."
+    ],
+    "year": 2016,
+    "description": "The data set was collected from extracellular spike recordings in whisker primary somatosensory cortex (S1) of\n               rats performing a whisker based discrimination task. Neural activity is de"
+  },
+  {
+    "doi": "10.6080/k0b56gnc",
+    "code": "",
+    "title": "Measurements of spikes in mouse VPM, barrel cortex L4 excitatory and PV neurons, as well as membrane \n                potential measurements in L4 excitatory and PV neurons, during whisker-based\n                object localization, as described in Yu / Gutnisky et al 2016.",
+    "creators": [
+      "Jianing Yu",
+      "Gutnisky, Diego",
+      "Svoboda, Karel"
+    ],
+    "year": 2016,
+    "description": "(This data is not yet available but will be sometime during 2016)."
+  },
+  {
+    "doi": "10.6080/k0ft8hz2",
+    "code": "ofc-2",
+    "title": "Single-neuron spike train recordings from rat orbitofrontal cortex during an odor classification task.",
+    "creators": [
+      "Naoshige Uchida",
+      "Kepecs, Adam",
+      "Zariwala, Hatim A.",
+      "Mainen, Zachary F."
+    ],
+    "year": 2016,
+    "description": "This dataset contains the recordings from orbitofrontal cortex of three rats during an odor classification task.\n                This dataset is published together with the following manuscript that p"
+  },
+  {
+    "doi": "10.6080/k0qc01d2",
+    "code": "ofc-1",
+    "title": "Single-neuron spike train recordings from rat orbitofrontal cortex during an odor discrimination task.",
+    "creators": [
+      "Feierstein, Claudia E.",
+      "Quirk, Michael C.",
+      "Naoshige Uchida",
+      "Sosulski, Dara L.",
+      "Mainen, Zachary F."
+    ],
+    "year": 2016,
+    "description": "This dataset contains the recordings from orbitofrontal cortex of five rats during an odor discrimination task.\n                This dataset is published together with the following manuscript that pe"
+  },
+  {
+    "doi": "10.6080/k0v40s4d",
+    "code": "pfc-4",
+    "title": "Single-neuron spike train recordings from macaque prefrontal cortex\n                during a somatosensory working memory task.",
+    "creators": [
+      "Ranulfo Romo",
+      "Brody, Carlos D.",
+      "Hern\u00e1ndez, Adri\u00e1n",
+      "Lemus, Luis"
+    ],
+    "year": 2016,
+    "description": "This dataset contains the recordings from prefrontal cortex of two monkeys. Both monkeys experienced\n                the following F1 frequencies: 10 14 18 24 30 34 Hz, and each F1 frequency was paire"
+  },
+  {
+    "doi": "10.6080/k0gt5k3v",
+    "code": "pvc-10",
+    "title": "Disparity selectivity in mouse V1 measured using\n                two-photon calcium imaging",
+    "creators": [
+      "Scholl, Benjamin",
+      "Pattadkal JJ",
+      "Dilly GA",
+      "Priebe NJ",
+      "Zemelman BV"
+    ],
+    "year": 2013,
+    "description": "This dataset is composed of measurements of binocular disparity selectivity in mouse V1\n                neurons using two-photon calcium imaging. The experiments and results are described in:\n        "
+  },
+  {
+    "doi": "10.6080/k0w37t87",
+    "code": "cai-2",
+    "title": "jRGECO1a and jRCaMP1a characterization in the intact mouse visual cortex, using\n                       AAV-based gene transfer, 2-photon imaging and loose-seal cell attached recordings,\n                       as described in Dana et al 2016",
+    "creators": [
+      "Mohar, Boaz",
+      "Dana, Hod",
+      "Kim, Douglas S.",
+      "Svoboda, Karel"
+    ],
+    "year": 2016,
+    "description": "The data contain simultaneous loose-seal, cell-attached recordings and functional\n                imaging using red genetically-encoded calcium indicators, jRGECO1a (11 cells)\n                and jRCa"
+  },
+  {
+    "doi": "10.6080/k04m92gx",
+    "code": "",
+    "title": "Calcium imaging responses from anterior lateral motor cortex (ALM)\n                neurons of adult mice performing a tactile decision behavior.",
+    "creators": [
+      "Chen, Tsai-Wen",
+      "Li, Nuo",
+      "Gerfen, Charles R",
+      "Guo, Zengcai V.",
+      "Svoboda, Karel"
+    ],
+    "year": 2016,
+    "description": "These dataset contains calcium imaging data from the anterior motor cortex (ALM) in mice\n                performing a tactile delay-response task. The raw data consists of images, while the\n          "
+  },
+  {
+    "doi": "10.6080/k00v89r6",
+    "code": "pvc-9",
+    "title": "Patch-clamp recordings from layer 4 pyramidal cells in guinea pig V1 acute slices\n                showing synaptic plasticity induced by paired extracellular stimulation and spiking under\n                both normal conditions and pharmacological GABAA blockage.",
+    "creators": [
+      "S\u00e1ez, Ignacio",
+      "Friedlander, Michael J."
+    ],
+    "year": 2016,
+    "description": "This dataset contains patch-clamp recordings from individual pyramidal cells in layer 4\n                of acute slices from visual cortex area V1 in young (1-2 week old) guinea pigs. The main\n       "
+  },
+  {
+    "doi": "10.6080/k0pk0d3b",
+    "code": "infe-1",
+    "title": "MatLab tools for estimating linear Fisher information from population data along with\n\t\tsynthetic data and recorded spike count responses from neurons in macaque primary visual\n\t\tcortex to grating images with different orientations and white noise.",
+    "creators": [
+      "Kanitscheider, Ingmar",
+      "Coen-Cagli, Ruben",
+      "Kohn, Adam",
+      "Pouget, Alexandre"
+    ],
+    "year": 2015,
+    "description": "This package contains some MatLab tools for estimating linear Fisher information\n\t\tfrom population data.  Also included are two datasets (one synthetic, including the\n\t\tground truth information; and o"
+  },
+  {
+    "doi": "10.6080/k000001d",
+    "code": "ssc-1",
+    "title": "Calcium imaging data from vibrissal S1 neurons in adult mice\n                performing a pole localization task.",
+    "creators": [
+      "Peron, Simon",
+      "Freeman, Jeremy",
+      "Iyer, Vijay",
+      "Svoboda, Karel"
+    ],
+    "year": 2014,
+    "description": "The dataset comprises calcium imaging data from vibrissal S1 in mice performing\n                 a pole localization task.   Images were acquired using 2-photon imaging using a\n                 protei"
+  },
+  {
+    "doi": "10.6080/k0c8276g",
+    "code": "pvc-7",
+    "title": "In vivo calcium imaging of layer 4 cells in the mouse\n                using sinusoidal grating stimuli",
+    "creators": [
+      "Garner, Aleena"
+    ],
+    "year": 2014,
+    "description": "The data set consists of image data collected using a two-photon microscope\n                  with resonant and galvo scanners, and a MaiTai femtosecond laser. The mice,\n                  fitted with "
+  },
+  {
+    "doi": "10.6080/k0sf2t3m",
+    "code": "am-1",
+    "title": "Development of a birdsong motor circuit with antidromically-identified neurons: Spontaneous spiking data from anesthetized juvenile and adult zebra finch HVC.",
+    "creators": [
+      "Day, Nancy F.",
+      "Nick, Teresa A."
+    ],
+    "year": 2014,
+    "description": "This data set contains recordings from the cortical song nucleus HVC of anesthetized\n                male zebra finches using a 4 tetrode array.\n                These data examine the development of a"
+  },
+  {
+    "doi": "10.6080/k07p8w9v",
+    "code": "v2-1",
+    "title": "Extracellular recordings from area V2 of awake behaving rhesus monkey",
+    "creators": [
+      "Willmore, Ben D.",
+      "Prenger, Ryan J.",
+      "Gallant, Jack L."
+    ],
+    "year": 2011,
+    "description": "This data consists of extracellular recordings from well isolated neurons\n                  in area V2 in awake behaving macaque monkeys."
+  },
+  {
+    "doi": "10.6080/k0mw2f2j",
+    "code": "pvc-3",
+    "title": "Multi-neuron recordings in primary visual cortex",
+    "creators": [
+      "Blanche, Tim"
+    ],
+    "year": 2009,
+    "description": "The data comprises multi-neuron responses recorded with silicon electrode arrays\n                  in the primary visual cortex of anethetized cats.  Specifically, the spike times\n                  of"
+  },
+  {
+    "doi": "10.6080/k0wd3xh6",
+    "code": "pvc-1",
+    "title": "Single- and multi-unit recordings from monkey primary visual cortex",
+    "creators": [
+      "Ringach, Dario",
+      "Nauhaus, Ian"
+    ],
+    "year": 2009,
+    "description": "Responses of V1 populations of neurons to natural image sequences.\n                    Data was obtained using 10 x 10 extracellular electrode arrays from Old-world monkeys\n                    (Macaca"
+  },
+  {
+    "doi": "10.6080/k0jw8bsc",
+    "code": "aa-2",
+    "title": "Single-unit recordings from multiple auditory areas in male zebra finches",
+    "creators": [
+      "Theunissen, Frederic E.",
+      "Gill, Patrick",
+      "Noopur, Amin",
+      "Zhang, Junli",
+      "Woolley, Sarah M. N.",
+      "Fremouw, Thane"
+    ],
+    "year": 2011,
+    "description": "This data set contains about 500 single-unit recordings from different audio areas\n                in zebra finches.  The specific areas recorded from include: Caudal Mesopallium (CM);\n               "
+  },
+  {
+    "doi": "10.6080/k0ng4nv8",
+    "code": "hc-29",
+    "title": "Tetrode recordings of hippocampus CA1 and dorsal lateral septum in rat.",
+    "creators": [
+      "Wirtshafter, Hannah S",
+      "Wilson, Matthew A"
+    ],
+    "year": 2020,
+    "description": "This data set contains multiunit tetrode recordings from hippocampus and lateral septum of rat, with 16 tetrodes in each area. Animals were run on a double-sided T maze (a working memory spatial task)"
+  },
+  {
+    "doi": "10.6080/k02n50g9",
+    "code": "hc-28",
+    "title": "Simultaneous extracellular recordings from hippocampal area CA1 and medial prefrontal cortex from rats performing a W-track alternation task.",
+    "creators": [
+      "Shantanu P. Jadhav",
+      "Frank, Loren M."
+    ],
+    "year": 2020,
+    "description": "The CRCNS.org hc-28 data set contains recordings from hippocampus regions CA1 (primarily dorsal CA1 and some intermediate CA1 recordings) and medial prefrontal cortex (PFC, prelimbic and infralimbic r"
+  },
+  {
+    "doi": "10.6080/k0z31wwg",
+    "code": "ssc-11",
+    "title": "Volumetric calcium imaging of mouse somatosensory cortex during vibrissal object localization before and after multiphoton ablation of a small subset of L2/3 neurons.",
+    "creators": [
+      "Peron, Simon",
+      "Pancholi, Ravi",
+      "Voelcker, Bettina",
+      "Wittenbach, Jason D.",
+      "H. Freyja \u00d3lafsd\u00f3ttir",
+      "Freeman, Jeremy",
+      "Svoboda, Karel"
+    ],
+    "year": 2020,
+    "description": "This dataset contains the data that accompanies Peron et al., 2020, Nature, \"Recurrent interactions in local cortical circuits\". It consists of two-photon imaging data, recorded at 7 Hz in 600 x 600 u"
+  },
+  {
+    "doi": "10.6080/k0c53j2r",
+    "code": "hc-27",
+    "title": "Extracellular recordings from across the dorsoventral axis of the medial entorhinal cortex of the rat",
+    "creators": [
+      "Hern\u00e1ndez-P\u00e9rez, J.J.",
+      "Cooper, K.W.",
+      "Newman, E.L."
+    ],
+    "year": 2020,
+    "description": "Traveling waves of cortical activity are hypothesized to organize cortical information processing and support interregional communication. Yet, it remains unknown whether interacting areas exhibit the"
+  },
+  {
+    "doi": "10.6080/k0nk3c7j",
+    "code": "pvc-13",
+    "title": "Near-simultaneous 2- and 3-photon images from mouse visual cortex",
+    "creators": [
+      "Takasaki, K",
+      "Tsyboulski, D",
+      "Waters, J"
+    ],
+    "year": 2020,
+    "description": "The data set consists of 2- and 3-photon excitation movies of GCaMP6s fluorescence in primary visual cortex of awake transgenic mice, genotype Slc17a7-IRS2-Cre;Ai162. 2- and 3-photon movies were colle"
+  },
+  {
+    "doi": "10.6080/k07h1gss",
+    "code": "ac-5",
+    "title": "In vivo whole-cell recordings to complex sounds in the mouse auditory cortex",
+    "creators": [
+      "Kyunghee X. Kim",
+      "Atencio, Craig A.",
+      "Schreiner, Christoph E."
+    ],
+    "year": 2019,
+    "description": "This dataset is not yet available but is expected to be available before the end of 2019."
+  },
+  {
+    "doi": "10.6080/k0d798nb",
+    "code": "hc-26",
+    "title": "Longitudinal LFP recordings from female apoE3-KI and apoE4-KI mice at rest and subsequent spatial memory performance",
+    "creators": [
+      "Jones, Emily A.",
+      "Gillespie, Anna K.",
+      "Yoon, Seo Yeon",
+      "Frank, Loren M.",
+      "Yadong Huang"
+    ],
+    "year": 2019,
+    "description": "This data set consists of recordings collected in the lab of Yadong Huang at UCSF and the Gladstone Institutes. The experiment consisted of two cohorts of female apoE3-KI and apoE4-KI mice: one screen"
+  },
+  {
+    "doi": "10.6080/k0td9vjg",
+    "code": "hc-25",
+    "title": "Recordings and timed stimulation of rat dorsal hippocampal area CA1 and medial prefrontal cortex during behavior and sleep.",
+    "creators": [
+      "N. Maingret",
+      "Todorova, R.",
+      "M. Zugaro"
+    ],
+    "year": 2019,
+    "description": "Action potentials and local field potentials (LFPs) were simultaneously recorded from the dorsal hippocampus (CA1) and medial prefrontal cortex (mPFC) of nine Long-Evans rats during sleep and behavior"
+  },
+  {
+    "doi": "10.6080/k0db801m",
+    "code": "ssc-10",
+    "title": "2-photon calcium imaging in S1 of enriched and normally housed mice during individual deflection of 9 whiskers",
+    "creators": [
+      "LeMessurier, Amy M.",
+      "Feldman, Daniel E."
+    ],
+    "year": 2019,
+    "description": "This data consists of 2-photon calcium imaging data from excitatory neurons in L2/3 and L4 of barrel (vibrissal somatosensory) cortex of anesthetized mice during deflection of 9 whiskers on the face i"
+  },
+  {
+    "doi": "10.6080/k0fb514j",
+    "code": "mt-3",
+    "title": "The pre-, peri-, and post-saccadic responses of MT neurons in response to random probe stimuli flashed on screen.",
+    "creators": [
+      "Kaiser Niknam",
+      "Akbarian, Amir",
+      "Clark, Kelsey",
+      "Zamani, Yasin",
+      "Noudoost, Behrad",
+      "Nategh, Neda"
+    ],
+    "year": 2019,
+    "description": "The data contain the spiking responses of 41 neurons in the middle temporal cortex of two macaque monkeys during a visually-guided saccade task. In the experiment, monkeys were trained to fixate on a "
+  },
+  {
+    "doi": "10.6080/k0k35rvg",
+    "code": "hc-24",
+    "title": "Simultaneous extracellular recordings from midline thalamic nuclei, medial prefrontal cortex and CA1 from rats cycling through bouts of sleep and wakefulness",
+    "creators": [
+      "Varela, Carmen",
+      "Wilson, Matthew A."
+    ],
+    "year": 2019,
+    "description": "These data set was used in Varela &amp; Wilson, 2019 (https://doi.org/10.1101/653436) to demonstrate and characterize the correlations between single cell activity in nuclei of the midline thalamus wi"
+  },
+  {
+    "doi": "10.6080/k0vq30v9",
+    "code": "vta-2",
+    "title": "Spiking activity of dopaminergic cells in VTA-l during multitude of tasks and conditions",
+    "creators": [
+      "Mohebi, Ali",
+      "Berke, Josh"
+    ],
+    "year": 2019,
+    "description": "We trained transgenic rats (expressing Cre in TH containing cells) on an operant trial and error task and recorded the activity of dopaminergic neurons in lateral ventral tegmental area (VTA-l). We al"
+  },
+  {
+    "doi": "10.6080/k00c4t06",
+    "code": "aa-4",
+    "title": "Simultaneous extracellular recordings of avian auditory neurons in zebra finches presented with all the repertoire of vocalizations used by this species for vocal communication",
+    "creators": [
+      "Elie, Julie",
+      "Theunissen, Frederic"
+    ],
+    "year": 2019,
+    "description": "This data set contains extra-cellular electrophysiological recordings from 6 urethane anesthetized adult zebra finches (Taeniopygia guttata), 4 males and 2 females. At each electrophysiological record"
+  },
+  {
+    "doi": "10.6080/k08s4n4j",
+    "code": "ac-4",
+    "title": "Electrocorticography recordings from patients during a passive listening task of degraded and intact English speech.",
+    "creators": [
+      "Holdgraf, C.R.H.",
+      "De Heer, W.",
+      "Pasley, B.",
+      "Rieger, J.",
+      "Crone, N.",
+      "Lin, J.J.",
+      "Knight, R.T.",
+      "Theunissen, F.E."
+    ],
+    "year": 2019,
+    "description": "This dataset consists of electrocorticography recordings of patients passively listening to auditory stimuli. Each auditory stimulus is a sentence being spoken by another person (the sentences are dra"
+  },
+  {
+    "doi": "10.6080/k0fj2f13",
+    "code": "ssc-9",
+    "title": "Extracellular recordings in mouse barrel cortex during single- and 2-whisker stimulation.",
+    "creators": [
+      "Laboy-Ju\u00e1rez, Keven J.",
+      "Langberg, Tomer",
+      "Seoiyoung Ahn",
+      "Feldman, Daniel E."
+    ],
+    "year": 2019,
+    "description": "The data set consists of acute extracellular recordings in primary whisker somatosensory cortex (S1) of awake and anesthetized mice during passive whisker stimulation, delivered with a 3x3 array of pi"
+  },
+  {
+    "doi": "10.6080/k0571975",
+    "code": "ear-1",
+    "title": "Data collection curated with an application ontology describes the methods and\n results upon performing an ex-vivo voltage-clamp assay on outer hair cells of the mammalian cochlea.",
+    "creators": [
+      "Farrell, B",
+      "Bengtson, J."
+    ],
+    "year": 2019,
+    "description": "This data collection describes the electrical properties of outer hair cells isolated from the mammalian cochlea of the domestic guinea pig.  This data was obtained by performing whole-cell patch clam"
+  },
+  {
+    "doi": "10.6080/k09w0cp7",
+    "code": "hc-22",
+    "title": "Hippocampal CA1 neurons recording from mice foraging in three different environments over 10 days.",
+    "creators": [
+      "Jercog PE",
+      "Abbott LF",
+      "Kandel ER"
+    ],
+    "year": 2019,
+    "description": "The recordings were performed in 12 C57BL/6J male mice. In 4 mice, 1 microdrive with a bundle of 4 tetrodes was implanted in the right hippocampal area CA1, and the other 8 mice were implanted with tw"
+  },
+  {
+    "doi": "10.6080/k0fn14ch",
+    "code": "ofc-4",
+    "title": "fMRI time series in orbitofrontal cortex during face-house state-space task.",
+    "creators": [
+      "Schuck, Nicolas W.",
+      "Cai, Ming Bo",
+      "Wilson, Robert C.",
+      "Niv, Yael"
+    ],
+    "year": 2019,
+    "description": "This dataset contains the preprocessed fMRI time series within orbitofrontal cortex (OFC), the design matrix and event timing information of the task performed in the work of Schuck et al., Neuron 201"
+  },
+  {
+    "doi": "10.6080/k0r49p0v",
+    "code": "pag-1",
+    "title": "Ventrolateral periaqueductal gray single-single unit activity during multi-cue fear discrimination in rats",
+    "creators": [
+      "Wright, KM",
+      "McDannald, MA"
+    ],
+    "year": 2019,
+    "description": "These data were collected from the ventrolateral periaqueductal gray of 6 adult male, Long Evans rats using 16 \u2013 wire drivable microelectrode bundles. Data include 245 single units recorded from 88 be"
+  },
+  {
+    "doi": "10.6080/k06971s9",
+    "code": "fcx-3",
+    "title": "Intracranial EEG recordings of lateral frontal and parietal regions in 7 human\n                adults performing a visuospatial working memory task",
+    "creators": [
+      "Johnson, Elizabeth"
+    ],
+    "year": 2019,
+    "description": "This data set contains EEG recordings from the lateral frontal and parietal regions\n                from 7 human adults while they were performing a visuospatial working memory task.\n                T"
+  }
+]
