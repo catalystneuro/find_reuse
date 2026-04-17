@@ -210,7 +210,7 @@ def fetch_dandiset_names(dandiset_ids: list[str]) -> dict[str, str]:
     return names
 
 
-def convert(input_file: Path, output_file: Path, classify: bool = True, model: str = DEFAULT_MODEL) -> dict:
+def convert(input_file: Path, output_file: Path, classify: bool = True, model: str = DEFAULT_MODEL, archive: str = "DANDI Archive") -> dict:
     """Convert direct references to classification format.
 
     Args:
@@ -229,7 +229,7 @@ def convert(input_file: Path, output_file: Path, classify: bool = True, model: s
     # Collect all dandiset IDs we need names for
     all_ds_ids = set()
     for r in results:
-        dandi = r.get("archives", {}).get("DANDI Archive", {})
+        dandi = r.get("archives", {}).get(archive, {})
         for did in dandi.get("dataset_ids", []):
             all_ds_ids.add(did)
 
@@ -253,7 +253,7 @@ def convert(input_file: Path, output_file: Path, classify: bool = True, model: s
     # Build all paper-dandiset pairs first
     pairs = []
     for r in results:
-        dandi = r.get("archives", {}).get("DANDI Archive", {})
+        dandi = r.get("archives", {}).get(archive, {})
         dataset_ids = dandi.get("dataset_ids", [])
         matches = dandi.get("matches", [])
 
@@ -395,6 +395,11 @@ def main():
         default=DEFAULT_MODEL,
         help=f"LLM model to use (default: {DEFAULT_MODEL})",
     )
+    parser.add_argument(
+        "--archive",
+        default="DANDI Archive",
+        help="Archive name to extract from results (default: 'DANDI Archive')",
+    )
     args = parser.parse_args()
 
     input_path = Path(args.input)
@@ -404,7 +409,7 @@ def main():
         print(f"Error: Input file not found: {input_path}", file=sys.stderr)
         sys.exit(1)
 
-    convert(input_path, output_path, classify=not args.no_classify, model=args.model)
+    convert(input_path, output_path, classify=not args.no_classify, model=args.model, archive=args.archive)
 
 
 if __name__ == "__main__":
