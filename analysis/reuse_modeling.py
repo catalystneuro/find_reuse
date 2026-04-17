@@ -158,7 +158,7 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
         t_years = t / 12
 
         # Plot data
-        ax.step(t_years, mcf_vals, where="post", color=color, linewidth=1.5, alpha=0.4)
+        ax.step(t_years, mcf_vals, where="post", color="black", linewidth=1.5)
 
         # Fit
         model_name, params, t_fit, mcf_fit = fit_mcf(t_years, mcf_vals, model="auto")
