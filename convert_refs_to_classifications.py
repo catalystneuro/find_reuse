@@ -281,80 +281,84 @@ def convert(input_file: Path, output_file: Path, classify: bool = True, model: s
 
     print(f"\nProcessing {len(pairs)} paper-dandiset pairs...")
 
-    # Process each pair
+    # Classify a single pair (for parallel execution)
+    def _classify_pair(args):
+        r, ds_id, ds_matches = args
+        doi = r["doi"]
+
+        # Check cache first
+        cached = get_cached_classification(doi, ds_id)
+        if cached:
+            return ("cache", r, ds_id, ds_matches, cached)
+
+        # Extract context
+        text = load_paper_text(doi)
+        context_excerpts = []
+        if text:
+            context_excerpts = extract_contexts_for_dataset(text, ds_id)
+
+        cls_result = classify_direct_reference(doi, ds_id, context_excerpts, api_key, model)
+        save_classification_cache(doi, ds_id, cls_result)
+        return ("api", r, ds_id, ds_matches, cls_result)
+
+    # Process pairs in parallel
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
     classifications = []
     cache_hits = 0
     api_calls = 0
     no_text = 0
     counts = {"PRIMARY": 0, "REUSE": 0, "NEITHER": 0}
 
-    for r, ds_id, ds_matches in tqdm(pairs, desc="Classifying"):
-        doi = r["doi"]
-        pattern_types = sorted(set(m["pattern_type"] for m in ds_matches))
-
-        # Extract context excerpts from paper text
-        text = load_paper_text(doi)
-        context_excerpts = []
-        if text:
-            context_excerpts = extract_contexts_for_dataset(text, ds_id)
-        else:
-            no_text += 1
-
-        # Classify using LLM (or cache)
-        if classify:
-            cached = get_cached_classification(doi, ds_id)
-            if cached:
-                cls_result = cached
+    n_workers = 16
+    with ThreadPoolExecutor(max_workers=n_workers) as pool:
+        futures = {pool.submit(_classify_pair, pair): pair for pair in pairs}
+        for future in tqdm(as_completed(futures), total=len(futures), desc="Classifying"):
+            source, r, ds_id, ds_matches, cls_result = future.result()
+            if source == "cache":
                 cache_hits += 1
             else:
-                cls_result = classify_direct_reference(
-                    doi, ds_id, context_excerpts, api_key, model
-                )
-                save_classification_cache(doi, ds_id, cls_result)
                 api_calls += 1
-                time.sleep(API_DELAY)
+
+            doi = r["doi"]
+            pattern_types = sorted(set(m["pattern_type"] for m in ds_matches))
 
             classification = cls_result.get("classification", "REUSE")
             confidence = cls_result.get("confidence", 5)
             reasoning = cls_result.get("reasoning", "")
             same_lab = cls_result.get("same_lab")
             same_lab_confidence = cls_result.get("same_lab_confidence")
-        else:
-            classification = "REUSE"
-            confidence = 10
-            reasoning = f"Paper directly references DANDI dataset {ds_id} via {', '.join(pattern_types)}"
-            same_lab = None
-            same_lab_confidence = None
+            context_excerpts = cls_result.get("context_excerpts", [])
 
-        counts[classification] = counts.get(classification, 0) + 1
+            counts[classification] = counts.get(classification, 0) + 1
 
-        entry = {
-            "citing_doi": doi,
-            "cited_doi": None,
-            "dandiset_id": ds_id,
-            "dandiset_name": ds_names.get(ds_id, ""),
-            "classification": classification,
-            "confidence": confidence,
-            "reasoning": reasoning,
-            "same_lab": same_lab,
-            "same_lab_confidence": same_lab_confidence,
-            "source_type": "direct_reference",
-            "citing_title": r.get("title", ""),
-            "citing_journal": r.get("journal", ""),
-            "citing_date": r.get("date", ""),
-            "text_source": r.get("source", ""),
-            "text_length": r.get("text_length"),
-            "num_contexts": len(context_excerpts),
-            "context_excerpts": context_excerpts,
-            "match_patterns": [
-                {
-                    "pattern_type": m["pattern_type"],
-                    "matched_string": m["matched_string"],
-                }
-                for m in ds_matches
-            ],
-        }
-        classifications.append(entry)
+            entry = {
+                "citing_doi": doi,
+                "cited_doi": None,
+                "dandiset_id": ds_id,
+                "dandiset_name": ds_names.get(ds_id, ""),
+                "classification": classification,
+                "confidence": confidence,
+                "reasoning": reasoning,
+                "same_lab": same_lab,
+                "same_lab_confidence": same_lab_confidence,
+                "source_type": "direct_reference",
+                "citing_title": r.get("title", ""),
+                "citing_journal": r.get("journal", ""),
+                "citing_date": r.get("date", ""),
+                "text_source": r.get("source", ""),
+                "text_length": r.get("text_length"),
+                "num_contexts": len(context_excerpts),
+                "context_excerpts": context_excerpts,
+                "match_patterns": [
+                    {
+                        "pattern_type": m["pattern_type"],
+                        "matched_string": m["matched_string"],
+                    }
+                    for m in ds_matches
+                ],
+            }
+            classifications.append(entry)
 
     output_data = {
         "metadata": {
