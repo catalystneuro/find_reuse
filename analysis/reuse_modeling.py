@@ -147,9 +147,15 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
         mcf_series = [("All labs", all_delay_months, "#000000")]
 
     fig, axes = plt.subplots(2, 2, figsize=(8.6, 7.2))
+    # Layout: A (top-left) + B (bottom-left) share x-axis
+    #          C (top-right) + D (bottom-right) share x-axis
+    ax_a = axes[0, 0]
+    ax_b = axes[1, 0]
+    ax_c = axes[0, 1]
+    ax_d = axes[1, 1]
 
     # === Panel A: MCF Model Fits ===
-    ax = axes[0, 0]
+    ax = ax_a
     fit_results = {}
     for label, delay_list, color in mcf_series:
         if not delay_list:
@@ -173,15 +179,15 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
             fit_results[label] = {"model": model_name, "params": params,
                                   "func": sat_exp if model_name == "saturating" else richards}
 
-    ax.set_xlabel("Years after dataset creation")
-    ax.set_ylabel("Expected reuse papers per dataset")
+    ax.set_ylabel("Expected reuse papers\nper dataset")
     ax.set_title("A. MCF: Model Fits", fontweight="bold")
     ax.legend(fontsize=9)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
+    ax.tick_params(labelbottom=False)
 
     # === Panel B: Reuse Rate (data points + model derivative) ===
-    ax = axes[0, 1]
+    ax = ax_b
     max_year = 18
     if split_labs:
         rate_series = [("Different lab", diff_delays, "#2E7D32", "s"),
@@ -227,7 +233,7 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
     ax.spines["right"].set_visible(False)
 
     # === Panel C: Dataset Growth ===
-    ax = axes[1, 0]
+    ax = ax_c
     creation_dates = sorted(created.values())
     if creation_dates:
         t0_date = creation_dates[0]
@@ -332,14 +338,14 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
             growth_func = None
             growth_params = None
 
-    ax.set_xlabel("Date")
     ax.set_ylabel(f"Cumulative {archive_name} datasets")
     ax.set_title("C. Dataset Growth", fontweight="bold")
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
+    ax.tick_params(labelbottom=False)
 
     # === Panel D: Projected Reuse ===
-    ax = axes[1, 1]
+    ax = ax_d
     if creation_dates and fit_results:
         now = analysis_cutoff
         t0_date = creation_dates[0]
