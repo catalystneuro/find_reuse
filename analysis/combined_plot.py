@@ -131,7 +131,7 @@ def plot_combined(reuse, delays, created, output_path, archive_name="Archive",
     top_journals = journals.most_common(10)
     j_names = [JOURNAL_ABBREVIATIONS.get(j, j)[:30] for j, _ in top_journals]
     j_counts = [n for _, n in top_journals]
-    colors_j = ["#FF9800" if "rxiv" in j.lower() else "#2196F3" for j, _ in top_journals]
+    colors_j = ["#9E9E9E" if "rxiv" in j.lower() else "black" for j, _ in top_journals]
     ax.barh(range(len(j_names)), j_counts, color=colors_j)
     ax.set_yticks(range(len(j_names)))
     ax.set_yticklabels(j_names, fontsize=8)
