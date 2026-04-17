@@ -360,7 +360,7 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
                 pred = logistic_growth(t_fit_data, *popt_lg)
                 bic_lg = len(t_fit_data) * np.log(np.mean((c_fit_data - pred)**2)) + 3 * np.log(len(t_fit_data))
                 fit_models["logistic"] = {"params": popt_lg, "bic": bic_lg, "func": logistic_growth,
-                                          "label": f"Logistic (K={popt_lg[0]:.0f})"}
+                                          "label": "Logistic"}
             except Exception:
                 pass
 
@@ -379,7 +379,7 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
                 pred = richards_growth(t_fit_data, *popt_rg)
                 bic_rg = len(t_fit_data) * np.log(np.mean((c_fit_data - pred)**2)) + 4 * np.log(len(t_fit_data))
                 fit_models["richards"] = {"params": popt_rg, "bic": bic_rg, "func": richards_growth,
-                                          "label": f"Richards (K={popt_rg[0]:.0f})"}
+                                          "label": "Richards"}
             except Exception:
                 pass
 
@@ -471,8 +471,7 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
                             if age_yr > 0:
                                 total_bg += func_bg(age_yr, *params_bg)
                         proj_bg.append(total_bg)
-                    ax.plot(future_dates_bg, proj_bg, "--", color=bg_color, linewidth=1.5, alpha=0.7,
-                            label=f"Proj. (~{int(proj_bg[-1])})")
+                    ax.plot(future_dates_bg, proj_bg, "--", color=bg_color, linewidth=1.5, alpha=0.7)
 
         if split_labs:
             proj_series = [("Different lab", "#2E7D32", False), ("Same lab", "#7B1FA2", True)]
@@ -521,27 +520,37 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
                 proj.append(total)
 
             ax.plot(future_dates, proj, "--", color=color, linewidth=2,
-                    label=f"Proj. (~{int(proj[-1])})")
+)
 
         ax.axvline(now, color="gray", linestyle=":", alpha=0.5)
 
-        # Saturation lines: K_mcf × n_datasets for each curve
-        n_ds = len(creation_dates)
-        if growth_func is not None:
-            # Use growth model K if available (for saturating archives)
-            try:
-                n_ds_max = int(growth_func(50, *growth_params))  # far future
-            except Exception:
-                n_ds_max = n_ds
-        else:
-            n_ds_max = n_ds
+        # Saturation lines: numerically compute the actual asymptote
+        # by evaluating the convolution far into the future
+        def _compute_saturation(mcf_func, mcf_params):
+            """Sum MCF(age) over all datasets at t=infinity (use 100 years)."""
+            far_future = now + timedelta(days=100 * 365)
+            total = 0
+            # Use growth model for total dataset count
+            if growth_func is not None:
+                t_far = (far_future - t0_date).days / 365.25
+                try:
+                    n_ds_max = int(growth_func(t_far, *growth_params))
+                except Exception:
+                    n_ds_max = len(creation_dates)
+            else:
+                n_ds_max = len(creation_dates)
+            for c_date in creation_dates:
+                age = (far_future - c_date).days / 365.25
+                if age > 0:
+                    total += mcf_func(age, *mcf_params)
+            return int(total)
 
         # Combined saturation
         if "All labs" in fit_results:
-            K_combined = fit_results["All labs"]["params"][0]
-            sat_combined = K_combined * n_ds_max
+            fr = fit_results["All labs"]
+            sat_combined = _compute_saturation(fr["func"], fr["params"])
             ax.axhline(sat_combined, color="black", linestyle=":", linewidth=0.8, alpha=0.5)
-            ax.text(ax.get_xlim()[1], sat_combined, f" {int(sat_combined)}", fontsize=7,
+            ax.text(ax.get_xlim()[1], sat_combined, f" {sat_combined}", fontsize=7,
                     va="bottom", ha="right", color="black", alpha=0.7)
 
         # Same/diff lab saturation
@@ -553,10 +562,10 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
                 t_bg, mcf_bg = compute_mcf(bg_delays_m, obs_months)
                 model_bg, params_bg, _, _ = fit_mcf(t_bg / 12, mcf_bg, model="auto")
                 if model_bg:
-                    K_bg = params_bg[0]
-                    sat_bg = K_bg * n_ds_max
+                    func_bg = sat_exp if model_bg == "saturating" else richards
+                    sat_bg = _compute_saturation(func_bg, params_bg)
                     ax.axhline(sat_bg, color=bg_color, linestyle=":", linewidth=0.8, alpha=0.5)
-                    ax.text(ax.get_xlim()[1], sat_bg, f" {int(sat_bg)}", fontsize=7,
+                    ax.text(ax.get_xlim()[1], sat_bg, f" {sat_bg}", fontsize=7,
                             va="bottom", ha="right", color=bg_color, alpha=0.7)
 
         ax.set_xlabel("Date")
