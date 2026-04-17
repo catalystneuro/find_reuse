@@ -161,12 +161,37 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
     ax = ax_a
     fit_results = {}
 
-    # When combined, show same/diff lab MCF curves as background
+    # When combined, show same/diff lab MCF curves with CIs and fits as background
     if not split_labs and diff_delays and same_delays:
-        t_d, mcf_d = compute_mcf(diff_delays, obs_months)
-        t_s, mcf_s = compute_mcf(same_delays, obs_months)
-        ax.step(t_d / 12, mcf_d, where="post", color="#2E7D32", linewidth=1.2, alpha=0.5, label="Different lab")
-        ax.step(t_s / 12, mcf_s, where="post", color="#7B1FA2", linewidth=1.2, alpha=0.5, label="Same lab")
+        rng_bg = np.random.default_rng(123)
+        ds_ids = list(obs_months.keys())
+        for bg_label, bg_delays, bg_color in [
+            ("Different lab", diff_delays, "#2E7D32"),
+            ("Same lab", same_delays, "#7B1FA2"),
+        ]:
+            t_bg, mcf_bg = compute_mcf(bg_delays, obs_months)
+            t_bg_yr = t_bg / 12
+            ax.step(t_bg_yr, mcf_bg, where="post", color=bg_color, linewidth=1.2, alpha=0.5, label=bg_label)
+
+            # Bootstrap CI
+            boot_curves_bg = []
+            for _ in range(200):
+                sample_ids = rng_bg.choice(ds_ids, size=len(ds_ids), replace=True)
+                sample_obs = {f"{did}_{j}": obs_months[did] for j, did in enumerate(sample_ids)}
+                sample_d = rng_bg.choice(bg_delays, size=len(bg_delays), replace=True).tolist()
+                t_b, mcf_b = compute_mcf(sample_d, sample_obs)
+                t_grid_bg = np.linspace(0, t_bg_yr[-1], 100)
+                boot_curves_bg.append(np.interp(t_grid_bg, t_b / 12, mcf_b))
+            boot_bg = np.array(boot_curves_bg)
+            t_grid_bg = np.linspace(0, t_bg_yr[-1], 100)
+            ax.fill_between(t_grid_bg, np.percentile(boot_bg, 2.5, axis=0),
+                            np.percentile(boot_bg, 97.5, axis=0), color=bg_color, alpha=0.1)
+
+            # Richards fit
+            model_bg, params_bg, t_fit_bg, mcf_fit_bg = fit_mcf(t_bg_yr, mcf_bg, model="auto")
+            if model_bg:
+                K_bg = params_bg[0] if model_bg == "saturating" else params_bg[0]
+                ax.plot(t_fit_bg, mcf_fit_bg, "--", color=bg_color, linewidth=1.2, alpha=0.5)
 
     for label, delay_list, color in mcf_series:
         if not delay_list:
