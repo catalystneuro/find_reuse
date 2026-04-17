@@ -169,15 +169,14 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
             else:
                 K, r, t0, nu = params
                 fit_label = f"{label} (K={K:.1f})"
-            ax.plot(t_fit, mcf_fit, color=color, linewidth=2, label=fit_label)
+            ax.plot(t_fit, mcf_fit, "--", color=color, linewidth=2, label=fit_label)
             fit_results[label] = {"model": model_name, "params": params,
                                   "func": sat_exp if model_name == "saturating" else richards}
 
     ax.set_xlabel("Years after dataset creation")
     ax.set_ylabel("Expected reuse papers per dataset")
     ax.set_title("A. MCF: Model Fits", fontweight="bold")
-    if split_labs:
-        ax.legend(fontsize=9)
+    ax.legend(fontsize=9)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
 
@@ -217,7 +216,7 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
             # Numerical derivative (per year)
             dt = t_smooth[1] - t_smooth[0]
             rate_smooth = np.gradient(mcf_smooth, dt)
-            ax.plot(t_smooth, rate_smooth, color=color, linewidth=2)
+            ax.plot(t_smooth, rate_smooth, "--", color=color, linewidth=2)
 
     ax.set_xlabel("Years after dataset creation")
     ax.set_ylabel("Reuse rate (events/dataset/yr)")
