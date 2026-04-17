@@ -112,7 +112,7 @@ def fit_mcf(t_years, mcf_vals, model="auto"):
 
 def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive",
                    analysis_cutoff=None, project_years=5, growth_model="auto",
-                   split_labs=True):
+                   split_labs=True, mcf_xlim=None):
     """Generate 2x2 modeling figure for any archive.
 
     Panels:
@@ -254,6 +254,8 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.tick_params(labelbottom=False)
+    if mcf_xlim:
+        ax.set_xlim(0, mcf_xlim)
 
     # === Panel B: Reuse Rate (data points + model derivative) ===
     ax = ax_b
@@ -349,7 +351,7 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
                 pred = power_law(t_fit_data, *popt_pl)
                 bic_pl = len(t_fit_data) * np.log(np.mean((c_fit_data - pred)**2)) + 2 * np.log(len(t_fit_data))
                 fit_models["power_law"] = {"params": popt_pl, "bic": bic_pl, "func": power_law,
-                                           "label": f"N ∝ t^{popt_pl[1]:.2f}"}
+                                           "label": f"N ~ t^{popt_pl[1]:.2f}"}
             except Exception:
                 pass
 
@@ -408,8 +410,8 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
                 ax.text(creation_dates[-1], cumulative[-1] * 0.8,
                         f" {len(creation_dates)} today", fontsize=9, color=growth_color)
 
-                # Add DANDI start annotation for non-DANDI archives
-                if archive_name != "DANDI":
+                # Add DANDI start annotation for archives that predate DANDI
+                if archive_name == "CRCNS":
                     dandi_start = datetime(2019, 9, 1)
                     if t0_date < dandi_start < creation_dates[-1]:
                         ax.axvline(dandi_start, color="gray", linestyle=":", alpha=0.7)
@@ -581,3 +583,6 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
     fig.savefig(output_path, dpi=300, bbox_inches="tight")
     plt.close()
     print(f"Saved {output_path}")
+
+    return {"ax_a": ax_a, "ax_b": ax_b, "ax_c": ax_c, "ax_d": ax_d,
+            "fit_results": fit_results}
