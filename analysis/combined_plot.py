@@ -119,6 +119,7 @@ def plot_combined(reuse, delays, created, output_path, archive_name="Archive",
     ax.set_yticklabels(names, fontsize=9)
     ax.set_xlabel("REUSE papers")
     ax.invert_yaxis()
+    ax.grid(axis="x", alpha=0.3)
 
     # === Panel B: Top Journals ===
     ax = fig.add_subplot(gs[0, 1])
@@ -179,6 +180,7 @@ def plot_combined(reuse, delays, created, output_path, archive_name="Archive",
         ax.legend(fontsize=8, frameon=False)
     ax.set_xlabel("Date")
     ax.set_ylabel("Cumulative reuse papers")
+    ax.grid(axis="y", alpha=0.3)
 
     # === Panel D: Reuse by Year (stacked by source archive) ===
     ax = fig.add_subplot(gs[1, 1])
