@@ -129,9 +129,12 @@ def plot_combined(reuse, delays, created, output_path, archive_name="Archive",
         if j:
             journals[j] += 1
     top_journals = journals.most_common(10)
+    top_set = set(j for j, _ in top_journals)
+    other_count = sum(n for j, n in journals.items() if j not in top_set)
+    top_journals.append(("Other", other_count))
     j_names = [JOURNAL_ABBREVIATIONS.get(j, j)[:30] for j, _ in top_journals]
     j_counts = [n for _, n in top_journals]
-    colors_j = ["#9E9E9E" if "rxiv" in j.lower() else "black" for j, _ in top_journals]
+    colors_j = ["#9E9E9E" if ("rxiv" in j.lower() or j == "Other") else "black" for j, _ in top_journals]
     ax.barh(range(len(j_names)), j_counts, color=colors_j)
     ax.set_yticks(range(len(j_names)))
     ax.set_yticklabels(j_names, fontsize=8)
