@@ -165,10 +165,10 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
         if model_name:
             if model_name == "saturating":
                 K, tau = params
-                fit_label = f"{label} (K={K:.1f}, τ={tau:.0f}yr)"
+                fit_label = f"Saturating exp. (K={K:.1f}, τ={tau:.0f}yr)"
             else:
                 K, r, t0, nu = params
-                fit_label = f"{label} (K={K:.1f})"
+                fit_label = f"Richards (K={K:.1f})"
             ax.plot(t_fit, mcf_fit, "--", color=color, linewidth=2, label=fit_label)
             fit_results[label] = {"model": model_name, "params": params,
                                   "func": sat_exp if model_name == "saturating" else richards}
