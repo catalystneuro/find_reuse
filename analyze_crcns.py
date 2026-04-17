@@ -436,14 +436,40 @@ def run_andersen_gill(classifications, created, datasets):
 
     adapter = CRCNSAdapter()
 
-    # Get metadata for each dataset
+    # Get metadata for each dataset -- parse species and recording type from DataCite titles
     print("Fetching metadata for Andersen-Gill...", flush=True)
     meta = {}
     for ds in datasets["results"]:
         did = ds["dandiset_id"]
-        m = adapter._parse_metadata_from_description(ds)
-        m["dandiset_created"] = ds.get("dandiset_created", ds.get("data_accessible", ""))
-        meta[did] = m
+        text = (ds.get("dandiset_name", "") + " " + ds.get("description", "")).lower()
+
+        species = "unknown"
+        for s, kw in [("mouse", ["mouse", "mice"]), ("rat", ["rat ", "rats "]),
+                      ("cat", ["cat "]), ("nhp", ["monkey", "macaque", "primate", "rhesus"]),
+                      ("human", ["human", "patient"]),
+                      ("other", ["zebra finch", "songbird", "locust", "grasshopper",
+                                 "salamander", "aplysia", "rabbit", "ferret"])]:
+            if any(k in text for k in kw):
+                species = s
+                break
+
+        rec_type = "other"
+        for rt, kw in [("extracellular", ["extracellular", "tetrode", "multi-electrode", "silicon probe",
+                                          "single-unit", "single unit", "multi-unit", "spiking activity", "spike train"]),
+                       ("intracellular", ["intracellular", "whole-cell", "whole cell", "patch clamp", "patch-clamp",
+                                          "somatic membrane potential"]),
+                       ("calcium_imaging", ["calcium imaging", "two-photon", "2-photon", "gcamp", "volumetric calcium"]),
+                       ("ECoG_EEG", ["ecog", "electrocorticograph", "eeg", "electroencephalog", "scalp"]),
+                       ("fMRI", ["fmri", "bold"])]:
+            if any(k in text for k in kw):
+                rec_type = rt
+                break
+
+        meta[did] = {
+            "species": species,
+            "recording_type": rec_type,
+            "dandiset_created": ds.get("dandiset_created", ds.get("data_accessible", "")),
+        }
 
     # Get citation counts from datasets.json
     citations = {}
@@ -539,31 +565,28 @@ def run_andersen_gill(classifications, created, datasets):
         log_citations = np.log10(max(citations.get(did, 0), 1))
         log_impact = np.log10(max(impact_factors.get(did, 0), 1))
 
+        row_template = {
+            "dandiset_id": did,
+            "species_mouse": 1 if m.get("species") == "mouse" else 0,
+            "species_rat": 1 if m.get("species") == "rat" else 0,
+            "species_human": 1 if m.get("species") == "human" else 0,
+            "species_nhp": 1 if m.get("species") == "nhp" else 0,
+            "rec_extracellular": 1 if m.get("recording_type") == "extracellular" else 0,
+            "rec_calcium_imaging": 1 if m.get("recording_type") == "calcium_imaging" else 0,
+            "rec_intracellular": 1 if m.get("recording_type") == "intracellular" else 0,
+            "log_citations": log_citations,
+            "log_impact_factor": log_impact,
+        }
+
         prev_time = 0
         for et in event_times:
             if et > obs_months:
                 break
-            rows.append({
-                "dandiset_id": did, "start": prev_time, "stop": et, "event": 1,
-                "species_mouse": 1 if m.get("species") == "mouse" else 0,
-                "species_human": 1 if m.get("species") == "human" else 0,
-                "species_nhp": 1 if m.get("species") == "nhp" else 0,
-                "modality_imaging": 1 if m.get("modality") == "imaging" else 0,
-                "log_citations": log_citations,
-                "log_impact_factor": log_impact,
-            })
+            rows.append({**row_template, "start": prev_time, "stop": et, "event": 1})
             prev_time = et
 
         if prev_time < obs_months:
-            rows.append({
-                "dandiset_id": did, "start": prev_time, "stop": obs_months, "event": 0,
-                "species_mouse": 1 if m.get("species") == "mouse" else 0,
-                "species_human": 1 if m.get("species") == "human" else 0,
-                "species_nhp": 1 if m.get("species") == "nhp" else 0,
-                "modality_imaging": 1 if m.get("modality") == "imaging" else 0,
-                "log_citations": log_citations,
-                "log_impact_factor": log_impact,
-            })
+            rows.append({**row_template, "start": prev_time, "stop": obs_months, "event": 0})
 
     df = pd.DataFrame(rows)
     if df.empty:
@@ -574,8 +597,9 @@ def run_andersen_gill(classifications, created, datasets):
     print(f"  {len(df)} intervals, {df['event'].sum():.0f} events, {df['dandiset_id'].nunique()} datasets")
 
     covariates = [
-        "species_mouse", "species_human", "species_nhp",
-        "modality_imaging", "log_citations", "log_impact_factor",
+        "species_mouse", "species_rat", "species_human", "species_nhp",
+        "rec_extracellular", "rec_calcium_imaging", "rec_intracellular",
+        "log_citations", "log_impact_factor",
     ]
 
     # Drop zero-variance columns
@@ -613,7 +637,10 @@ def run_andersen_gill(classifications, created, datasets):
         "species_nhp": "Non-human primate\n(vs other species)",
         "species_human": "Human\n(vs other species)",
         "species_mouse": "Mouse\n(vs other species)",
-        "modality_imaging": "Calcium imaging\n(vs other modality)",
+        "species_rat": "Rat\n(vs other species)",
+        "rec_extracellular": "Extracellular recording\n(vs other type)",
+        "rec_calcium_imaging": "Calcium imaging\n(vs other type)",
+        "rec_intracellular": "Intracellular recording\n(vs other type)",
     }
 
     order = sorted(covariates, key=lambda c: -results["covariates"][c]["hr"])
