@@ -3,10 +3,12 @@
 from .base import ArchiveAdapter
 from .dandi import DANDIAdapter
 from .crcns import CRCNSAdapter
+from .openneuro import OpenNeuroAdapter
 
 ADAPTERS = {
     "dandi": DANDIAdapter,
     "crcns": CRCNSAdapter,
+    "openneuro": OpenNeuroAdapter,
 }
 
 
