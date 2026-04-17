@@ -149,7 +149,7 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
     fig = plt.figure(figsize=(8.6, 7.2))
     # Layout: A (top-left) + B (bottom-left) share x-axis
     #          C (top-right) + D (bottom-right) share x-axis
-    gs = fig.add_gridspec(2, 2, hspace=0.08, wspace=0.35)
+    gs = fig.add_gridspec(2, 2, hspace=0.2, wspace=0.35)
     ax_a = fig.add_subplot(gs[0, 0])
     ax_b = fig.add_subplot(gs[1, 0], sharex=ax_a)
     ax_c = fig.add_subplot(gs[0, 1])
@@ -166,6 +166,34 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
 
         # Plot data
         ax.step(t_years, mcf_vals, where="post", color="black", linewidth=1.5)
+
+        # Bootstrap confidence interval for MCF
+        rng = np.random.default_rng(42)
+        ds_ids = list(obs_months.keys())
+        # Group events by dataset
+        events_by_ds = {}
+        for d_months in delay_list:
+            # Find which dataset this came from (approximate by matching)
+            events_by_ds.setdefault("_all", []).append(d_months)
+        n_boot = 200
+        boot_curves = []
+        for _ in range(n_boot):
+            # Resample datasets with replacement
+            sample_ids = rng.choice(ds_ids, size=len(ds_ids), replace=True)
+            sample_obs = {f"{did}_{j}": obs_months[did] for j, did in enumerate(sample_ids)}
+            # Resample events proportionally
+            sample_delays = rng.choice(delay_list, size=len(delay_list), replace=True).tolist()
+            t_b, mcf_b = compute_mcf(sample_delays, sample_obs)
+            # Interpolate to common grid
+            t_grid = np.linspace(0, t_years[-1], 100)
+            mcf_interp = np.interp(t_grid, t_b / 12, mcf_b)
+            boot_curves.append(mcf_interp)
+
+        boot_arr = np.array(boot_curves)
+        ci_lo = np.percentile(boot_arr, 2.5, axis=0)
+        ci_hi = np.percentile(boot_arr, 97.5, axis=0)
+        t_grid = np.linspace(0, t_years[-1], 100)
+        ax.fill_between(t_grid, ci_lo, ci_hi, color="gray", alpha=0.2)
 
         # Fit
         model_name, params, t_fit, mcf_fit = fit_mcf(t_years, mcf_vals, model="auto")
@@ -218,7 +246,7 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
         # Overlay derivative of MCF fit from Panel A
         if label in fit_results:
             fr = fit_results[label]
-            t_smooth = np.linspace(0.1, max(centers) + 1, 200)
+            t_smooth = np.linspace(0.1, 20, 200)
             mcf_smooth = fr["func"](t_smooth, *fr["params"])
             # Numerical derivative (per year)
             dt = t_smooth[1] - t_smooth[0]
