@@ -254,6 +254,16 @@ def plot_reuse_type(reuse):
         return
 
     fig, ax = plt.subplots(figsize=(6, 4))
+    label_map = {
+        "TOOL_DEMO": "Tool demo",
+        "NOVEL_ANALYSIS": "Novel analysis",
+        "AGGREGATION": "Aggregation",
+        "BENCHMARK": "Benchmark",
+        "CONFIRMATORY": "Confirmatory",
+        "SIMULATION": "Simulation",
+        "ML_TRAINING": "ML training",
+        "TEACHING": "Teaching",
+    }
     names = [t for t, _ in all_types.most_common()]
     diff_vals = [types_diff.get(t, 0) for t in names]
     same_vals = [types_same.get(t, 0) for t in names]
@@ -262,7 +272,7 @@ def plot_reuse_type(reuse):
     ax.barh(y_pos, diff_vals, color="#2E7D32", alpha=0.8, label="Different lab")
     ax.barh(y_pos, same_vals, left=diff_vals, color="#7B1FA2", alpha=0.8, label="Same lab")
     ax.set_yticks(y_pos)
-    ax.set_yticklabels(names, fontsize=9)
+    ax.set_yticklabels([label_map.get(t, t) for t in names], fontsize=9)
     ax.set_xlabel("Count")
     ax.set_title("Reuse Types (CRCNS)", fontweight="bold")
     ax.legend(fontsize=8)
