@@ -1208,23 +1208,43 @@ class ArchiveFinder:
             self.log("No papers found")
             return result
         
-        # Process each paper
-        self.log(f"Processing {len(papers_list)} unique papers...")
+        # Pre-fetch paper texts in parallel (the bottleneck is HTTP requests)
+        self.log(f"Pre-fetching text for {len(papers_list)} papers (parallel)...")
+        dois_to_fetch = [p['doi'] for p in papers_list if p.get('doi')]
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        def _prefetch(doi):
+            try:
+                self.get_paper_text(doi)
+            except Exception:
+                pass
+            return doi
+
+        n_workers = 8
+        fetched = 0
+        with ThreadPoolExecutor(max_workers=n_workers) as pool:
+            futures = {pool.submit(_prefetch, doi): doi for doi in dois_to_fetch}
+            for future in tqdm(as_completed(futures), total=len(futures),
+                               desc="Fetching text", file=sys.stderr):
+                fetched += 1
+
+        # Process each paper (pattern matching is fast, text already cached)
+        self.log(f"Analyzing {len(papers_list)} papers for dataset references...")
         papers_with_datasets = 0
         papers_by_archive = {}  # Track papers with datasets by archive
         datasets_by_archive = {}  # Track unique dataset IDs per archive
         papers_exclusive_to_archive = {}  # Track papers that ONLY reference one archive
-        
+
         paper_iterator = tqdm(papers_list, desc="Analyzing papers", file=sys.stderr)
-        
+
         for paper in paper_iterator:
             doi = paper.get('doi')
             if not doi:
                 continue
-            
+
             paper_iterator.set_postfix_str(doi[:40] + "..." if len(doi) > 40 else doi)
-            
-            # Find dataset references (searches ALL archive patterns)
+
+            # Find dataset references (text already cached from parallel fetch)
             paper_result, from_cache = self.find_references(doi)
             
             # Add paper metadata
