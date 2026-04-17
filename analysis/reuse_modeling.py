@@ -146,7 +146,7 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
     else:
         mcf_series = [("All labs", all_delay_months, "#000000")]
 
-    fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+    fig, axes = plt.subplots(2, 2, figsize=(9.6, 8))
 
     # === Panel A: MCF Model Fits ===
     ax = axes[0, 0]
@@ -235,8 +235,9 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
         t_years_growth = np.array([(d - t0_date).days / 365.25 for d in creation_dates])
         cumulative = np.arange(1, len(creation_dates) + 1)
 
+        growth_color = "#000000" if not split_labs else "#1565c0"
         ax.plot([t0_date + timedelta(days=t * 365.25) for t in t_years_growth],
-                cumulative, color="#1565c0", linewidth=2)
+                cumulative, color=growth_color, linewidth=2)
 
         mask = t_years_growth > 0
         t_fit_data = t_years_growth[mask]
@@ -303,7 +304,7 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
                 max_t = t_fit_data[-1] + project_years
                 t_proj = np.linspace(0.1, max_t, 200)
                 dates_proj = [t0_date + timedelta(days=t * 365.25) for t in t_proj]
-                ax.plot(dates_proj, fm["func"](t_proj, *fm["params"]), "--", color="#1565c0",
+                ax.plot(dates_proj, fm["func"](t_proj, *fm["params"]), "--", color=growth_color,
                         linewidth=1.5, label=fm["label"])
 
                 # Store for Panel D projection
@@ -312,7 +313,15 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
 
                 ax.axvline(creation_dates[-1], color="gray", linestyle=":", alpha=0.5)
                 ax.text(creation_dates[-1], cumulative[-1] * 0.8,
-                        f" {len(creation_dates)} today", fontsize=9, color="#1565c0")
+                        f" {len(creation_dates)} today", fontsize=9, color=growth_color)
+
+                # Add DANDI start annotation for non-DANDI archives
+                if archive_name != "DANDI":
+                    dandi_start = datetime(2019, 9, 1)
+                    if t0_date < dandi_start < creation_dates[-1]:
+                        ax.axvline(dandi_start, color="gray", linestyle=":", alpha=0.7)
+                        ax.text(dandi_start, cumulative[-1] * 0.4, " DANDI\n launched",
+                                fontsize=8, color="gray", ha="left")
                 ax.legend(fontsize=9)
             else:
                 growth_func = None
@@ -349,9 +358,9 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
             else:
                 obs_dates = sorted(d["pub_date"] for d in delays if d["same_lab"] == is_same)
             if obs_dates:
+                obs_label = f"{label} ({len(obs_dates)})" if split_labs else f"Observed ({len(obs_dates)})"
                 ax.plot(obs_dates, range(1, len(obs_dates) + 1),
-                        color=color, linewidth=2,
-                        label=f"{label} ({len(obs_dates)})")
+                        color=color, linewidth=2, label=obs_label)
 
             # Future: project from now using growth model + MCF
             future_dates = [now + timedelta(days=d) for d in
