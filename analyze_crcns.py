@@ -220,41 +220,52 @@ def plot_mcf(delays, created, lab_type="different"):
     print(f"Saved mcf_{lab_type}_lab.png")
 
 
-def plot_reuse_type(reuse):
-    """Reuse type distribution."""
-    # Load reuse types from cache -- try multiple filename patterns
+def _get_reuse_type(c):
+    """Look up reuse type from cache for a classification entry."""
     type_cache = Path(".reuse_type_cache")
-    types = Counter()
-    for c in reuse:
-        doi = c["citing_doi"]
-        did = c.get("dandiset_id", "")
-        safe_doi = doi.replace("/", "_")
-        # Try different patterns (DANDI uses one format, CRCNS another)
-        found = False
-        for pattern in [f"{safe_doi}_{did}.json", f"{safe_doi}__{did}.json"]:
-            cache_file = type_cache / pattern
-            if cache_file.exists():
-                with open(cache_file) as f:
-                    d = json.load(f)
-                types[d.get("reuse_type", "unknown")] += 1
-                found = True
-                break
-        if not found:
-            types["unknown"] += 1
+    doi = c["citing_doi"]
+    did = c.get("dandiset_id", "")
+    safe_doi = doi.replace("/", "_")
+    for pattern in [f"{safe_doi}_{did}.json", f"{safe_doi}__{did}.json"]:
+        cache_file = type_cache / pattern
+        if cache_file.exists():
+            with open(cache_file) as f:
+                d = json.load(f)
+            return d.get("reuse_type", "unknown")
+    return "unknown"
 
-    if not types or all(v == 0 for v in types.values()):
+
+def plot_reuse_type(reuse):
+    """Reuse type distribution, stacked by same/different lab."""
+    types_diff = Counter()
+    types_same = Counter()
+    for c in reuse:
+        rt = _get_reuse_type(c)
+        if rt == "unknown":
+            continue
+        if c.get("same_lab") is True:
+            types_same[rt] += 1
+        else:
+            types_diff[rt] += 1
+
+    all_types = types_diff + types_same
+    if not all_types:
         print("No reuse types available, skipping")
         return
 
     fig, ax = plt.subplots(figsize=(6, 4))
-    names = [t for t, _ in types.most_common() if t != "unknown"]
-    counts = [types[t] for t in names]
+    names = [t for t, _ in all_types.most_common()]
+    diff_vals = [types_diff.get(t, 0) for t in names]
+    same_vals = [types_same.get(t, 0) for t in names]
+    y_pos = range(len(names))
 
-    bars = ax.barh(range(len(names)), counts, color="#FF9800")
-    ax.set_yticks(range(len(names)))
+    ax.barh(y_pos, diff_vals, color="#2E7D32", alpha=0.8, label="Different lab")
+    ax.barh(y_pos, same_vals, left=diff_vals, color="#7B1FA2", alpha=0.8, label="Same lab")
+    ax.set_yticks(y_pos)
     ax.set_yticklabels(names, fontsize=9)
     ax.set_xlabel("Count")
     ax.set_title("Reuse Types (CRCNS)", fontweight="bold")
+    ax.legend(fontsize=8)
     ax.invert_yaxis()
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
