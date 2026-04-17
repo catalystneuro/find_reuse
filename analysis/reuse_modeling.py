@@ -146,7 +146,7 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
     else:
         mcf_series = [("All labs", all_delay_months, "#000000")]
 
-    fig, axes = plt.subplots(2, 2, figsize=(9.6, 8))
+    fig, axes = plt.subplots(2, 2, figsize=(8.6, 7.2))
 
     # === Panel A: MCF Model Fits ===
     ax = axes[0, 0]
