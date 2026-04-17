@@ -726,7 +726,8 @@ def main():
     # Reuse count distribution
     from analysis.reuse_distribution import plot_reuse_distribution
     plot_reuse_distribution(reuse, created, FIGURES_DIR / "reuse_distribution.png",
-                            archive_name="CRCNS", analysis_cutoff=ANALYSIS_CUTOFF)
+                            archive_name="CRCNS", analysis_cutoff=ANALYSIS_CUTOFF,
+                            windows=(5, None))
 
     run_andersen_gill(classifications, created, datasets)
 
