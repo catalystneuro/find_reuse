@@ -57,11 +57,22 @@ def sat_exp(t, K, tau):
     return K * (1 - np.exp(-t / tau))
 
 
+def _quadratic(t, a, b):
+    """Quadratic MCF: a*t^2 + b*t (non-saturating)."""
+    return a * t**2 + b * t
+
+
+def _power_law_mcf(t, a, b):
+    """Power law MCF: a * t^b (non-saturating)."""
+    return a * t**b
+
+
 def fit_mcf(t_years, mcf_vals, model="auto"):
-    """Fit MCF with Richards or saturating exponential.
+    """Fit MCF with various models.
 
     Args:
-        model: "richards", "saturating", or "auto" (try both, pick best BIC)
+        model: "richards", "saturating", "quadratic", "power_law", or "auto"
+               "auto" tries all and picks best BIC.
 
     Returns (model_name, params, t_fit, mcf_fit)
     """
@@ -75,10 +86,7 @@ def fit_mcf(t_years, mcf_vals, model="auto"):
         try:
             popt, _ = curve_fit(sat_exp, t, m, p0=[m[-1] * 1.5, 5], maxfev=5000)
             pred = sat_exp(t, *popt)
-            residuals = m - pred
-            n = len(m)
-            k = 2
-            bic = n * np.log(np.mean(residuals**2)) + k * np.log(n)
+            bic = len(m) * np.log(np.mean((m - pred)**2)) + 2 * np.log(len(m))
             results["saturating"] = {"params": popt, "bic": bic, "func": sat_exp}
         except Exception:
             pass
@@ -88,11 +96,26 @@ def fit_mcf(t_years, mcf_vals, model="auto"):
             popt, _ = curve_fit(richards, t, m, p0=[m[-1] * 1.5, 1, 3, 2],
                                 maxfev=10000, bounds=([0, 0, 0, 0.1], [100, 10, 50, 20]))
             pred = richards(t, *popt)
-            residuals = m - pred
-            n = len(m)
-            k = 4
-            bic = n * np.log(np.mean(residuals**2)) + k * np.log(n)
+            bic = len(m) * np.log(np.mean((m - pred)**2)) + 4 * np.log(len(m))
             results["richards"] = {"params": popt, "bic": bic, "func": richards}
+        except Exception:
+            pass
+
+    if model in ("quadratic", "auto"):
+        try:
+            popt, _ = curve_fit(_quadratic, t, m, p0=[0.01, 0.1], maxfev=5000)
+            pred = _quadratic(t, *popt)
+            bic = len(m) * np.log(np.mean((m - pred)**2)) + 2 * np.log(len(m))
+            results["quadratic"] = {"params": popt, "bic": bic, "func": _quadratic}
+        except Exception:
+            pass
+
+    if model in ("power_law", "auto"):
+        try:
+            popt, _ = curve_fit(_power_law_mcf, t, m, p0=[0.1, 1.5], maxfev=5000)
+            pred = _power_law_mcf(t, *popt)
+            bic = len(m) * np.log(np.mean((m - pred)**2)) + 2 * np.log(len(m))
+            results["power_law"] = {"params": popt, "bic": bic, "func": _power_law_mcf}
         except Exception:
             pass
 
@@ -239,17 +262,28 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
         if model_name:
             if model_name == "saturating":
                 K, tau = params
-                fit_label = f"Saturating exp. (K={K:.1f}, τ={tau:.0f}yr)"
-            else:
+                fit_label = f"Saturating exp. (K={K:.1f})"
+            elif model_name == "richards":
                 K, r, t0, nu = params
                 fit_label = f"Richards (K={K:.1f})"
+            elif model_name == "quadratic":
+                a, b = params
+                fit_label = f"Quadratic"
+            elif model_name == "power_law":
+                a, b = params
+                fit_label = f"Power law (b={b:.1f})"
+            else:
+                fit_label = model_name
             ax.plot(t_fit, mcf_fit, "--", color=color, linewidth=2, label=fit_label)
-            if show_k_lines:
-                ax.axhline(K, color=color, linestyle=":", linewidth=0.8, alpha=0.5)
-            if show_k_lines:
-                ax.text(0.3, K, f" K={K:.1f}", fontsize=7, color=color, va="bottom", alpha=0.8)
+            if show_k_lines and model_name in ("saturating", "richards"):
+                K_val = params[0]
+                ax.axhline(K_val, color=color, linestyle=":", linewidth=0.8, alpha=0.5)
+                ax.text(0.3, K_val, f" K={K_val:.1f}", fontsize=7, color=color, va="bottom", alpha=0.8)
+            # Store the actual function from fit_mcf results
+            func_map = {"saturating": sat_exp, "richards": richards,
+                        "quadratic": _quadratic, "power_law": _power_law_mcf}
             fit_results[label] = {"model": model_name, "params": params,
-                                  "func": sat_exp if model_name == "saturating" else richards}
+                                  "func": func_map.get(model_name, sat_exp)}
 
     ax.set_ylabel("Expected reuse papers\nper dataset")
     ax.set_title("A. MCF: Model Fits", fontweight="bold")
@@ -307,7 +341,7 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
             t_bg, mcf_bg = compute_mcf(bg_delays, obs_months)
             model_bg, params_bg, t_fit_bg, mcf_fit_bg = fit_mcf(t_bg / 12, mcf_bg, model="auto")
             if model_bg:
-                func_bg = sat_exp if model_bg == "saturating" else richards
+                func_bg = {"saturating": sat_exp, "richards": richards, "quadratic": _quadratic, "power_law": _power_law_mcf}.get(model_bg, sat_exp)
                 t_smooth_bg = np.linspace(0.1, 20, 200)
                 mcf_smooth_bg = func_bg(t_smooth_bg, *params_bg)
                 dt_bg = t_smooth_bg[1] - t_smooth_bg[0]
@@ -457,7 +491,7 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
                 t_bg, mcf_bg = compute_mcf(bg_delays_m, obs_months)
                 model_bg, params_bg, _, _ = fit_mcf(t_bg / 12, mcf_bg, model="auto")
                 if model_bg and growth_func is not None:
-                    func_bg = sat_exp if model_bg == "saturating" else richards
+                    func_bg = {"saturating": sat_exp, "richards": richards, "quadratic": _quadratic, "power_law": _power_law_mcf}.get(model_bg, sat_exp)
                     future_dates_bg = [now + timedelta(days=d) for d in
                                        range(0, int((future_end - now).days), 30)]
                     proj_bg = []
@@ -558,7 +592,7 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
                     t_bg, mcf_bg = compute_mcf(bg_delays_m, obs_months)
                     model_bg, params_bg, _, _ = fit_mcf(t_bg / 12, mcf_bg, model="auto")
                     if model_bg:
-                        func_bg = sat_exp if model_bg == "saturating" else richards
+                        func_bg = {"saturating": sat_exp, "richards": richards, "quadratic": _quadratic, "power_law": _power_law_mcf}.get(model_bg, sat_exp)
                         sat_bg = _compute_saturation(func_bg, params_bg)
                         ax.axhline(sat_bg, color=bg_color, linestyle=":", linewidth=0.8, alpha=0.5)
                         ax.text(ax.get_xlim()[1], sat_bg, f" {sat_bg}", fontsize=7,
