@@ -109,8 +109,7 @@ def fit_mcf(t_years, mcf_vals, model="auto"):
 
 
 def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive",
-                   analysis_cutoff=None, project_years=5, growth_model="auto",
-                   split_labs=True):
+                   analysis_cutoff=None, project_years=5, growth_model="auto"):
     """Generate 2x2 modeling figure.
 
     Args:
@@ -130,23 +129,16 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
 
     diff_delays = [d["delay_months"] for d in delays if d["same_lab"] is False]
     same_delays = [d["delay_months"] for d in delays if d["same_lab"] is True]
-    all_delays = [d["delay_months"] for d in delays]
 
     fig, axes = plt.subplots(2, 2, figsize=(12, 10))
 
     # === Panel A: MCF Model Fits ===
     ax = axes[0, 0]
     fit_results = {}
-    if split_labs:
-        mcf_series = [
-            ("Different lab", diff_delays, "#2E7D32"),
-            ("Same lab", same_delays, "#7B1FA2"),
-        ]
-    else:
-        mcf_series = [
-            ("All labs", all_delays, "#1565c0"),
-        ]
-    for label, delay_list, color in mcf_series:
+    for label, delay_list, color in [
+        ("Different lab", diff_delays, "#2E7D32"),
+        ("Same lab", same_delays, "#7B1FA2"),
+    ]:
         if not delay_list:
             continue
         t, mcf_vals = compute_mcf(delay_list, obs_months)
@@ -178,16 +170,10 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
     # === Panel B: Reuse Rate (data points + model derivative) ===
     ax = axes[0, 1]
     max_year = 18
-    if split_labs:
-        rate_series = [
-            ("Different lab", diff_delays, "#2E7D32", "s"),
-            ("Same lab", same_delays, "#7B1FA2", "D"),
-        ]
-    else:
-        rate_series = [
-            ("All labs", all_delays, "#1565c0", "o"),
-        ]
-    for label, delay_list, color, marker in rate_series:
+    for label, delay_list, color, marker in [
+        ("Different lab", diff_delays, "#2E7D32", "s"),
+        ("Same lab", same_delays, "#7B1FA2", "D"),
+    ]:
         if not delay_list:
             continue
         delay_years = [d / 12 for d in delay_list]
@@ -331,20 +317,13 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
         t0_date = creation_dates[0]
         future_end = now + timedelta(days=project_years * 365.25)
 
-        if split_labs:
-            proj_series = [("Different lab", "#2E7D32", False), ("Same lab", "#7B1FA2", True)]
-        else:
-            proj_series = [("All labs", "#1565c0", None)]
-        for label, color, is_same in proj_series:
+        for label, color, is_same in [("Different lab", "#2E7D32", False), ("Same lab", "#7B1FA2", True)]:
             if label not in fit_results:
                 continue
             fr = fit_results[label]
 
             # Past: plot observed cumulative counts
-            if is_same is None:
-                obs_dates = sorted(d["pub_date"] for d in delays)
-            else:
-                obs_dates = sorted(d["pub_date"] for d in delays if d["same_lab"] == is_same)
+            obs_dates = sorted(d["pub_date"] for d in delays if d["same_lab"] == is_same)
             if obs_dates:
                 ax.plot(obs_dates, range(1, len(obs_dates) + 1),
                         color=color, linewidth=2,
