@@ -46,6 +46,27 @@ JOURNAL_NORMALIZE = {
     "Research Square (Research Square)": "Research Square",
 }
 
+JOURNAL_ABBREVIATIONS = {
+    "Nature Communications": "Nat. Commun.",
+    "Nature Neuroscience": "Nat. Neurosci.",
+    "Nature Methods": "Nat. Methods",
+    "Nature Biotechnology": "Nat. Biotechnol.",
+    "PLoS Computational Biology": "PLoS Comput. Biol.",
+    "PLoS ONE": "PLoS ONE",
+    "Journal of Neuroscience": "J. Neurosci.",
+    "Journal of Neurophysiology": "J. Neurophysiol.",
+    "Scientific Reports": "Sci. Rep.",
+    "Current Biology": "Curr. Biol.",
+    "Cell Reports": "Cell Rep.",
+    "Proceedings of the National Academy of Sciences": "PNAS",
+    "Proceedings of the National Academy of Sciences of the United States of America": "PNAS",
+    "Frontiers in Neuroscience": "Front. Neurosci.",
+    "Frontiers in Computational Neuroscience": "Front. Comput. Neurosci.",
+    "Frontiers in Neural Circuits": "Front. Neural Circuits",
+    "Journal of Computational Neuroscience": "J. Comput. Neurosci.",
+    "Neural Computation": "Neural Comput.",
+}
+
 
 def normalize_archive(name):
     return ARCHIVE_NORMALIZE.get(name, name)
@@ -107,7 +128,7 @@ def plot_combined(reuse, delays, created, output_path, archive_name="Archive",
         if j:
             journals[j] += 1
     top_journals = journals.most_common(10)
-    j_names = [j[:30] for j, _ in top_journals]
+    j_names = [JOURNAL_ABBREVIATIONS.get(j, j)[:30] for j, _ in top_journals]
     j_counts = [n for _, n in top_journals]
     colors_j = ["#FF9800" if "rxiv" in j.lower() else "#2196F3" for j, _ in top_journals]
     ax.barh(range(len(j_names)), j_counts, color=colors_j)
