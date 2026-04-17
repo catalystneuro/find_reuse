@@ -190,8 +190,10 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
             # Richards fit
             model_bg, params_bg, t_fit_bg, mcf_fit_bg = fit_mcf(t_bg_yr, mcf_bg, model="auto")
             if model_bg:
-                K_bg = params_bg[0] if model_bg == "saturating" else params_bg[0]
+                K_bg = params_bg[0]
                 ax.plot(t_fit_bg, mcf_fit_bg, "--", color=bg_color, linewidth=1.2, alpha=0.5)
+                ax.axhline(K_bg, color=bg_color, linestyle=":", linewidth=0.8, alpha=0.4)
+                ax.text(0.3, K_bg, f" K={K_bg:.1f}", fontsize=7, color=bg_color, va="bottom", alpha=0.7)
 
     for label, delay_list, color in mcf_series:
         if not delay_list:
@@ -241,6 +243,8 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
                 K, r, t0, nu = params
                 fit_label = f"Richards (K={K:.1f})"
             ax.plot(t_fit, mcf_fit, "--", color=color, linewidth=2, label=fit_label)
+            ax.axhline(K, color=color, linestyle=":", linewidth=0.8, alpha=0.5)
+            ax.text(0.3, K, f" K={K:.1f}", fontsize=7, color=color, va="bottom", alpha=0.8)
             fit_results[label] = {"model": model_name, "params": params,
                                   "func": sat_exp if model_name == "saturating" else richards}
 
@@ -288,6 +292,22 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
             dt = t_smooth[1] - t_smooth[0]
             rate_smooth = np.gradient(mcf_smooth, dt)
             ax.plot(t_smooth, rate_smooth, "--", color=color, linewidth=2)
+
+    # When combined, also show same/diff lab derivatives
+    if not split_labs and diff_delays and same_delays:
+        for bg_label, bg_delays, bg_color in [
+            ("Different lab", diff_delays, "#2E7D32"),
+            ("Same lab", same_delays, "#7B1FA2"),
+        ]:
+            t_bg, mcf_bg = compute_mcf(bg_delays, obs_months)
+            model_bg, params_bg, t_fit_bg, mcf_fit_bg = fit_mcf(t_bg / 12, mcf_bg, model="auto")
+            if model_bg:
+                func_bg = sat_exp if model_bg == "saturating" else richards
+                t_smooth_bg = np.linspace(0.1, 20, 200)
+                mcf_smooth_bg = func_bg(t_smooth_bg, *params_bg)
+                dt_bg = t_smooth_bg[1] - t_smooth_bg[0]
+                rate_bg = np.gradient(mcf_smooth_bg, dt_bg)
+                ax.plot(t_smooth_bg, rate_bg, "--", color=bg_color, linewidth=1.2, alpha=0.5)
 
     ax.set_xlabel("Years after dataset creation")
     ax.set_ylabel("Reuse rate (events/dataset/yr)")
@@ -415,6 +435,14 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
         now = analysis_cutoff
         t0_date = creation_dates[0]
         future_end = now + timedelta(days=project_years * 365.25)
+
+        # When combined, show same/diff lab observed lines as background
+        if not split_labs:
+            for bg_label, bg_color, bg_same in [("Different lab", "#2E7D32", False), ("Same lab", "#7B1FA2", True)]:
+                bg_dates = sorted(d["pub_date"] for d in delays if d["same_lab"] == bg_same)
+                if bg_dates:
+                    ax.plot(bg_dates, range(1, len(bg_dates) + 1),
+                            color=bg_color, linewidth=1.2, alpha=0.5, label=f"{bg_label} ({len(bg_dates)})")
 
         if split_labs:
             proj_series = [("Different lab", "#2E7D32", False), ("Same lab", "#7B1FA2", True)]
