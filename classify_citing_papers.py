@@ -458,11 +458,11 @@ def load_citation_pairs_from_contexts(contexts_file: Path) -> list[dict]:
 
 def fetch_dandiset_names(pairs: list[dict]) -> None:
     """
-    Populate dandiset_name for pairs where it's missing, using the DANDI API.
+    Populate dandiset_name for pairs where it's missing.
 
-    Modifies pairs in-place. Caches results so each dandiset is only fetched once.
+    Tries archive datasets.json files first, falls back to DANDI API.
+    Modifies pairs in-place.
     """
-    # Collect unique dandiset IDs that need names
     need_names = set()
     for pair in pairs:
         if not pair.get('dandiset_name') and pair.get('dandiset_id'):
@@ -471,26 +471,40 @@ def fetch_dandiset_names(pairs: list[dict]) -> None:
     if not need_names:
         return
 
-    print(f"Fetching names for {len(need_names)} dandisets from DANDI API...", file=sys.stderr)
+    # Try loading from any archive's datasets.json
     name_cache = {}
+    for archive_dir in Path("output").iterdir():
+        ds_path = archive_dir / "datasets.json"
+        if ds_path.exists():
+            try:
+                with open(ds_path) as f:
+                    ds_data = json.load(f)
+                for r in ds_data.get("results", []):
+                    did = r.get("dandiset_id", r.get("id", ""))
+                    if did in need_names and did not in name_cache:
+                        name_cache[did] = r.get("dandiset_name", r.get("name", ""))
+            except Exception:
+                pass
 
-    for dandiset_id in need_names:
-        try:
-            resp = requests.get(
-                f'https://api.dandiarchive.org/api/dandisets/{dandiset_id}/',
-                timeout=10,
-            )
-            if resp.status_code == 200:
-                data = resp.json()
-                # Name is in the most_recent_published_version or draft_version
-                version = data.get('most_recent_published_version') or data.get('draft_version') or {}
-                name = version.get('name', '')
-                name_cache[dandiset_id] = name
-            else:
+    # Fallback: DANDI API for any remaining
+    remaining = need_names - set(name_cache.keys())
+    if remaining:
+        print(f"Fetching names for {len(remaining)} datasets from DANDI API...", file=sys.stderr)
+        for dandiset_id in remaining:
+            try:
+                resp = requests.get(
+                    f'https://api.dandiarchive.org/api/dandisets/{dandiset_id}/',
+                    timeout=10,
+                )
+                if resp.status_code == 200:
+                    data = resp.json()
+                    version = data.get('most_recent_published_version') or data.get('draft_version') or {}
+                    name_cache[dandiset_id] = version.get('name', '')
+                else:
+                    name_cache[dandiset_id] = ''
+            except Exception:
                 name_cache[dandiset_id] = ''
-        except Exception:
-            name_cache[dandiset_id] = ''
-        time.sleep(0.2)  # Be polite to the API
+            time.sleep(0.2)
 
     # Apply names
     for pair in pairs:

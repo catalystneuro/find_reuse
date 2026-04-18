@@ -204,8 +204,31 @@ def classify_direct_reference(
     }
 
 
-def fetch_dandiset_names(dandiset_ids: list[str]) -> dict[str, str]:
-    """Fetch dandiset names from DANDI API for a list of IDs."""
+def fetch_dandiset_names(dandiset_ids: list[str], archive: str = "DANDI Archive") -> dict[str, str]:
+    """Fetch dataset names for a list of IDs.
+
+    Uses archive adapter if available, falls back to DANDI API.
+    """
+    # Try to load from the archive's datasets.json first
+    archive_short = {
+        "DANDI Archive": "dandi", "CRCNS": "crcns",
+        "OpenNeuro": "openneuro", "SPARC": "sparc",
+    }.get(archive, archive.lower())
+
+    datasets_path = Path(f"output/{archive_short}/datasets.json")
+    if datasets_path.exists():
+        with open(datasets_path) as f:
+            ds_data = json.load(f)
+        names = {}
+        for r in ds_data.get("results", []):
+            did = r.get("dandiset_id", r.get("id", ""))
+            if did in dandiset_ids:
+                names[did] = r.get("dandiset_name", r.get("name", ""))
+        # Return if we found most of them
+        if len(names) >= len(dandiset_ids) * 0.5:
+            return names
+
+    # Fallback: query DANDI API directly (for backwards compatibility)
     names = {}
     for ds_id in tqdm(dandiset_ids, desc="Fetching dandiset names"):
         try:
@@ -249,7 +272,7 @@ def convert(input_file: Path, output_file: Path, classify: bool = True, model: s
 
     # Fetch dandiset names
     print(f"Fetching names for {len(all_ds_ids)} dandisets from DANDI API...")
-    ds_names = fetch_dandiset_names(sorted(all_ds_ids))
+    ds_names = fetch_dandiset_names(sorted(all_ds_ids), archive=archive)
     named = sum(1 for v in ds_names.values() if v)
     print(f"Got names for {named}/{len(all_ds_ids)} dandisets")
 

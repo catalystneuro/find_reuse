@@ -34,7 +34,7 @@ def _count_reuse_per_dataset(reuse, created, cutoff, window_years=None):
         age_years = (cutoff - c_date).days / 365.25
         n = 0
         for c in reuse:
-            if c.get("dandiset_id") != did:
+            if c.get("dandiset_id", c.get("dataset_id")) != did:
                 continue
             date_str = c.get("citing_date") or c.get("cached_at", "")[:10]
             if not date_str:

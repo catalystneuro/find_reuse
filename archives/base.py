@@ -106,8 +106,10 @@ class ArchiveAdapter(ABC):
             papers = self.get_primary_papers(ds)
 
             results.append({
-                "dandiset_id": ds["id"],  # keep field name for compatibility
-                "dandiset_name": ds["name"],
+                "dandiset_id": ds["id"],  # legacy field name for compatibility
+                "dataset_id": ds["id"],   # preferred field name
+                "dandiset_name": ds["name"],  # legacy
+                "dataset_name": ds["name"],   # preferred
                 "dandiset_url": ds.get("url", ""),
                 "dandiset_doi": ds.get("doi", ""),
                 "dandiset_created": ds.get("created", ""),

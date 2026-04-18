@@ -35,9 +35,28 @@ EXCLUDE_RESOURCE_TYPES = {
 }
 
 
+# Neural Latents Benchmark dandisets (hosted exclusively on DANDI)
+NLB_DANDISET_IDS = {
+    "000128", "000129", "000127", "000130", "000138", "000139",
+    "000140", "000688", "000950", "000954",
+}
+
+# Allen Institute dandisets
+ALLEN_DANDISET_IDS = {
+    "000020", "000036", "000037", "000039", "000049", "000108", "000248",
+    "000253", "000336", "000340", "000563", "000569", "000570", "000617",
+    "000635", "000690", "000711", "000768", "000769", "000871", "000933",
+    "000934", "001046", "001245", "001289", "001351", "001359", "001455",
+    "001464", "001475", "001625", "001626",
+}
+
+
 class DANDIAdapter(ArchiveAdapter):
     name = "DANDI Archive"
     short_name = "dandi"
+
+    NLB_DANDISET_IDS = NLB_DANDISET_IDS
+    ALLEN_DANDISET_IDS = ALLEN_DANDISET_IDS
     search_terms = {
         "names": ["dandi", "dandiarchive"],
         "urls": ["dandiarchive.org"],

@@ -26,8 +26,10 @@ ANALYSIS_CUTOFF = datetime(2025, 10, 7)
 
 
 def fetch_dandiset_metadata():
-    """Fetch species, approach, size, subjects from DANDI API."""
-    session = requests.Session()
+    """Fetch species, approach, size, subjects via DANDIAdapter."""
+    from archives.dandi import DANDIAdapter
+
+    adapter = DANDIAdapter()
 
     with open("output/all_dandiset_papers.json") as f:
         papers = json.load(f)
@@ -35,88 +37,16 @@ def fetch_dandiset_metadata():
     meta = {}
     for r in papers["results"]:
         did = r["dandiset_id"]
-        try:
-            resp = session.get(
-                f"https://api.dandiarchive.org/api/dandisets/{did}/versions/draft/",
-                timeout=10,
-            )
-            if resp.status_code != 200:
-                continue
-            m = resp.json()
-            summary = m.get("assetsSummary", {})
-
-            # Species (take first)
-            species_list = summary.get("species", [])
-            species_raw = species_list[0].get("name", "") if species_list else ""
-            # Normalize
-            if "mus musculus" in species_raw.lower() or "house mouse" in species_raw.lower():
-                species = "mouse"
-            elif "homo sapiens" in species_raw.lower() or "human" in species_raw.lower():
-                species = "human"
-            elif "rattus" in species_raw.lower() or "norway rat" in species_raw.lower():
-                species = "rat"
-            elif "macaca" in species_raw.lower() or "rhesus" in species_raw.lower():
-                species = "nhp"
-            elif species_raw:
-                species = "other"
-            else:
-                species = "unknown"
-
-            # Approach (recording modality)
-            approaches = [a.get("name", "") for a in summary.get("approach", [])]
-            has_ephys = any("electrophysiol" in a.lower() for a in approaches)
-            has_imaging = any("microscopy" in a.lower() or "imaging" in a.lower() for a in approaches)
-            if has_ephys and has_imaging:
-                modality = "multimodal"
-            elif has_ephys:
-                modality = "ephys"
-            elif has_imaging:
-                modality = "imaging"
-            else:
-                modality = "other"
-
-            # Size and counts
-            size_gb = (summary.get("numberOfBytes") or 0) / 1e9
-            n_subjects = summary.get("numberOfSubjects") or 0
-            n_files = summary.get("numberOfFiles") or 0
-
-            # License (CC-0 vs CC-BY vs other)
-            license_id = m.get("license", [""])[0] if m.get("license") else ""
-            is_cc0 = 1 if "cc-0" in license_id.lower() or "spdx:CC0" in license_id else 0
-
-            meta[did] = {
-                "species": species,
-                "modality": modality,
-                "size_gb": size_gb,
-                "n_subjects": n_subjects,
-                "n_files": n_files,
-                "is_cc0": is_cc0,
-                "dandiset_created": r.get("dandiset_created", ""),
-            }
-        except Exception:
-            pass
+        m = adapter.get_metadata(did)
+        if m:
+            m["dandiset_created"] = r.get("dandiset_created", "")
+            meta[did] = m
 
     return meta
 
 
-NLB_DANDISET_IDS = {
-    "000128", "000129", "000127", "000130", "000138", "000139",
-    "000140", "000688", "000950", "000954",
-}
-
-ALLEN_DANDISET_IDS = {
-    "000020", "000036", "000037", "000039", "000049", "000108", "000248",
-    "000253", "000336", "000340", "000563", "000569", "000570", "000617",
-    "000635", "000690", "000711", "000768", "000769", "000871", "000933",
-    "000934", "001046", "001245", "001289", "001351", "001359", "001455",
-    "001464", "001475", "001625", "001626",
-}
-
-# Journals considered high-impact for neuroscience
-HIGH_IMPACT_JOURNALS = {
-    "nature", "science", "cell", "neuron", "nature neuroscience",
-    "nature methods", "nature communications", "elife",
-}
+# Import DANDI-specific constants from adapter
+from archives.dandi import NLB_DANDISET_IDS, ALLEN_DANDISET_IDS
 
 
 def get_citation_counts():
