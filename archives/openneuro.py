@@ -20,6 +20,13 @@ class OpenNeuroAdapter(ArchiveAdapter):
         "search_terms": ["OpenNeuro"],
         "doi_prefixes": ["10.18112/openneuro"],
     }
+    dataset_patterns = [
+        (r'10\.18112/openneuro\.(ds\d{6})', 'doi'),
+        (r'openneuro\.org/datasets/(ds\d{6})', 'url'),
+        (r'OpenNeuro:\s*(ds\d{6})', 'text_colon'),
+        (r'OpenNeuro\s+(ds\d{6})', 'text_space'),
+        (r'\b(ds\d{6})\b', 'dataset_id'),
+    ]
 
     GRAPHQL_URL = "https://openneuro.org/crn/graphql"
 

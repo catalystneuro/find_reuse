@@ -48,6 +48,22 @@ class DANDIAdapter(ArchiveAdapter):
             "dandi march", "dandi district", "lake dandi", "meta robi",
         ],
     }
+    dataset_patterns = [
+        (r'10\.48324/dandi\.(\d{6})(?:/[\d.]+)?', 'doi'),
+        (r'10\.80507/dandi\.(\d{6})(?:/[\d.]+)?', 'placeholder_doi'),
+        (r'dandiarchive\.org/dandiset/(\d{6})', 'url'),
+        (r'gui\.dandiarchive\.org/#/dandiset/(\d{6})', 'gui_url'),
+        (r'DANDI:\s*(\d{6})', 'text_colon'),
+        (r'DANDI\s+(\d{6})', 'text_space'),
+        (r'dandiset\s+(\d{6})', 'dandiset_text'),
+        (r'dandiset/(\d{6})', 'dandiset_path'),
+        (r'DANDI(?:\s+archive)?(?:\s+identifier)?[,:\s]+(\d{6})', 'identifier'),
+        (r'(?:dandiarchive\.org|DANDI)[,\s]+ID[:\s]*(\d{6})', 'id_format'),
+        (r'DANDI\s+ID#[:\s]+(\d{6})', 'id_hash_format'),
+        (r'DANDI\s+Archive\s+ID[:\s]+(\d{6})', 'archive_id'),
+        (r'DANDI\s*\(dataset\s+IDs?:?\s*(\d{6})', 'dataset_ids_paren'),
+        (r'DANDI\s*\([^)]*\band\s+(\d{6})\)', 'dataset_ids_paren_and'),
+    ]
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

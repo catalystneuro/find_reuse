@@ -19,6 +19,11 @@ class ArchiveAdapter(ABC):
     # Search configuration for find_reuse.py direct reference discovery
     search_terms: dict = {}  # ARCHIVE_SEARCH_TERMS entry
 
+    # Regex patterns for extracting dataset IDs from paper text
+    # List of (regex_pattern, pattern_type_name) tuples
+    # The first capture group should be the dataset ID
+    dataset_patterns: list = []  # ARCHIVE_PATTERNS entry
+
     def __init__(self, output_dir: str | Path | None = None, verbose: bool = False):
         self.verbose = verbose
         if output_dir:

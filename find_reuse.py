@@ -102,100 +102,52 @@ DANDI_CITATION_PATTERN = r'["\u201C\u201D]([^"\u201C\u201D]{20,})["\u201C\u201D]
 
 
 # Archive reference patterns - dictionary of archive name to list of (pattern, pattern_type) tuples
-ARCHIVE_PATTERNS = {
-    'DANDI Archive': [
-        # DOI format: 10.48324/dandi.000130 or 10.48324/dandi.000130/0.210914.1539
-        (r'10\.48324/dandi\.(\d{6})(?:/[\d.]+)?', 'doi'),
-        # Placeholder DOI format (seen in some papers): 10.80507/dandi.123456/0.123456.1234
-        # This is not a real DOI prefix but captures intended DANDI references
-        (r'10\.80507/dandi\.(\d{6})(?:/[\d.]+)?', 'placeholder_doi'),
-        # URL formats
-        (r'dandiarchive\.org/dandiset/(\d{6})', 'url'),
-        (r'gui\.dandiarchive\.org/#/dandiset/(\d{6})', 'gui_url'),
-        # Direct text mentions
-        (r'DANDI:\s*(\d{6})', 'text_colon'),
-        (r'DANDI\s+(\d{6})', 'text_space'),
-        (r'dandiset\s+(\d{6})', 'dandiset_text'),
-        (r'dandiset/(\d{6})', 'dandiset_path'),
-        # DANDI archive identifier pattern (with colon, space, or comma separator)
-        (r'DANDI(?:\s+archive)?(?:\s+identifier)?[,:\s]+(\d{6})', 'identifier'),
-        # "Dandiarchive.org, ID:000221" format (seen in Cell papers)
-        (r'(?:dandiarchive\.org|DANDI)[,\s]+ID[:\s]*(\d{6})', 'id_format'),
-        # "DANDI ID#: 000978" format (seen in eNeuro papers)
-        (r'DANDI\s+ID#[:\s]+(\d{6})', 'id_hash_format'),
-        # "DANDI Archive ID: 000467" format (seen in Current Biology papers)
-        (r'DANDI\s+Archive\s+ID[:\s]+(\d{6})', 'archive_id'),
-        # "DANDI (dataset IDs: 000209 and 000020)" format (seen in iScience papers)
-        (r'DANDI\s*\(dataset\s+IDs?:?\s*(\d{6})', 'dataset_ids_paren'),
-        # Capture additional IDs after "and" within DANDI parentheses
-        (r'DANDI\s*\([^)]*\band\s+(\d{6})\)', 'dataset_ids_paren_and'),
-    ],
-    'CRCNS': [
-        # DOI format: 10.6080/K0XXXXX — capture full suffix for later resolution
-        (r'10\.6080/(K[A-Za-z0-9]+)', 'doi'),
-        # URL formats: crcns.org/data-sets/hc/hc-3
-        (r'crcns\.org/data-sets/\w+/([a-z]{2,5}-\d{1,3})', 'url'),
-        # CRCNS dataset code with context: "CRCNS hc-3" or "CRCNS dataset hc-3"
-        (r'CRCNS\s+(?:dataset\s+)?([a-z]{2,5}-\d{1,3})', 'text_crcns'),
-        # "from CRCNS (hc-3)" or "CRCNS (hc-3, ret-1)"
-        (r'CRCNS\s*\(([a-z]{2,5}-\d{1,3})', 'text_paren'),
-        # Direct text: "the hc-3 dataset" when near "CRCNS" or "crcns.org"
-        (r'(?:CRCNS|crcns\.org)[^.]{0,100}\b([a-z]{2,5}-\d{1,3})\b', 'text_nearby'),
-    ],
-    'OpenNeuro': [
-        # DOI format: 10.18112/openneuro.ds000001
-        (r'10\.18112/openneuro\.(ds\d{6})', 'doi'),
-        # URL formats
-        (r'openneuro\.org/datasets/(ds\d{6})', 'url'),
-        # Direct text mentions
-        (r'OpenNeuro:\s*(ds\d{6})', 'text_colon'),
-        (r'OpenNeuro\s+(ds\d{6})', 'text_space'),
-        # Dataset ID patterns (ds followed by 6 digits)
-        (r'\b(ds\d{6})\b', 'dataset_id'),
-    ],
-    'Figshare': [
-        # DOI format: 10.6084/m9.figshare.9598406 or 10.6084/m9.figshare.9598406.v2
-        (r'10\.6084/m9\.figshare\.(\d+)', 'doi'),
-        # URL formats
-        (r'figshare\.com/articles/[^/]+/(\d+)', 'url'),
-        (r'figshare\.com/ndownloader/files/(\d+)', 'download_url'),
-        # Direct text mentions
-        (r'figshare:\s*(\d{6,})', 'text_colon'),
-        (r'figshare\s+(\d{6,})', 'text_space'),
-    ],
-    'PhysioNet': [
-        # DOI format: 10.13026/C2KX0P or 10.13026/xxxx-xxxx
-        (r'10\.13026/([A-Za-z0-9-]+)', 'doi'),
-        # URL formats - must be followed by version number, exclude common path segments
-        (r'physionet\.org/content/([a-z][a-z0-9-]{2,})/\d', 'url'),
-        (r'physionet\.org/physiobank/database/([a-z][a-z0-9-]{2,})', 'physiobank_url'),
-        # Direct text mentions - require database name pattern (lowercase, longer names)
-        (r'PhysioNet\s+database\s+([a-z][a-z0-9-]{3,})', 'text_database'),
-    ],
-    'EBRAINS': [
-        # DOI format: 10.25493/xxxx-xxxx (EBRAINS Knowledge Graph DOIs)
-        (r'10\.25493/([A-Za-z0-9-]+)', 'doi'),
-        # Knowledge Graph URL formats - with optional entity type (Project, Dataset, etc.)
-        (r'kg\.ebrains\.eu/search/instances/(?:[A-Za-z]+/)?([a-f0-9-]{36})', 'kg_url'),
-        (r'search\.kg\.ebrains\.eu/instances/(?:[A-Za-z]+/)?([a-f0-9-]{36})', 'kg_search_url'),
-        # Knowledge Graph "live" URLs with schema path (e.g., /search/live/minds/core/dataset/v1.0.0/)
-        (r'kg\.ebrains\.eu/search/live/[a-z/._0-9]+/([a-f0-9-]{36})', 'kg_live_url'),
-        # Dataset viewer URLs
-        (r'data\.ebrains\.eu/datasets/([a-f0-9-]{36})', 'data_url'),
-        # Direct text mentions with UUID
-        (r'EBRAINS[:\s]+([a-f0-9-]{36})', 'text_uuid'),
-        # EBRAINS dataset mentions with identifier
-        (r'EBRAINS\s+(?:dataset|data\s*set)[:\s]+([A-Za-z0-9-]+)', 'text_dataset'),
-    ],
-    'SPARC': [
-        # DOI format: 10.26275/xxxx-xxxx
-        (r'10\.26275/([a-z0-9]{4}-[a-z0-9]{4})', 'doi'),
-        # URL: sparc.science/datasets/123
-        (r'sparc\.science/datasets/(\d+)', 'url'),
-        # Pennsieve URL: discover.pennsieve.io/datasets/123
-        (r'discover\.pennsieve\.io/datasets/(\d+)', 'pennsieve_url'),
-    ],
-}
+def _build_archive_patterns():
+    """Build ARCHIVE_PATTERNS from adapter classes + fallback for non-adapter archives."""
+    patterns = {}
+
+    # Load from adapters
+    try:
+        from archives import ADAPTERS
+        for key, adapter_cls in ADAPTERS.items():
+            if adapter_cls.dataset_patterns:
+                patterns[adapter_cls.name] = list(adapter_cls.dataset_patterns)
+    except ImportError:
+        pass
+
+    # Fallback for archives without adapters
+    _fallback = {
+        'Figshare': [
+            (r'10\.6084/m9\.figshare\.(\d+)', 'doi'),
+            (r'figshare\.com/articles/[^/]+/(\d+)', 'url'),
+            (r'figshare\.com/ndownloader/files/(\d+)', 'download_url'),
+            (r'figshare:\s*(\d{6,})', 'text_colon'),
+            (r'figshare\s+(\d{6,})', 'text_space'),
+        ],
+        'PhysioNet': [
+            (r'10\.13026/([A-Za-z0-9-]+)', 'doi'),
+            (r'physionet\.org/content/([a-z][a-z0-9-]{2,})/\d', 'url'),
+            (r'physionet\.org/physiobank/database/([a-z][a-z0-9-]{2,})', 'physiobank_url'),
+            (r'PhysioNet\s+database\s+([a-z][a-z0-9-]{3,})', 'text_database'),
+        ],
+        'EBRAINS': [
+            (r'10\.25493/([A-Za-z0-9-]+)', 'doi'),
+            (r'kg\.ebrains\.eu/search/instances/(?:[A-Za-z]+/)?([a-f0-9-]{36})', 'kg_url'),
+            (r'search\.kg\.ebrains\.eu/instances/(?:[A-Za-z]+/)?([a-f0-9-]{36})', 'kg_search_url'),
+            (r'kg\.ebrains\.eu/search/live/[a-z/._0-9]+/([a-f0-9-]{36})', 'kg_live_url'),
+            (r'data\.ebrains\.eu/datasets/([a-f0-9-]{36})', 'data_url'),
+            (r'EBRAINS[:\s]+([a-f0-9-]{36})', 'text_uuid'),
+            (r'EBRAINS\s+(?:dataset|data\s*set)[:\s]+([A-Za-z0-9-]+)', 'text_dataset'),
+        ],
+    }
+    for name, pats in _fallback.items():
+        if name not in patterns:
+            patterns[name] = pats
+
+    return patterns
+
+
+ARCHIVE_PATTERNS = _build_archive_patterns()
 
 
 class ArchiveFinder:

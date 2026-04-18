@@ -26,6 +26,13 @@ class CRCNSAdapter(ArchiveAdapter):
         "search_terms": ["CRCNS"],
         "doi_prefixes": ["10.6080"],
     }
+    dataset_patterns = [
+        (r'10\.6080/(K[A-Za-z0-9]+)', 'doi'),
+        (r'crcns\.org/data-sets/\w+/([a-z]{2,5}-\d{1,3})', 'url'),
+        (r'CRCNS\s+(?:dataset\s+)?([a-z]{2,5}-\d{1,3})', 'text_crcns'),
+        (r'CRCNS\s*\(([a-z]{2,5}-\d{1,3})', 'text_paren'),
+        (r'(?:CRCNS|crcns\.org)[^.]{0,100}\b([a-z]{2,5}-\d{1,3})\b', 'text_nearby'),
+    ]
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

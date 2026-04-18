@@ -22,9 +22,14 @@ class SPARCAdapter(ArchiveAdapter):
     search_terms = {
         "names": ["sparc"],
         "urls": ["sparc.science", "pennsieve.io"],
-        "search_terms": ["SPARC"],
+        "search_terms": ["SPARC portal", "sparc.science"],
         "doi_prefixes": ["10.26275"],
     }
+    dataset_patterns = [
+        (r'10\.26275/([a-z0-9]{4}-[a-z0-9]{4})', 'doi'),
+        (r'sparc\.science/datasets/(\d+)', 'url'),
+        (r'discover\.pennsieve\.io/datasets/(\d+)', 'pennsieve_url'),
+    ]
 
     API_BASE = "https://api.pennsieve.io/discover"
 
