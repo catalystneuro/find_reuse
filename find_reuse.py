@@ -54,51 +54,45 @@ DATA_DESCRIPTOR_JOURNALS = {
 # Search terms for discovering papers - used to build Europe PMC queries
 # Each archive has terms that will be combined with OR
 # 'exclude' terms are used with NOT to filter false positives
-ARCHIVE_SEARCH_TERMS = {
-    'DANDI Archive': {
-        'names': ['dandi', 'dandiarchive'],
-        'urls': ['dandiarchive.org'],
-        'search_terms': ['dandiset', 'DANDI Archive'],
-        'doi_prefixes': ['10.48324/dandi'],
-        'exclude': [
-            'dandi bioscience', 'dandi bio', 'roberto dandi',  # Biotech company, not the archive
-            'dandi march',  # Historical: India's salt march to Dandi
-            'dandi district', 'lake dandi', 'meta robi',  # Geographic: Ethiopian locations
-        ],
-    },
-    'CRCNS': {
-        'names': ['crcns'],
-        'urls': ['crcns.org'],
-        'search_terms': ['CRCNS'],
-        'doi_prefixes': ['10.6080'],
-    },
-    'OpenNeuro': {
-        'names': ['openneuro'],
-        'urls': ['openneuro.org'],
-        'doi_prefixes': ['10.18112/openneuro'],
-    },
-    'EBRAINS': {
-        'names': ['ebrains'],
-        'urls': ['kg.ebrains.eu', 'ebrains.eu/datasets', 'data.ebrains.eu'],
-        'doi_prefixes': ['10.25493'],
-    },
-    'Figshare': {
-        'names': ['figshare'],
-        'urls': ['figshare.com'],
-        'doi_prefixes': ['10.6084/m9.figshare'],
-    },
-    'PhysioNet': {
-        'names': ['physionet'],
-        'urls': ['physionet.org'],
-        'doi_prefixes': ['10.13026'],
-    },
-    'SPARC': {
-        'names': ['sparc'],
-        'urls': ['sparc.science'],
-        'search_terms': ['SPARC portal', 'sparc.science'],
-        'doi_prefixes': ['10.26275'],
-    },
-}
+# Build search terms from archive adapters where available
+def _build_archive_search_terms():
+    """Build ARCHIVE_SEARCH_TERMS from adapter classes + fallback for non-adapter archives."""
+    terms = {}
+
+    # Load from adapters
+    try:
+        from archives import ADAPTERS
+        for key, adapter_cls in ADAPTERS.items():
+            terms[adapter_cls.name] = dict(adapter_cls.search_terms)
+    except ImportError:
+        pass
+
+    # Fallback for archives without adapters
+    _fallback = {
+        'EBRAINS': {
+            'names': ['ebrains'],
+            'urls': ['kg.ebrains.eu', 'ebrains.eu/datasets', 'data.ebrains.eu'],
+            'doi_prefixes': ['10.25493'],
+        },
+        'Figshare': {
+            'names': ['figshare'],
+            'urls': ['figshare.com'],
+            'doi_prefixes': ['10.6084/m9.figshare'],
+        },
+        'PhysioNet': {
+            'names': ['physionet'],
+            'urls': ['physionet.org'],
+            'doi_prefixes': ['10.13026'],
+        },
+    }
+    for name, config in _fallback.items():
+        if name not in terms:
+            terms[name] = config
+
+    return terms
+
+
+ARCHIVE_SEARCH_TERMS = _build_archive_search_terms()
 
 
 # Pattern to detect DANDI citations without explicit IDs
