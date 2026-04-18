@@ -92,6 +92,12 @@ ARCHIVE_SEARCH_TERMS = {
         'urls': ['physionet.org'],
         'doi_prefixes': ['10.13026'],
     },
+    'SPARC': {
+        'names': ['sparc'],
+        'urls': ['sparc.science'],
+        'search_terms': ['SPARC portal', 'sparc.science'],
+        'doi_prefixes': ['10.26275'],
+    },
 }
 
 
@@ -186,6 +192,14 @@ ARCHIVE_PATTERNS = {
         (r'EBRAINS[:\s]+([a-f0-9-]{36})', 'text_uuid'),
         # EBRAINS dataset mentions with identifier
         (r'EBRAINS\s+(?:dataset|data\s*set)[:\s]+([A-Za-z0-9-]+)', 'text_dataset'),
+    ],
+    'SPARC': [
+        # DOI format: 10.26275/xxxx-xxxx
+        (r'10\.26275/([a-z0-9]{4}-[a-z0-9]{4})', 'doi'),
+        # URL: sparc.science/datasets/123
+        (r'sparc\.science/datasets/(\d+)', 'url'),
+        # Pennsieve URL: discover.pennsieve.io/datasets/123
+        (r'discover\.pennsieve\.io/datasets/(\d+)', 'pennsieve_url'),
     ],
 }
 
