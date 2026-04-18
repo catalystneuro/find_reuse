@@ -122,32 +122,48 @@ class OpenNeuroAdapter(ArchiveAdapter):
     def get_primary_papers(self, dataset: dict) -> list[dict]:
         """Extract primary papers from OpenNeuro dataset metadata.
 
-        OpenNeuro datasets link to papers via the BIDS dataset_description.json
-        References field, or through DataCite relatedIdentifiers.
+        Queries the GraphQL API for ReferencesAndLinks from the BIDS
+        dataset_description.json, then extracts DOIs via regex.
         """
+        import re
         papers = []
+        did = dataset.get("id", "")
 
-        # Check DataCite for relatedIdentifiers
-        doi = dataset.get("doi", "")
-        if doi:
-            try:
-                resp = self.session.get(
-                    f"https://api.datacite.org/dois/{doi}",
-                    timeout=10,
-                )
-                if resp.status_code == 200:
-                    attrs = resp.json().get("data", {}).get("attributes", {})
-                    for rel in attrs.get("relatedIdentifiers", []):
-                        if rel.get("relationType") in ("IsDescribedBy", "IsSupplementTo", "References"):
-                            rel_id = rel.get("relatedIdentifier", "")
-                            if rel_id and "10." in rel_id:
-                                papers.append({
-                                    "relation": rel["relationType"],
-                                    "doi": rel_id,
-                                    "source": "datacite",
-                                })
-            except Exception:
-                pass
+        # Query GraphQL for ReferencesAndLinks
+        query = f"""
+        {{
+          dataset(id: "{did}") {{
+            latestSnapshot {{
+              description {{
+                ReferencesAndLinks
+              }}
+            }}
+          }}
+        }}
+        """
+        try:
+            resp = self.session.post(self.GRAPHQL_URL, json={"query": query}, timeout=15)
+            if resp.status_code == 200:
+                data = resp.json()
+                desc = (data.get("data", {}).get("dataset", {})
+                        .get("latestSnapshot", {}).get("description", {})) or {}
+                refs = desc.get("ReferencesAndLinks", []) or []
+
+                for ref in refs:
+                    if not isinstance(ref, str):
+                        continue
+                    # Extract DOIs from reference text
+                    dois = re.findall(r"10\.\d{4,}/[^\s<>\"')\]]+", ref)
+                    for doi in dois:
+                        doi = doi.rstrip(".,;:")
+                        if not any(p["doi"] == doi for p in papers):
+                            papers.append({
+                                "relation": "linked",
+                                "doi": doi,
+                                "source": "references_and_links",
+                            })
+        except Exception:
+            pass
 
         return papers
 
