@@ -1,3 +1,4 @@
+# TODO: Refactor run_pipeline.py into a minimal version without multiple passes, regressions, or figures.
 #!/usr/bin/env python3
 """
 run_pipeline.py — Run the complete DANDI reuse analysis pipeline end-to-end.
