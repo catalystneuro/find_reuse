@@ -11,7 +11,49 @@ Usage:
 
 import argparse
 import json
+import time
 from pathlib import Path
+
+import requests
+
+
+AUTHOR_CACHE_PATH = Path(".review_author_cache.json")
+YEAR_CACHE_PATH = Path(".review_year_cache.json")
+
+
+def fetch_paper_metadata(dois: set[str]) -> tuple[dict[str, list[str]], dict[str, int]]:
+    """Fetch author lists and publication years from OpenAlex, using on-disk caches.
+
+    The author cache is shared with build_reuse_review.py (DOI -> list[str]).
+    The year cache is specific to this script (DOI -> int).
+    """
+    author_cache = json.loads(AUTHOR_CACHE_PATH.read_text()) if AUTHOR_CACHE_PATH.exists() else {}
+    year_cache = json.loads(YEAR_CACHE_PATH.read_text()) if YEAR_CACHE_PATH.exists() else {}
+
+    need = [
+        doi for doi in dois
+        if doi and (doi.lower() not in author_cache or doi.lower() not in year_cache)
+    ]
+    if need:
+        print(f"Fetching metadata for {len(need)} DOIs...")
+        session = requests.Session()
+        session.headers.update({"User-Agent": "FindReuse/1.0"})
+        for i, doi in enumerate(sorted(need)):
+            resp = session.get(f"https://api.openalex.org/works/doi:{doi}", timeout=10)
+            if resp.status_code == 200:
+                work = resp.json()
+                author_cache[doi.lower()] = [
+                    a["author"]["display_name"] for a in work.get("authorships", [])
+                ]
+                if work.get("publication_year"):
+                    year_cache[doi.lower()] = work["publication_year"]
+            if (i + 1) % 50 == 0:
+                print(f"  {i + 1}/{len(need)}")
+            time.sleep(0.05)
+        AUTHOR_CACHE_PATH.write_text(json.dumps(author_cache))
+        YEAR_CACHE_PATH.write_text(json.dumps(year_cache))
+
+    return author_cache, year_cache
 
 
 HTML_TEMPLATE = """<!DOCTYPE html>
@@ -20,73 +62,91 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <meta charset="utf-8">
 <title>{archive_name} Reuse Review ({n} entries)</title>
 <style>
-  body {{ font-family: -apple-system, sans-serif; max-width: 950px; margin: 0 auto; padding: 20px; background: #f5f5f5; }}
-  h1 {{ text-align: center; }}
-  .controls {{ background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }}
-  .controls button {{ padding: 8px 16px; border-radius: 4px; border: 1px solid #1565c0; background: #1565c0; color: white; cursor: pointer; font-size: 13px; }}
-  .controls button:hover {{ background: #0d47a1; }}
-  .controls button.secondary {{ background: white; color: #1565c0; }}
-  .controls button.secondary:hover {{ background: #e3f2fd; }}
-  .progress {{ font-size: 13px; color: #555; margin-left: auto; }}
-  .filter-bar {{ background: #fff; padding: 10px 15px; border-radius: 8px; margin-bottom: 15px; display: flex; gap: 15px; align-items: center; font-size: 13px; flex-wrap: wrap; }}
-  .entry {{ background: white; border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin-bottom: 15px; }}
+  html, body {{ height: 100%; margin: 0; }}
+  body {{ font-family: -apple-system, sans-serif; background: #f5f5f5; display: flex; flex-direction: column; overflow: hidden; }}
+  .page {{ max-width: 1100px; width: 100%; margin: 0 auto; padding: 8px 16px; box-sizing: border-box; display: flex; flex-direction: column; flex: 1; min-height: 0; gap: 8px; }}
+  .topbar {{ background: #e3f2fd; padding: 6px 12px; border-radius: 6px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 13px; }}
+  .topbar h1 {{ margin: 0; font-size: 15px; color: #0d47a1; margin-right: 6px; }}
+  .topbar button {{ padding: 4px 10px; border-radius: 4px; border: 1px solid #1565c0; background: #1565c0; color: white; cursor: pointer; font-size: 12px; }}
+  .topbar button:hover {{ background: #0d47a1; }}
+  .topbar button.secondary {{ background: white; color: #1565c0; }}
+  .topbar button.secondary:hover {{ background: #e3f2fd; }}
+  .topbar select {{ padding: 2px 4px; font-size: 12px; }}
+  .topbar .divider {{ width: 1px; height: 18px; background: #bbb; margin: 0 4px; }}
+  .topbar .nav-btn {{ padding: 4px 10px; border-radius: 4px; border: 1px solid #888; background: white; color: #333; cursor: pointer; font-size: 12px; }}
+  .topbar .nav-btn:hover:not(:disabled) {{ background: #eee; }}
+  .topbar .nav-btn:disabled {{ opacity: 0.4; cursor: not-allowed; }}
+  .progress {{ font-size: 12px; color: #555; margin-left: auto; }}
+  .entry {{ background: white; border: 1px solid #ddd; border-radius: 8px; padding: 12px 16px; display: flex; flex-direction: column; flex: 1; min-height: 0; gap: 6px; }}
   .entry.reviewed {{ border-left: 4px solid #4caf50; }}
   .entry.not-reuse {{ border-left: 4px solid #e53935; }}
   .entry.unsure {{ border-left: 4px solid #ff9800; }}
-  .entry-header {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }}
-  .entry-num {{ font-size: 16px; font-weight: bold; color: #1565c0; }}
-  .cls-tag {{ display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: bold; color: white; }}
+  .entry-header {{ display: flex; justify-content: space-between; align-items: baseline; }}
+  .entry-num {{ font-size: 15px; font-weight: bold; color: #1565c0; }}
+  .cls-tag {{ display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 11px; font-weight: bold; color: white; }}
   .cls-REUSE {{ background: #2e7d32; }}
   .cls-MENTION {{ background: #1565c0; }}
   .cls-NEITHER {{ background: #757575; }}
-  .field {{ margin: 6px 0; font-size: 13px; }}
+  .field {{ margin: 0; font-size: 13px; line-height: 1.35; }}
   .field-label {{ font-weight: bold; color: #555; }}
-  .excerpt {{ background: #fafafa; border-left: 3px solid #1565c0; padding: 8px 12px; margin: 5px 0; font-size: 12px; line-height: 1.5; }}
+  .authors {{ color: #444; font-size: 12px; }}
+  .excerpts-box {{ flex: 1; min-height: 0; overflow-y: auto; border: 1px solid #eee; border-radius: 4px; padding: 4px 8px; background: #fafafa; }}
+  .excerpt {{ background: white; border-left: 3px solid #1565c0; padding: 6px 10px; margin: 4px 0; font-size: 12px; line-height: 1.45; }}
   .excerpt .cite-label {{ font-size: 11px; color: #1565c0; font-weight: bold; }}
-  .reasoning {{ margin-top: 8px; padding: 8px; background: #f5f5f5; border-radius: 4px; font-size: 12px; color: #444; }}
-  .form-row {{ display: flex; gap: 20px; margin: 10px 0; flex-wrap: wrap; align-items: flex-start; }}
-  .form-group {{ font-size: 13px; }}
-  .form-group label {{ font-weight: bold; display: block; margin-bottom: 4px; }}
-  .form-group select, .form-group textarea {{ padding: 4px 8px; font-size: 13px; font-family: inherit; }}
-  .form-group textarea {{ width: 350px; height: 40px; }}
-  mark {{ background: #fff176; }}
+  .reasoning {{ padding: 6px 8px; background: #f5f5f5; border-radius: 4px; font-size: 12px; color: #444; line-height: 1.4; }}
+  .bottom-row {{ display: flex; gap: 10px; align-items: stretch; }}
+  .notes {{ flex: 1; display: flex; flex-direction: column; }}
+  .notes label {{ font-weight: bold; font-size: 12px; margin-bottom: 2px; }}
+  .notes textarea {{ width: 100%; box-sizing: border-box; flex: 1; min-height: 48px; padding: 4px 6px; font-family: inherit; font-size: 12px; resize: none; }}
+  .decision-bar {{ display: flex; flex-direction: column; gap: 4px; justify-content: flex-end; }}
+  .decision-bar button {{ padding: 8px 14px; border-radius: 4px; border: 1px solid #ccc; background: white; cursor: pointer; font-size: 13px; font-weight: bold; white-space: nowrap; }}
+  .decision-bar button.yes {{ border-color: #4caf50; color: #2e7d32; }}
+  .decision-bar button.yes:hover, .decision-bar button.yes.active {{ background: #4caf50; color: white; }}
+  .decision-bar button.no {{ border-color: #e53935; color: #c62828; }}
+  .decision-bar button.no:hover, .decision-bar button.no.active {{ background: #e53935; color: white; }}
+  .decision-bar button.unsure {{ border-color: #ff9800; color: #e65100; }}
+  .decision-bar button.unsure:hover, .decision-bar button.unsure.active {{ background: #ff9800; color: white; }}
+  .decision-bar button.clear {{ border-color: #888; color: #555; font-weight: normal; font-size: 11px; padding: 4px 10px; }}
+  .decision-bar button.clear:hover {{ background: #eee; }}
+  .empty {{ text-align: center; padding: 40px; color: #888; background: white; border-radius: 8px; }}
 </style>
 </head>
 <body>
-<h1>{archive_name} Reuse Review ({n} entries)</h1>
-
-<div class="controls">
-  <button onclick="saveState()">Save to JSON</button>
-  <button class="secondary" onclick="document.getElementById('loadFile').click()">Load from JSON</button>
-  <input type="file" id="loadFile" accept=".json" style="display:none" onchange="loadState(event)">
-  <button class="secondary" onclick="jumpToNext()">Jump to next unreviewed</button>
-  <span class="progress" id="progress"></span>
+<div class="page">
+  <div class="topbar">
+    <h1>{archive_name} Review</h1>
+    <button onclick="saveState()">Save</button>
+    <button class="secondary" onclick="document.getElementById('loadFile').click()">Load</button>
+    <input type="file" id="loadFile" accept=".json" style="display:none" onchange="loadState(event)">
+    <span class="divider"></span>
+    <label>Class:</label>
+    <select id="filterCls" onchange="onFilterChange()">
+      <option value="all">All</option>
+      <option value="REUSE" selected>REUSE</option>
+      <option value="MENTION">MENTION</option>
+      <option value="NEITHER">NEITHER</option>
+    </select>
+    <label>Status:</label>
+    <select id="filterReview" onchange="onFilterChange()">
+      <option value="all">All</option>
+      <option value="unreviewed">Unreviewed</option>
+      <option value="yes">Confirmed Yes</option>
+      <option value="no">Confirmed No</option>
+      <option value="unsure">Unsure</option>
+    </select>
+    <label>Sort:</label>
+    <select id="sortBy" onchange="onFilterChange()">
+      <option value="dataset">Dataset ID</option>
+      <option value="confidence">Confidence</option>
+    </select>
+    <span class="divider"></span>
+    <button class="nav-btn" onclick="goPrev()" id="prevBtn">&larr; Prev</button>
+    <button class="nav-btn" onclick="goNext()" id="nextBtn">Next &rarr;</button>
+    <button class="secondary" onclick="jumpToNextUnreviewed()">Next unreviewed</button>
+    <span class="progress" id="progress"></span>
+  </div>
+  <div id="entry-container" style="display: flex; flex-direction: column; flex: 1; min-height: 0;"></div>
 </div>
-
-<div class="filter-bar">
-  <label>Classification:</label>
-  <select id="filterCls" onchange="render()">
-    <option value="all">All</option>
-    <option value="REUSE">REUSE</option>
-    <option value="MENTION">MENTION</option>
-    <option value="NEITHER">NEITHER</option>
-  </select>
-  <label>Review status:</label>
-  <select id="filterReview" onchange="render()">
-    <option value="all">All</option>
-    <option value="unreviewed">Unreviewed</option>
-    <option value="yes">Confirmed Yes</option>
-    <option value="no">Confirmed No</option>
-    <option value="unsure">Unsure</option>
-  </select>
-  <label>Sort:</label>
-  <select id="sortBy" onchange="render()">
-    <option value="dataset">Dataset ID</option>
-    <option value="confidence">Pipeline confidence (desc)</option>
-  </select>
-</div>
-
-<div id="entries"></div>
 
 <script>
 const entryData = {entries_json};
@@ -97,6 +157,8 @@ for (let i = 0; i < N; i++) {{
   const key = entryData[i].citing_doi + '|' + entryData[i].dandiset_id;
   state[key] = {{ confirmed: null, notes: '' }};
 }}
+
+let currentIndex = 0;  // index into the current filtered list
 
 function keyOf(e) {{ return e.citing_doi + '|' + e.dandiset_id; }}
 
@@ -114,14 +176,7 @@ function renderExcerpts(excerpts) {{
       let label = '';
       if (ex.authors && ex.year) label = ex.authors.join(', ') + ' ' + ex.year;
       else label = 'citation';
-      let text = escapeHtml(ex.text || '');
-      if (ex.highlight_offset != null && ex.highlight_offset >= 0 && ex.highlight_offset < (ex.text||'').length) {{
-        const raw = ex.text;
-        const hs = Math.max(0, ex.highlight_offset - 5);
-        const he = Math.min(raw.length, ex.highlight_offset + 40);
-        text = escapeHtml(raw.slice(0, hs)) + '<mark>' + escapeHtml(raw.slice(hs, he)) + '</mark>' + escapeHtml(raw.slice(he));
-      }}
-      html += '<div class="excerpt"><span class="cite-label">Citation: ' + escapeHtml(label) + '</span><br>' + text + '</div>';
+      html += '<div class="excerpt"><span class="cite-label">Citation: ' + escapeHtml(label) + '</span><br>' + escapeHtml(ex.text || '') + '</div>';
     }} else {{
       html += '<div class="excerpt">' + escapeHtml(String(ex)) + '</div>';
     }}
@@ -136,10 +191,16 @@ function cardClass(s) {{
   return 'entry';
 }}
 
-function renderEntry(e, displayIndex) {{
+function formatAuthors(authors) {{
+  if (!authors || authors.length === 0) return '<em>authors unavailable</em>';
+  const shown = authors.slice(0, 10).map(escapeHtml).join(', ');
+  const extra = authors.length > 10 ? ' <em>... (+' + (authors.length - 10) + ' more)</em>' : '';
+  return shown + extra;
+}}
+
+function renderEntry(e, displayIndex, total) {{
   const key = keyOf(e);
   const s = state[key];
-  const sel = v => s.confirmed === v ? 'selected' : '';
   const dsLink = e.dandiset_url
     ? '<a href="' + escapeHtml(e.dandiset_url) + '" target="_blank">' + escapeHtml(e.dandiset_id) + '</a>'
     : escapeHtml(e.dandiset_id);
@@ -149,38 +210,108 @@ function renderEntry(e, displayIndex) {{
   const srcArchive = (e.classification === 'REUSE' && e.source_archive)
     ? ' | source: ' + escapeHtml(e.source_archive)
     : '';
+  const active = v => s.confirmed === v ? 'active' : '';
   return `
     <div class="${{cardClass(s)}}" id="entry-${{key}}">
       <div class="entry-header">
-        <span class="entry-num">#${{displayIndex}} &mdash; ${{dsLink}}</span>
+        <span class="entry-num">#${{displayIndex}} of ${{total}} &mdash; ${{dsLink}} &mdash; <span class="cls-tag cls-${{e.classification}}">${{e.classification}}</span> ${{escapeHtml(e.dandiset_name || '')}}</span>
         <span style="font-size:12px;color:#999">conf: ${{e.confidence != null ? e.confidence : '?'}}${{sameLab}}${{srcArchive}}</span>
       </div>
-      <div class="field"><span class="cls-tag cls-${{e.classification}}">${{e.classification}}</span> &mdash; ${{escapeHtml(e.dandiset_name || '')}}</div>
-      <div class="field"><span class="field-label">Citing paper:</span> <a href="https://doi.org/${{encodeURIComponent(e.citing_doi)}}" target="_blank">${{escapeHtml(e.citing_doi)}}</a> &mdash; ${{escapeHtml(e.citing_title || '')}}</div>
-      <div class="field" style="color:#666;font-size:12px">${{escapeHtml(e.citing_journal || '')}}${{e.citing_date ? ', ' + escapeHtml(e.citing_date) : ''}}</div>
-      <div class="field"><span class="field-label">Primary paper:</span> <a href="https://doi.org/${{encodeURIComponent(e.cited_doi)}}" target="_blank">${{escapeHtml(e.cited_doi)}}</a></div>
-      <div class="field"><span class="field-label">Excerpts:</span>${{renderExcerpts(e.context_excerpts)}}</div>
+      <div class="field"><span class="field-label">Citing:</span> <a href="https://doi.org/${{encodeURIComponent(e.citing_doi)}}" target="_blank">${{escapeHtml(e.citing_doi)}}</a> &mdash; ${{escapeHtml(e.citing_title || '')}} <span style="color:#666">(${{escapeHtml(e.citing_journal || '')}}${{e.citing_date ? ', ' + escapeHtml(e.citing_date) : ''}})</span></div>
+      <div class="field"><span class="field-label">Primary:</span> <a href="https://doi.org/${{encodeURIComponent(e.cited_doi)}}" target="_blank">${{escapeHtml(e.cited_doi)}}</a>${{e.primary_year ? ' <span class="authors">(' + e.primary_year + ')</span>' : ''}} &mdash; <span class="authors">${{formatAuthors(e.primary_authors)}}</span></div>
       <div class="reasoning"><strong>Pipeline reasoning:</strong> ${{escapeHtml(e.reasoning || '')}}</div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Confirmed?</label>
-          <select onchange="setConfirmed('${{key}}', this.value)">
-            <option value="">--</option>
-            <option value="yes" ${{sel('yes')}}>Yes</option>
-            <option value="no" ${{sel('no')}}>No</option>
-            <option value="unsure" ${{sel('unsure')}}>Unsure</option>
-          </select>
-        </div>
-        <div class="form-group">
+      <div class="excerpts-box">${{renderExcerpts(e.context_excerpts)}}</div>
+      <div class="bottom-row">
+        <div class="notes">
           <label>Notes:</label>
           <textarea onchange="setNotes('${{key}}', this.value)">${{escapeHtml(s.notes || '')}}</textarea>
+        </div>
+        <div class="decision-bar">
+          <div style="display:flex;gap:6px;">
+            <button class="yes ${{active('yes')}}" onclick="markAndAdvance('${{key}}', 'yes')">&check; Correct</button>
+            <button class="no ${{active('no')}}" onclick="markAndAdvance('${{key}}', 'no')">&times; Incorrect</button>
+            <button class="unsure ${{active('unsure')}}" onclick="markAndAdvance('${{key}}', 'unsure')">? Unsure</button>
+          </div>
+          <button class="clear" onclick="clearConfirmation('${{key}}')">Clear</button>
         </div>
       </div>
     </div>`;
 }}
 
-function setConfirmed(key, value) {{
-  state[key].confirmed = value || null;
+function currentFiltered() {{
+  const sortBy = document.getElementById('sortBy').value;
+  const filtered = entryData.filter(passesFilter);
+  if (sortBy === 'confidence') {{
+    filtered.sort((a, b) => (b.confidence || 0) - (a.confidence || 0));
+  }} else {{
+    filtered.sort((a, b) => (a.dandiset_id || '').localeCompare(b.dandiset_id || '') || a.citing_doi.localeCompare(b.citing_doi));
+  }}
+  return filtered;
+}}
+
+function passesFilter(e) {{
+  const cls = document.getElementById('filterCls').value;
+  if (cls !== 'all' && e.classification !== cls) return false;
+  const rv = document.getElementById('filterReview').value;
+  const s = state[keyOf(e)];
+  if (rv === 'unreviewed' && s.confirmed) return false;
+  if (rv !== 'all' && rv !== 'unreviewed' && s.confirmed !== rv) return false;
+  return true;
+}}
+
+function render() {{
+  const filtered = currentFiltered();
+  const container = document.getElementById('entry-container');
+  const navPosition = document.getElementById('navPosition');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+
+  if (filtered.length === 0) {{
+    container.innerHTML = '<div class="empty">No entries match the current filters.</div>';
+    navPosition.textContent = '0 of 0';
+    prevBtn.disabled = true;
+    nextBtn.disabled = true;
+  }} else {{
+    if (currentIndex >= filtered.length) currentIndex = filtered.length - 1;
+    if (currentIndex < 0) currentIndex = 0;
+    const entry = filtered[currentIndex];
+    container.innerHTML = renderEntry(entry, currentIndex + 1, filtered.length);
+    navPosition.textContent = (currentIndex + 1) + ' of ' + filtered.length;
+    prevBtn.disabled = currentIndex === 0;
+    nextBtn.disabled = currentIndex === filtered.length - 1;
+  }}
+  updateProgress();
+}}
+
+function onFilterChange() {{
+  currentIndex = 0;
+  render();
+}}
+
+function goPrev() {{
+  if (currentIndex > 0) {{ currentIndex--; render(); }}
+}}
+
+function goNext() {{
+  const filtered = currentFiltered();
+  if (currentIndex < filtered.length - 1) {{ currentIndex++; render(); }}
+}}
+
+function markAndAdvance(key, value) {{
+  state[key].confirmed = value;
+  const filtered = currentFiltered();
+  // If filtering by unreviewed/status, the current entry may drop out — stay at same index;
+  // otherwise advance to next entry.
+  const rv = document.getElementById('filterReview').value;
+  const filterDropsMarked = rv === 'unreviewed' || (rv !== 'all' && rv !== value);
+  if (!filterDropsMarked && currentIndex < filtered.length - 1) {{
+    currentIndex++;
+  }}
+  render();
+}}
+
+function clearConfirmation(key) {{
+  state[key].confirmed = null;
   render();
 }}
 
@@ -195,37 +326,16 @@ function updateProgress() {{
   document.getElementById('progress').textContent = reviewed + ' / ' + N + ' reviewed';
 }}
 
-function passesFilter(e) {{
-  const cls = document.getElementById('filterCls').value;
-  if (cls !== 'all' && e.classification !== cls) return false;
-  const rv = document.getElementById('filterReview').value;
-  const s = state[keyOf(e)];
-  if (rv === 'unreviewed' && s.confirmed) return false;
-  if (rv !== 'all' && rv !== 'unreviewed' && s.confirmed !== rv) return false;
-  return true;
-}}
-
-function render() {{
-  const sortBy = document.getElementById('sortBy').value;
-  const filtered = entryData.filter(passesFilter);
-  if (sortBy === 'confidence') {{
-    filtered.sort((a, b) => (b.confidence || 0) - (a.confidence || 0));
-  }} else {{
-    filtered.sort((a, b) => (a.dandiset_id || '').localeCompare(b.dandiset_id || '') || a.citing_doi.localeCompare(b.citing_doi));
-  }}
-  const container = document.getElementById('entries');
-  container.innerHTML = filtered.map((e, i) => renderEntry(e, i + 1)).join('');
-  updateProgress();
-}}
-
-function jumpToNext() {{
-  for (const e of entryData) {{
-    if (!state[keyOf(e)].confirmed) {{
-      const el = document.getElementById('entry-' + keyOf(e));
-      if (el) {{ el.scrollIntoView({{behavior: 'smooth', block: 'center'}}); return; }}
+function jumpToNextUnreviewed() {{
+  const filtered = currentFiltered();
+  for (let i = 0; i < filtered.length; i++) {{
+    if (!state[keyOf(filtered[i])].confirmed) {{
+      currentIndex = i;
+      render();
+      return;
     }}
   }}
-  alert('All entries reviewed.');
+  alert('All entries in the current filter are reviewed.');
 }}
 
 function saveState() {{
@@ -265,14 +375,21 @@ def build_entries(classifications_path: Path, datasets_path: Path) -> list[dict]
     dandiset_urls = {}
     if datasets_path.exists():
         datasets = json.loads(datasets_path.read_text()).get("results", [])
-        for ds in datasets:
-            dandiset_urls[ds["dandiset_id"]] = ds.get("dandiset_url", "")
+        for dataset in datasets:
+            dandiset_urls[dataset["dandiset_id"]] = dataset.get("dandiset_url", "")
+
+    dois_to_fetch = set()
+    for c in classifications:
+        if c.get("cited_doi"):
+            dois_to_fetch.add(c["cited_doi"])
+    author_cache, year_cache = fetch_paper_metadata(dois_to_fetch)
 
     entries = []
     for c in classifications:
+        cited_doi = c.get("cited_doi", "")
         entries.append({
             "citing_doi": c.get("citing_doi", ""),
-            "cited_doi": c.get("cited_doi", ""),
+            "cited_doi": cited_doi,
             "dandiset_id": c.get("dandiset_id", ""),
             "dandiset_name": c.get("dandiset_name", ""),
             "dandiset_url": dandiset_urls.get(c.get("dandiset_id", ""), ""),
@@ -285,6 +402,8 @@ def build_entries(classifications_path: Path, datasets_path: Path) -> list[dict]
             "same_lab": c.get("same_lab"),
             "source_archive": c.get("source_archive", ""),
             "context_excerpts": c.get("context_excerpts", []),
+            "primary_authors": author_cache.get(cited_doi.lower(), []) if cited_doi else [],
+            "primary_year": year_cache.get(cited_doi.lower()) if cited_doi else None,
         })
 
     entries.sort(key=lambda e: (e["dandiset_id"], e["citing_doi"]))
