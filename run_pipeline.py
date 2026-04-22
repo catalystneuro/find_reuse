@@ -46,16 +46,17 @@ def run(cmd, desc):
     return result.returncode
 
 
-def step1_discover_dandisets():
+def step1_discover_dandisets(limit=None):
     """Discover dandisets and their primary papers."""
-    run(
-        ["python3", "dandi_primary_papers.py",
-         "--citations", "--fetch-text",
-         "--cache-dir", ".paper_cache",
-         "--max-citing-papers", "999",
-         "-o", "output/dandi_primary_papers_results.json", "-v"],
-        "Step 1: Discover dandisets and primary papers",
-    )
+    max_citing = "20" if limit is not None else "999"
+    cmd = ["python3", "dandi_primary_papers.py",
+           "--citations", "--fetch-text",
+           "--cache-dir", ".paper_cache",
+           "--max-citing-papers", max_citing,
+           "-o", "output/dandi_primary_papers_results.json"]
+    if limit is not None:
+        cmd += ["--max-dandisets", str(limit)]
+    run(cmd, "Step 1: Discover dandisets and primary papers")
 
 
 def step2_llm_find_papers():
@@ -66,7 +67,7 @@ def step2_llm_find_papers():
     )
 
 
-def step3_merge_sources():
+def step3_merge_sources(limit=None):
     """Merge formal + LLM paper sources."""
     run(
         ["python3", "merge_paper_sources.py", "-o", "output/all_dandiset_papers.json"],
@@ -94,6 +95,8 @@ def step3_merge_sources():
     with open("output/all_dandiset_papers.json") as f:
         data = json.load(f)
     data["results"] = [r for r in data["results"] if r["dandiset_id"] in nonempty]
+    if limit is not None:
+        data["results"] = sorted(data["results"], key=lambda r: r["dandiset_id"])[:limit]
     data["count"] = len(data["results"])
     with open("output/all_dandiset_papers.json", "w") as f:
         json.dump(data, f, indent=2)
@@ -108,14 +111,14 @@ def step4_fetch_citations():
     )
 
 
-def step5_direct_refs():
+def step5_direct_refs(limit=None):
     """Discover direct dandiset references."""
-    run(
-        ["python3", "find_reuse.py", "--discover",
-         "--archives", "DANDI Archive", "--deduplicate",
-         "-o", "output/results_dandi.json", "-v"],
-        "Step 5a: Discover direct dandiset references",
-    )
+    cmd = ["python3", "find_reuse.py", "--discover",
+           "--archives", "DANDI Archive", "--deduplicate",
+           "-o", "output/results_dandi.json"]
+    if limit is not None:
+        cmd += ["--max-results", str(max(100, limit * 10))]
+    run(cmd, "Step 5a: Discover direct dandiset references")
     run(
         ["python3", "convert_refs_to_classifications.py",
          "-i", "output/results_dandi.json",
@@ -124,13 +127,12 @@ def step5_direct_refs():
     )
 
 
-def step6_fetch_text_and_classify():
+def step6_fetch_text_and_classify(limit=None):
     """Fetch text, extract contexts, classify, merge, normalize."""
-    # Text fetch + context extraction + classification
-    run(
-        ["python3", "fetch_and_classify_new.py"],
-        "Step 6: Fetch text, extract contexts, classify, merge, normalize",
-    )
+    cmd = ["python3", "fetch_and_classify_new.py"]
+    if limit is not None:
+        cmd += ["--max-citing-papers", "20"]
+    run(cmd, "Step 6: Fetch text, extract contexts, classify, merge, normalize")
 
 
 def step6b_deduplicate_preprints():
@@ -317,20 +319,27 @@ def main():
                         help="Skip data fetching steps (use cached data)")
     parser.add_argument("--figures-only", action="store_true",
                         help="Only regenerate figures")
+    parser.add_argument("--limit", type=int, default=None,
+                        help="Cap to the first N dandisets (sorted by ID) for fast iteration. Default: all.")
     args = parser.parse_args()
 
     start = time.time()
+
+    Path("output").mkdir(exist_ok=True)
 
     if args.figures_only:
         step10_regenerate_figures()
     else:
         if not args.skip_fetch:
-            step1_discover_dandisets()
-            step2_llm_find_papers()
-            step3_merge_sources()
+            step1_discover_dandisets(limit=args.limit)
+            if args.limit is None:
+                step2_llm_find_papers()
+            else:
+                print("\nSkipping step 2 (LLM paper discovery) in --limit mode", file=sys.stderr)
+            step3_merge_sources(limit=args.limit)
             step4_fetch_citations()
-            step5_direct_refs()
-        step6_fetch_text_and_classify()
+            step5_direct_refs(limit=args.limit)
+        step6_fetch_text_and_classify(limit=args.limit)
         step6b_deduplicate_preprints()
         step7_classify_reuse_type()
         step8_update_delays()

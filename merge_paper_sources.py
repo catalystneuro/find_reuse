@@ -33,9 +33,14 @@ def main():
         formal_data = json.load(f)
     formal_results = {r["dandiset_id"]: r for r in formal_data["results"]}
 
-    # Load LLM cache
-    with open(".missing_paper_cache.json") as f:
-        cache = json.load(f)
+    # Load LLM cache (may be absent if step 2 was skipped, e.g. in --limit mode)
+    cache_path = Path(".missing_paper_cache.json")
+    if cache_path.exists():
+        with open(cache_path) as f:
+            cache = json.load(f)
+    else:
+        cache = {}
+        print("No .missing_paper_cache.json found — proceeding with formal results only", file=sys.stderr)
 
     # Get dandiset metadata for LLM-found entries (need created date, etc.)
     llm_found = {
