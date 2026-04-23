@@ -988,7 +988,6 @@ def find_dandisets_with_primary_papers(
     show_progress: bool = True,
     rate_limit: float = 0.1,
     previous_results: Optional[list[dict]] = None,
-    max_dandisets: Optional[int] = None,
 ) -> list[dict]:
     """
     Find all dandisets that have relatedResource entries linking to primary papers.
@@ -1021,10 +1020,6 @@ def find_dandisets_with_primary_papers(
 
     # Fetch all dandisets
     dandisets = get_all_dandisets(session, show_progress)
-
-    if max_dandisets is not None:
-        dandisets = sorted(dandisets, key=lambda d: d['identifier'])[:max_dandisets]
-        print(f"Capped to first {len(dandisets)} dandisets (--max-dandisets)", file=sys.stderr)
 
     results = []
     cache_hits = 0
@@ -1213,12 +1208,6 @@ def main():
         help='Maximum total number of citing papers to fetch (default: all)'
     )
     parser.add_argument(
-        '--max-dandisets',
-        type=int,
-        default=None,
-        help='Cap to the first N dandisets (sorted by dandiset_id) for fast iteration. Default: all.'
-    )
-    parser.add_argument(
         '--cache-dir',
         type=str,
         default='/Volumes/microsd64/data/',
@@ -1245,7 +1234,6 @@ def main():
         include_secondary=args.all_relations,
         show_progress=not args.no_progress,
         previous_results=previous_results,
-        max_dandisets=args.max_dandisets,
     )
 
     # Optionally fetch citation counts

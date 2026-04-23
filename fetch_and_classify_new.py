@@ -3,20 +3,12 @@
 Run with: nohup python3 fetch_and_classify_new.py > /tmp/fetch_classify.log 2>&1 &
 """
 
-import argparse
 import json
 import sys
 from pathlib import Path
 
 sys.path.insert(0, ".")
 from dandi_primary_papers import fetch_citing_paper_texts
-
-parser = argparse.ArgumentParser(description="Fetch text and classify new citing papers")
-parser.add_argument(
-    "--max-citing-papers", type=int, default=999,
-    help="Maximum citing papers to fetch per dandiset (default: 999)",
-)
-args = parser.parse_args()
 
 # Step 1: Fetch text for new citing papers
 print("=== Step 1: Fetch text ===", file=sys.stderr, flush=True)
@@ -27,7 +19,7 @@ with open("output/all_dandiset_papers.json") as f:
 results = data["results"]
 results = fetch_citing_paper_texts(
     results,
-    max_citing_papers_per_dandiset=args.max_citing_papers,
+    max_citing_papers_per_dandiset=999,
     show_progress=True,
     cache_dir=".paper_cache",
     verbose=False,
