@@ -22,6 +22,10 @@ import requests
 AUTHOR_CACHE_PATH = Path(".review_author_cache.json")
 YEAR_CACHE_PATH = Path(".review_year_cache.json")
 
+# Fixed seed so stratified sampling is reproducible across runs and prefixes nest:
+# the first 10 of a sample of 20 are exactly the same entries as a sample of 10.
+SAMPLING_SEED = 0
+
 
 def fetch_paper_metadata(dois: set[str]) -> tuple[dict[str, list[str]], dict[str, int]]:
     """Fetch author lists and publication years from OpenAlex, using on-disk caches.
@@ -412,17 +416,22 @@ def build_entries(classifications_path: Path, datasets_path: Path) -> list[dict]
     return entries
 
 
-def stratified_sample(entries: list[dict], samples_per_class: int, seed: int) -> list[dict]:
-    """Randomly sample up to `samples_per_class` entries from each classification stratum."""
+def stratified_sample(entries: list[dict], samples_per_class: int) -> list[dict]:
+    """Stratified sample: shuffle each classification stratum once with SAMPLING_SEED,
+    then take the first `samples_per_class` entries. Shuffling (rather than `random.sample`)
+    ensures prefixes nest, so a sample of 20 contains the same first-10 as a sample of 10.
+    """
     by_class = defaultdict(list)
     for entry in entries:
         by_class[entry["classification"]].append(entry)
 
-    rng = random.Random(seed)
     sampled = []
-    for classification, group in by_class.items():
+    for classification in sorted(by_class):
+        group = by_class[classification]
+        rng = random.Random(SAMPLING_SEED)
+        rng.shuffle(group)
         take = min(samples_per_class, len(group))
-        sampled.extend(rng.sample(group, take))
+        sampled.extend(group[:take])
         print(f"  {classification}: sampled {take} of {len(group)}")
 
     sampled.sort(key=lambda e: (e["dandiset_id"], e["citing_doi"]))
@@ -439,8 +448,6 @@ def main():
                         help="Randomly sample entries stratified by classification (REUSE/MENTION/NEITHER).")
     parser.add_argument("--samples-per-class", type=int, default=50,
                         help="Number of entries to sample per classification when --stratified-sample is set (default: 50).")
-    parser.add_argument("--seed", type=int, default=0,
-                        help="Random seed for stratified sampling (default: 0).")
     args = parser.parse_args()
 
     input_dir = Path("output/minimal") / args.archive
@@ -451,8 +458,8 @@ def main():
     entries = build_entries(classifications_path, datasets_path)
 
     if args.stratified_sample:
-        print(f"Stratified sampling (samples_per_class={args.samples_per_class}, seed={args.seed}):")
-        entries = stratified_sample(entries, args.samples_per_class, args.seed)
+        print(f"Stratified sampling (samples_per_class={args.samples_per_class}, seed={SAMPLING_SEED}):")
+        entries = stratified_sample(entries, args.samples_per_class)
 
     html = HTML_TEMPLATE.format(
         archive_name=args.archive.upper(),
