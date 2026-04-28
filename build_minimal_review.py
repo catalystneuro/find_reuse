@@ -144,6 +144,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     <select id="sortBy" onchange="onFilterChange()">
       <option value="dataset">Dataset ID</option>
       <option value="confidence">Confidence</option>
+      <option value="sampleOrder">Sample Order</option>
     </select>
     <span class="divider"></span>
     <button class="nav-btn" onclick="goPrev()" id="prevBtn">&larr; Prev</button>
@@ -249,6 +250,11 @@ function currentFiltered() {{
   const filtered = entryData.filter(passesFilter);
   if (sortBy === 'confidence') {{
     filtered.sort((a, b) => (b.confidence || 0) - (a.confidence || 0));
+  }} else if (sortBy === 'sampleOrder') {{
+    filtered.sort((a, b) =>
+      ((a.sample_order ?? 1e9) - (b.sample_order ?? 1e9))
+      || (a.classification || '').localeCompare(b.classification || '')
+    );
   }} else {{
     filtered.sort((a, b) => (a.dandiset_id || '').localeCompare(b.dandiset_id || '') || a.citing_doi.localeCompare(b.citing_doi));
   }}
@@ -431,6 +437,8 @@ def stratified_sample(entries: list[dict], samples_per_class: int) -> list[dict]
         rng = random.Random(SAMPLING_SEED)
         rng.shuffle(group)
         take = min(samples_per_class, len(group))
+        for index, entry in enumerate(group[:take]):
+            entry["sample_order"] = index
         sampled.extend(group[:take])
         print(f"  {classification}: sampled {take} of {len(group)}")
 
