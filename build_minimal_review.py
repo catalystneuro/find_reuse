@@ -84,9 +84,9 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   .topbar .nav-btn:disabled {{ opacity: 0.4; cursor: not-allowed; }}
   .progress {{ font-size: 12px; color: #555; margin-left: auto; }}
   .entry {{ background: white; border: 1px solid #ddd; border-radius: 8px; padding: 12px 16px; display: flex; flex-direction: column; flex: 1; min-height: 0; gap: 6px; }}
-  .entry.reviewed {{ border-left: 4px solid #4caf50; }}
-  .entry.not-reuse {{ border-left: 4px solid #e53935; }}
-  .entry.unsure {{ border-left: 4px solid #ff9800; }}
+  .entry.confirmed-reuse {{ border-left: 4px solid #4caf50; }}
+  .entry.confirmed-mention {{ border-left: 4px solid #1565c0; }}
+  .entry.confirmed-unsure {{ border-left: 4px solid #ff9800; }}
   .entry-header {{ display: flex; justify-content: space-between; align-items: baseline; }}
   .entry-num {{ font-size: 15px; font-weight: bold; color: #1565c0; }}
   .cls-tag {{ display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 11px; font-weight: bold; color: white; }}
@@ -136,9 +136,9 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     <select id="filterReview" onchange="onFilterChange()">
       <option value="all">All</option>
       <option value="unreviewed">Unreviewed</option>
-      <option value="yes">Confirmed Yes</option>
-      <option value="no">Confirmed No</option>
-      <option value="unsure">Unsure</option>
+      <option value="reuse">Marked Reuse</option>
+      <option value="mention">Marked Mention</option>
+      <option value="unsure">Marked Unsure</option>
     </select>
     <label>Sort:</label>
     <select id="sortBy" onchange="onFilterChange()">
@@ -192,9 +192,9 @@ function renderExcerpts(excerpts) {{
 }}
 
 function cardClass(s) {{
-  if (s.confirmed === 'yes') return 'entry reviewed';
-  if (s.confirmed === 'no') return 'entry not-reuse';
-  if (s.confirmed === 'unsure') return 'entry unsure';
+  if (s.confirmed === 'reuse') return 'entry confirmed-reuse';
+  if (s.confirmed === 'mention') return 'entry confirmed-mention';
+  if (s.confirmed === 'unsure') return 'entry confirmed-unsure';
   return 'entry';
 }}
 
@@ -217,7 +217,26 @@ function renderEntry(e, displayIndex, total) {{
   const srcArchive = (e.classification === 'REUSE' && e.source_archive)
     ? ' | source: ' + escapeHtml(e.source_archive)
     : '';
-  const active = v => s.confirmed === v ? 'active' : '';
+  // Determine button color class based on LLM classification:
+  // green=confirms LLM output, red=contradicts it, yellow=uncertain
+  function btnColorClass(buttonType, llmClassification) {{
+    if (llmClassification === 'REUSE') {{
+      if (buttonType === 'reuse') return 'yes';
+      if (buttonType === 'mention') return 'no';
+      return 'unsure';
+    }} else if (llmClassification === 'MENTION') {{
+      if (buttonType === 'mention') return 'yes';
+      if (buttonType === 'reuse') return 'no';
+      return 'unsure';
+    }} else {{
+      // NEITHER: unsure confirms LLM, reuse/mention are uncertain
+      if (buttonType === 'unsure') return 'yes';
+      return 'unsure';
+    }}
+  }}
+  const reuseClass = btnColorClass('reuse', e.classification) + (s.confirmed === 'reuse' ? ' active' : '');
+  const mentionClass = btnColorClass('mention', e.classification) + (s.confirmed === 'mention' ? ' active' : '');
+  const unsureClass = btnColorClass('unsure', e.classification) + (s.confirmed === 'unsure' ? ' active' : '');
   return `
     <div class="${{cardClass(s)}}" id="entry-${{key}}">
       <div class="entry-header">
@@ -235,9 +254,9 @@ function renderEntry(e, displayIndex, total) {{
         </div>
         <div class="decision-bar">
           <div style="display:flex;gap:6px;">
-            <button class="yes ${{active('yes')}}" onclick="markAndAdvance('${{key}}', 'yes')">&check; Correct</button>
-            <button class="no ${{active('no')}}" onclick="markAndAdvance('${{key}}', 'no')">&times; Incorrect</button>
-            <button class="unsure ${{active('unsure')}}" onclick="markAndAdvance('${{key}}', 'unsure')">? Unsure</button>
+            <button class="${{reuseClass}}" onclick="markAndAdvance('${{key}}', 'reuse')">Reuse</button>
+            <button class="${{mentionClass}}" onclick="markAndAdvance('${{key}}', 'mention')">Mention</button>
+            <button class="${{unsureClass}}" onclick="markAndAdvance('${{key}}', 'unsure')">? Unsure</button>
           </div>
           <button class="clear" onclick="clearConfirmation('${{key}}')">Clear</button>
         </div>

@@ -76,25 +76,27 @@ neither_review = review_outcomes_by_class["NEITHER"]
 reuse_reviewed = sum(reuse_review.values())
 mention_reviewed = sum(mention_review.values())
 neither_reviewed = sum(neither_review.values())
-reuse_unreviewed = reuse_count - reuse_reviewed
-mention_unreviewed = mention_count - mention_reviewed
-neither_unreviewed = neither_count - neither_reviewed
 
-# Confusion matrix for the decisive (non-unsure) reviewed pool.
-# REUSE is the positive class; MENTION is the negative class.
-# Unreviewed and "unsure" reviews are excluded.
-# NEITHER reviews are also excluded (true class unknown for "no" entries).
-true_positive = reuse_review["yes"]    # LLM REUSE, confirmed REUSE
-false_positive = reuse_review["no"]    # LLM REUSE, actually MENTION
-false_negative = mention_review["no"]  # LLM MENTION, actually REUSE
-true_negative = mention_review["yes"]  # LLM MENTION, confirmed MENTION
+# Full 3x3 confusion matrix counts (rows = LLM class, columns = human label).
+# confirmed values are now explicit: "reuse", "mention", "unsure".
+reuse_human_reuse = reuse_review["reuse"]
+reuse_human_mention = reuse_review["mention"]
+reuse_human_unsure = reuse_review["unsure"]
+
+mention_human_reuse = mention_review["reuse"]
+mention_human_mention = mention_review["mention"]
+mention_human_unsure = mention_review["unsure"]
+
+neither_human_reuse = neither_review["reuse"]
+neither_human_mention = neither_review["mention"]
+neither_human_unsure = neither_review["unsure"]
+
+# 2x2 metrics matrix excludes NEITHER rows and UNSURE columns.
+true_positive = reuse_human_reuse
+false_positive = reuse_human_mention
+false_negative = mention_human_reuse
+true_negative = mention_human_mention
 decisive_total = true_positive + false_positive + false_negative + true_negative
-
-reuse_excluded_unsure = reuse_review["unsure"]
-mention_excluded_unsure = mention_review["unsure"]
-neither_excluded_unsure = neither_review["unsure"]
-neither_confirmed = neither_review["yes"]
-neither_misclassified = neither_review["no"]
 
 
 def _safe_ratio(numerator, denominator):
@@ -245,8 +247,6 @@ error_color = "#ffcdd2"
 unknown_color = "#fff9c4"
 zero_color = "#f5f5f5"
 
-neither_human_unsure = neither_confirmed + neither_excluded_unsure
-
 matrix_html = f"""<
 <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="8" BGCOLOR="white">
   <TR>
@@ -257,19 +257,20 @@ matrix_html = f"""<
   </TR>
   <TR>
     <TD BGCOLOR="{header_color}"><B>REUSE</B></TD>
-    <TD BGCOLOR="{correct_color}">{true_positive}</TD>
-    <TD BGCOLOR="{error_color}">{false_positive}</TD>
-    <TD BGCOLOR="{unknown_color}">{reuse_excluded_unsure}</TD>
+    <TD BGCOLOR="{correct_color}">{reuse_human_reuse}</TD>
+    <TD BGCOLOR="{error_color}">{reuse_human_mention}</TD>
+    <TD BGCOLOR="{unknown_color}">{reuse_human_unsure}</TD>
   </TR>
   <TR>
     <TD BGCOLOR="{header_color}"><B>MENTION</B></TD>
-    <TD BGCOLOR="{error_color}">{false_negative}</TD>
-    <TD BGCOLOR="{correct_color}">{true_negative}</TD>
-    <TD BGCOLOR="{unknown_color}">{mention_excluded_unsure}</TD>
+    <TD BGCOLOR="{error_color}">{mention_human_reuse}</TD>
+    <TD BGCOLOR="{correct_color}">{mention_human_mention}</TD>
+    <TD BGCOLOR="{unknown_color}">{mention_human_unsure}</TD>
   </TR>
   <TR>
     <TD BGCOLOR="{header_color}"><B>NEITHER</B></TD>
-    <TD BGCOLOR="{unknown_color}" COLSPAN="2">? (n={neither_misclassified})</TD>
+    <TD BGCOLOR="{error_color}">{neither_human_reuse}</TD>
+    <TD BGCOLOR="{error_color}">{neither_human_mention}</TD>
     <TD BGCOLOR="{correct_color}">{neither_human_unsure}</TD>
   </TR>
 </TABLE>>"""
