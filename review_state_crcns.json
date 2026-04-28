@@ -1,0 +1,122 @@
+{
+  "10.1016/j.jml.2025.104726|ac-4": {
+    "confirmed": "unsure",
+    "notes": "Captcha "
+  },
+  "10.1016/j.pneurobio.2025.102843|ac-4": {
+    "confirmed": "unsure",
+    "notes": "Captcha"
+  },
+  "10.1101/2020.10.07.330282|ac-4": {
+    "confirmed": "mention",
+    "notes": "This should just be a mention. "
+  },
+  "10.1371/journal.pcbi.1005699|am-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1016/j.neubiorev.2019.09.017|am-3": {
+    "confirmed": "unsure",
+    "notes": ""
+  },
+  "10.1016/j.neuron.2016.04.021|am-3": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1038/s41467-020-18732-x|am-3": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1101/2023.01.23.525213|am-3": {
+    "confirmed": "mention",
+    "notes": "This paper reuses data from Lynch et al. 2016 and only references Okubo et al. 2015. "
+  },
+  "10.1101/2023.08.03.551900|am-3": {
+    "confirmed": "mention",
+    "notes": "The citing paper does mention the original; maybe a parsing error. "
+  },
+  "10.1101/764456|am-3": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.3389/fphy.2019.00142|am-3": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.7554/elife.38471|am-3": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1038/s41467-020-18732-x|am-4": {
+    "confirmed": "mention",
+    "notes": "This appears to just be a methodological citation rather than data reuse. "
+  },
+  "10.1016/j.bspc.2022.104494|bf-1": {
+    "confirmed": "unsure",
+    "notes": "El Sevier Captcha"
+  },
+  "10.1016/j.jocn.2019.07.001|bf-1": {
+    "confirmed": "unsure",
+    "notes": "I don't have access to the full text. "
+  },
+  "10.1016/j.jphs.2025.12.002|bf-1": {
+    "confirmed": "unsure",
+    "notes": "Elsevier Cap-cha. "
+  },
+  "10.1093/brain/awae289|bf-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.3389/fpsyt.2023.1190353|bf-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1016/j.conb.2024.102883|bf-3": {
+    "confirmed": "unsure",
+    "notes": ""
+  },
+  "10.1016/j.cub.2021.02.055|bf-3": {
+    "confirmed": "mention",
+    "notes": "The only citation of the primary paper is used for background information. "
+  },
+  "10.1016/j.cell.2016.06.046|cai-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1016/j.neuron.2016.04.014|cai-1": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1021/acs.chemrev.8b00333|cai-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1038/s41592-020-0909-6|cai-1": {
+    "confirmed": "unsure",
+    "notes": "I don't have access to this paper. "
+  },
+  "10.1038/s41593-018-0211-4|cai-1": {
+    "confirmed": "unsure",
+    "notes": "I don't have access to the full text of this paper. "
+  },
+  "10.1038/s41593-021-00895-5|cai-1": {
+    "confirmed": "unsure",
+    "notes": "I don't have access to the full text of this paper. "
+  },
+  "10.1126/science.aaf3319|cai-1": {
+    "confirmed": "unsure",
+    "notes": "Captcha"
+  },
+  "10.1371/journal.pbio.1002454|cai-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1371/journal.pcbi.1008198|cai-1": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1038/s41596-018-0097-3|cai-2": {
+    "confirmed": "mention",
+    "notes": ""
+  }
+}
