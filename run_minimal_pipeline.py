@@ -87,18 +87,19 @@ def stage3_extract_contexts(adapter):
     )
 
 
-def stage4_classify(adapter):
+def stage4_classify(adapter, model, clear_cache):
     classifications_path = adapter.output_dir / "classifications.json"
-    subprocess.run(
-        [
-            "python3", "classify_citing_papers.py",
-            "--results-file", str(adapter.output_dir / "datasets.json"),
-            "--cache-dir", str(CACHE_DIR),
-            "-o", str(classifications_path),
-            "--workers", "4",
-        ],
-        check=True,
-    )
+    command = [
+        "python3", "classify_citing_papers.py",
+        "--results-file", str(adapter.output_dir / "datasets.json"),
+        "--cache-dir", str(CACHE_DIR),
+        "-o", str(classifications_path),
+        "--workers", "4",
+        "--model", model,
+    ]
+    if clear_cache:
+        command.append("--clear-cache")
+    subprocess.run(command, check=True)
     return classifications_path
 
 
@@ -110,6 +111,10 @@ def main():
                         help="Cap to first N datasets (sorted by ID) that have ≥1 citing paper. Default: all.")
     parser.add_argument("--max-citing-papers", type=int, default=None,
                         help="Cap citing papers fetched per dataset. Default: all.")
+    parser.add_argument("--model", default="google/gemini-3-flash-preview",
+                        help="OpenRouter model for classification (default: google/gemini-3-flash-preview).")
+    parser.add_argument("--clear-cache", action="store_true",
+                        help="Clear classification cache before running.")
     args = parser.parse_args()
 
     start = time.time()
@@ -125,7 +130,7 @@ def main():
     stage1b_filter_by_citations(adapter, args.limit, args.max_citing_papers)
     stage2_citing_papers_and_text(adapter, args.max_citing_papers)
     stage3_extract_contexts(adapter)
-    classifications_path = stage4_classify(adapter)
+    classifications_path = stage4_classify(adapter, args.model, args.clear_cache)
 
     print(f"\nDone in {(time.time() - start) / 60:.1f} min. See {classifications_path}", file=sys.stderr)
 
