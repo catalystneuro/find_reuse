@@ -77,8 +77,8 @@ def extract_all_citation_contexts(
     if alt_doi_map:
         print(f"Found {len(alt_doi_map)} alternate DOIs for citation context search", file=sys.stderr)
 
-    # Collect all citing paper -> cited paper relationships
     citation_pairs = []
+    failed_pairs = []
     for result in results_data['results']:
         dandiset_id = result['dandiset_id']
         dandiset_name = result.get('dandiset_name', '')
@@ -88,10 +88,22 @@ def extract_all_citation_contexts(
             cited_doi = citing.get('cited_paper_doi')
 
             if not citing_doi or not cited_doi:
+                failed_pairs.append({
+                    'citing_doi': citing_doi or '',
+                    'cited_doi': cited_doi or '',
+                    'dandiset_id': dandiset_id,
+                    'reason': 'missing_doi',
+                })
                 continue
 
             cache_file = cache_dir / f"{citing_doi.replace('/', '_')}.json"
             if not cache_file.exists():
+                failed_pairs.append({
+                    'citing_doi': citing_doi,
+                    'cited_doi': cited_doi,
+                    'dandiset_id': dandiset_id,
+                    'reason': 'cache_file_missing',
+                })
                 continue
 
             citation_pairs.append({
@@ -110,13 +122,14 @@ def extract_all_citation_contexts(
         citation_pairs = citation_pairs[:max_papers]
 
     pair_records = []
-    failed_pairs = []
     stats = {
-        'total_pairs': len(citation_pairs),
-        'successful': 0,
+        'input_pairs': len(citation_pairs) + len(failed_pairs),
+        'pre_extraction_failures': len(failed_pairs),
+        'attempted_extractions': len(citation_pairs),
+        'with_citations': 0,
         'no_citations_found': 0,
         'low_quality_text': 0,
-        'errors': 0,
+        'extraction_exceptions': 0,
     }
 
     pbar = tqdm(citation_pairs, desc="Extracting citation contexts", disable=not show_progress)
@@ -147,7 +160,7 @@ def extract_all_citation_contexts(
                 if 'Insufficient' in result.get('error', ''):
                     stats['low_quality_text'] += 1
                 else:
-                    stats['errors'] += 1
+                    stats['extraction_exceptions'] += 1
                 failed_pairs.append({
                     'citing_doi': pair['citing_doi'],
                     'cited_doi': pair['cited_doi'],
@@ -159,7 +172,7 @@ def extract_all_citation_contexts(
             if result['num_citations'] == 0:
                 stats['no_citations_found'] += 1
             else:
-                stats['successful'] += 1
+                stats['with_citations'] += 1
 
             contexts = []
             for citation in result['citations']:
@@ -189,7 +202,7 @@ def extract_all_citation_contexts(
             })
 
         except Exception as exception:
-            stats['errors'] += 1
+            stats['extraction_exceptions'] += 1
             failed_pairs.append({
                 'citing_doi': pair['citing_doi'],
                 'cited_doi': pair['cited_doi'],
@@ -290,8 +303,8 @@ def main():
     parser.add_argument(
         '--cache-dir',
         type=Path,
-        default=Path('/Volumes/microsd64/data/'),
-        help='Directory containing cached paper text files'
+        default=Path('.paper_cache'),
+        help='Directory containing cached paper text files (default: .paper_cache)'
     )
     parser.add_argument(
         '--output',
@@ -335,13 +348,15 @@ def main():
     total_contexts = sum(len(record['contexts']) for record in pair_records)
 
     print(f"\nExtraction Statistics:", file=sys.stderr)
-    print(f"  Total citation pairs: {stats['total_pairs']}", file=sys.stderr)
-    print(f"  Successful extractions: {stats['successful']}", file=sys.stderr)
-    print(f"  No citations found: {stats['no_citations_found']}", file=sys.stderr)
-    print(f"  Low quality text: {stats['low_quality_text']}", file=sys.stderr)
-    print(f"  Errors: {stats['errors']}", file=sys.stderr)
+    print(f"  Input pairs (from datasets.json): {stats['input_pairs']}", file=sys.stderr)
+    print(f"    Pre-extraction failures (no DOI / cache file missing): {stats['pre_extraction_failures']}", file=sys.stderr)
+    print(f"    Attempted extractions: {stats['attempted_extractions']}", file=sys.stderr)
+    print(f"      With citations found: {stats['with_citations']}", file=sys.stderr)
+    print(f"      No citations found (text fine, DOI not detected): {stats['no_citations_found']}", file=sys.stderr)
+    print(f"      Low quality text (only refs/metadata): {stats['low_quality_text']}", file=sys.stderr)
+    print(f"      Extraction exceptions: {stats['extraction_exceptions']}", file=sys.stderr)
     print(f"  Pairs eligible for classification: {len(pair_records)}", file=sys.stderr)
-    print(f"  Failed pairs (excluded): {len(failed_pairs)}", file=sys.stderr)
+    print(f"  Failed pairs (excluded from classification): {len(failed_pairs)}", file=sys.stderr)
     print(f"  Total contexts extracted: {total_contexts}", file=sys.stderr)
 
     if args.format == 'json':
