@@ -27,6 +27,7 @@ args = parser.parse_args()
 REPO_ROOT = Path(__file__).parent
 CLASSIFICATIONS_PATH = REPO_ROOT / "output" / "minimal" / args.archive / "classifications.json"
 DATASETS_PATH = REPO_ROOT / "output" / "minimal" / args.archive / "datasets.json"
+CITATION_CONTEXTS_PATH = REPO_ROOT / "output" / "minimal" / args.archive / "citation_contexts.json"
 REVIEW_STATE_PATH = Path(args.review_state)
 OUTPUT_BASE = REPO_ROOT / "output" / "minimal" / args.archive / "review_flow"
 
@@ -37,8 +38,21 @@ with open(CLASSIFICATIONS_PATH) as file_handle:
     classifications_data = json.load(file_handle)
 with open(DATASETS_PATH) as file_handle:
     datasets_data = json.load(file_handle)
+with open(CITATION_CONTEXTS_PATH) as file_handle:
+    citation_contexts_data = json.load(file_handle)
 with open(REVIEW_STATE_PATH) as file_handle:
     review_data = json.load(file_handle)
+
+extraction_stats = citation_contexts_data["stats"]
+input_pairs = extraction_stats["input_pairs"]
+pre_extraction_failures = extraction_stats["pre_extraction_failures"]
+attempted_extractions = extraction_stats["attempted_extractions"]
+with_citations = extraction_stats["with_citations"]
+no_citations_found = extraction_stats["no_citations_found"]
+low_quality_text = extraction_stats["low_quality_text"]
+extraction_exceptions = extraction_stats["extraction_exceptions"]
+eligible_pairs = with_citations + no_citations_found
+failed_pairs_count = pre_extraction_failures + low_quality_text + extraction_exceptions
 
 classifications = classifications_data["classifications"]
 llm_counts = classifications_data["metadata"]["classification_counts"]
@@ -119,7 +133,7 @@ accuracy = _safe_ratio(true_positive + true_negative, decisive_total)
 # ------------------------------------------------------------------
 dot = graphviz.Digraph("review_flow", format="png")
 dot.attr(rankdir="TB", fontname="Helvetica", fontsize="12", bgcolor="white",
-         dpi="150", pad="0.5", ranksep="0.8", nodesep="0.4")
+         dpi="150", pad="0.5", ranksep="0.8", nodesep="0.4", compound="true")
 dot.attr("node", fontname="Helvetica", fontsize="10", margin="0.15,0.1")
 dot.attr("edge", fontname="Helvetica", fontsize="9", penwidth="1.5")
 
@@ -177,13 +191,62 @@ process_node("FETCH_CITING",
 dot.edge("ARCHIVE", "FETCH_CITING", label=f"  {total_datasets}  ", color="#1565c0")
 
 result_node("PAIRS",
-            f"{total_pairs} paper × dataset pairs\n"
-            f"({datasets_with_citations} datasets × 100 citations)")
+            f"{input_pairs} paper × dataset pairs")
 dot.edge("FETCH_CITING", "PAIRS",
          label=f"  {datasets_with_citations}  ", color="#2e7d32", penwidth="2")
 
+process_node("EXTRACT",
+             "Fetch full text &\nextract citation contexts")
+dot.edge("PAIRS", "EXTRACT", label=f"  {input_pairs}  ", color="#1565c0")
+
+result_node("ELIGIBLE",
+            f"{eligible_pairs} pairs eligible\n"
+            f"for classification")
+dot.edge("EXTRACT", "ELIGIBLE",
+         label=f"  {eligible_pairs}  ", color="#2e7d32", penwidth="2")
+
+with dot.subgraph(name="cluster_extract_failed") as failed_cluster:
+    failed_cluster.attr(
+        label=f"{failed_pairs_count} pair(s) excluded",
+        style="filled,rounded",
+        color="#f9a825",
+        fillcolor="#fffde7",
+        fontcolor="#827717",
+        fontsize="10",
+        penwidth="2",
+        margin="12",
+    )
+    failed_cluster.node(
+        "FAIL_PRE",
+        f"Pre-extraction failures\n{pre_extraction_failures}\n"
+        f"(missing DOI / fetch failed / no cache)",
+        shape="box", style="filled,rounded",
+        fillcolor="white", color="#f9a825", fontcolor="#827717",
+        fontsize="9",
+    )
+    failed_cluster.node(
+        "FAIL_LOW",
+        f"Low-quality text\n{low_quality_text}\n"
+        f"(only refs/metadata)",
+        shape="box", style="filled,rounded",
+        fillcolor="white", color="#f9a825", fontcolor="#827717",
+        fontsize="9",
+    )
+    failed_cluster.node(
+        "FAIL_EXC",
+        f"Extraction exceptions\n{extraction_exceptions}",
+        shape="box", style="filled,rounded",
+        fillcolor="white", color="#f9a825", fontcolor="#827717",
+        fontsize="9",
+    )
+
+dot.edge("EXTRACT", "FAIL_PRE", style="dashed",
+         color="#e64a19", fontcolor="#e64a19",
+         label=f"  {failed_pairs_count}  ",
+         lhead="cluster_extract_failed")
+
 process_node("LLM", "Gemini 3 Flash\nclassification")
-dot.edge("PAIRS", "LLM", label=f"  {total_pairs}  ", color="#1565c0")
+dot.edge("ELIGIBLE", "LLM", label=f"  {total_pairs}  ", color="#1565c0")
 
 # LLM diverges into 3 class nodes
 with dot.subgraph() as llm_classes:
@@ -205,22 +268,32 @@ dot.edge("LLM_REUSE", "SAMPLE", color="#1565c0")
 dot.edge("LLM_MENTION", "SAMPLE", color="#1565c0")
 dot.edge("LLM_NEITHER", "SAMPLE", color="#1565c0")
 
-sample_size_per_class = 10
-total_sampled = 3 * sample_size_per_class
+# Sample sizes per class come from how many entries of each LLM class
+# actually appear in the review state file.
+sampled_per_class = Counter()
+for key in review_data:
+    llm_class = llm_label_by_key.get(key)
+    if llm_class is not None:
+        sampled_per_class[llm_class] += 1
+
+reuse_sampled = sampled_per_class["REUSE"]
+mention_sampled = sampled_per_class["MENTION"]
+neither_sampled = sampled_per_class["NEITHER"]
+total_sampled = reuse_sampled + mention_sampled + neither_sampled
 total_unreviewed = total_pairs - total_sampled
 
 # SAMPLE diverges: sampled subsets for review + unreviewed remainder
 with dot.subgraph() as sampled_classes:
     sampled_classes.attr(rank="same")
-    source_node("SAMPLED_REUSE", f"REUSE\n{sample_size_per_class}")
-    source_node("SAMPLED_MENTION", f"MENTION\n{sample_size_per_class}")
-    source_node("SAMPLED_NEITHER", f"NEITHER\n{sample_size_per_class}")
+    source_node("SAMPLED_REUSE", f"REUSE\n{reuse_sampled}")
+    source_node("SAMPLED_MENTION", f"MENTION\n{mention_sampled}")
+    source_node("SAMPLED_NEITHER", f"NEITHER\n{neither_sampled}")
 
-dot.edge("SAMPLE", "SAMPLED_REUSE", label=f"  {sample_size_per_class}  ",
+dot.edge("SAMPLE", "SAMPLED_REUSE", label=f"  {reuse_sampled}  ",
          color="#f57c00", fontcolor="#e65100")
-dot.edge("SAMPLE", "SAMPLED_MENTION", label=f"  {sample_size_per_class}  ",
+dot.edge("SAMPLE", "SAMPLED_MENTION", label=f"  {mention_sampled}  ",
          color="#f57c00", fontcolor="#e65100")
-dot.edge("SAMPLE", "SAMPLED_NEITHER", label=f"  {sample_size_per_class}  ",
+dot.edge("SAMPLE", "SAMPLED_NEITHER", label=f"  {neither_sampled}  ",
          color="#f57c00", fontcolor="#e65100")
 
 note_node("UNREVIEWED", f"Unreviewed\n{total_unreviewed}")
