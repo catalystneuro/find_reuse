@@ -1,7 +1,7 @@
 {
   "10.1101/2020.10.07.330282|ac-4": {
     "confirmed": "mention",
-    "notes": "This should just be a mention. "
+    "notes": "This should just be a mention. It seems like sometimes the pipeline struggles a little bit with numbered citations. "
   },
   "10.1371/journal.pcbi.1005699|am-1": {
     "confirmed": "mention",
@@ -12,12 +12,12 @@
     "notes": ""
   },
   "10.1101/2023.01.23.525213|am-3": {
-    "confirmed": "mention",
-    "notes": "This paper reuses data from Lynch et al. 2016 and only references Okubo et al. 2015. "
+    "confirmed": "reuse",
+    "notes": "This paper reuses data from Lynch et al. 2016 and only references Okubo et al. 2015. However, Lynch et al. 2016 actually reuses data from Okubo et al. 2015, so this is reuse after all. "
   },
   "10.1101/2023.08.03.551900|am-3": {
     "confirmed": "mention",
-    "notes": "The citing paper does mention the original; maybe a parsing error. "
+    "notes": ""
   },
   "10.1101/764456|am-3": {
     "confirmed": "mention",
@@ -45,7 +45,7 @@
   },
   "10.1016/j.cub.2021.02.055|bf-3": {
     "confirmed": "mention",
-    "notes": "The only citation of the primary paper is used for background information. "
+    "notes": "The only citation of the primary paper is used for background information. The authors are shared across both papers, but the numbers of single units and similar metrics differ between them. It is a bit unclear, since they use the same number of rats and the same number of micro wire arrays. My best guess is to mention it, but it could still be considered ambiguous. "
   },
   "10.1016/j.cell.2016.06.046|cai-1": {
     "confirmed": "mention",
