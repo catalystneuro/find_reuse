@@ -1,0 +1,122 @@
+{
+  "10.3389/fnins.2022.799787|ac-4": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.3758/s13414-019-01778-5|ac-4": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1016/j.cell.2020.09.019|am-3": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1016/j.neuron.2016.02.016|am-3": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1038/s41467-020-18732-x|am-3": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1101/2022.11.30.518585|apl-1": {
+    "confirmed": "mention",
+    "notes": "I have no problem accessing this text. Maybe a pipeline failure? "
+  },
+  "10.1101/2020.01.11.902742|bf-1": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1503/jpn.220111|bf-3": {
+    "confirmed": "unsure",
+    "notes": "The citation is listed in the references section, but nowhere in the main body of the text. This appears to be legitimate neither. "
+  },
+  "10.1016/j.neuron.2016.04.014|cai-1": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1038/nature15396|cai-1": {
+    "confirmed": "unsure",
+    "notes": "I don't have access to this paper. "
+  },
+  "10.1073/pnas.1718721115|cai-1": {
+    "confirmed": "mention",
+    "notes": "This is a standard invention in the intro, maybe a citation extraction failure. "
+  },
+  "10.1523/jneurosci.3339-17.2018|cai-1": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1016/j.cell.2018.06.042|cai-2": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1038/s41587-021-01074-4|cai-2": {
+    "confirmed": "unsure",
+    "notes": "I don't have access to the full text. "
+  },
+  "10.1038/s41467-019-12572-0|ch-epfl-2009": {
+    "confirmed": "mention",
+    "notes": "Reference 49, which is used in the reasoning of the LLM, does not point to the primary paper. This paper does reuse data, but not from the paired data set. I checked the papers for transitive markers of transitive citation and did not find any. "
+  },
+  "10.1146/annurev-statistics-041715-033733|ch-epfl-2009": {
+    "confirmed": "mention",
+    "notes": "This is a standard mention in the second section of this review. Likely a citation extraction failure. "
+  },
+  "10.3389/fninf.2015.00010|ch-epfl-2009": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1038/s41528-024-00344-w|evi-1": {
+    "confirmed": "mention",
+    "notes": "Standard background mention. Not sure why the citation contexts were not retrieved. "
+  },
+  "10.1101/2020.10.15.341263|evi-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1109/jmems.2021.3092230|evi-1": {
+    "confirmed": "unsure",
+    "notes": "I don't have access to the full text. "
+  },
+  "10.3390/s22239085|evi-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1016/j.conb.2017.02.013|fcx-1": {
+    "confirmed": "unsure",
+    "notes": "I don't have access to the full text, and the excerpts that get shown don't have the conclusive evidence that is used in the pipeline reasoning. "
+  },
+  "10.1038/s41467-019-10327-5|fcx-1": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1093/sleep/zsz095|fcx-1": {
+    "confirmed": "mention",
+    "notes": "Standard intro mention "
+  },
+  "10.1371/journal.pone.0326449|fcx-2": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.21203/rs.3.rs-1195514/v3|fcx-2": {
+    "confirmed": "reuse",
+    "notes": "The full text is only available as a downloadable PDF rather than on the DOI website. Likely an Open ALEXS failure. "
+  },
+  "10.1016/j.tics.2022.12.015|fly-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1016/j.neuron.2025.03.016|hc-10": {
+    "confirmed": "mention",
+    "notes": "This is a standard mention in a review paper. Not sure why the Citation Expert SERPs were not fetched properly. "
+  },
+  "10.1038/mp.2017.249|hc-10": {
+    "confirmed": "mention",
+    "notes": "Standard Mention "
+  },
+  "10.1523/jneurosci.3065-15.2016|hc-10": {
+    "confirmed": "mention",
+    "notes": ""
+  }
+}
