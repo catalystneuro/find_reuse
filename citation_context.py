@@ -616,6 +616,28 @@ def estimate_main_text_length(text: str) -> int:
     return find_reference_section_start(text)
 
 
+def get_context_text(
+    citing_doi: str,
+    context_start: int,
+    context_end: int,
+    cache_dir: Path,
+) -> str:
+    """Extract context text from a cached paper file on the fly."""
+    cache_file = cache_dir / f"{citing_doi.replace('/', '_')}.json"
+    with open(cache_file) as f:
+        data = json.load(f)
+    text = data.get('text', '')
+    return text[context_start:context_end]
+
+
+def get_paper_text_prefix(citing_doi: str, cache_dir: Path, max_chars: int = 8000) -> str:
+    """Read the first N characters of a cached paper's text."""
+    cache_file = cache_dir / f"{citing_doi.replace('/', '_')}.json"
+    with open(cache_file) as f:
+        data = json.load(f)
+    return data.get('text', '')[:max_chars]
+
+
 def find_citation_in_cached_paper(
     cache_file: Path,
     cited_doi: str,

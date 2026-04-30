@@ -6,7 +6,9 @@ classifications.json) have been overwritten but the review.html and review state
 file from the previous run are still intact.
 
 Outputs:
-  recovered_datasets.json  — input for classify_citing_papers.py --results-file
+  recovered_datasets.json  — input for extract_citation_contexts.py --results-file
+                             (then feed the resulting contexts file into
+                             classify_citing_papers.py --contexts-file)
 
 Usage:
   python recover_from_review.py
@@ -116,10 +118,15 @@ def main():
     unique_datasets = {r["dataset_id"] for r in datasets["results"]}
     total_pairs = sum(len(r["citing_papers"]) for r in datasets["results"])
     print(f"\nRecovered {total_pairs} entries across {len(unique_datasets)} datasets.")
+    recovered_contexts_path = arguments.output_dir / "recovered_citation_contexts.json"
     print(
-        f"\nTo re-classify with Gemini Flash:\n"
-        f"  python classify_citing_papers.py \\\n"
+        f"\nTo re-classify with Gemini Flash, first re-extract contexts:\n"
+        f"  python extract_citation_contexts.py \\\n"
         f"    --results-file {recovered_datasets_path} \\\n"
+        f"    -o {recovered_contexts_path}\n"
+        f"\nThen classify:\n"
+        f"  python classify_citing_papers.py \\\n"
+        f"    --contexts-file {recovered_contexts_path} \\\n"
         f"    --model google/gemini-3-flash-preview \\\n"
         f"    -o {arguments.output_dir}/recovered_classifications_gemini.json"
     )

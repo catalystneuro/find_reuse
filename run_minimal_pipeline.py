@@ -91,7 +91,7 @@ def stage4_classify(adapter, model, clear_cache):
     classifications_path = adapter.output_dir / "classifications.json"
     command = [
         "python3", "classify_citing_papers.py",
-        "--results-file", str(adapter.output_dir / "datasets.json"),
+        "--contexts-file", str(adapter.output_dir / "citation_contexts.json"),
         "--cache-dir", str(CACHE_DIR),
         "-o", str(classifications_path),
         "--workers", "4",

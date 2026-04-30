@@ -44,10 +44,10 @@ subprocess.run([
 print("\n=== Step 3: Classify ===", file=sys.stderr, flush=True)
 subprocess.run([
     "python3", "classify_citing_papers.py",
-    "--results-file", "output/all_dandiset_papers.json",
+    "--contexts-file", "output/citation_contexts.json",
     "--cache-dir", ".paper_cache",
     "-o", "output/all_classifications_new.json",
-    "--fetch-text", "--workers", "4",
+    "--workers", "4",
 ], check=True)
 
 # Step 4: Merge with direct references

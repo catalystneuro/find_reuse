@@ -74,10 +74,10 @@ print("\n=== Step 3: Classify ===", file=sys.stderr, flush=True)
 cite_cls_file = "output/crcns/classifications_cite.json"
 subprocess.run([
     "python3", "classify_citing_papers.py",
-    "--results-file", DATASETS_FILE,
+    "--contexts-file", CONTEXTS_FILE,
     "--cache-dir", ".paper_cache",
     "-o", cite_cls_file,
-    "--fetch-text", "--workers", "16",
+    "--workers", "16",
 ], check=True)
 
 # Step 4: Convert direct references to classifications

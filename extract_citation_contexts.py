@@ -19,37 +19,9 @@ from tqdm import tqdm
 from citation_context import (
     find_citation_contexts,
     find_citation_in_cached_paper,
+    get_context_text,
     get_paper_metadata,
 )
-
-
-def get_context_text(
-    citing_doi: str,
-    context_start: int,
-    context_end: int,
-    cache_dir: Path = Path('/Volumes/microsd64/data/'),
-) -> str:
-    """
-    Extract context text from a cached paper file on-the-fly.
-
-    Args:
-        citing_doi: DOI of the citing paper
-        context_start: Start position in the text
-        context_end: End position in the text
-        cache_dir: Directory containing cached paper files
-
-    Returns:
-        The context text string
-    """
-    cache_file = cache_dir / f"{citing_doi.replace('/', '_')}.json"
-    if not cache_file.exists():
-        return ""
-
-    with open(cache_file) as f:
-        data = json.load(f)
-
-    text = data.get('text', '')
-    return text[context_start:context_end]
 
 
 def extract_all_citation_contexts(
@@ -58,19 +30,19 @@ def extract_all_citation_contexts(
     context_chars: int = 500,
     show_progress: bool = True,
     max_papers: Optional[int] = None,
-) -> list[dict]:
+) -> tuple[list[dict], list[dict], dict]:
     """
     Extract citation contexts from all cached papers.
 
-    Args:
-        results_file: Path to the dandi_all_results.json file
-        cache_dir: Directory containing cached paper text files
-        context_chars: Number of characters to extract around each citation
-        show_progress: Whether to show progress bar
-        max_papers: Maximum number of citing papers to process (None for all)
-
-    Returns:
-        List of dicts with citation context information
+    Returns a tuple of:
+    - pair_records: one record per (citing, cited) pair whose text loaded successfully.
+        Each record carries citing-paper metadata, text length/source, and a list of
+        per-citation context dicts (may be empty if no occurrences were detected).
+        These records are the input contract for the downstream classification stage.
+    - failed_pairs: pairs where text access failed (missing cache, insufficient main
+        text, or unhandled exception). Excluded from pair_records so they cannot
+        propagate into classification.
+    - stats: counts by outcome.
     """
     with open(results_file) as f:
         results_data = json.load(f)
@@ -137,8 +109,8 @@ def extract_all_citation_contexts(
     if max_papers:
         citation_pairs = citation_pairs[:max_papers]
 
-    # Extract contexts for each pair
-    all_contexts = []
+    pair_records = []
+    failed_pairs = []
     stats = {
         'total_pairs': len(citation_pairs),
         'successful': 0,
@@ -160,7 +132,6 @@ def extract_all_citation_contexts(
                 session=session
             )
 
-            # If no citations found with primary DOI, try alternate version
             if (result.get('num_citations', 0) == 0 and not result.get('error')
                     and pair.get('alt_cited_doi')):
                 alt_result = find_citation_in_cached_paper(
@@ -177,55 +148,73 @@ def extract_all_citation_contexts(
                     stats['low_quality_text'] += 1
                 else:
                     stats['errors'] += 1
+                failed_pairs.append({
+                    'citing_doi': pair['citing_doi'],
+                    'cited_doi': pair['cited_doi'],
+                    'dandiset_id': pair['dandiset_id'],
+                    'reason': result['error'],
+                })
                 continue
 
             if result['num_citations'] == 0:
                 stats['no_citations_found'] += 1
-                continue
+            else:
+                stats['successful'] += 1
 
-            stats['successful'] += 1
-
-            # Add each citation context as a separate entry
-            for i, citation in enumerate(result['citations']):
+            contexts = []
+            for citation in result['citations']:
                 context_entry = {
-                    'citing_doi': pair['citing_doi'],
-                    'cited_doi': pair['cited_doi'],
-                    'dandiset_id': pair['dandiset_id'],
-                    'citation_index': i,
-                    'total_citations_in_paper': result['num_citations'],
-                    'detection_method': citation.get('method', ''),
-                    # Just store positions - text can be extracted on-the-fly from cached files
+                    'method': citation.get('method', ''),
                     'citation_position': citation.get('citation_position', 0),
-                    'context_start': citation.get('start', 0),
-                    'context_end': citation.get('end', 0),
+                    'start': citation.get('start', 0),
+                    'end': citation.get('end', 0),
                 }
+                for optional_field in ('reference_number', 'authors', 'year', 'title'):
+                    if optional_field in citation:
+                        context_entry[optional_field] = citation[optional_field]
+                contexts.append(context_entry)
 
-                all_contexts.append(context_entry)
+            pair_records.append({
+                'citing_doi': pair['citing_doi'],
+                'cited_doi': pair['cited_doi'],
+                'dandiset_id': pair['dandiset_id'],
+                'dandiset_name': pair['dandiset_name'],
+                'citing_title': pair['citing_title'],
+                'citing_journal': pair['citing_journal'],
+                'citing_date': pair['citing_date'],
+                'text_length': result.get('text_length', 0),
+                'text_source': result.get('source', ''),
+                'main_text_length': result.get('main_text_length', 0),
+                'contexts': contexts,
+            })
 
-        except Exception as e:
+        except Exception as exception:
             stats['errors'] += 1
+            failed_pairs.append({
+                'citing_doi': pair['citing_doi'],
+                'cited_doi': pair['cited_doi'],
+                'dandiset_id': pair['dandiset_id'],
+                'reason': f'exception: {exception}',
+            })
             if show_progress:
-                tqdm.write(f"Error processing {pair['citing_doi']}: {e}")
+                tqdm.write(f"Error processing {pair['citing_doi']}: {exception}")
 
-    return all_contexts, stats
+    return pair_records, failed_pairs, stats
 
 
-def format_for_llm(context: dict, cache_dir: Path = Path('/Volumes/microsd64/data/')) -> str:
+def format_for_llm(occurrence: dict, cache_dir: Path) -> str:
     """
-    Format a citation context for LLM classification.
+    Format a single citation occurrence for LLM classification.
 
-    Args:
-        context: Citation context dict with position info
-        cache_dir: Directory containing cached paper files
-
-    Returns a prompt string that can be sent to an LLM.
+    `occurrence` is a flattened row produced by `flatten_pair_records`: it carries
+    the citing/cited DOIs, the dandiset ID, and the context's start/end offsets
+    so the excerpt text can be extracted from cache.
     """
-    # Extract context text on-the-fly
     context_text = get_context_text(
-        context['citing_doi'],
-        context['context_start'],
-        context['context_end'],
-        cache_dir
+        occurrence['citing_doi'],
+        occurrence['start'],
+        occurrence['end'],
+        cache_dir,
     )
 
     prompt = f"""Analyze this citation context to determine if it represents DATA REUSE or just a PAPER MENTION.
@@ -234,8 +223,8 @@ CITATION CONTEXT:
 "{context_text}"
 
 METADATA:
-- Cited paper DOI: {context['cited_doi']}
-- Associated DANDI dataset: {context['dandiset_id']}
+- Cited paper DOI: {occurrence['cited_doi']}
+- Associated DANDI dataset: {occurrence['dandiset_id']}
 
 DATA REUSE means the citing paper:
 - Downloaded and analyzed data from the DANDI dataset
@@ -259,6 +248,33 @@ Based on the context, classify this as:
 Respond with just the classification and a brief (1-2 sentence) explanation."""
 
     return prompt
+
+
+def flatten_pair_records(pair_records: list[dict]) -> list[dict]:
+    """Flatten pair_records to one row per detected citation occurrence.
+
+    Used by --format jsonl and --format prompts to preserve their per-occurrence
+    output shape while the canonical in-memory representation is per-pair.
+    """
+    rows = []
+    for record in pair_records:
+        for index, context in enumerate(record['contexts']):
+            row = {
+                'citing_doi': record['citing_doi'],
+                'cited_doi': record['cited_doi'],
+                'dandiset_id': record['dandiset_id'],
+                'citation_index': index,
+                'total_citations_in_paper': len(record['contexts']),
+                'method': context.get('method', ''),
+                'citation_position': context.get('citation_position', 0),
+                'start': context.get('start', 0),
+                'end': context.get('end', 0),
+            }
+            for optional_field in ('reference_number', 'authors', 'year', 'title'):
+                if optional_field in context:
+                    row[optional_field] = context[optional_field]
+            rows.append(row)
+    return rows
 
 
 def main():
@@ -308,8 +324,7 @@ def main():
 
     args = parser.parse_args()
 
-    # Extract contexts
-    contexts, stats = extract_all_citation_contexts(
+    pair_records, failed_pairs, stats = extract_all_citation_contexts(
         results_file=args.results_file,
         cache_dir=args.cache_dir,
         context_chars=args.context_chars,
@@ -317,36 +332,41 @@ def main():
         max_papers=args.max_papers,
     )
 
-    # Print stats
+    total_contexts = sum(len(record['contexts']) for record in pair_records)
+
     print(f"\nExtraction Statistics:", file=sys.stderr)
     print(f"  Total citation pairs: {stats['total_pairs']}", file=sys.stderr)
     print(f"  Successful extractions: {stats['successful']}", file=sys.stderr)
     print(f"  No citations found: {stats['no_citations_found']}", file=sys.stderr)
     print(f"  Low quality text: {stats['low_quality_text']}", file=sys.stderr)
     print(f"  Errors: {stats['errors']}", file=sys.stderr)
-    print(f"  Total contexts extracted: {len(contexts)}", file=sys.stderr)
+    print(f"  Pairs eligible for classification: {len(pair_records)}", file=sys.stderr)
+    print(f"  Failed pairs (excluded): {len(failed_pairs)}", file=sys.stderr)
+    print(f"  Total contexts extracted: {total_contexts}", file=sys.stderr)
 
-    # Format output
     if args.format == 'json':
         output = {
             'stats': stats,
-            'contexts': contexts,
+            'pairs': pair_records,
+            'failed_pairs': failed_pairs,
         }
         output_str = json.dumps(output, indent=2)
     elif args.format == 'jsonl':
-        output_str = '\n'.join(json.dumps(ctx) for ctx in contexts)
+        rows = flatten_pair_records(pair_records)
+        output_str = '\n'.join(json.dumps(row) for row in rows)
     elif args.format == 'prompts':
-        prompts = [format_for_llm(ctx, args.cache_dir) for ctx in contexts]
+        rows = flatten_pair_records(pair_records)
+        prompts = [format_for_llm(row, args.cache_dir) for row in rows]
         output = {
             'stats': stats,
             'prompts': [
                 {
-                    'citing_doi': ctx['citing_doi'],
-                    'cited_doi': ctx['cited_doi'],
-                    'dandiset_id': ctx['dandiset_id'],
+                    'citing_doi': row['citing_doi'],
+                    'cited_doi': row['cited_doi'],
+                    'dandiset_id': row['dandiset_id'],
                     'prompt': prompt,
                 }
-                for ctx, prompt in zip(contexts, prompts)
+                for row, prompt in zip(rows, prompts)
             ]
         }
         output_str = json.dumps(output, indent=2)

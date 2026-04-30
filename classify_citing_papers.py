@@ -18,33 +18,31 @@ Classification schema (two orthogonal decisions):
    - true: Authors overlap with the original dataset creators
    - false: Authors are from a different lab/group
 
-Input modes:
-1. Results file from dandi_primary_papers.py --citations --fetch-text
-2. Pre-extracted citation_contexts.json from extract_citation_contexts.py
+Input:
+    citation_contexts.json produced by extract_citation_contexts.py. Each pair record
+    in that file already carries pre-extracted citation contexts and text metadata,
+    so this script does no text parsing of its own. Pairs that failed text access in
+    the extraction stage are absent from `pairs` (they live in `failed_pairs`) and
+    therefore cannot propagate into classification.
 
 Usage:
-    python classify_citing_papers.py --results-file output/dandi_all_results.json
     python classify_citing_papers.py --contexts-file output/citation_contexts.json
-    python classify_citing_papers.py --results-file output/dandi_all_results.json --max-papers 10
-    python classify_citing_papers.py --results-file output/dandi_all_results.json --model google/gemini-3-flash-preview
+    python classify_citing_papers.py --contexts-file output/citation_contexts.json --max-papers 10
+    python classify_citing_papers.py --contexts-file output/citation_contexts.json --model google/gemini-3-flash-preview
 """
 
 import argparse
 import concurrent.futures
 import json
-import os
 import re
 import sys
-import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-import requests
 from tqdm import tqdm
 
-from citation_context import find_citation_contexts, find_citation_in_cached_paper
-from find_reuse import ArchiveFinder
+from citation_context import get_context_text, get_paper_text_prefix
 from llm_utils import get_api_key, call_openrouter_api, parse_json_response, DEFAULT_MODEL
 
 # Classification cache
@@ -183,37 +181,23 @@ def cache_classification(citing_doi: str, cited_doi: str, result: dict):
 
 
 def classify_single_paper(
-    citing_doi: str,
-    cited_doi: str,
-    dandiset_id: str,
-    dandiset_name: str,
+    pair_record: dict,
     cache_dir: Path,
     api_key: str,
     model: str,
-    context_chars: int = 500,
     use_cache: bool = True,
-    session: Optional[requests.Session] = None,
-    archive_finder: Optional[ArchiveFinder] = None,
 ) -> dict:
-    """
-    Classify a single citing paper's relationship to a dataset.
+    """Classify a single citing paper using a pair_record from Stage 3.
 
-    Args:
-        citing_doi: DOI of the citing paper
-        cited_doi: DOI of the cited primary paper
-        dandiset_id: DANDI dataset ID
-        dandiset_name: Name of the DANDI dataset
-        cache_dir: Directory containing cached paper texts
-        api_key: OpenRouter API key
-        model: Model to use
-        context_chars: Characters of context around citations
-        use_cache: Whether to use classification cache
-        session: Optional requests session for metadata lookups
-        archive_finder: Optional ArchiveFinder instance for fetching missing paper text
-
-    Returns:
-        Classification result dict
+    `pair_record` is one entry from citation_contexts.json's `pairs` list. It already
+    contains the citing-paper metadata, text length/source, and pre-extracted
+    contexts. This function only resolves context excerpt text from cache and calls
+    the LLM — it never re-parses the paper.
     """
+    citing_doi = pair_record['citing_doi']
+    cited_doi = pair_record['cited_doi']
+    dandiset_id = pair_record['dandiset_id']
+    dandiset_name = pair_record.get('dandiset_name', '')
     # Check classification cache
     if use_cache:
         cached = get_cached_classification(citing_doi, cited_doi)
@@ -249,71 +233,24 @@ def classify_single_paper(
         'dandiset_id': dandiset_id,
         'dandiset_name': dandiset_name,
         'from_cache': False,
+        'text_length': pair_record.get('text_length', 0),
+        'text_source': pair_record.get('text_source', ''),
     }
 
-    # Load the citing paper text from cache
-    paper_cache_file = cache_dir / f"{citing_doi.replace('/', '_')}.json"
-    if not paper_cache_file.exists() and archive_finder is not None:
-        # Attempt to fetch paper text
-        try:
-            text, source, from_text_cache = archive_finder.get_paper_text(citing_doi)
-            if text and len(text) >= 200:
-                print(f"  Fetched text for {citing_doi} ({len(text)} chars from {source})", file=sys.stderr)
-            else:
-                print(f"  Could not fetch text for {citing_doi}", file=sys.stderr)
-        except Exception as e:
-            print(f"  Error fetching text for {citing_doi}: {e}", file=sys.stderr)
+    raw_contexts = pair_record.get('contexts', [])
+    contexts_with_text = []
+    for raw in raw_contexts:
+        excerpt = get_context_text(citing_doi, raw['start'], raw['end'], cache_dir)
+        contexts_with_text.append({**raw, 'context': excerpt})
 
-    if not paper_cache_file.exists():
-        result['classification'] = 'NEITHER'
-        result['confidence'] = 1
-        result['reasoning'] = 'Paper text not available'
-        result['error'] = 'no_paper_text'
-        if use_cache:
-            cache_classification(citing_doi, cited_doi, result)
-        return result
+    result['num_contexts'] = len(contexts_with_text)
 
-    try:
-        with open(paper_cache_file) as f:
-            paper_data = json.load(f)
-    except (json.JSONDecodeError, OSError) as e:
-        result['classification'] = 'NEITHER'
-        result['confidence'] = 1
-        result['reasoning'] = f'Error reading paper cache: {e}'
-        result['error'] = 'cache_read_error'
-        return result
-
-    text = paper_data.get('text', '')
-    if not text or len(text) < 200:
-        result['classification'] = 'NEITHER'
-        result['confidence'] = 1
-        result['reasoning'] = 'Paper text too short or empty'
-        result['error'] = 'insufficient_text'
-        if use_cache:
-            cache_classification(citing_doi, cited_doi, result)
-        return result
-
-    result['text_length'] = len(text)
-    result['text_source'] = paper_data.get('source', '')
-
-    # Extract citation contexts
-    contexts = find_citation_contexts(
-        text, cited_doi,
-        context_chars=context_chars,
-        session=session,
-        exclude_reference_section=True,
-    )
-
-    result['num_contexts'] = len(contexts)
-
-    # Build prompt
     fallback_text = None
-    if not contexts:
-        # No specific citation context found - send beginning of paper
-        fallback_text = text[:8000]
+    if not contexts_with_text:
+        fallback_text = get_paper_text_prefix(citing_doi, cache_dir, max_chars=8000)
 
     prompt = build_classification_prompt(
-        contexts=contexts,
+        contexts=contexts_with_text,
         dandiset_id=dandiset_id,
         dandiset_name=dandiset_name,
         cited_doi=cited_doi,
@@ -321,13 +258,11 @@ def classify_single_paper(
         fallback_text=fallback_text,
     )
 
-    # Call LLM
     response = call_openrouter_api(
         prompt, api_key, model,
         return_raw=True, max_tokens=300, timeout=60,
     )
 
-    # Parse response
     classification = parse_json_response(
         response,
         valid_classifications=VALID_CLASSIFICATIONS,
@@ -335,291 +270,111 @@ def classify_single_paper(
     )
     result.update(classification)
 
-    # Post-classification validation: confidence cap for short texts
     if result.get('classification') == 'REUSE' and result.get('text_length', 0) < 15000:
         result['confidence'] = min(result.get('confidence', 1), 5)
         result['low_text_warning'] = True
 
-    # Flag high-confidence reuse for downstream consumers
     result['high_confidence_reuse'] = (
         result.get('classification') == 'REUSE'
         and result.get('confidence', 0) >= 7
     )
 
-    # Include context excerpts in output (full text - viewer handles display)
-    if contexts:
+    if contexts_with_text:
         result['context_excerpts'] = []
-        for ctx in contexts[:5]:  # Max 5 excerpts
+        for context in contexts_with_text[:5]:
             excerpt_data = {
-                'text': ctx.get('context', ''),
-                'method': ctx.get('method', ''),
+                'text': context['context'],
+                'method': context.get('method', ''),
             }
-            # Store highlight offset (position of citation within excerpt)
-            if 'citation_position' in ctx and 'start' in ctx:
-                excerpt_data['highlight_offset'] = ctx['citation_position'] - ctx['start']
-            # Store reference info for viewer highlighting
-            if ctx.get('reference_number'):
-                excerpt_data['reference_number'] = ctx['reference_number']
-            if ctx.get('authors'):
-                excerpt_data['authors'] = ctx['authors']
-            if ctx.get('year'):
-                excerpt_data['year'] = ctx['year']
+            if 'citation_position' in context and 'start' in context:
+                excerpt_data['highlight_offset'] = context['citation_position'] - context['start']
+            for optional_field in ('reference_number', 'authors', 'year'):
+                if context.get(optional_field):
+                    excerpt_data[optional_field] = context[optional_field]
             result['context_excerpts'].append(excerpt_data)
 
-    # Cache result
     if use_cache:
         cache_classification(citing_doi, cited_doi, result)
 
     return result
 
 
-def load_citation_pairs_from_results(results_file: Path) -> list[dict]:
-    """
-    Load citing paper pairs from dandi_primary_papers.py --fetch-text output.
+def load_pair_records_from_contexts(contexts_file: Path) -> list[dict]:
+    """Load pair_records from citation_contexts.json (Stage 3 output).
 
-    Args:
-        results_file: Path to the results JSON
-
-    Returns:
-        List of dicts with citing_doi, cited_doi, dandiset_id, dandiset_name
-    """
-    with open(results_file) as f:
-        data = json.load(f)
-
-    pairs = []
-    seen = set()
-
-    for result in data.get('results', []):
-        dandiset_id = result['dandiset_id']
-        dandiset_name = result.get('dandiset_name', '')
-
-        for citing in result.get('citing_papers', []):
-            citing_doi = citing.get('doi')
-            cited_doi = citing.get('cited_paper_doi')
-
-            if not citing_doi or not cited_doi:
-                continue
-
-            key = (citing_doi, cited_doi)
-            if key in seen:
-                continue
-            seen.add(key)
-
-            pairs.append({
-                'citing_doi': citing_doi,
-                'cited_doi': cited_doi,
-                'dandiset_id': dandiset_id,
-                'dandiset_name': dandiset_name,
-                'citing_title': citing.get('title', ''),
-                'citing_journal': citing.get('journal', ''),
-                'citing_date': citing.get('publication_date', ''),
-            })
-
-    return pairs
-
-
-def load_citation_pairs_from_contexts(contexts_file: Path) -> list[dict]:
-    """
-    Load citing paper pairs from citation_contexts.json.
-
-    Groups by (citing_doi, cited_doi) to get unique pairs.
-
-    Args:
-        contexts_file: Path to citation_contexts.json
-
-    Returns:
-        List of dicts with citing_doi, cited_doi, dandiset_id
+    Each record carries pre-extracted contexts plus citing-paper metadata.
+    Pairs that failed text access during extraction are absent — they live in
+    `failed_pairs` in the same file and are intentionally not surfaced here.
     """
     with open(contexts_file) as f:
         data = json.load(f)
-
-    pairs = []
-    seen = set()
-
-    for ctx in data.get('contexts', []):
-        citing_doi = ctx.get('citing_doi')
-        cited_doi = ctx.get('cited_doi')
-        dandiset_id = ctx.get('dandiset_id', '')
-
-        if not citing_doi or not cited_doi:
-            continue
-
-        key = (citing_doi, cited_doi)
-        if key in seen:
-            continue
-        seen.add(key)
-
-        pairs.append({
-            'citing_doi': citing_doi,
-            'cited_doi': cited_doi,
-            'dandiset_id': dandiset_id,
-            'dandiset_name': '',  # Not available in contexts file
-        })
-
-    return pairs
-
-
-def fetch_dandiset_names(pairs: list[dict]) -> None:
-    """
-    Populate dandiset_name for pairs where it's missing.
-
-    Tries archive datasets.json files first, falls back to DANDI API.
-    Modifies pairs in-place.
-    """
-    need_names = set()
-    for pair in pairs:
-        if not pair.get('dandiset_name') and pair.get('dandiset_id'):
-            need_names.add(pair['dandiset_id'])
-
-    if not need_names:
-        return
-
-    # Try loading from any archive's datasets.json
-    name_cache = {}
-    for archive_dir in Path("output").iterdir():
-        ds_path = archive_dir / "datasets.json"
-        if ds_path.exists():
-            try:
-                with open(ds_path) as f:
-                    ds_data = json.load(f)
-                for r in ds_data.get("results", []):
-                    did = r.get("dandiset_id", r.get("id", ""))
-                    if did in need_names and did not in name_cache:
-                        name_cache[did] = r.get("dandiset_name", r.get("name", ""))
-            except Exception:
-                pass
-
-    # Fallback: DANDI API for any remaining
-    remaining = need_names - set(name_cache.keys())
-    if remaining:
-        print(f"Fetching names for {len(remaining)} datasets from DANDI API...", file=sys.stderr)
-        for dandiset_id in remaining:
-            try:
-                resp = requests.get(
-                    f'https://api.dandiarchive.org/api/dandisets/{dandiset_id}/',
-                    timeout=10,
-                )
-                if resp.status_code == 200:
-                    data = resp.json()
-                    version = data.get('most_recent_published_version') or data.get('draft_version') or {}
-                    name_cache[dandiset_id] = version.get('name', '')
-                else:
-                    name_cache[dandiset_id] = ''
-            except Exception:
-                name_cache[dandiset_id] = ''
-            time.sleep(0.2)
-
-    # Apply names
-    for pair in pairs:
-        if not pair.get('dandiset_name') and pair.get('dandiset_id'):
-            pair['dandiset_name'] = name_cache.get(pair['dandiset_id'], '')
+    return data.get('pairs', [])
 
 
 def classify_all_papers(
-    pairs: list[dict],
+    pair_records: list[dict],
     cache_dir: Path,
     api_key: str,
     model: str = DEFAULT_MODEL,
     max_papers: Optional[int] = None,
-    rate_limit: float = 0.5,
-    context_chars: int = 500,
     use_cache: bool = True,
     show_progress: bool = True,
-    fetch_text: bool = False,
     workers: int = 10,
 ) -> dict:
-    """
-    Classify all citing papers.
-
-    Args:
-        pairs: List of citation pairs from load_citation_pairs_*
-        cache_dir: Directory containing cached paper texts
-        api_key: OpenRouter API key
-        model: Model to use
-        max_papers: Maximum papers to process (None for all)
-        rate_limit: Seconds between API calls (unused with workers > 1)
-        context_chars: Characters of context around citations
-        use_cache: Whether to use classification cache
-        show_progress: Whether to show progress bar
-        fetch_text: Whether to fetch paper text for papers not in cache
-        workers: Number of parallel workers for API calls
-
-    Returns:
-        Dict with metadata and classifications list
-    """
+    """Classify all pair_records produced by extract_citation_contexts.py."""
     if max_papers:
-        pairs = pairs[:max_papers]
-
-    # Populate missing dandiset names
-    fetch_dandiset_names(pairs)
-
-    if fetch_text:
-        print("Text fetching enabled - will attempt to fetch missing papers", file=sys.stderr)
+        pair_records = pair_records[:max_papers]
 
     classifications = []
     stats = {
-        'total_pairs': len(pairs),
+        'total_pairs': len(pair_records),
         'from_cache': 0,
         'api_calls': 0,
         'errors': 0,
         'by_classification': {},
     }
 
-    def _classify_one(pair):
-        """Worker function for a single classification."""
-        af = None
-        if fetch_text:
-            af = ArchiveFinder(
-                verbose=False, use_cache=True,
-                follow_references=False, cache_dir=cache_dir,
-            )
+    def _classify_one(record):
         result = classify_single_paper(
-            citing_doi=pair['citing_doi'],
-            cited_doi=pair['cited_doi'],
-            dandiset_id=pair['dandiset_id'],
-            dandiset_name=pair['dandiset_name'],
+            pair_record=record,
             cache_dir=cache_dir,
             api_key=api_key,
             model=model,
-            context_chars=context_chars,
             use_cache=use_cache,
-            session=None,
-            archive_finder=af,
         )
-        result['citing_title'] = pair.get('citing_title', '')
-        result['citing_journal'] = pair.get('citing_journal', '')
-        result['citing_date'] = pair.get('citing_date', '')
+        result['citing_title'] = record.get('citing_title', '')
+        result['citing_journal'] = record.get('citing_journal', '')
+        result['citing_date'] = record.get('citing_date', '')
         return result
 
-    print(f"Classifying {len(pairs)} papers with {workers} workers...", file=sys.stderr)
+    print(f"Classifying {len(pair_records)} papers with {workers} workers...", file=sys.stderr)
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
-        futures = {executor.submit(_classify_one, pair): pair for pair in pairs}
-        pbar = tqdm(total=len(pairs), desc="Classifying papers", disable=not show_progress)
+        futures = {executor.submit(_classify_one, record): record for record in pair_records}
+        pbar = tqdm(total=len(pair_records), desc="Classifying papers", disable=not show_progress)
 
         for future in concurrent.futures.as_completed(futures):
             try:
                 result = future.result()
-            except Exception as e:
-                pair = futures[future]
+            except Exception as exception:
+                record = futures[future]
                 result = {
-                    'citing_doi': pair['citing_doi'],
-                    'cited_doi': pair['cited_doi'],
-                    'dandiset_id': pair['dandiset_id'],
+                    'citing_doi': record['citing_doi'],
+                    'cited_doi': record['cited_doi'],
+                    'dandiset_id': record['dandiset_id'],
                     'classification': 'NEITHER',
                     'confidence': 1,
-                    'reasoning': f'Worker error: {e}',
+                    'reasoning': f'Worker error: {exception}',
                     'error': 'worker_exception',
-                    'citing_title': pair.get('citing_title', ''),
-                    'citing_journal': pair.get('citing_journal', ''),
-                    'citing_date': pair.get('citing_date', ''),
+                    'citing_title': record.get('citing_title', ''),
+                    'citing_journal': record.get('citing_journal', ''),
+                    'citing_date': record.get('citing_date', ''),
                 }
 
             classifications.append(result)
 
-            # Track stats
-            cls = result.get('classification', 'NEITHER')
-            stats['by_classification'][cls] = stats['by_classification'].get(cls, 0) + 1
+            classification = result.get('classification', 'NEITHER')
+            stats['by_classification'][classification] = stats['by_classification'].get(classification, 0) + 1
 
             if result.get('from_cache'):
                 stats['from_cache'] += 1
@@ -637,7 +392,6 @@ def classify_all_papers(
         'metadata': {
             'timestamp': datetime.now(timezone.utc).isoformat(),
             'model': model,
-            'context_chars': context_chars,
             'total_pairs': stats['total_pairs'],
             'api_calls': stats['api_calls'],
             'from_cache': stats['from_cache'],
@@ -656,19 +410,12 @@ def main():
         description='Classify citing papers as data reuse or paper mention using LLM'
     )
 
-    # Input options (at least one required)
-    input_group = parser.add_mutually_exclusive_group(required=True)
-    input_group.add_argument(
-        '--results-file',
-        type=Path,
-        help='Path to dandi_primary_papers.py output JSON (with --fetch-text citing_papers)'
-    )
-    input_group.add_argument(
+    parser.add_argument(
         '--contexts-file',
         type=Path,
+        required=True,
         help='Path to citation_contexts.json from extract_citation_contexts.py'
     )
-
     parser.add_argument(
         '--cache-dir',
         type=Path,
@@ -691,18 +438,6 @@ def main():
         help='Maximum number of papers to classify'
     )
     parser.add_argument(
-        '--rate-limit',
-        type=float,
-        default=0.5,
-        help='Seconds between API calls (default: 0.5)'
-    )
-    parser.add_argument(
-        '--context-chars',
-        type=int,
-        default=500,
-        help='Characters of context around each citation (default: 500)'
-    )
-    parser.add_argument(
         '--no-cache',
         action='store_true',
         help='Disable classification caching'
@@ -711,11 +446,6 @@ def main():
         '--clear-cache',
         action='store_true',
         help='Clear classification cache before running'
-    )
-    parser.add_argument(
-        '--fetch-text',
-        action='store_true',
-        help='Attempt to fetch paper text for papers not already in cache'
     )
     parser.add_argument(
         '--workers',
@@ -731,46 +461,36 @@ def main():
 
     args = parser.parse_args()
 
-    # Get API key
     try:
         api_key = get_api_key()
-    except ValueError as e:
-        print(f"Error: {e}", file=sys.stderr)
+    except ValueError as exception:
+        print(f"Error: {exception}", file=sys.stderr)
         sys.exit(1)
 
-    # Clear cache if requested
     if args.clear_cache and CLASSIFICATION_CACHE_DIR.exists():
         import shutil
         shutil.rmtree(CLASSIFICATION_CACHE_DIR)
         print("Classification cache cleared", file=sys.stderr)
 
-    # Load citation pairs
-    if args.results_file:
-        pairs = load_citation_pairs_from_results(args.results_file)
-        if not pairs:
-            print(
-                "No citing papers found in results file. "
-                "Did you run dandi_primary_papers.py with --fetch-text?",
-                file=sys.stderr
-            )
-            sys.exit(1)
-    else:
-        pairs = load_citation_pairs_from_contexts(args.contexts_file)
+    pair_records = load_pair_records_from_contexts(args.contexts_file)
+    if not pair_records:
+        print(
+            f"No pair_records found in {args.contexts_file}. "
+            "Did you run extract_citation_contexts.py first?",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
-    print(f"Found {len(pairs)} unique citing paper pairs", file=sys.stderr)
+    print(f"Loaded {len(pair_records)} pair_records from {args.contexts_file}", file=sys.stderr)
 
-    # Run classification
     output = classify_all_papers(
-        pairs=pairs,
+        pair_records=pair_records,
         cache_dir=args.cache_dir,
         api_key=api_key,
         model=args.model,
         max_papers=args.max_papers,
-        rate_limit=args.rate_limit,
-        context_chars=args.context_chars,
         use_cache=not args.no_cache,
         show_progress=not args.quiet,
-        fetch_text=args.fetch_text,
         workers=args.workers,
     )
 
