@@ -96,13 +96,27 @@ def extract_all_citation_contexts(
                 })
                 continue
 
-            cache_file = cache_dir / f"{citing_doi.replace('/', '_')}.json"
-            if not cache_file.exists():
+            if 'text_cached' in citing and not citing['text_cached']:
+                stage2_error = citing.get('text_error', 'unknown')
                 failed_pairs.append({
                     'citing_doi': citing_doi,
                     'cited_doi': cited_doi,
                     'dandiset_id': dandiset_id,
-                    'reason': 'cache_file_missing',
+                    'reason': f'stage2_fetch_failed: {stage2_error}',
+                })
+                continue
+
+            cache_file = cache_dir / f"{citing_doi.replace('/', '_')}.json"
+            if not cache_file.exists():
+                if citing.get('text_cached'):
+                    reason = 'cache_file_missing_after_fetch'
+                else:
+                    reason = 'cache_file_missing_no_stage2_record'
+                failed_pairs.append({
+                    'citing_doi': citing_doi,
+                    'cited_doi': cited_doi,
+                    'dandiset_id': dandiset_id,
+                    'reason': reason,
                 })
                 continue
 
@@ -349,7 +363,7 @@ def main():
 
     print(f"\nExtraction Statistics:", file=sys.stderr)
     print(f"  Input pairs (from datasets.json): {stats['input_pairs']}", file=sys.stderr)
-    print(f"    Pre-extraction failures (no DOI / cache file missing): {stats['pre_extraction_failures']}", file=sys.stderr)
+    print(f"    Pre-extraction failures (missing DOI / Stage 2 fetch failed / cache missing): {stats['pre_extraction_failures']}", file=sys.stderr)
     print(f"    Attempted extractions: {stats['attempted_extractions']}", file=sys.stderr)
     print(f"      With citations found: {stats['with_citations']}", file=sys.stderr)
     print(f"      No citations found (text fine, DOI not detected): {stats['no_citations_found']}", file=sys.stderr)
