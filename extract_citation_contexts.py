@@ -82,6 +82,7 @@ def extract_all_citation_contexts(
     for result in results_data['results']:
         dandiset_id = result['dandiset_id']
         dandiset_name = result.get('dandiset_name', '')
+        dandiset_description = result.get('dandiset_description', '')
 
         for citing in result.get('citing_papers', []):
             citing_doi = citing.get('doi')
@@ -129,6 +130,7 @@ def extract_all_citation_contexts(
                 'alt_cited_doi': alt_doi_map.get(cited_doi),
                 'dandiset_id': dandiset_id,
                 'dandiset_name': dandiset_name,
+                'dandiset_description': dandiset_description,
                 'cache_file': cache_file,
             })
 
@@ -206,6 +208,7 @@ def extract_all_citation_contexts(
                 'cited_doi': pair['cited_doi'],
                 'dandiset_id': pair['dandiset_id'],
                 'dandiset_name': pair['dandiset_name'],
+                'dandiset_description': pair['dandiset_description'],
                 'citing_title': pair['citing_title'],
                 'citing_journal': pair['citing_journal'],
                 'citing_date': pair['citing_date'],

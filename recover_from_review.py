@@ -5,6 +5,12 @@ Use this when the pipeline output files (datasets.json, citation_contexts.json,
 classifications.json) have been overwritten but the review.html and review state
 file from the previous run are still intact.
 
+The citing-paper set is recovered from the embedded entryData in review.html. Dataset
+descriptions are not embedded in review.html, so they are re-fetched from the archive
+adapter (--archive) at recovery time. This way you can re-test classification on the
+exact same paper set while still exercising prompt features that depend on the
+description (e.g. the co_primary_paper rule).
+
 Outputs:
   recovered_datasets.json  — input for extract_citation_contexts.py --results-file
                              (then feed the resulting contexts file into
@@ -22,6 +28,8 @@ import re
 import sys
 from collections import defaultdict
 from pathlib import Path
+
+from archives import get_adapter
 
 
 def extract_entry_data(html_path: Path) -> list[dict]:
@@ -50,7 +58,7 @@ def extract_entry_data(html_path: Path) -> list[dict]:
     raise ValueError(f"Could not find entryData in {html_path}")
 
 
-def build_recovered_datasets(entries: list[dict]) -> dict:
+def build_recovered_datasets(entries: list[dict], descriptions: dict[str, str]) -> dict:
     groups: dict[str, dict] = defaultdict(
         lambda: {"citing_papers": [], "dandiset_name": "", "dandiset_url": ""}
     )
@@ -77,11 +85,23 @@ def build_recovered_datasets(entries: list[dict]) -> dict:
                 "dandiset_id": dataset_id,
                 "dandiset_name": group["dandiset_name"],
                 "dandiset_url": group["dandiset_url"],
+                "dandiset_description": descriptions.get(dataset_id, ""),
                 "citing_papers": group["citing_papers"],
             }
         )
 
     return {"count": len(results), "results": results}
+
+
+def fetch_descriptions(archive: str, dataset_ids: set[str]) -> dict[str, str]:
+    """Fetch dataset descriptions for the given dataset IDs from the archive adapter."""
+    print(f"Fetching descriptions for {len(dataset_ids)} datasets from {archive} ...", file=sys.stderr)
+    adapter = get_adapter(archive, output_dir=".")
+    descriptions = {}
+    for dataset in adapter.get_datasets():
+        if dataset["id"] in dataset_ids:
+            descriptions[dataset["id"]] = dataset.get("description", "")
+    return descriptions
 
 
 def main():
@@ -98,6 +118,11 @@ def main():
         default=Path("output/minimal/crcns"),
         help="Directory to write recovered output files",
     )
+    parser.add_argument(
+        "--archive",
+        default="crcns",
+        help="Archive short name for fetching dataset descriptions (default: crcns)",
+    )
     arguments = parser.parse_args()
 
     if not arguments.review_html.exists():
@@ -107,7 +132,11 @@ def main():
     entries = extract_entry_data(arguments.review_html)
     print(f"  Found {len(entries)} embedded entries", file=sys.stderr)
 
-    datasets = build_recovered_datasets(entries)
+    dataset_ids = {entry["dandiset_id"] for entry in entries}
+    descriptions = fetch_descriptions(arguments.archive, dataset_ids)
+    print(f"  Got descriptions for {sum(1 for v in descriptions.values() if v)}/{len(dataset_ids)} datasets", file=sys.stderr)
+
+    datasets = build_recovered_datasets(entries, descriptions)
 
     arguments.output_dir.mkdir(parents=True, exist_ok=True)
 

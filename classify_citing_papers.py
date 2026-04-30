@@ -65,6 +65,7 @@ def build_classification_prompt(
     cited_doi: str,
     citing_doi: str,
     fallback_text: Optional[str] = None,
+    dandiset_description: str = '',
 ) -> str:
     """
     Build an LLM prompt for classifying a citing paper's relationship to a dataset.
@@ -76,6 +77,7 @@ def build_classification_prompt(
         cited_doi: DOI of the primary paper being cited
         citing_doi: DOI of the citing paper
         fallback_text: If no contexts found, first N chars of paper text
+        dandiset_description: Optional dataset description from the archive
 
     Returns:
         Prompt string for the LLM
@@ -87,6 +89,11 @@ PRIMARY PAPER DOI (the paper that originally published the dataset): {cited_doi}
 CITING PAPER DOI (the paper we are classifying): {citing_doi}
 
 """
+
+    if dandiset_description:
+        truncated = dandiset_description[:2000]
+        ellipsis = '…' if len(dandiset_description) > 2000 else ''
+        prompt += f"DATASET DESCRIPTION (from the archive): {truncated}{ellipsis}\n\n"
 
     if contexts:
         prompt += f"The following are {len(contexts)} text excerpt(s) from the citing paper where the primary paper is referenced:\n\n"
@@ -105,7 +112,10 @@ CITING PAPER DOI (the paper we are classifying): {citing_doi}
 DECISION 1 - Did this paper reuse the DATA from the dataset?
 - REUSE: The citing paper downloaded/accessed and reused the actual DATA (recordings, images, behavioral traces, etc.) for their own analysis. Look for phrases like "we used data from", "we downloaded", "we analyzed recordings from", "data were obtained from", or explicit mentions of using the DANDI archive.
 - MENTION: The paper cites the primary paper as prior work, background, or for comparison, but does NOT actually use the underlying data. The citation is for referencing findings, methods, or context.
-- NEITHER: The citation is not meaningfully related to the dataset — e.g., a parsing mistake, an unrelated reference, or the context is too ambiguous to determine any relationship.
+- NEITHER: The citation does not fit REUSE or MENTION. Use NEITHER for one of the following cases, and state which subtype in your reasoning:
+    * low_quality_text — the provided text is unusable for classification (e.g., only references/metadata, severely truncated, or otherwise garbage). This is a pipeline backstop; the extraction step should have caught it, but call it out if you see it.
+    * parsing_mistake — the matched citation is not actually a citation of the cited paper (e.g., a stray DOI in a reference list footer, a coincidental string match).
+    * ambiguous — the text is real but too unclear to determine any relationship between the citing paper and the dataset.
 
 IMPORTANT RULES:
 1. Using or adapting analytical SOFTWARE, code, algorithms, or methods from the primary paper is NOT data reuse. Only classify as REUSE if the actual recorded data (e.g., neural recordings, imaging data, behavioral data) was downloaded and reanalyzed. If a paper only uses software tools, analysis pipelines, or methodological approaches from the primary paper, that is MENTION.
@@ -198,6 +208,7 @@ def classify_single_paper(
     cited_doi = pair_record['cited_doi']
     dandiset_id = pair_record['dandiset_id']
     dandiset_name = pair_record.get('dandiset_name', '')
+    dandiset_description = pair_record.get('dandiset_description', '')
     # Check classification cache
     if use_cache:
         cached = get_cached_classification(citing_doi, cited_doi)
@@ -256,6 +267,7 @@ def classify_single_paper(
         cited_doi=cited_doi,
         citing_doi=citing_doi,
         fallback_text=fallback_text,
+        dandiset_description=dandiset_description,
     )
 
     response = call_openrouter_api(

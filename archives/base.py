@@ -113,6 +113,7 @@ class ArchiveAdapter(ABC):
                 "dandiset_url": ds.get("url", ""),
                 "dandiset_doi": ds.get("doi", ""),
                 "dandiset_created": ds.get("created", ""),
+                "dandiset_description": ds.get("description", ""),
                 "data_accessible": ds.get("data_accessible", ds.get("created", "")),
                 "contact_person": ds.get("contributors", [""])[0] if ds.get("contributors") else "",
                 "paper_relations": papers,
