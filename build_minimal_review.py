@@ -178,14 +178,16 @@ function escapeHtml(text) {{
 function renderExcerpts(excerpts) {{
   if (!excerpts || excerpts.length === 0) return '<div class="excerpt"><em>No excerpts available</em></div>';
   let html = '';
-  for (const ex of excerpts.slice(0, 5)) {{
+  for (let i = 0; i < excerpts.length; i++) {{
+    const ex = excerpts[i];
+    const excerptNumber = i + 1;
     if (typeof ex === 'object' && ex !== null) {{
       let label = '';
       if (ex.authors && ex.year) label = ex.authors.join(', ') + ' ' + ex.year;
       else label = 'citation';
-      html += '<div class="excerpt"><span class="cite-label">Citation: ' + escapeHtml(label) + '</span><br>' + escapeHtml(ex.text || '') + '</div>';
+      html += '<div class="excerpt"><span class="cite-label">Excerpt ' + excerptNumber + ' — ' + escapeHtml(label) + '</span><br>' + escapeHtml(ex.text || '') + '</div>';
     }} else {{
-      html += '<div class="excerpt">' + escapeHtml(String(ex)) + '</div>';
+      html += '<div class="excerpt"><span class="cite-label">Excerpt ' + excerptNumber + '</span><br>' + escapeHtml(String(ex)) + '</div>';
     }}
   }}
   return html;

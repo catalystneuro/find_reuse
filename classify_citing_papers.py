@@ -95,6 +95,20 @@ CITING PAPER DOI (the paper we are classifying): {citing_doi}
         ellipsis = '…' if len(dandiset_description) > 2000 else ''
         prompt += f"DATASET DESCRIPTION (from the archive): {truncated}{ellipsis}\n\n"
 
+    resolved_reference_number = next(
+        (context['reference_number'] for context in contexts if context.get('reference_number')),
+        None,
+    )
+    if resolved_reference_number is not None:
+        prompt += (
+            f"PRIMARY PAPER REFERENCE NUMBER: The primary paper is reference [{resolved_reference_number}] "
+            f"in this citing paper's bibliography. When you see numbered citations in the excerpts below "
+            f"(e.g., [42, 49, 51] or superscript numbers), only treat citations of "
+            f"[{resolved_reference_number}] (or ranges/lists containing {resolved_reference_number}) as "
+            f"references to the primary paper. Numbers other than {resolved_reference_number} point to "
+            f"different works and are NOT evidence of reuse of this dataset.\n\n"
+        )
+
     if contexts:
         prompt += f"The following are {len(contexts)} text excerpt(s) from the citing paper where the primary paper is referenced:\n\n"
         for i, ctx in enumerate(contexts, 1):
@@ -294,7 +308,7 @@ def classify_single_paper(
 
     if contexts_with_text:
         result['context_excerpts'] = []
-        for context in contexts_with_text[:5]:
+        for context in contexts_with_text:
             excerpt_data = {
                 'text': context['context'],
                 'method': context.get('method', ''),
