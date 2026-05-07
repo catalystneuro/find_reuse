@@ -1,0 +1,602 @@
+{
+  "10.1101/2023.01.23.525213|am-3": {
+    "confirmed": "reuse",
+    "notes": "This is an example of transitive reuse where they said they used data from Lynch et al. 2016, but that paper actually reuses its data from Okubo et al. 2015. "
+  },
+  "10.1016/j.cell.2019.12.018|apl-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1002/dneu.22459|cai-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1016/j.celrep.2024.114302|cai-1": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1016/j.conb.2018.03.009|cai-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1016/j.isci.2024.109665|cai-1": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1016/j.neuron.2019.03.045|cai-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1016/j.neuron.2024.04.015|cai-1": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1038/nature17426|cai-1": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1038/s41467-022-35200-w|cai-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1038/s41467-023-43920-w|cai-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1038/s41598-018-26337-0|cai-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1073/pnas.1920073117|cai-1": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1073/pnas.2108882119|cai-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1073/pnas.2115533119|cai-1": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1093/cercor/bhaa005|cai-1": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1093/cercor/bhab242|cai-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1097/j.pain.0000000000003116|cai-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1101/029124|cai-1": {
+    "confirmed": "mention",
+    "notes": "This is a modeling paper that just uses a parameter from the primary paper, which shouldn't count as data reuse. "
+  },
+  "10.1101/2020.05.21.108886|cai-1": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1101/2020.05.27.119305|cai-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1101/2020.11.05.370080|cai-1": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1101/2021.07.08.451705|cai-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1101/2021.10.12.464066|cai-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1101/2022.05.24.493086|cai-1": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1101/2023.04.13.536801|cai-1": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1101/2023.09.08.556917|cai-1": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1101/2023.10.13.562210|cai-1": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1101/2024.02.23.581780|cai-1": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1101/2024.06.08.598061|cai-1": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1101/2024.09.12.612693|cai-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1101/2025.07.03.662899|cai-1": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1101/2025.10.27.684934|cai-1": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1101/274308|cai-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1111/nmo.14678|cai-1": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1126/sciadv.add2058|cai-1": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1126/sciadv.ads8608|cai-1": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1152/jn.01124.2015|cai-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1242/dev.202449|cai-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1364/boe.413049|cai-1": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1371/journal.pcbi.1005685|cai-1": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1523/jneurosci.0353-23.2023|cai-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1523/jneurosci.3484-15.2016|cai-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.3410/f.737458383.793573680|cai-1": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.7554/elife.63359.sa2|cai-1": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.7554/elife.85303|cai-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.7554/elife.88808.2|cai-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.7554/elife.94723|cai-1": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1016/j.celrep.2016.12.004|cai-2": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1038/s41598-024-70319-4|cai-2": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1093/cercor/bhab104|cai-2": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1101/2021.08.30.458217|cai-2": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1101/2022.10.23.513371|cai-2": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1146/annurev-neuro-080317-062048|cai-2": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1371/journal.pone.0205444|cai-2": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.21203/rs.3.rs-1416757/v1|cai-2": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1371/journal.pcbi.1001111|ch-epfl-2009": {
+    "confirmed": "reuse",
+    "notes": "Transitive reuse "
+  },
+  "10.1557/s43577-023-00537-0|evi-1": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1002/hipo.23381|fcx-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1101/2021.09.20.461152|fcx-1": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1101/2023.07.29.550297|fcx-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1101/2024.07.09.602643|fcx-1": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1371/journal.pcbi.1010792|fcx-1": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1371/journal.pcbi.1011605|fcx-1": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1371/journal.pone.0290146|fcx-1": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1016/j.cortex.2021.01.016|fcx-2": {
+    "confirmed": "mention",
+    "notes": "This paper actually reuses data from Johnson et al. 2017 rather than Johnson et al. 2018, and that data is coming from the CRCNS dataset PFC-5, not FCX-2. "
+  },
+  "10.1038/s41562-025-02270-x|fcx-2": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.21203/rs.3.rs-1195514/v3|fcx-2": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1038/s41467-023-38574-7|fcx-3": {
+    "confirmed": "mention",
+    "notes": "This is in fact just a mention, but I'm noticing that the excerpts are not working very well here. "
+  },
+  "10.1101/2022.06.30.497612|fly-1": {
+    "confirmed": "mention",
+    "notes": "The citing paper reuses data from Chen et al. 2022, which is actually citation number 49, rather than Aimon et al., which is citation number 52. "
+  },
+  "10.1101/2022.09.25.509420|hc-10": {
+    "confirmed": "mention",
+    "notes": "The citation number for Fernando Ruiz in the excerpts is 19, but in the full paper text, the primary paper by Sang-Hun Lee is also cited as 19, and the other paper by Fernando Fernandez Ruiz is cited as 8. This may indicate a pipeline error causing the mistaken reuse classification. "
+  },
+  "10.21203/rs.3.rs-2017936/v1|hc-10": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.21203/rs.3.rs-953724/v1|hc-10": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.7554/elife.90944.1|hc-13": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1101/2021.09.20.461152|hc-14": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1136/flgastro-2019-101369|hc-14": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.12688/f1000research.18771.1|hc-14": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.48550/arxiv.2007.02198|hc-15": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1007/s00429-018-1681-6|hc-16": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1101/833723|hc-16": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1007/s40675-024-00316-6|hc-26": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.14336/ad.2023.1106|hc-26": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1016/j.celrep.2023.113296|hc-28": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1038/s41593-025-02141-8|hc-28": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1073/pnas.2410101122|hc-28": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1101/2021.10.18.464813|hc-28": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1111/acer.14463|hc-28": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.6084/m9.figshare.19620783.v2|hc-28": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1038/s41598-026-44835-4|hc-3": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1038/s41593-022-01212-4|hc-31": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.14232/phd.11093|hdr-1": {
+    "confirmed": "unsure",
+    "notes": "This is a thesis, not a real journal article or preprint."
+  },
+  "10.1101/2022.07.21.500962|pfc-1": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1080/01621459.2015.1116988|pfc-2": {
+    "confirmed": "unsure",
+    "notes": "I don't have access to the full text. "
+  },
+  "10.1101/027102|pfc-2": {
+    "confirmed": "mention",
+    "notes": "The citing paper uses data from Peyrache et al. 2009, which is not associated with the PFC2 data set. "
+  },
+  "10.1101/094102|pfc-2": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1101/099184|pfc-2": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1371/journal.pcbi.1006359|pfc-2": {
+    "confirmed": "mention",
+    "notes": "The citation in question references CRCNS dataset PVC-5, not PFC-2. "
+  },
+  "10.3389/fncir.2018.00029|pfc-2": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.7554/elife.32554|pfc-2": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1016/j.cub.2022.01.053|pfc-5": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1101/2025.07.11.664390|pfc-5": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1016/j.cell.2020.09.061|pfc-6": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1101/2023.02.15.528725|pfc-6": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1101/668962|pfc-6": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1101/2023.12.15.571895|pfc-7": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1523/jneurosci.0007-22.2023|pfc-7": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1371/journal.pone.0166786|ppc-1": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1007/s10827-018-0692-x|pvc-11": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1038/s41467-023-37982-z|pvc-11": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1038/s41598-018-29862-0|pvc-11": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1038/s41598-025-33385-w|pvc-11": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1101/2022.03.19.484958|pvc-11": {
+    "confirmed": "reuse",
+    "notes": "This paper cites our data from seven datasets, including Smith and Kohn (2008), but the citation number is not 53. This may indicate an issue with the reference renumbering. "
+  },
+  "10.1101/784850|pvc-11": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1162/neco_a_01218|pvc-11": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1184/r1/6586406|pvc-11": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1184/r1/6720272|pvc-11": {
+    "confirmed": "unsure",
+    "notes": "This is a PhD thesis and a little bit questionable as a paper that's supposed to demonstrate data reuse. "
+  },
+  "10.1523/jneurosci.2158-23.2024|pvc-11": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1101/2025.08.01.668113|pvc-13": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1364/ao.523456|pvc-13": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.7554/elife.99989.1.sa0|pvc-13": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.48550/arxiv.1410.3111|pvc-5": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1038/s41593-018-0284-0|pvc-8": {
+    "confirmed": "mention",
+    "notes": "This is a review and not data reuse. "
+  },
+  "10.1101/2020.06.17.142182|pvc-8": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1007/s40820-024-01336-1|spe-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1152/jn.00210.2018|spe-2": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.7554/elife.34518|spe-2": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1002/jnr.23978|ssc-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1016/j.cub.2024.04.017|ssc-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1016/j.jneumeth.2016.04.012|ssc-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1016/j.neuron.2015.08.033|ssc-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1038/s41593-022-01171-w|ssc-1": {
+    "confirmed": "mention",
+    "notes": "I'm impressed! this paper reuses data but not from Guo at all (2013), and the LLM correctly identifies that fact.  "
+  },
+  "10.1101/072173|ssc-1": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1101/2021.02.16.431447|ssc-1": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1101/2022.12.03.518964|ssc-1": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1101/2023.04.22.537884|ssc-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1101/2023.10.08.561458|ssc-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1101/871137|ssc-1": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1152/jn.00698.2016|ssc-1": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.1523/eneuro.0031-22.2022|ssc-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1523/eneuro.0554-23.2024|ssc-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.20383/101.0303|ssc-1": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.7554/elife.50855|ssc-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.7554/elife.86805.1.sa2|ssc-1": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.7554/elife.86805.1.sa3|ssc-1": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1101/2020.05.12.091215|ssc-3": {
+    "confirmed": "mention",
+    "notes": "This paper describes its own data collection of electrophysiology data and does not provide sufficient evidence for data reuse. "
+  },
+  "10.1038/s41597-021-01046-y|tes-1": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1101/611962|tes-1": {
+    "confirmed": "reuse",
+    "notes": ""
+  },
+  "10.3389/fnhum.2019.00388|tes-1": {
+    "confirmed": "mention",
+    "notes": ""
+  },
+  "10.1038/s41467-019-13135-z|vta-1": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1038/s41593-021-00972-9|vta-1": {
+    "confirmed": "reuse",
+    "notes": ""
+  }
+}
