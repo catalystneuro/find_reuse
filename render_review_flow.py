@@ -157,6 +157,22 @@ def _safe_ratio(numerator, denominator):
     return numerator / denominator if denominator else 0.0
 
 
+def _wald_ci(numerator, denominator, z=1.959964):
+    """95% Wald binomial confidence interval, clamped to [0, 1].
+
+    Returns a formatted "[lo%, hi%]" string, or "n/a" when denominator is 0.
+    Wald collapses to a degenerate point interval at p=0 or p=1; that's a
+    known property of the method.
+    """
+    if denominator == 0:
+        return "n/a"
+    proportion = numerator / denominator
+    standard_error = (proportion * (1 - proportion) / denominator) ** 0.5
+    lower = max(0.0, proportion - z * standard_error)
+    upper = min(1.0, proportion + z * standard_error)
+    return f"[{lower:.0%}, {upper:.0%}]"
+
+
 reuse_predicted = true_positive + false_positive
 mention_predicted = true_negative + false_negative
 true_reuse_total = true_positive + false_negative
@@ -167,6 +183,12 @@ reuse_recall = _safe_ratio(true_positive, true_reuse_total)
 mention_precision = _safe_ratio(true_negative, mention_predicted)
 mention_recall = _safe_ratio(true_negative, true_mention_total)
 accuracy = _safe_ratio(true_positive + true_negative, decisive_total)
+
+reuse_precision_ci = _wald_ci(true_positive, reuse_predicted)
+mention_precision_ci = _wald_ci(true_negative, mention_predicted)
+reuse_recall_ci = _wald_ci(true_positive, true_reuse_total)
+mention_recall_ci = _wald_ci(true_negative, true_mention_total)
+accuracy_ci = _wald_ci(true_positive + true_negative, decisive_total)
 
 # ------------------------------------------------------------------
 # Graphviz setup — top-to-bottom so main flow is vertical
@@ -418,19 +440,19 @@ metrics_html = f"""<
     <TD BGCOLOR="{header_color}"><B>REUSE</B></TD>
     <TD BGCOLOR="{correct_color}">{true_positive}</TD>
     <TD BGCOLOR="{error_color}">{false_positive}</TD>
-    <TD BGCOLOR="#a5d6a7"><B>{true_positive}/{reuse_predicted} = {reuse_precision:.0%}</B></TD>
+    <TD BGCOLOR="#a5d6a7"><B>{true_positive}/{reuse_predicted} = {reuse_precision:.0%}<BR/><FONT POINT-SIZE="9">{reuse_precision_ci}</FONT></B></TD>
   </TR>
   <TR>
     <TD BGCOLOR="{header_color}"><B>MENTION</B></TD>
     <TD BGCOLOR="{error_color}">{false_negative}</TD>
     <TD BGCOLOR="{correct_color}">{true_negative}</TD>
-    <TD BGCOLOR="#a5d6a7"><B>{true_negative}/{mention_predicted} = {mention_precision:.0%}</B></TD>
+    <TD BGCOLOR="#a5d6a7"><B>{true_negative}/{mention_predicted} = {mention_precision:.0%}<BR/><FONT POINT-SIZE="9">{mention_precision_ci}</FONT></B></TD>
   </TR>
   <TR>
     <TD BGCOLOR="{header_color}"><B>Recall</B></TD>
-    <TD BGCOLOR="#a5d6a7"><B>{true_positive}/{true_reuse_total} = {reuse_recall:.0%}</B></TD>
-    <TD BGCOLOR="#a5d6a7"><B>{true_negative}/{true_mention_total} = {mention_recall:.0%}</B></TD>
-    <TD BGCOLOR="#66bb6a"><B>Acc: {true_positive + true_negative}/{decisive_total} = {accuracy:.0%}</B></TD>
+    <TD BGCOLOR="#a5d6a7"><B>{true_positive}/{true_reuse_total} = {reuse_recall:.0%}<BR/><FONT POINT-SIZE="9">{reuse_recall_ci}</FONT></B></TD>
+    <TD BGCOLOR="#a5d6a7"><B>{true_negative}/{true_mention_total} = {mention_recall:.0%}<BR/><FONT POINT-SIZE="9">{mention_recall_ci}</FONT></B></TD>
+    <TD BGCOLOR="#66bb6a"><B>Acc: {true_positive + true_negative}/{decisive_total} = {accuracy:.0%}<BR/><FONT POINT-SIZE="9">{accuracy_ci}</FONT></B></TD>
   </TR>
 </TABLE>>"""
 
