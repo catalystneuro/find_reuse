@@ -42,11 +42,25 @@ def extract_entry_data(html_path: Path) -> list[dict]:
         if not script.startswith(prefix):
             continue
         start = len(prefix)
-        # Walk characters to find the matching closing bracket
+        # Walk characters to find the matching closing bracket, ignoring
+        # brackets that appear inside JSON string literals.
         depth = 0
         end = start
+        in_string = False
+        escape = False
         for index, character in enumerate(script[start:], start=start):
-            if character == "[":
+            if escape:
+                escape = False
+                continue
+            if in_string:
+                if character == "\\":
+                    escape = True
+                elif character == '"':
+                    in_string = False
+                continue
+            if character == '"':
+                in_string = True
+            elif character == "[":
                 depth += 1
             elif character == "]":
                 depth -= 1
