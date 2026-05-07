@@ -42,6 +42,9 @@ def stage1_datasets(adapter):
 def stage1b_filter_by_citations(adapter, limit, max_citing_papers):
     datasets_path = adapter.output_dir / "datasets.json"
     data = json.loads(datasets_path.read_text())
+    # Preserve the pre-filter dataset count for downstream renderers.
+    # If this stage runs on already-filtered data, keep the existing value.
+    total_before_filter = data.get("total_before_filter", data["count"])
     session = _make_openalex_session()
     per_dataset_cap = max_citing_papers if max_citing_papers is not None else sys.maxsize
 
@@ -59,6 +62,8 @@ def stage1b_filter_by_citations(adapter, limit, max_citing_papers):
 
     data["results"] = kept
     data["count"] = len(kept)
+    data["total_before_filter"] = total_before_filter
+    data["max_citing_papers"] = max_citing_papers
     datasets_path.write_text(json.dumps(data, indent=2))
     print(f"  {len(kept)} datasets with ≥1 citing paper selected (scanned {scanned})", file=sys.stderr)
 

@@ -10,7 +10,8 @@ Writes: output/minimal/<archive>/review_flow.png
 
 Usage:
     python render_review_flow.py --archive dandi --review-state review_state.json
-    python render_review_flow.py --archive crcns --review-state review_state_crcns.json
+    python render_review_flow.py --archive crcns --review-state review_state_crcns.json \
+        --max-citing-papers 100 --include-neither false
 """
 import argparse
 import json
@@ -19,9 +20,37 @@ from pathlib import Path
 
 import graphviz
 
+
+def _str_to_bool(value):
+    normalized = value.strip().lower()
+    if normalized in ("true", "1", "yes", "y"):
+        return True
+    if normalized in ("false", "0", "no", "n"):
+        return False
+    raise argparse.ArgumentTypeError(f"Expected true/false, got {value!r}")
+
+
 parser = argparse.ArgumentParser(description="Render review flow diagram for a given archive.")
 parser.add_argument("--archive", required=True, help="Archive name (e.g. dandi, crcns)")
 parser.add_argument("--review-state", required=True, help="Path to review_state JSON file")
+parser.add_argument(
+    "--max-citing-papers", type=int, default=None,
+    help="Per-dataset citing-paper cap used during the run. "
+         "If set, the diagram labels the run as a stub with 'fetch ≤ N per dataset'. "
+         "Default: read from datasets.json metadata; otherwise treat as no cap.",
+)
+parser.add_argument(
+    "--include-neither", type=_str_to_bool, default=True,
+    help="Whether NEITHER pairs were manually reviewed (true/false). "
+         "When false, the SAMPLED_NEITHER set is routed to Unreviewed and the "
+         "NEITHER row is dropped from the confusion matrix. Default: true.",
+)
+parser.add_argument(
+    "--total-datasets", type=int, default=None,
+    help="Override for the pre-filter dataset count (before dropping datasets with "
+         "0 citing papers). Default: read from datasets.json (total_before_filter), "
+         "falling back to the post-filter count.",
+)
 args = parser.parse_args()
 
 REPO_ROOT = Path(__file__).parent
@@ -61,11 +90,22 @@ reuse_count = llm_counts["REUSE"]
 neither_count = llm_counts["NEITHER"]
 total_pairs = mention_count + reuse_count + neither_count
 
-total_datasets = datasets_data["count"]
 datasets_with_citations = sum(
     1 for dataset in datasets_data["results"] if len(dataset["citing_papers"]) > 0
 )
+# Pre-filter total: CLI override > datasets.json metadata > post-filter count.
+if args.total_datasets is not None:
+    total_datasets = args.total_datasets
+else:
+    total_datasets = datasets_data.get("total_before_filter", datasets_data["count"])
 datasets_dropped = total_datasets - datasets_with_citations
+
+# Per-dataset cap: CLI override > datasets.json metadata > unset (no cap).
+if args.max_citing_papers is not None:
+    max_citing_papers = args.max_citing_papers
+else:
+    max_citing_papers = datasets_data.get("max_citing_papers")
+is_stubbed = max_citing_papers is not None
 
 # Build lookup from (citing_doi|dandiset_id) -> LLM classification
 llm_label_by_key = {
@@ -183,11 +223,15 @@ def metric_node(name, label):
 # ------------------------------------------------------------------
 # Main vertical flow (top to bottom)
 # ------------------------------------------------------------------
+archive_label_suffix = " (stub)" if is_stubbed else ""
 api_node("ARCHIVE",
-         f"{args.archive.upper()} Archive (stub)\n{total_datasets} datasets")
+         f"{args.archive.upper()} Archive{archive_label_suffix}\n{total_datasets} datasets")
 
-process_node("FETCH_CITING",
-             "Fetch citing papers\n(≤ 100 per dataset)")
+if is_stubbed:
+    fetch_citing_label = f"Fetch citing papers\n(≤ {max_citing_papers} per dataset)"
+else:
+    fetch_citing_label = "Fetch citing papers\n(no cap per dataset)"
+process_node("FETCH_CITING", fetch_citing_label)
 dot.edge("ARCHIVE", "FETCH_CITING", label=f"  {total_datasets}  ", color="#1565c0")
 
 result_node("PAIRS",
@@ -296,7 +340,9 @@ dot.edge("SAMPLE", "SAMPLED_MENTION", label=f"  {mention_sampled}  ",
 dot.edge("SAMPLE", "SAMPLED_NEITHER", label=f"  {neither_sampled}  ",
          color="#f57c00", fontcolor="#e65100")
 
-note_node("UNREVIEWED", f"Unreviewed\n{total_unreviewed}")
+# When NEITHER wasn't reviewed, the sampled NEITHER set ends up unreviewed too.
+unreviewed_label_total = total_unreviewed + (neither_sampled if not args.include_neither else 0)
+note_node("UNREVIEWED", f"Unreviewed\n{unreviewed_label_total}")
 dot.edge("SAMPLE", "UNREVIEWED", label=f"  {total_unreviewed}  ", style="dashed",
          color="#e64a19", fontcolor="#e64a19")
 
@@ -304,7 +350,12 @@ dot.edge("SAMPLE", "UNREVIEWED", label=f"  {total_unreviewed}  ", style="dashed"
 process_node("REVIEW", "Manual review")
 dot.edge("SAMPLED_REUSE", "REVIEW", color="#1565c0")
 dot.edge("SAMPLED_MENTION", "REVIEW", color="#1565c0")
-dot.edge("SAMPLED_NEITHER", "REVIEW", color="#1565c0")
+if args.include_neither:
+    dot.edge("SAMPLED_NEITHER", "REVIEW", color="#1565c0")
+else:
+    dot.edge("SAMPLED_NEITHER", "UNREVIEWED",
+             label=f"  {neither_sampled}  ", style="dashed",
+             color="#e64a19", fontcolor="#e64a19")
 
 # Confusion matrix as an HTML table node.
 # Rows = LLM prediction, Columns = human label.
@@ -319,6 +370,14 @@ correct_color = "#c8e6c9"
 error_color = "#ffcdd2"
 unknown_color = "#fff9c4"
 zero_color = "#f5f5f5"
+
+neither_row_html = f"""  <TR>
+    <TD BGCOLOR="{header_color}"><B>NEITHER</B></TD>
+    <TD BGCOLOR="{error_color}">{neither_human_reuse}</TD>
+    <TD BGCOLOR="{error_color}">{neither_human_mention}</TD>
+    <TD BGCOLOR="{correct_color}">{neither_human_unsure}</TD>
+  </TR>
+""" if args.include_neither else ""
 
 matrix_html = f"""<
 <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="8" BGCOLOR="white">
@@ -340,13 +399,7 @@ matrix_html = f"""<
     <TD BGCOLOR="{correct_color}">{mention_human_mention}</TD>
     <TD BGCOLOR="{unknown_color}">{mention_human_unsure}</TD>
   </TR>
-  <TR>
-    <TD BGCOLOR="{header_color}"><B>NEITHER</B></TD>
-    <TD BGCOLOR="{error_color}">{neither_human_reuse}</TD>
-    <TD BGCOLOR="{error_color}">{neither_human_mention}</TD>
-    <TD BGCOLOR="{correct_color}">{neither_human_unsure}</TD>
-  </TR>
-</TABLE>>"""
+{neither_row_html}</TABLE>>"""
 
 dot.node("MATRIX", matrix_html, shape="plain")
 dot.edge("REVIEW", "MATRIX", color="#1565c0")
