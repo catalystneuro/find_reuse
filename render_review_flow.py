@@ -533,8 +533,12 @@ def main():
         )
         dot.edge("REVIEW", "REVIEW_PENDING", style="dashed", color="#e64a19")
     else:
-        rounds_by_id = {cr["id"]: cr for cr in classification_rounds}
-        previous_metrics = None
+        initial_round = classification_rounds[0]
+        initial_id = initial_round["id"]
+        initial_matrix = _build_confusion(
+            initial_round["llm_label_by_key"], review_data,
+        )
+        initial_metrics = _metrics_from_confusion(initial_matrix)
         previous_anchor = "REVIEW"
         for index, classification_round in enumerate(classification_rounds):
             round_id = classification_round["id"]
@@ -543,6 +547,7 @@ def main():
                 classification_round["llm_label_by_key"], review_data,
             )
             metrics = _metrics_from_confusion(matrix)
+            is_initial = index == 0
 
             header_node = f"ROUND_HEADER_{index}"
             description = metadata.get("description", "")
@@ -557,20 +562,19 @@ def main():
                 penwidth="2", fontsize="11",
             )
             edge_label = ""
-            if previous_metrics is not None:
-                accuracy_delta = metrics["accuracy"] - previous_metrics["accuracy"]
+            if not is_initial:
+                accuracy_delta = metrics["accuracy"] - initial_metrics["accuracy"]
                 correct_delta = (
                     (metrics["tp"] + metrics["tn"])
-                    - (previous_metrics["tp"] + previous_metrics["tn"])
+                    - (initial_metrics["tp"] + initial_metrics["tn"])
                 )
                 edge_label = (
-                    f"  Δ acc {accuracy_delta * 100:+.0f}pp"
+                    f"  Δ acc {accuracy_delta * 100:+.0f}pp vs {initial_id}"
                     f"  ({correct_delta:+d} correct)  "
                 )
             dot.edge(previous_anchor, header_node, label=edge_label, color="#5e35b1")
 
             tail_anchor = header_node
-            is_initial = index == 0
 
             if is_initial:
                 matrix_node = f"MATRIX_{index}"
@@ -585,21 +589,20 @@ def main():
                      label="  excluding NEITHER/UNSURE  ", color="#1565c0")
             tail_anchor = metrics_node
 
-            if parent and parent in rounds_by_id:
+            if not is_initial:
                 breakdown = _build_human_transition_breakdown(
-                    rounds_by_id[parent]["llm_label_by_key"],
+                    initial_round["llm_label_by_key"],
                     classification_round["llm_label_by_key"],
                     review_data,
                 )
                 transition_node = f"TRANSITION_{index}"
                 dot.node(transition_node,
-                         _transition_summary_html(breakdown, parent, round_id),
+                         _transition_summary_html(breakdown, initial_id, round_id),
                          shape="plain")
                 dot.edge(tail_anchor, transition_node,
-                         label=f"  vs {parent}  ", color="#5e35b1")
+                         label=f"  vs {initial_id}  ", color="#5e35b1")
                 tail_anchor = transition_node
 
-            previous_metrics = metrics
             previous_anchor = tail_anchor
 
     note_node("DROPPED_NO_CITATIONS",
