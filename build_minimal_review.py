@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
-"""Build a minimal HTML review dashboard from run_minimal_pipeline.py output.
+"""Build a minimal HTML review dashboard for a review round.
 
-Reads  output/minimal/<archive>/classifications.json
-       output/minimal/<archive>/datasets.json  (optional, for dandiset URLs)
-Writes output/minimal/<archive>/review.html
+Reads
+    <review_round_dir>/sample.json
+    <review_round_dir>/classification_rounds/<classification_round>/classifications.json
+    <review_round_dir>/pipeline_snapshot/datasets.json   (for dandiset URLs)
+Writes
+    <review_round_dir>/review.html
 
 Usage:
-    python build_minimal_review.py --archive dandi
+    python build_minimal_review.py --review-round-dir output/minimal/crcns/review_rounds/review_round_1
 """
 
 import argparse
 import json
-import random
 import time
-from collections import defaultdict
 from pathlib import Path
 
 import requests
@@ -21,10 +22,6 @@ import requests
 
 AUTHOR_CACHE_PATH = Path(".review_author_cache.json")
 YEAR_CACHE_PATH = Path(".review_year_cache.json")
-
-# Fixed seed so stratified sampling is reproducible across runs and prefixes nest:
-# the first 10 of a sample of 20 are exactly the same entries as a sample of 10.
-SAMPLING_SEED = 0
 
 
 def fetch_paper_metadata(dois: set[str]) -> tuple[dict[str, list[str]], dict[str, int]]:
@@ -443,60 +440,64 @@ def build_entries(classifications_path: Path, datasets_path: Path) -> list[dict]
     return entries
 
 
-def stratified_sample(entries: list[dict], samples_per_class: int) -> list[dict]:
-    """Stratified sample: shuffle each classification stratum once with SAMPLING_SEED,
-    then take the first `samples_per_class` entries. Shuffling (rather than `random.sample`)
-    ensures prefixes nest, so a sample of 20 contains the same first-10 as a sample of 10.
+def build_review_html(
+    review_round_dir: Path,
+    classification_round: str = "001_initial",
+    archive_name: str | None = None,
+) -> Path:
+    """Render review.html for a review round from one of its classification rounds.
+
+    Reads classifications from the named classification round (which is already
+    scoped to the sample), joins sample_order from sample.json by the
+    (citing_doi, cited_doi, dandiset_id) triple, and writes review.html alongside
+    sample.json. Returns the output path.
     """
-    by_class = defaultdict(list)
-    for entry in entries:
-        by_class[entry["classification"]].append(entry)
+    classifications_path = (
+        review_round_dir / "classification_rounds" / classification_round / "classifications.json"
+    )
+    sample_path = review_round_dir / "sample.json"
+    datasets_path = review_round_dir / "pipeline_snapshot" / "datasets.json"
+    output_path = review_round_dir / "review.html"
 
-    sampled = []
-    for classification in sorted(by_class):
-        group = by_class[classification]
-        rng = random.Random(SAMPLING_SEED)
-        rng.shuffle(group)
-        take = min(samples_per_class, len(group))
-        for index, entry in enumerate(group[:take]):
-            entry["sample_order"] = index
-        sampled.extend(group[:take])
-        print(f"  {classification}: sampled {take} of {len(group)}")
-
-    sampled.sort(key=lambda e: (e["dandiset_id"], e["citing_doi"]))
-    return sampled
-
-
-def main():
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--archive", required=True,
-                        help="Archive short name (e.g. dandi, crcns, openneuro, sparc).")
-    parser.add_argument("--output", type=Path, default=None,
-                        help="Output HTML path (default: output/minimal/<archive>/review.html).")
-    parser.add_argument("--stratified-sample", action="store_true",
-                        help="Randomly sample entries stratified by classification (REUSE/MENTION/NEITHER).")
-    parser.add_argument("--samples-per-class", type=int, default=50,
-                        help="Number of entries to sample per classification when --stratified-sample is set (default: 50).")
-    args = parser.parse_args()
-
-    input_dir = Path("output/minimal") / args.archive
-    classifications_path = input_dir / "classifications.json"
-    datasets_path = input_dir / "datasets.json"
-    output_path = args.output or (input_dir / "review.html")
+    sample_data = json.loads(sample_path.read_text())
+    sample_order_by_triple = {
+        (sampled["citing_doi"], sampled.get("cited_doi", ""), sampled["dandiset_id"]):
+            sampled["sample_order"]
+        for sampled in sample_data["sampled_pairs"]
+    }
 
     entries = build_entries(classifications_path, datasets_path)
+    for entry in entries:
+        triple = (entry["citing_doi"], entry["cited_doi"], entry["dandiset_id"])
+        entry["sample_order"] = sample_order_by_triple.get(triple)
 
-    if args.stratified_sample:
-        print(f"Stratified sampling (samples_per_class={args.samples_per_class}, seed={SAMPLING_SEED}):")
-        entries = stratified_sample(entries, args.samples_per_class)
-
+    archive_label = archive_name or sample_data.get("archive", "")
     html = HTML_TEMPLATE.format(
-        archive_name=args.archive.upper(),
+        archive_name=archive_label.upper(),
         n=len(entries),
         entries_json=json.dumps(entries),
     )
     output_path.write_text(html)
     print(f"Wrote {output_path} ({len(entries)} entries)")
+    return output_path
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--review-round-dir", required=True, type=Path,
+                        help="Path to the review round directory (e.g. "
+                             "output/minimal/crcns/review_rounds/review_round_1).")
+    parser.add_argument("--classification-round", default="001_initial",
+                        help="Classification round directory name to render (default: 001_initial).")
+    parser.add_argument("--archive", default=None,
+                        help="Archive label for the page header (default: read from sample.json).")
+    args = parser.parse_args()
+
+    build_review_html(
+        review_round_dir=args.review_round_dir,
+        classification_round=args.classification_round,
+        archive_name=args.archive,
+    )
 
 
 if __name__ == "__main__":
