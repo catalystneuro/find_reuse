@@ -191,6 +191,85 @@ def find_reference_number_for_doi(text: str, doi: str) -> Optional[int]:
     return None
 
 
+def normalize_title_for_matching(text: str) -> str:
+    """
+    Normalize text for title matching: lowercase, strip non-alphanumeric,
+    collapse whitespace. Folds em/en-dashes, hyphens, and punctuation
+    differences that vary across preprint vs published versions.
+    """
+    text = text.lower()
+    text = re.sub(r'[^a-z0-9]+', ' ', text)
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
+
+
+def parse_numbered_bibliography(text: str) -> dict[int, str]:
+    """
+    Parse the citing paper's numbered bibliography into a {N: entry_text} map.
+
+    Each entry runs from its anchor's end to the next anchor's start. When a
+    number has multiple anchors in the text (in-text [N] plus bibliography
+    [N]), the last anchor wins — the bibliography is at the end of the text.
+    """
+    anchor_patterns = [
+        re.compile(r'(?:^|\n)\s*\[(\d{1,3})\]\.\s*↵'),
+        re.compile(r'(?:^|\n)\s*\[(\d{1,3})\]\s+(?=[A-Z])'),
+        re.compile(r'(?:^|\n)\s*(\d{1,3})\.\s*↵'),
+        re.compile(r'(?:^|\n)\s*(\d{1,3})\.\s+(?=[A-Z])'),
+    ]
+
+    anchors = []
+    for pattern in anchor_patterns:
+        for match in pattern.finditer(text):
+            anchors.append((match.start(), match.end(), int(match.group(1))))
+
+    anchors.sort(key=lambda anchor: anchor[0])
+
+    bibliography = {}
+    for index, (start, end, number) in enumerate(anchors):
+        if index + 1 < len(anchors):
+            next_start = anchors[index + 1][0]
+        else:
+            next_start = min(end + 1500, len(text))
+        bibliography[number] = text[end:next_start].strip()
+
+    return bibliography
+
+
+def find_reference_number_by_title(
+    citing_paper_text: str,
+    cited_title: str,
+) -> Optional[int]:
+    """
+    Find the reference number whose bibliography entry contains the cited
+    title. Title-based matching is robust to preprint↔published DOI mismatches:
+    titles are stable across versions even when DOIs, years, and author
+    formatting are not.
+
+    Returns None if the title is too short to be discriminating, or if no
+    bibliography entry contains the normalized title as a substring.
+    """
+    cited_normalized = normalize_title_for_matching(cited_title)
+    if len(cited_normalized.split()) < 4:
+        return None
+
+    bibliography = parse_numbered_bibliography(citing_paper_text)
+    if not bibliography:
+        return None
+
+    candidates = []
+    for number, entry in bibliography.items():
+        entry_normalized = normalize_title_for_matching(entry)
+        if cited_normalized in entry_normalized:
+            candidates.append((len(entry), number))
+
+    if not candidates:
+        return None
+
+    candidates.sort()
+    return candidates[0][1]
+
+
 def find_numbered_citations(text: str, ref_number: int) -> list[int]:
     """
     Find all positions where a reference number is cited in the text.
@@ -547,8 +626,18 @@ def find_citation_contexts(
     results = []
     seen_positions = set()
 
-    # Method 1: Find DOI directly in text and get reference number
-    ref_number = find_reference_number_for_doi(citing_paper_text, cited_doi)
+    # Method 1a: Match the cited paper's title against parsed numbered
+    # bibliography entries. Robust to preprint↔published DOI mismatches —
+    # titles are stable across versions even when DOIs and years are not.
+    ref_number = None
+    if metadata.get('title'):
+        ref_number = find_reference_number_by_title(
+            citing_paper_text, metadata['title']
+        )
+
+    # Method 1b: Fall back to DOI walkback if title match failed.
+    if ref_number is None:
+        ref_number = find_reference_number_for_doi(citing_paper_text, cited_doi)
 
     # Method 2: Find numbered citations if we found a reference number
     if ref_number:
