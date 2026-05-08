@@ -82,9 +82,9 @@ def build_classification_prompt(
     Returns:
         Prompt string for the LLM
     """
-    prompt = f"""You are classifying how a scientific paper relates to a DANDI neuroscience dataset. The citing paper references the primary paper associated with the dataset. Your job is to determine whether the citing paper actually REUSED THE DATA from that dataset, or just cited the paper as prior work.
+    prompt = f"""You are classifying how a scientific paper relates to a published neuroscience dataset. The citing paper references the primary paper associated with the dataset. Your job is to determine whether the citing paper actually REUSED THE DATA from that dataset, or just cited the paper as prior work.
 
-DANDI DATASET: {dandiset_id} - {dandiset_name}
+DATASET: {dandiset_id} - {dandiset_name}
 PRIMARY PAPER DOI (the paper that originally published the dataset): {cited_doi}
 CITING PAPER DOI (the paper we are classifying): {citing_doi}
 
@@ -124,38 +124,56 @@ CITING PAPER DOI (the paper we are classifying): {citing_doi}
     prompt += """Based on the text above, make THREE separate decisions:
 
 DECISION 1 - Did this paper reuse the DATA from the dataset?
-- REUSE: The citing paper downloaded/accessed and reused the actual DATA (recordings, images, behavioral traces, etc.) for their own analysis. Look for phrases like "we used data from", "we downloaded", "we analyzed recordings from", "data were obtained from", or explicit mentions of using the DANDI archive.
-- MENTION: The paper cites the primary paper as prior work, background, or for comparison, but does NOT actually use the underlying data. The citation is for referencing findings, methods, or context.
+
+Possible classifications:
+- REUSE: At least one excerpt provides sufficient evidence that the citing paper accessed and reused the actual DATA (recordings, images, behavioral traces, etc.) from THIS specific primary paper's dataset.
+- MENTION: The citing paper references the primary paper as prior work, background, methodology, or comparison, but no excerpt provides sufficient evidence of data reuse.
 - NEITHER: The citation does not fit REUSE or MENTION. Use NEITHER for one of the following cases, and state which subtype in your reasoning:
     * low_quality_text — the provided text is unusable for classification (e.g., only references/metadata, severely truncated, or otherwise garbage). This is a pipeline backstop; the extraction step should have caught it, but call it out if you see it.
     * parsing_mistake — the matched citation is not actually a citation of the cited paper (e.g., a stray DOI in a reference list footer, a coincidental string match).
     * ambiguous — the text is real but too unclear to determine any relationship between the citing paper and the dataset.
 
-DISQUALIFYING CONDITIONS — Check these BEFORE choosing a classification. If ANY condition below applies, you MUST output MENTION. These conditions take precedence over ALL evidence of reuse, INCLUDING shared authorship, detailed dataset discussion, the citing paper's own claims that data was used, and numerical or descriptive overlap with the dataset. If your reasoning identifies any of these conditions as present, you MUST classify as MENTION even when other signals point toward REUSE.
+HOW TO DECIDE — Data reuse classification is a needle-in-a-haystack problem. The default classification is MENTION; REUSE is the rare positive case. Most excerpts in a typical citing paper are background mentions. Your task is to scan the excerpts and determine whether AT LEAST ONE excerpt constitutes sufficient evidence of data reuse. If you find one, output REUSE. If no excerpt clears the bar after you have considered all of them, output MENTION.
 
-A. Review-type article. The citing paper is a review article, perspective, commentary, opinion piece, or editorial. Review-type articles discuss data; they do not reanalyze it. This applies EVEN WHEN the article is authored by the dataset's primary author, EVEN WHEN it describes the dataset in detail, and EVEN WHEN it shares authorship with the primary paper. Signals that the citing paper is a review/perspective: titles or section headings containing "Review", "Perspective", "Commentary", "Opinion"; the article surveys multiple prior studies rather than presenting new analyses on raw recordings; phrasing like "in this review we discuss", "here we summarize", or "as we have previously shown". If your reasoning concludes the article is a review or perspective, you MUST output MENTION — do NOT output REUSE.
+WHAT COUNTS AS SUFFICIENT EVIDENCE (the "needle")
 
-B. Methods / software / protocol-only citation. The citing paper references the primary paper only for its analytical software, code, algorithms, methods, experimental protocol, electrode placement procedure, surgical technique, or analytical pipeline — and does not explicitly state that data files or recordings were downloaded. Using or adapting analytical SOFTWARE, code, algorithms, or methods is NOT data reuse. The citation must be about the DATA, not the METHOD.
+A single excerpt is sufficient evidence of REUSE when BOTH of the following are true:
 
-C. Numerical-value-only borrowing. The only quantitative borrowing is a numerical value, fitted parameter, equation constant, summary statistic, or figure data point read from the text or figures of the primary paper — for any purpose, including parameterizing a model or simulation. The distinction is whether the citing paper downloaded the underlying data files or recordings. If the only quantitative borrowing is values reported in the primary paper itself (e.g., "we used parameters alpha and A from [ref]", "we adopted the time constant reported by [ref]"), output MENTION. Downloading the open data and using it as input to a simulation or model IS data reuse; extracting numbers reported in the primary paper to parameterize a model is NOT.
+(a) Reuse language. The excerpt explicitly describes the citing paper acquiring or analyzing the actual data — phrases like "we used data from", "we downloaded", "we (re)analyzed recordings from", "data were obtained from", or naming a specific cohort, animal, session, or recording that originated in the primary paper. Background-fact phrasing like "X cells are found in region Y [ref]" does NOT count.
 
-D. Own data collection. The citing paper describes collecting its OWN new recordings or data and merely cites the primary paper for comparison, context, or analytical approach. The citing paper must have downloaded and used data FROM the primary paper's dataset, not just performed a similar experiment.
+(b) Correct attribution. The reuse-language excerpt's citation must resolve to THE PRIMARY PAPER specified at the top of the prompt. If a PRIMARY PAPER REFERENCE NUMBER block is provided above, treat that resolved number as the source of truth — only citations of that reference number (or ranges/lists containing it) count as references to the primary paper. Reuse language attributed to a different paper, or to a different dataset by the same author or depositor, does NOT count, even if the reuse language itself is unambiguous.
 
-E. Simulation parameterized from a different source. The paper ran SIMULATIONS inspired by or parameterized from a different data source, and only cites the primary paper as background context. Simulating a cell type described in the primary paper is not the same as reusing the primary paper's recorded data.
+If at least one excerpt clears BOTH (a) and (b), output REUSE. Otherwise, output MENTION.
 
-F. Wrong dataset. The citing paper reuses data from a DIFFERENT dataset and merely cites this primary paper for context, methodology, or as a reference. Only data from THIS SPECIFIC dataset (described by the primary paper DOI above) counts. Be precise about which dataset's data was actually used.
+PATTERNS THAT DO NOT COUNT AS THE NEEDLE (but do not disqualify the paper)
 
-GENERAL GUIDANCE — apply only after confirming that no disqualifying condition above is present:
+The following describe excerpt patterns that, on their own, are not sufficient evidence of data reuse. Critically, an excerpt matching one of these patterns does NOT preclude a different excerpt being the needle — keep scanning the remaining excerpts before deciding.
 
-1. A citation used only as background or to establish a fact (e.g., "X cells are found in region Y [ref]") is MENTION, not REUSE — even if the topic closely matches the dataset name. Pay attention to HOW the reference is cited: parenthetical citations in lists like (31, 32, 33) supporting a general statement are almost never data reuse.
+- Methods / software / protocol-only citations. The excerpt cites the primary paper for analytical software, code, algorithms, methods, an experimental protocol, surgical technique, electrode placement, or analytical pipeline — not for data files or recordings. Adapting analytical software, code, algorithms, or methods is NOT data reuse. The citation must be about the DATA, not the METHOD.
+- Numerical-value-only borrowing. The only quantitative borrowing is a numerical value, fitted parameter, equation constant, summary statistic, or figure data point read from the text or figures of the primary paper (e.g., "we used parameters alpha and A from [ref]", "we adopted the time constant reported by [ref]"). Downloading the open data and using it as input to a simulation or model IS data reuse; extracting numbers reported in the primary paper to parameterize a model is NOT.
+- Own data collection. The excerpt describes the citing paper collecting its own new recordings or data and citing the primary paper for comparison, context, or methodological inspiration. A paper can collect some of its own data AND reuse other data (e.g., pooled meta-analyses) — so this excerpt pattern does not, by itself, rule out REUSE for the paper as a whole.
+- Simulation parameterized from a different source. The excerpt describes simulations inspired by or parameterized from a different data source, citing the primary paper only as background context. Simulating a cell type described in the primary paper is not the same as reusing the primary paper's recorded data.
+- Wrong dataset. The excerpt contains reuse language, but the citation in that excerpt resolves to a different paper, or to a different dataset by the same author or depositor — not to the primary paper above. Be precise about which dataset is actually being reused; only data from THIS SPECIFIC primary paper's dataset counts.
 
-2. If only an abstract or very short text is available, do NOT classify as REUSE unless the abstract explicitly states data was downloaded or reused from this specific dataset. Prefer MENTION when evidence is ambiguous. If the provided text appears to be a fragment, abstract only, or is missing methods and data sections, note this in your reasoning and use a confidence score ≤5 rather than high-confidence NEITHER.
+NUMERICAL-SIGNATURE CORROBORATION
 
-3. If you classify as REUSE, your reasoning must reference a specific phrase or sentence from the provided text that supports this conclusion. Do not describe dataset-specific details (unit counts, electrode counts, epoch counts, subject numbers, recording durations) that do not appear in the provided text. If no such grounding is present, do not fabricate it.
+When an excerpt has reuse language attributed to the primary paper, additional matching dataset-specific identifiers (neuron count, electrode count, stimulus type, species, brain region, named cohort, recording duration) STRENGTHEN the case that the needle is real. Use them to corroborate.
 
-4. Shared authorship between the citing paper and the primary paper is NOT evidence of data reuse on its own. Determine DECISION 1 (classification) purely from the text evidence, independently of DECISION 2 (same_lab). A same-lab paper may simply be citing its own prior work as background context.
+A numerical *mismatch* between a count reported in the citing paper and the dataset description does NOT, by itself, veto REUSE. Citing papers routinely report counts from subsets, exclusions, re-segmentations, or pooled samples whose totals differ from the dataset's published counts. As long as a needle (reuse language + correct attribution) is present, an unmatched count is not a deal-breaker.
 
-5. If you use a numerical signature (unit count, electrode count, subject count, epoch count, recording duration, etc.) from the citing paper as evidence of data reuse, the EXACT same number must also explicitly appear in the DATASET DESCRIPTION block above (or be stated in the citation context excerpts as a quoted property of the cited paper). Do NOT assume that a number reported in the citing paper refers to the cited dataset just because it sounds plausible — citing papers commonly report counts from their own analyses (subsets, exclusions, re-segmentations) that do not equal the dataset's published counts. If the same number does not appear on both sides, a numerical-match argument for REUSE is unsubstantiated and the classification should be MENTION (or NEITHER:ambiguous if otherwise unclear).
+Caveat: If the ONLY argument for REUSE is a numerical match, with no reuse language and no correctly-attributed citation, that is not the needle. Numerical signatures corroborate the two-part needle test above; they do not substitute for it.
+
+PAPER-LEVEL DISQUALIFIER
+
+There is exactly ONE condition that disqualifies REUSE for the paper as a whole, regardless of how the excerpts read:
+
+- Review / perspective / commentary article. The citing paper is a review article, perspective, commentary, opinion piece, or editorial. Review-type articles discuss data; they do not reanalyze it. This applies EVEN WHEN the article is authored by the dataset's primary author, EVEN WHEN it describes the dataset in detail, and EVEN WHEN it shares authorship with the primary paper. Signals: titles or section headings containing "Review", "Perspective", "Commentary", or "Opinion"; the article surveys multiple prior studies rather than presenting new analyses on raw recordings; phrasing like "in this review we discuss", "here we summarize", or "as we have previously shown". If you conclude from the title, section structure, or excerpts that the citing paper is a review or perspective, you MUST output MENTION — even if other excerpts contain reuse language.
+
+OTHER GUIDANCE
+
+- Shared authorship between the citing paper and the primary paper is NOT evidence of data reuse on its own. Determine DECISION 1 (classification) purely from the text evidence, independently of DECISION 2 (same_lab). A same-lab paper may simply be citing its own prior work as background context.
+- If only an abstract or very short fragment is available, do NOT classify as REUSE unless that fragment explicitly states data was downloaded or reused from this specific primary paper's dataset. Prefer MENTION when evidence is ambiguous. If the provided text is a fragment, abstract only, or is missing methods and data sections, note this in your reasoning and use a confidence score ≤5 rather than high-confidence NEITHER.
+- If you classify as REUSE, your reasoning must quote the specific phrase or sentence from the provided text that constitutes the needle. Do not describe dataset details (unit counts, electrode counts, epoch counts, subject numbers, recording durations) that do not appear in the provided text. If no such grounding is present, do not fabricate it.
 
 DECISION 2 - If REUSE, is it the same lab?
 Check whether the citing paper's author list shares names with the primary paper's authors. If the same group reused or extended their own data, same_lab is true. If a different group used it, same_lab is false.
