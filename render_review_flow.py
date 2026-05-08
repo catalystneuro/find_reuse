@@ -62,6 +62,119 @@ def _llm_label_index(classifications: list[dict]) -> dict[str, str]:
     }
 
 
+CLASS_ORDER = ("REUSE", "MENTION", "NEITHER")
+
+
+def _build_human_transition_breakdown(parent_labels, current_labels, review_data):
+    """For each (human_bucket, parent_class, current_class), count pairs.
+
+    human_bucket is one of: 'reuse', 'mention', 'unsure', 'unreviewed'.
+    Returns dict[human_bucket] -> Counter[(parent_class, current_class)] -> count.
+    """
+    breakdown = defaultdict(Counter)
+    for key, current_class in current_labels.items():
+        parent_class = parent_labels.get(key)
+        if parent_class is None:
+            continue
+        confirmed = review_data.get(key, {}).get("confirmed")
+        if confirmed is None:
+            human_bucket = "unreviewed"
+        elif confirmed == "unsure":
+            human_bucket = "unsure"
+        else:
+            human_bucket = confirmed
+        breakdown[human_bucket][(parent_class, current_class)] += 1
+    return breakdown
+
+
+def _transition_summary_html(breakdown, parent_id, current_id):
+    """Deltas-only callouts: one line per cohort listing off-diagonal movements.
+
+    For each human cohort (REUSE, MENTION), summarize pairs whose LLM label
+    changed between rounds, classified as fixed/regressed/drifted relative to
+    the human ground truth. Diagonal cells (no change) are omitted. A net
+    correct-count delta is shown in the header.
+    """
+    fixed_color = "#2e7d32"
+    regressed_color = "#c62828"
+    drifted_color = "#ef6c00"
+    muted_color = "#616161"
+    header_color = "#e0e0e0"
+
+    net_correct = 0
+    for human_bucket in ("reuse", "mention"):
+        for (parent_class, current_class), count in breakdown.get(human_bucket, Counter()).items():
+            parent_correct = parent_class.lower() == human_bucket
+            current_correct = current_class.lower() == human_bucket
+            if current_correct and not parent_correct:
+                net_correct += count
+            elif parent_correct and not current_correct:
+                net_correct -= count
+
+    if net_correct > 0:
+        net_label, net_color = f"+{net_correct}", fixed_color
+    elif net_correct < 0:
+        net_label, net_color = f"{net_correct}", regressed_color
+    else:
+        net_label, net_color = "0", muted_color
+
+    rows_html = (
+        f'  <TR><TD ALIGN="LEFT" BGCOLOR="{header_color}">'
+        f'<B>{current_id} vs {parent_id}</B>  '
+        f'<FONT COLOR="{net_color}"><B>net: {net_label} correct</B></FONT>'
+        f'</TD></TR>\n'
+    )
+
+    cohort_label_by_bucket = {"reuse": "HUMAN = REUSE", "mention": "HUMAN = MENTION"}
+    for human_bucket in ("reuse", "mention"):
+        cohort_data = breakdown.get(human_bucket, Counter())
+        cohort_total = sum(cohort_data.values())
+        if cohort_total == 0:
+            continue
+        movements = []
+        for (parent_class, current_class), count in sorted(cohort_data.items()):
+            if parent_class == current_class:
+                continue
+            parent_correct = parent_class.lower() == human_bucket
+            current_correct = current_class.lower() == human_bucket
+            if current_correct and not parent_correct:
+                label, color = "fixed", fixed_color
+            elif parent_correct and not current_correct:
+                label, color = "regressed", regressed_color
+            else:
+                label, color = "drifted", drifted_color
+            movements.append(
+                f'<FONT COLOR="{color}"><B>{count}</B> {label}</FONT>'
+                f' <FONT POINT-SIZE="9" COLOR="{muted_color}">'
+                f'({parent_class} → {current_class})</FONT>'
+            )
+        if movements:
+            cohort_body = ",  ".join(movements)
+        else:
+            cohort_body = f'<FONT COLOR="{muted_color}"><I>no changes</I></FONT>'
+        rows_html += (
+            f'  <TR><TD ALIGN="LEFT">'
+            f'<B>{cohort_label_by_bucket[human_bucket]}</B> ({cohort_total}):  '
+            f'{cohort_body}</TD></TR>\n'
+        )
+
+    extras = []
+    for bucket in ("unsure", "unreviewed"):
+        count = sum(breakdown.get(bucket, Counter()).values())
+        if count:
+            extras.append(f"{count} {bucket}")
+    if extras:
+        rows_html += (
+            f'  <TR><TD ALIGN="LEFT">'
+            f'<FONT POINT-SIZE="9" COLOR="{muted_color}">'
+            f'({", ".join(extras)} not shown)</FONT></TD></TR>\n'
+        )
+
+    return f"""<
+<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6" BGCOLOR="white">
+{rows_html}</TABLE>>"""
+
+
 def _build_confusion(llm_label_by_key, review_data):
     """3x3 confusion matrix: matrix[llm_class][human_label] -> count."""
     matrix = defaultdict(Counter)
@@ -379,35 +492,39 @@ def main():
     process_node("SAMPLE", "Stratified random\nsampling")
     dot.edge("LLM_REUSE", "SAMPLE", color="#1565c0")
     dot.edge("LLM_MENTION", "SAMPLE", color="#1565c0")
-    dot.edge("LLM_NEITHER", "SAMPLE", color="#1565c0")
+    if include_neither:
+        dot.edge("LLM_NEITHER", "SAMPLE", color="#1565c0")
 
     with dot.subgraph() as sampled_classes:
         sampled_classes.attr(rank="same")
         source_node("SAMPLED_REUSE", f"REUSE\n{reuse_sampled}")
         source_node("SAMPLED_MENTION", f"MENTION\n{mention_sampled}")
-        source_node("SAMPLED_NEITHER", f"NEITHER\n{neither_sampled}")
+        if include_neither:
+            source_node("SAMPLED_NEITHER", f"NEITHER\n{neither_sampled}")
 
     dot.edge("SAMPLE", "SAMPLED_REUSE", label=f"  {reuse_sampled}  ",
              color="#f57c00", fontcolor="#e65100")
     dot.edge("SAMPLE", "SAMPLED_MENTION", label=f"  {mention_sampled}  ",
              color="#f57c00", fontcolor="#e65100")
-    dot.edge("SAMPLE", "SAMPLED_NEITHER", label=f"  {neither_sampled}  ",
-             color="#f57c00", fontcolor="#e65100")
+    if include_neither:
+        dot.edge("SAMPLE", "SAMPLED_NEITHER", label=f"  {neither_sampled}  ",
+                 color="#f57c00", fontcolor="#e65100")
 
-    unreviewed_label_total = total_unreviewed + (neither_sampled if not include_neither else 0)
-    note_node("UNREVIEWED", f"Unreviewed\n{unreviewed_label_total}")
-    dot.edge("SAMPLE", "UNREVIEWED", label=f"  {total_unreviewed}  ", style="dashed",
-             color="#e64a19", fontcolor="#e64a19")
+    note_node("UNREVIEWED", f"Unreviewed\n{total_unreviewed}")
+    if include_neither:
+        sample_to_unreviewed = total_unreviewed
+    else:
+        sample_to_unreviewed = total_unreviewed - neither_count
+        dot.edge("LLM_NEITHER", "UNREVIEWED", label=f"  {neither_count}  ",
+                 style="dashed", color="#e64a19", fontcolor="#e64a19")
+    dot.edge("SAMPLE", "UNREVIEWED", label=f"  {sample_to_unreviewed}  ",
+             style="dashed", color="#e64a19", fontcolor="#e64a19")
 
     process_node("REVIEW", "Manual review")
     dot.edge("SAMPLED_REUSE", "REVIEW", color="#1565c0")
     dot.edge("SAMPLED_MENTION", "REVIEW", color="#1565c0")
     if include_neither:
         dot.edge("SAMPLED_NEITHER", "REVIEW", color="#1565c0")
-    else:
-        dot.edge("SAMPLED_NEITHER", "UNREVIEWED",
-                 label=f"  {neither_sampled}  ", style="dashed",
-                 color="#e64a19", fontcolor="#e64a19")
 
     if not review_data:
         note_node(
@@ -416,6 +533,7 @@ def main():
         )
         dot.edge("REVIEW", "REVIEW_PENDING", style="dashed", color="#e64a19")
     else:
+        rounds_by_id = {cr["id"]: cr for cr in classification_rounds}
         previous_metrics = None
         previous_anchor = "REVIEW"
         for index, classification_round in enumerate(classification_rounds):
@@ -438,7 +556,7 @@ def main():
                 fillcolor="#ede7f6", color="#5e35b1", fontcolor="#311b92",
                 penwidth="2", fontsize="11",
             )
-            edge_label = "  excluding NEITHER/UNSURE  " if index == 0 else ""
+            edge_label = ""
             if previous_metrics is not None:
                 accuracy_delta = metrics["accuracy"] - previous_metrics["accuracy"]
                 correct_delta = (
@@ -451,18 +569,38 @@ def main():
                 )
             dot.edge(previous_anchor, header_node, label=edge_label, color="#5e35b1")
 
-            matrix_node = f"MATRIX_{index}"
-            dot.node(matrix_node, _confusion_matrix_html(matrix, include_neither),
-                     shape="plain")
-            dot.edge(header_node, matrix_node, color="#1565c0")
+            tail_anchor = header_node
+            is_initial = index == 0
+
+            if is_initial:
+                matrix_node = f"MATRIX_{index}"
+                dot.node(matrix_node, _confusion_matrix_html(matrix, include_neither),
+                         shape="plain")
+                dot.edge(tail_anchor, matrix_node, color="#1565c0")
+                tail_anchor = matrix_node
 
             metrics_node = f"METRICS_{index}"
             dot.node(metrics_node, _metrics_matrix_html(metrics), shape="plain")
-            dot.edge(matrix_node, metrics_node,
+            dot.edge(tail_anchor, metrics_node,
                      label="  excluding NEITHER/UNSURE  ", color="#1565c0")
+            tail_anchor = metrics_node
+
+            if parent and parent in rounds_by_id:
+                breakdown = _build_human_transition_breakdown(
+                    rounds_by_id[parent]["llm_label_by_key"],
+                    classification_round["llm_label_by_key"],
+                    review_data,
+                )
+                transition_node = f"TRANSITION_{index}"
+                dot.node(transition_node,
+                         _transition_summary_html(breakdown, parent, round_id),
+                         shape="plain")
+                dot.edge(tail_anchor, transition_node,
+                         label=f"  vs {parent}  ", color="#5e35b1")
+                tail_anchor = transition_node
 
             previous_metrics = metrics
-            previous_anchor = metrics_node
+            previous_anchor = tail_anchor
 
     note_node("DROPPED_NO_CITATIONS",
               f"{datasets_dropped} dataset(s) with\n0 citing papers → dropped")
