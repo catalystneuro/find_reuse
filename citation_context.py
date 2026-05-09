@@ -105,16 +105,48 @@ def find_reference_section_start(text: str) -> int:
     return len(text)
 
 
+def find_reference_number_in_parsed_bibliography(text: str, doi: str) -> Optional[int]:
+    """
+    Find the reference number whose parsed bibliography entry contains the
+    given DOI as a substring. Uses `parse_numbered_bibliography`, which
+    recognizes `[N]` and `N.` numbered anchors. Robust to entries where the
+    bibliography text is just `[N] {DOI}` (the migrated CrossRef format) —
+    no need to count anchor positions and no off-by-one when other entries
+    contribute zero or multiple DOIs.
+    """
+    bibliography = parse_numbered_bibliography(text)
+    if not bibliography:
+        return None
+
+    doi_lower = doi.lower()
+    for number in sorted(bibliography):
+        if doi_lower in bibliography[number].lower():
+            return number
+    return None
+
+
 def find_reference_number_for_doi(text: str, doi: str) -> Optional[int]:
     """
     Find the reference number associated with a DOI in the reference section.
 
     Handles multiple reference formats:
-    1. Numbered references: "42. Author Name... doi:10.1234/..."
-    2. Europe PMC format: DOIs on separate lines (counts position)
+    1. Numbered bibliography entries that contain the DOI as a substring
+       (covers the `[N] {DOI}` form emitted by the migrated CrossRef
+       serialization). Most authoritative when `[N]` anchors are present.
+    2. Numbered references near the DOI: "42. Author Name... doi:10.1234/..."
+    3. Europe PMC format: DOIs on separate lines (counts position) — last
+       resort, brittle when entries contribute zero or multiple DOIs.
 
     Returns None if DOI not found in references.
     """
+    # Pattern 1c first: when the bibliography has parseable [N]/N. anchors,
+    # finding the entry containing the DOI is more reliable than walking
+    # backwards from the DOI for an anchor (which can be tripped up by stray
+    # digits inside earlier DOIs or page numbers).
+    parsed_match = find_reference_number_in_parsed_bibliography(text, doi)
+    if parsed_match is not None:
+        return parsed_match
+
     doi_escaped = re.escape(doi)
 
     # Find the DOI position
@@ -214,6 +246,7 @@ def parse_numbered_bibliography(text: str) -> dict[int, str]:
     anchor_patterns = [
         re.compile(r'(?:^|\n)\s*\[(\d{1,3})\]\.\s*↵'),
         re.compile(r'(?:^|\n)\s*\[(\d{1,3})\]\s+(?=[A-Z])'),
+        re.compile(r'(?:^|\n)\s*\[(\d{1,3})\]\s+(?=\S)'),
         re.compile(r'(?:^|\n)\s*(\d{1,3})\.\s*↵'),
         re.compile(r'(?:^|\n)\s*(\d{1,3})\.\s+(?=[A-Z])'),
     ]
