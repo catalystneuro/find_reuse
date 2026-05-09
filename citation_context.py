@@ -239,9 +239,19 @@ def parse_numbered_bibliography(text: str) -> dict[int, str]:
     """
     Parse the citing paper's numbered bibliography into a {N: entry_text} map.
 
-    Each entry runs from its anchor's end to the next anchor's start. When a
-    number has multiple anchors in the text (in-text [N] plus bibliography
-    [N]), the last anchor wins — the bibliography is at the end of the text.
+    Each entry runs from its anchor's end to the next anchor's start. The
+    cached text for some preprints contains *two* numbered bibliographies in
+    series (e.g. the playwright-rendered references followed by the CrossRef-
+    appended references), and the two can disagree on identity at the same
+    number — CrossRef's deposited reference list for a preprint is sometimes
+    incomplete or misnumbered relative to the publisher-rendered page.
+
+    To avoid mixing entries from two competing bibliographies, anchors are
+    partitioned into groups by numbering restart (a new group begins whenever
+    the next anchor's number is ≤ a number already seen in the current
+    group). One bibliography dict is built per group, and the group with the
+    largest total body content is returned. When a single bibliography is
+    present, it's the only group and is returned unchanged.
     """
     anchor_patterns = [
         re.compile(r'(?:^|\n)\s*\[(\d{1,3})\]\.\s*↵'),
@@ -249,6 +259,11 @@ def parse_numbered_bibliography(text: str) -> dict[int, str]:
         re.compile(r'(?:^|\n)\s*\[(\d{1,3})\]\s+(?=\S)'),
         re.compile(r'(?:^|\n)\s*(\d{1,3})\.\s*↵'),
         re.compile(r'(?:^|\n)\s*(\d{1,3})\.\s+(?=[A-Z])'),
+        # Playwright bibliography format with no whitespace between `N.` and
+        # the author surname, e.g. `\n15.Fujisawa, S., Amarasingham, ...`.
+        # Requires capital letter followed by lowercase to limit false matches
+        # on fragments like equation numbers.
+        re.compile(r'(?:^|\n)(\d{1,3})\.(?=[A-Z][a-z])'),
     ]
 
     anchors = []
@@ -257,16 +272,58 @@ def parse_numbered_bibliography(text: str) -> dict[int, str]:
             anchors.append((match.start(), match.end(), int(match.group(1))))
 
     anchors.sort(key=lambda anchor: anchor[0])
+    if not anchors:
+        return {}
 
-    bibliography = {}
-    for index, (start, end, number) in enumerate(anchors):
-        if index + 1 < len(anchors):
-            next_start = anchors[index + 1][0]
-        else:
-            next_start = min(end + 1500, len(text))
-        bibliography[number] = text[end:next_start].strip()
+    # Some anchor patterns overlap (e.g. `[N] (?=[A-Z])` and `[N] (?=\S)`
+    # both fire on `[6] Author`). Dedupe by start position so the same anchor
+    # is only counted once — otherwise a duplicate looks like a numbering
+    # restart and fragments the bibliography into one-anchor groups.
+    deduped = []
+    seen_positions = set()
+    for anchor in anchors:
+        if anchor[0] in seen_positions:
+            continue
+        seen_positions.add(anchor[0])
+        deduped.append(anchor)
+    anchors = deduped
 
-    return bibliography
+    # Partition anchors into groups by numbering restart.
+    groups = []
+    current_group = []
+    current_max = -1
+    for anchor in anchors:
+        number = anchor[2]
+        if number <= current_max:
+            groups.append(current_group)
+            current_group = []
+            current_max = -1
+        current_group.append(anchor)
+        if number > current_max:
+            current_max = number
+    if current_group:
+        groups.append(current_group)
+
+    # Build a bibliography dict for each group; pick the group with the most
+    # total body content. Within a group, the entry body runs from the
+    # anchor's end to the next anchor's start in the same group; the last
+    # entry runs to a small fixed window past its anchor.
+    best_bibliography = {}
+    best_total_length = -1
+    for group in groups:
+        bibliography = {}
+        for index, (_, end, number) in enumerate(group):
+            if index + 1 < len(group):
+                next_start = group[index + 1][0]
+            else:
+                next_start = min(end + 1500, len(text))
+            bibliography[number] = text[end:next_start].strip()
+        total_length = sum(len(body) for body in bibliography.values())
+        if total_length > best_total_length:
+            best_total_length = total_length
+            best_bibliography = bibliography
+
+    return best_bibliography
 
 
 def find_reference_number_by_title(
