@@ -68,6 +68,35 @@ def get_paper_metadata(doi: str, session: Optional[requests.Session] = None) -> 
     return None
 
 
+_CRCNS_CODE_TO_DOI: Optional[dict] = None
+
+
+def _load_crcns_code_to_doi() -> dict:
+    global _CRCNS_CODE_TO_DOI
+    if _CRCNS_CODE_TO_DOI is None:
+        path = Path(__file__).parent / ".crcns_doi_to_code.json"
+        doi_to_code = json.loads(path.read_text())
+        _CRCNS_CODE_TO_DOI = {code: doi for doi, code in doi_to_code.items()}
+    return _CRCNS_CODE_TO_DOI
+
+
+def get_dataset_deposit_doi(dandiset_id: str) -> Optional[str]:
+    """
+    Look up the deposit DOI for a dataset by its archive-agnostic identifier.
+
+    Tries known archive mappings in order:
+    - CRCNS codes (e.g. 'fcx-2', 'pvc-8') resolve via .crcns_doi_to_code.json.
+
+    Returns None if the dataset isn't found in any known mapping. Additional
+    archives (DANDI, OpenNeuro, etc.) can be added by extending this function
+    with their own lookup paths.
+    """
+    crcns_doi = _load_crcns_code_to_doi().get(dandiset_id)
+    if crcns_doi:
+        return crcns_doi
+    return None
+
+
 def build_primary_citation_string(metadata: dict) -> Optional[str]:
     """
     Build the canonical author-year citation string for the primary paper,

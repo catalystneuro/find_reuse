@@ -45,6 +45,7 @@ from tqdm import tqdm
 from citation_context import (
     build_primary_citation_string,
     get_context_text,
+    get_dataset_deposit_doi,
     get_paper_metadata,
     get_paper_text_prefix,
 )
@@ -72,6 +73,7 @@ def build_classification_prompt(
     fallback_text: Optional[str] = None,
     dandiset_description: str = '',
     primary_citation_string: Optional[str] = None,
+    primary_deposit_doi: Optional[str] = None,
 ) -> str:
     """
     Build an LLM prompt for classifying a citing paper's relationship to a dataset.
@@ -117,11 +119,24 @@ CITING PAPER DOI (the paper we are classifying): {citing_doi}
 
     if primary_citation_string:
         prompt += (
-            f"PRIMARY PAPER AUTHOR-YEAR CITATION: The primary paper is cited as \"{primary_citation_string}\" "
-            f"in author-year format. When you see author-year citations in the excerpts below, only treat "
-            f"citations of \"{primary_citation_string}\" (or close variants of this exact author-year "
-            f"combination) as references to the primary paper. Citations that name the same author(s) but a "
-            f"different year point to different works and are NOT evidence of reuse of this dataset.\n\n"
+            f"PRIMARY PAPER AUTHOR-YEAR CITATION: In author-year format, the primary paper is cited as "
+            f"\"{primary_citation_string}\". A year drift of ±1 (e.g., the same author with the year "
+            f"shifted by one) may indicate a preprint/published version of the same paper, OR it may "
+            f"indicate a separate work by the same author. If the excerpts or bibliography contain BOTH "
+            f"year variants as distinct cites with separate references, they are different papers — only "
+            f"the variant matching the primary year refers to the primary. If only one same-author variant "
+            f"appears anywhere, treat it as the primary regardless of year drift.\n\n"
+        )
+
+    if primary_deposit_doi:
+        prompt += (
+            f"PRIMARY DATASET DEPOSIT DOI: The primary dataset is deposited at "
+            f"https://doi.org/{primary_deposit_doi}. If excerpts contain repository links (e.g., DOIs of "
+            f"the form 10.6080/... for CRCNS, archive URLs for DANDI/OpenNeuro/etc.), only links matching "
+            f"this exact DOI (case-insensitive) confirm reuse of the primary dataset. A different deposit "
+            f"DOI — even one in the same archive or by the same lab — points to a different dataset and "
+            f"is NOT evidence of reuse of the primary dataset, even if the citing paper attributes that "
+            f"data to a related publication by the same author(s).\n\n"
         )
 
     if contexts:
@@ -156,7 +171,7 @@ A single excerpt is sufficient evidence of REUSE when BOTH of the following are 
 
 (a) Reuse language. The excerpt explicitly describes the citing paper acquiring or analyzing the actual data — phrases like "we used data from", "we downloaded", "we (re)analyzed recordings from", "data were obtained from", or naming a specific cohort, animal, session, or recording that originated in the primary paper. Background-fact phrasing like "X cells are found in region Y [ref]" does NOT count.
 
-(b) Correct attribution. The reuse-language excerpt's citation must resolve to THE PRIMARY PAPER specified at the top of the prompt. If a PRIMARY PAPER REFERENCE NUMBER block is provided above, treat that resolved number as the source of truth — only citations of that reference number (or ranges/lists containing it) count as references to the primary paper. Reuse language attributed to a different paper, or to a different dataset by the same author or depositor, does NOT count, even if the reuse language itself is unambiguous.
+(b) Correct attribution. For each excerpt that contains reuse language, identify the specific paper the reuse language is attributed to — by reference number, by author-year string, or by name. That attribution must (i) point to the primary paper specified above, and (ii) appear in the SAME excerpt as the reuse language. Reuse language in one excerpt combined with primary-paper attribution in a different excerpt does NOT satisfy this test. Reuse language attached to a different reference number, a different author-year combination, or a different dataset by the same author or depositor does NOT count — even if the primary paper is also cited elsewhere in the same excerpt, in a different excerpt, or in the bibliography.
 
 If at least one excerpt clears BOTH (a) and (b), output REUSE. Otherwise, output MENTION.
 
@@ -323,6 +338,7 @@ def classify_single_paper(
 
     primary_metadata = get_paper_metadata(cited_doi)
     primary_citation_string = build_primary_citation_string(primary_metadata)
+    primary_deposit_doi = get_dataset_deposit_doi(dandiset_id)
 
     prompt = build_classification_prompt(
         contexts=contexts_with_text,
@@ -333,6 +349,7 @@ def classify_single_paper(
         fallback_text=fallback_text,
         dandiset_description=dandiset_description,
         primary_citation_string=primary_citation_string,
+        primary_deposit_doi=primary_deposit_doi,
     )
 
     response = call_openrouter_api(
