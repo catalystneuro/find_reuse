@@ -68,6 +68,30 @@ def get_paper_metadata(doi: str, session: Optional[requests.Session] = None) -> 
     return None
 
 
+def build_primary_citation_string(metadata: dict) -> Optional[str]:
+    """
+    Build the canonical author-year citation string for the primary paper,
+    in the form a body author-year cite would use.
+
+    - 1 author:   "Smith, 2018"
+    - 2 authors:  "Smith and Jones, 2018"
+    - 3+ authors: "Smith et al., 2018"
+
+    Returns None if authors or year are missing.
+    """
+    if not metadata:
+        return None
+    authors = metadata.get('authors') or []
+    year = metadata.get('year')
+    if not authors or not year:
+        return None
+    if len(authors) == 1:
+        return f"{authors[0]}, {year}"
+    if len(authors) == 2:
+        return f"{authors[0]} and {authors[1]}, {year}"
+    return f"{authors[0]} et al., {year}"
+
+
 def find_doi_in_text(text: str, doi: str) -> list[int]:
     """Find all positions where a DOI appears in text."""
     positions = []

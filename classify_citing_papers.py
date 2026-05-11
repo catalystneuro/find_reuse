@@ -42,7 +42,12 @@ from typing import Optional
 
 from tqdm import tqdm
 
-from citation_context import get_context_text, get_paper_text_prefix
+from citation_context import (
+    build_primary_citation_string,
+    get_context_text,
+    get_paper_metadata,
+    get_paper_text_prefix,
+)
 from llm_utils import get_api_key, call_openrouter_api, parse_json_response, DEFAULT_MODEL
 
 # Classification cache
@@ -66,6 +71,7 @@ def build_classification_prompt(
     citing_doi: str,
     fallback_text: Optional[str] = None,
     dandiset_description: str = '',
+    primary_citation_string: Optional[str] = None,
 ) -> str:
     """
     Build an LLM prompt for classifying a citing paper's relationship to a dataset.
@@ -107,6 +113,15 @@ CITING PAPER DOI (the paper we are classifying): {citing_doi}
             f"[{resolved_reference_number}] (or ranges/lists containing {resolved_reference_number}) as "
             f"references to the primary paper. Numbers other than {resolved_reference_number} point to "
             f"different works and are NOT evidence of reuse of this dataset.\n\n"
+        )
+
+    if primary_citation_string:
+        prompt += (
+            f"PRIMARY PAPER AUTHOR-YEAR CITATION: The primary paper is cited as \"{primary_citation_string}\" "
+            f"in author-year format. When you see author-year citations in the excerpts below, only treat "
+            f"citations of \"{primary_citation_string}\" (or close variants of this exact author-year "
+            f"combination) as references to the primary paper. Citations that name the same author(s) but a "
+            f"different year point to different works and are NOT evidence of reuse of this dataset.\n\n"
         )
 
     if contexts:
@@ -306,6 +321,9 @@ def classify_single_paper(
     if not contexts_with_text:
         fallback_text = get_paper_text_prefix(citing_doi, cache_dir, max_chars=8000)
 
+    primary_metadata = get_paper_metadata(cited_doi)
+    primary_citation_string = build_primary_citation_string(primary_metadata)
+
     prompt = build_classification_prompt(
         contexts=contexts_with_text,
         dandiset_id=dandiset_id,
@@ -314,6 +332,7 @@ def classify_single_paper(
         citing_doi=citing_doi,
         fallback_text=fallback_text,
         dandiset_description=dandiset_description,
+        primary_citation_string=primary_citation_string,
     )
 
     response = call_openrouter_api(
