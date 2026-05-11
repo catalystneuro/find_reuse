@@ -581,6 +581,10 @@ def find_author_citations(text: str, authors: list[str], year: int, year_toleran
                     rf'{author_esc}\s+et\s+al\.?\s*,\s*{year_str}[a-z]?',
                     # No-comma style: "Li et al. 2015" (common in Annual Reviews)
                     rf'{author_esc}\s+et\s+al\.?\s+{year_str}[a-z]?',
+                    # Intermediate-name style: "Coen-Cagli, Kohn et al. 2015"
+                    rf'\({author_esc}\s*,\s*[A-Z][A-Za-z\-]+\s+et\s+al\.?\s*,?\s*{year_str}[a-z]?\)',
+                    rf'{author_esc}\s*,\s*[A-Z][A-Za-z\-]+\s+et\s+al\.?\s*\({year_str}[a-z]?\)',
+                    rf'{author_esc}\s*,\s*[A-Z][A-Za-z\-]+\s+et\s+al\.?\s*,?\s*{year_str}[a-z]?',
                 ])
 
         # Numbered reference patterns (year-independent): Smith (42), Smith et al. (42)
@@ -599,6 +603,28 @@ def find_author_citations(text: str, authors: list[str], year: int, year_toleran
     for pattern in patterns:
         for m in re.finditer(pattern, text, re.IGNORECASE):
             positions.append(m.start())
+
+    # Combined-year scan: cites like "Fujisawa et al., 2015, 2008" or
+    # "Smith, 2015, 2008" pack two papers into one author-year fragment.
+    # The base patterns only catch the first year; this loop walks every
+    # year in the run and records a hit if the target year sits in any
+    # slot beyond the first.
+    target_years = set(years_to_search)
+    for author_esc in author_patterns:
+        if len(authors) >= 2:
+            multi_year_patterns = [
+                rf'{author_esc}\s+et\s+al\.?\s*,\s*\d{{4}}[a-z]?(?:\s*,\s*\d{{4}}[a-z]?)+',
+            ]
+        else:
+            multi_year_patterns = [
+                rf'{author_esc}\s*,\s*\d{{4}}[a-z]?(?:\s*,\s*\d{{4}}[a-z]?)+',
+            ]
+        for pattern in multi_year_patterns:
+            for m in re.finditer(pattern, text, re.IGNORECASE):
+                years_in_match = re.findall(r'\d{4}', m.group(0))
+                # Skip the first year — already covered by the base patterns.
+                if any(y in target_years for y in years_in_match[1:]):
+                    positions.append(m.start())
 
     return positions
 
