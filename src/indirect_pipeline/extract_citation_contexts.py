@@ -16,7 +16,7 @@ from typing import Optional
 import requests
 from tqdm import tqdm
 
-from src.citation_context import (
+from .citation_context import (
     find_citation_contexts,
     find_citation_in_cached_paper,
     get_context_text,
@@ -54,7 +54,7 @@ def extract_all_citation_contexts(
     })
 
     # Build alternate DOI map (preprint↔published) for better citation finding
-    from src.openalex import get_alternate_doi
+    from .openalex import get_alternate_doi
     alt_doi_session = requests.Session()
     alt_doi_session.headers.update({
         'User-Agent': 'CitationContextExtractor/1.0 (mailto:ben.dichter@catalystneuro.com)'

@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """Start a new review round from the current pipeline output.
 
-Snapshots the latest output of run_indirect_pipeline.py into a fresh review_round_N/
+Snapshots the latest output of the indirect pipeline into a fresh review_round_N/
 directory, draws a stratified sample, projects the snapshot's classifications onto
 the sample (recorded as classification_rounds/001_initial/), and builds review.html.
 
-Run run_indirect_pipeline.py first; this script does not run the pipeline.
+Run `python -m src.indirect_pipeline.run_pipeline` first; this script does not run the pipeline.
 
 Usage:
-    python -m src.start_review_round --archive crcns
-    python -m src.start_review_round --archive crcns --samples-per-class 50 --include-neither false
+    python -m src.indirect_review.start_review_round --archive crcns
+    python -m src.indirect_review.start_review_round --archive crcns --samples-per-class 50 --include-neither false
 """
 
 import argparse
@@ -20,8 +20,8 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from src.build_indirect_review import build_review_html
-from src.sampling import SAMPLING_SEED, stratified_sample
+from .review_builder import build_review_html
+from .sampling import SAMPLING_SEED, stratified_sample
 
 
 def _str_to_bool(value: str) -> bool:
@@ -59,7 +59,7 @@ def _snapshot_pipeline_files(archive_dir: Path, review_round_dir: Path) -> Path:
         source = archive_dir / filename
         if not source.exists():
             print(
-                f"Error: {source} not found. Run `python -m src.run_indirect_pipeline --archive "
+                f"Error: {source} not found. Run `python -m src.indirect_pipeline.run_pipeline --archive "
                 f"{archive_dir.name}` first.",
                 file=sys.stderr,
             )

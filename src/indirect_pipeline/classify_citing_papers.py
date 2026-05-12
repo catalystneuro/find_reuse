@@ -42,14 +42,14 @@ from typing import Optional
 
 from tqdm import tqdm
 
-from src.citation_context import (
+from .citation_context import (
     build_primary_citation_string,
     get_context_text,
     get_dataset_deposit_doi,
     get_paper_metadata,
     get_paper_text_prefix,
 )
-from src.llm_utils import get_api_key, call_openrouter_api, parse_json_response, DEFAULT_MODEL
+from .llm_utils import get_api_key, call_openrouter_api, parse_json_response, DEFAULT_MODEL
 
 # Classification cache (anchored to CWD so it matches root-level cache from prior runs)
 CLASSIFICATION_CACHE_DIR = Path('.classification_cache')

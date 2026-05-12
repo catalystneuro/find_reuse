@@ -138,7 +138,7 @@ def _build_filtered_datasets_json(
 def _run_extract_contexts(filtered_datasets_path: Path, output_path: Path) -> None:
     subprocess.run(
         [
-            "python3", "-m", "src.extract_citation_contexts",
+            "python3", "-m", "src.indirect_pipeline.extract_citation_contexts",
             "--results-file", str(filtered_datasets_path),
             "--cache-dir", str(CACHE_DIR),
             "-o", str(output_path),
@@ -149,7 +149,7 @@ def _run_extract_contexts(filtered_datasets_path: Path, output_path: Path) -> No
 
 def _run_classify(contexts_path: Path, output_path: Path, model: str) -> None:
     command = [
-        "python3", "-m", "src.classify_citing_papers",
+        "python3", "-m", "src.indirect_pipeline.classify_citing_papers",
         "--contexts-file", str(contexts_path),
         "--cache-dir", str(CACHE_DIR),
         "-o", str(output_path),
@@ -181,7 +181,7 @@ def main():
     archive_dir = Path("output/indirect") / args.archive
     review_round_dir = archive_dir / "review_rounds" / f"review_round_{args.review_round}"
     if not review_round_dir.exists():
-        print(f"Error: {review_round_dir} not found. Run `python -m src.start_review_round` first.",
+        print(f"Error: {review_round_dir} not found. Run `python -m src.indirect_review.start_review_round` first.",
               file=sys.stderr)
         sys.exit(1)
 

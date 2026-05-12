@@ -13,8 +13,8 @@ Stages:
     5. Classify each citing paper as REUSE / MENTION / NEITHER (LLM)
 
 Usage:
-    python -m src.run_indirect_pipeline --archive dandi
-    python -m src.run_indirect_pipeline --archive crcns --limit 5
+    python -m src.indirect_pipeline.run_pipeline --archive dandi
+    python -m src.indirect_pipeline.run_pipeline --archive crcns --limit 5
 """
 
 import argparse
@@ -26,8 +26,8 @@ from pathlib import Path
 
 from tqdm import tqdm
 
-from src.archives import get_adapter
-from src.openalex import (
+from .archives import get_adapter
+from .openalex import (
     _make_openalex_session,
     fetch_citing_paper_texts,
     find_citing_papers,
@@ -88,7 +88,7 @@ def stage3_fetch_paper_texts(adapter, max_citing_papers):
 def stage4_extract_contexts(adapter):
     subprocess.run(
         [
-            "python3", "-m", "src.extract_citation_contexts",
+            "python3", "-m", "src.indirect_pipeline.extract_citation_contexts",
             "--results-file", str(adapter.output_dir / "datasets.json"),
             "--cache-dir", str(CACHE_DIR),
             "-o", str(adapter.output_dir / "citation_contexts.json"),
@@ -100,7 +100,7 @@ def stage4_extract_contexts(adapter):
 def stage5_classify(adapter, model, clear_cache):
     classifications_path = adapter.output_dir / "classifications.json"
     command = [
-        "python3", "-m", "src.classify_citing_papers",
+        "python3", "-m", "src.indirect_pipeline.classify_citing_papers",
         "--contexts-file", str(adapter.output_dir / "citation_contexts.json"),
         "--cache-dir", str(CACHE_DIR),
         "-o", str(classifications_path),

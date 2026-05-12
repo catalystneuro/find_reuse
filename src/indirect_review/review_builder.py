@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Build an HTML review dashboard for an indirect-pipeline review round.
 
 Reads
@@ -8,11 +7,9 @@ Reads
 Writes
     <review_round_dir>/review.html
 
-Usage:
-    python -m src.build_indirect_review --review-round-dir output/indirect/crcns/review_rounds/review_round_1
+Public entry point: ``build_review_html(review_round_dir, ...)``.
 """
 
-import argparse
 import json
 import time
 from pathlib import Path
@@ -480,25 +477,3 @@ def build_review_html(
     output_path.write_text(html)
     print(f"Wrote {output_path} ({len(entries)} entries)")
     return output_path
-
-
-def main():
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--review-round-dir", required=True, type=Path,
-                        help="Path to the review round directory (e.g. "
-                             "output/indirect/crcns/review_rounds/review_round_1).")
-    parser.add_argument("--classification-round", default="001_initial",
-                        help="Classification round directory name to render (default: 001_initial).")
-    parser.add_argument("--archive", default=None,
-                        help="Archive label for the page header (default: read from sample.json).")
-    args = parser.parse_args()
-
-    build_review_html(
-        review_round_dir=args.review_round_dir,
-        classification_round=args.classification_round,
-        archive_name=args.archive,
-    )
-
-
-if __name__ == "__main__":
-    main()

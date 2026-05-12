@@ -12,9 +12,9 @@ Reads from a review round directory:
 Writes: <review_round_dir>/review_flow.png
 
 Usage:
-    python -m src.render_review_flow \\
+    python -m src.indirect_review.render_review_flow \\
         --review-round-dir output/indirect/crcns/review_rounds/review_round_1
-    python -m src.render_review_flow \\
+    python -m src.indirect_review.render_review_flow \\
         --review-round-dir output/indirect/crcns/review_rounds/review_round_1 \\
         --include-neither false
 """
