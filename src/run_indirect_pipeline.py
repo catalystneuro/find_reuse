@@ -1,15 +1,20 @@
 #!/usr/bin/env python3
-"""Minimal archive-agnostic reuse pipeline for prototyping manual verification.
+"""Indirect (citation-based) archive-agnostic reuse pipeline.
+
+This is the indirect counterpart to the direct pipeline (which searches paper
+text for dataset mentions). Here, reuse is inferred from citations to the
+dataset's primary paper.
 
 Stages:
-    1. Discover datasets + primary papers (via archive adapter)
-    2. Fetch citing papers from OpenAlex + their full text
-    3. Extract citation contexts
-    4. Classify each citing paper as REUSE / MENTION / NEITHER (LLM)
+    1. Discover datasets (via archive adapter)
+    2. Find citing papers (OpenAlex, filter to datasets with ≥1 hit)
+    3. Fetch citing paper texts
+    4. Extract citation contexts
+    5. Classify each citing paper as REUSE / MENTION / NEITHER (LLM)
 
 Usage:
-    python -m src.run_minimal_pipeline --archive dandi
-    python -m src.run_minimal_pipeline --archive crcns --limit 5
+    python -m src.run_indirect_pipeline --archive dandi
+    python -m src.run_indirect_pipeline --archive crcns --limit 5
 """
 
 import argparse
@@ -31,7 +36,7 @@ from src.openalex import (
 CACHE_DIR = Path(".paper_cache")
 
 
-def stage1_datasets(adapter):
+def stage1_discover_datasets(adapter):
     data = adapter.build_datasets_json()
     data["results"] = sorted(data["results"], key=lambda r: r["dataset_id"])
     data["count"] = len(data["results"])
@@ -39,7 +44,7 @@ def stage1_datasets(adapter):
     print(f"  {data['count']} datasets discovered", file=sys.stderr)
 
 
-def stage1b_filter_by_citations(adapter, limit, max_citing_papers):
+def stage2_find_citing_papers(adapter, limit, max_citing_papers):
     datasets_path = adapter.output_dir / "datasets.json"
     data = json.loads(datasets_path.read_text())
     # Preserve the pre-filter dataset count for downstream renderers.
@@ -68,7 +73,7 @@ def stage1b_filter_by_citations(adapter, limit, max_citing_papers):
     print(f"  {len(kept)} datasets with ≥1 citing paper selected (scanned {scanned})", file=sys.stderr)
 
 
-def stage2_citing_papers_and_text(adapter, max_citing_papers):
+def stage3_fetch_paper_texts(adapter, max_citing_papers):
     datasets_path = adapter.output_dir / "datasets.json"
     data = json.loads(datasets_path.read_text())
     data["results"] = fetch_citing_paper_texts(
@@ -80,7 +85,7 @@ def stage2_citing_papers_and_text(adapter, max_citing_papers):
     datasets_path.write_text(json.dumps(data, indent=2))
 
 
-def stage3_extract_contexts(adapter):
+def stage4_extract_contexts(adapter):
     subprocess.run(
         [
             "python3", "-m", "src.extract_citation_contexts",
@@ -92,7 +97,7 @@ def stage3_extract_contexts(adapter):
     )
 
 
-def stage4_classify(adapter, model, clear_cache):
+def stage5_classify(adapter, model, clear_cache):
     classifications_path = adapter.output_dir / "classifications.json"
     command = [
         "python3", "-m", "src.classify_citing_papers",
@@ -125,17 +130,17 @@ def main():
     start = time.time()
     adapter = get_adapter(
         args.archive,
-        output_dir=f"output/minimal/{args.archive}",
+        output_dir=f"output/indirect/{args.archive}",
         verbose=True,
     )
     print(f"Archive: {adapter.name}", file=sys.stderr)
     print(f"Output dir: {adapter.output_dir}", file=sys.stderr)
 
-    stage1_datasets(adapter)
-    stage1b_filter_by_citations(adapter, args.limit, args.max_citing_papers)
-    stage2_citing_papers_and_text(adapter, args.max_citing_papers)
-    stage3_extract_contexts(adapter)
-    classifications_path = stage4_classify(adapter, args.model, args.clear_cache)
+    stage1_discover_datasets(adapter)
+    stage2_find_citing_papers(adapter, args.limit, args.max_citing_papers)
+    stage3_fetch_paper_texts(adapter, args.max_citing_papers)
+    stage4_extract_contexts(adapter)
+    classifications_path = stage5_classify(adapter, args.model, args.clear_cache)
 
     print(f"\nDone in {(time.time() - start) / 60:.1f} min. See {classifications_path}", file=sys.stderr)
 
