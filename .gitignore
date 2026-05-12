@@ -32,3 +32,6 @@ venv/
 output/
 paper_cache.zip
 .review_author_cache.json
+
+# Temporary Scripts
+tmp/
