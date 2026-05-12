@@ -300,6 +300,52 @@ def _metrics_matrix_html(metrics):
 </TABLE>>"""
 
 
+def _trajectory_table_html(rounds_with_metrics, initial_metrics):
+    """Compact per-round trajectory table used in summary mode.
+
+    Each row: round id, description, correct/total, delta vs initial.
+    Skips the first and last entries (those are rendered as full panels).
+    """
+    header_color = "#e0e0e0"
+    fixed_color = "#2e7d32"
+    regressed_color = "#c62828"
+    muted_color = "#616161"
+
+    rows_html = (
+        f'  <TR>'
+        f'<TD BGCOLOR="{header_color}"><B>Round</B></TD>'
+        f'<TD BGCOLOR="{header_color}"><B>Change</B></TD>'
+        f'<TD BGCOLOR="{header_color}"><B>Correct</B></TD>'
+        f'<TD BGCOLOR="{header_color}"><B>Δ vs initial</B></TD>'
+        f'</TR>\n'
+    )
+    initial_correct = initial_metrics["tp"] + initial_metrics["tn"]
+    for entry in rounds_with_metrics[1:]:
+        correct = entry["metrics"]["tp"] + entry["metrics"]["tn"]
+        total = entry["metrics"]["decisive_total"]
+        delta = correct - initial_correct
+        if delta > 0:
+            delta_label, delta_color = f"+{delta}", fixed_color
+        elif delta < 0:
+            delta_label, delta_color = f"{delta}", regressed_color
+        else:
+            delta_label, delta_color = "0", muted_color
+        description = entry["metadata"].get("description", "")
+        rows_html += (
+            f'  <TR>'
+            f'<TD ALIGN="LEFT"><B>{entry["id"]}</B></TD>'
+            f'<TD ALIGN="LEFT">{description}</TD>'
+            f'<TD ALIGN="RIGHT">{correct}/{total}</TD>'
+            f'<TD ALIGN="RIGHT"><FONT COLOR="{delta_color}"><B>{delta_label}</B></FONT></TD>'
+            f'</TR>\n'
+        )
+
+    return f"""<
+<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6" BGCOLOR="white">
+  <TR><TD COLSPAN="4" ALIGN="LEFT" BGCOLOR="{header_color}"><B>Iterative refinement</B></TD></TR>
+{rows_html}</TABLE>>"""
+
+
 def _load_classification_rounds(review_round_dir: Path) -> list[dict]:
     rounds_root = review_round_dir / "classification_rounds"
     rounds = []
@@ -323,6 +369,12 @@ def main():
     parser.add_argument("--review-round-dir", required=True, type=Path,
                         help="Path to the review round directory.")
     parser.add_argument(
+        "--mode", choices=("full", "summary"), default="full",
+        help="full: render every classification round with confusion + metrics + transitions "
+             "(default). summary: render only the initial and final rounds' confusion matrices, "
+             "with a compact trajectory table for the intermediate rounds.",
+    )
+    parser.add_argument(
         "--include-neither", type=_str_to_bool, default=None,
         help="Whether NEITHER pairs were manually reviewed (true/false). "
              "Default: read from sample.json's include_neither field.",
@@ -340,7 +392,7 @@ def main():
     citation_contexts_path = snapshot_dir / "citation_contexts.json"
     sample_path = review_round_dir / "sample.json"
     review_state_path = review_round_dir / "review_state.json"
-    output_base = review_round_dir / "review_flow"
+    output_base = review_round_dir / ("review_flow_summary" if args.mode == "summary" else "review_flow")
 
     classifications_data = json.loads(classifications_path.read_text())
     datasets_data = json.loads(datasets_path.read_text())
@@ -535,19 +587,49 @@ def main():
     else:
         initial_round = classification_rounds[0]
         initial_id = initial_round["id"]
-        initial_matrix = _build_confusion(
-            initial_round["llm_label_by_key"], review_data,
-        )
-        initial_metrics = _metrics_from_confusion(initial_matrix)
-        previous_anchor = "REVIEW"
-        for index, classification_round in enumerate(classification_rounds):
-            round_id = classification_round["id"]
-            metadata = classification_round["metadata"]
+        final_index = len(classification_rounds) - 1
+        rounds_with_metrics = []
+        for classification_round in classification_rounds:
             matrix = _build_confusion(
                 classification_round["llm_label_by_key"], review_data,
             )
-            metrics = _metrics_from_confusion(matrix)
+            rounds_with_metrics.append({
+                "id": classification_round["id"],
+                "metadata": classification_round["metadata"],
+                "llm_label_by_key": classification_round["llm_label_by_key"],
+                "matrix": matrix,
+                "metrics": _metrics_from_confusion(matrix),
+            })
+        initial_metrics = rounds_with_metrics[0]["metrics"]
+
+        is_summary = args.mode == "summary"
+        if is_summary:
+            indices_to_render = sorted({0, final_index})
+        else:
+            indices_to_render = list(range(len(rounds_with_metrics)))
+
+        previous_anchor = "REVIEW"
+        previous_rendered_id = None
+        for position, index in enumerate(indices_to_render):
+            entry = rounds_with_metrics[index]
+            round_id = entry["id"]
+            metadata = entry["metadata"]
+            matrix = entry["matrix"]
+            metrics = entry["metrics"]
             is_initial = index == 0
+            is_final = index == final_index
+
+            # In summary mode, insert the trajectory table between initial and final.
+            if is_summary and previous_rendered_id == initial_id and not is_initial:
+                trajectory_node = "TRAJECTORY"
+                dot.node(
+                    trajectory_node,
+                    _trajectory_table_html(rounds_with_metrics, initial_metrics),
+                    shape="plain",
+                )
+                dot.edge(previous_anchor, trajectory_node, color="#5e35b1",
+                         label="  iterative refinement  ")
+                previous_anchor = trajectory_node
 
             header_node = f"ROUND_HEADER_{index}"
             description = metadata.get("description", "")
@@ -576,7 +658,9 @@ def main():
 
             tail_anchor = header_node
 
-            if is_initial:
+            # Show confusion matrix on initial (always) and final (summary mode only).
+            show_confusion_matrix = is_initial or (is_summary and is_final)
+            if show_confusion_matrix:
                 matrix_node = f"MATRIX_{index}"
                 dot.node(matrix_node, _confusion_matrix_html(matrix, include_neither),
                          shape="plain")
@@ -589,10 +673,10 @@ def main():
                      label="  excluding NEITHER/UNSURE  ", color="#1565c0")
             tail_anchor = metrics_node
 
-            if not is_initial:
+            if not is_initial and not is_summary:
                 breakdown = _build_human_transition_breakdown(
-                    initial_round["llm_label_by_key"],
-                    classification_round["llm_label_by_key"],
+                    rounds_with_metrics[0]["llm_label_by_key"],
+                    entry["llm_label_by_key"],
                     review_data,
                 )
                 transition_node = f"TRANSITION_{index}"
@@ -604,6 +688,7 @@ def main():
                 tail_anchor = transition_node
 
             previous_anchor = tail_anchor
+            previous_rendered_id = round_id
 
     note_node("DROPPED_NO_CITATIONS",
               f"{datasets_dropped} dataset(s) with\n0 citing papers → dropped")
