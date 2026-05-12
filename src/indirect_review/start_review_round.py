@@ -69,7 +69,10 @@ def _snapshot_pipeline_files(archive_dir: Path, review_round_dir: Path) -> Path:
 
 
 def _sample_classifications(
-    classifications: list[dict], samples_per_class: int, include_neither: bool,
+    classifications: list[dict],
+    samples_per_class: int,
+    include_neither: bool,
+    sample_start: int,
 ) -> list[dict]:
     """Sample full classification dicts (preserving cited_doi and all other fields)
     so that two records sharing (citing_doi, dandiset_id) but differing in cited_doi
@@ -89,8 +92,11 @@ def _sample_classifications(
     candidates.sort(
         key=lambda c: (c.get("dandiset_id", ""), c.get("citing_doi", "")),
     )
-    print(f"Stratified sampling (samples_per_class={samples_per_class}, seed={SAMPLING_SEED}):")
-    return stratified_sample(candidates, samples_per_class)
+    print(
+        f"Stratified sampling (sample_start={sample_start}, "
+        f"samples_per_class={samples_per_class}, seed={SAMPLING_SEED}):"
+    )
+    return stratified_sample(candidates, samples_per_class, start_index=sample_start)
 
 
 def _write_sample_json(
@@ -98,6 +104,7 @@ def _write_sample_json(
     archive: str,
     samples_per_class: int,
     include_neither: bool,
+    sample_start: int,
     sampled: list[dict],
 ) -> Path:
     sample_path = review_round_dir / "sample.json"
@@ -106,6 +113,7 @@ def _write_sample_json(
         "created_at": datetime.now(timezone.utc).isoformat(),
         "seed": SAMPLING_SEED,
         "samples_per_class": samples_per_class,
+        "sample_start": sample_start,
         "include_neither": include_neither,
         "git_sha": _git_sha(),
         "sampled_pairs": [
@@ -176,9 +184,19 @@ def main():
                         help="Archive short name (e.g. dandi, crcns, openneuro, sparc).")
     parser.add_argument("--samples-per-class", type=int, default=50,
                         help="Number of entries to sample per classification (default: 50).")
+    parser.add_argument("--sample-start", type=int, default=0,
+                        help="0-indexed offset into each class's shuffled order. "
+                             "Use to take a later window without re-sampling earlier rounds "
+                             "(e.g. --sample-start 50 --samples-per-class 50 takes entries "
+                             "50–99 per class). Default: 0.")
     parser.add_argument("--include-neither", type=_str_to_bool, default=True,
                         help="Whether NEITHER pairs are included in the sample (default: true).")
     args = parser.parse_args()
+
+    if args.sample_start < 0:
+        parser.error("--sample-start must be ≥ 0")
+    if args.samples_per_class < 1:
+        parser.error("--samples-per-class must be ≥ 1")
 
     archive_dir = Path("output/indirect") / args.archive
     review_round_dir = _next_review_round_dir(archive_dir)
@@ -191,11 +209,12 @@ def main():
     snapshot_data = json.loads(snapshot_classifications_path.read_text())
     sampled = _sample_classifications(
         snapshot_data["classifications"], args.samples_per_class, args.include_neither,
+        args.sample_start,
     )
 
     _write_sample_json(
         review_round_dir, args.archive,
-        args.samples_per_class, args.include_neither, sampled,
+        args.samples_per_class, args.include_neither, args.sample_start, sampled,
     )
 
     _write_initial_classification_round(
