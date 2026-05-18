@@ -74,7 +74,7 @@ _CRCNS_CODE_TO_DOI: Optional[dict] = None
 def _load_crcns_code_to_doi() -> dict:
     global _CRCNS_CODE_TO_DOI
     if _CRCNS_CODE_TO_DOI is None:
-        path = Path(__file__).parent / ".crcns_doi_to_code.json"
+        path = Path(".crcns_doi_to_code.json")
         doi_to_code = json.loads(path.read_text())
         _CRCNS_CODE_TO_DOI = {code: doi for doi, code in doi_to_code.items()}
     return _CRCNS_CODE_TO_DOI
