@@ -47,7 +47,6 @@ from .citation_context import (
     get_context_text,
     get_dataset_deposit_doi,
     get_paper_metadata,
-    get_paper_text_prefix,
 )
 from .llm_utils import get_api_key, call_openrouter_api, parse_json_response, DEFAULT_MODEL
 
@@ -70,7 +69,6 @@ def build_classification_prompt(
     dandiset_name: str,
     cited_doi: str,
     citing_doi: str,
-    fallback_text: Optional[str] = None,
     dandiset_description: str = '',
     primary_citation_string: Optional[str] = None,
     primary_deposit_doi: Optional[str] = None,
@@ -84,7 +82,6 @@ def build_classification_prompt(
         dandiset_name: Name of the DANDI dataset
         cited_doi: DOI of the primary paper being cited
         citing_doi: DOI of the citing paper
-        fallback_text: If no contexts found, first N chars of paper text
         dandiset_description: Optional dataset description from the archive
 
     Returns:
@@ -139,17 +136,11 @@ CITING PAPER DOI (the paper we are classifying): {citing_doi}
             f"data to a related publication by the same author(s).\n\n"
         )
 
-    if contexts:
-        prompt += f"The following are {len(contexts)} text excerpt(s) from the citing paper where the primary paper is referenced:\n\n"
-        for i, ctx in enumerate(contexts, 1):
-            context_text = ctx.get('context', '')
-            method = ctx.get('method', 'unknown')
-            prompt += f"--- Excerpt {i} (detected via {method}) ---\n{context_text}\n\n"
-    elif fallback_text:
-        prompt += "No specific citation contexts were found. Here is the beginning of the paper text:\n\n"
-        prompt += f"--- Paper text (first portion) ---\n{fallback_text}\n\n"
-    else:
-        prompt += "No text was available for this paper.\n\n"
+    prompt += f"The following are {len(contexts)} text excerpt(s) from the citing paper where the primary paper is referenced:\n\n"
+    for i, ctx in enumerate(contexts, 1):
+        context_text = ctx.get('context', '')
+        method = ctx.get('method', 'unknown')
+        prompt += f"--- Excerpt {i} (detected via {method}) ---\n{context_text}\n\n"
 
     prompt += """Based on the text above, make THREE separate decisions:
 
@@ -332,10 +323,6 @@ def classify_single_paper(
 
     result['num_contexts'] = len(contexts_with_text)
 
-    fallback_text = None
-    if not contexts_with_text:
-        fallback_text = get_paper_text_prefix(citing_doi, cache_dir, max_chars=8000)
-
     primary_metadata = get_paper_metadata(cited_doi)
     primary_citation_string = build_primary_citation_string(primary_metadata)
     primary_deposit_doi = get_dataset_deposit_doi(dandiset_id)
@@ -346,7 +333,6 @@ def classify_single_paper(
         dandiset_name=dandiset_name,
         cited_doi=cited_doi,
         citing_doi=citing_doi,
-        fallback_text=fallback_text,
         dandiset_description=dandiset_description,
         primary_citation_string=primary_citation_string,
         primary_deposit_doi=primary_deposit_doi,
@@ -414,14 +400,26 @@ def classify_all_papers(
     use_cache: bool = True,
     show_progress: bool = True,
     workers: int = 10,
-) -> dict:
-    """Classify all pair_records produced by extract_citation_contexts.py."""
+) -> tuple[dict, list[dict]]:
+    """Classify all pair_records produced by extract_citation_contexts.py.
+
+    Returns a tuple of (output, excluded). `output` is the classifications JSON
+    document (with metadata + classifications list). `excluded` is the list of
+    pair_records that had zero extracted contexts and were skipped before any
+    LLM call — they are not classified at all (the LLM has no evidence to
+    reason from), and the caller is expected to write them to a sidecar file.
+    """
     if max_papers:
         pair_records = pair_records[:max_papers]
+
+    excluded = [record for record in pair_records if not record.get('contexts')]
+    classifiable = [record for record in pair_records if record.get('contexts')]
 
     classifications = []
     stats = {
         'total_pairs': len(pair_records),
+        'classifiable_pairs': len(classifiable),
+        'excluded_no_contexts': len(excluded),
         'from_cache': 0,
         'api_calls': 0,
         'errors': 0,
@@ -441,11 +439,15 @@ def classify_all_papers(
         result['citing_date'] = record.get('citing_date', '')
         return result
 
-    print(f"Classifying {len(pair_records)} papers with {workers} workers...", file=sys.stderr)
+    print(
+        f"Classifying {len(classifiable)} papers with {workers} workers "
+        f"(excluding {len(excluded)} with no extracted contexts)...",
+        file=sys.stderr,
+    )
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
-        futures = {executor.submit(_classify_one, record): record for record in pair_records}
-        pbar = tqdm(total=len(pair_records), desc="Classifying papers", disable=not show_progress)
+        futures = {executor.submit(_classify_one, record): record for record in classifiable}
+        pbar = tqdm(total=len(classifiable), desc="Classifying papers", disable=not show_progress)
 
         for future in concurrent.futures.as_completed(futures):
             try:
@@ -487,6 +489,8 @@ def classify_all_papers(
             'timestamp': datetime.now(timezone.utc).isoformat(),
             'model': model,
             'total_pairs': stats['total_pairs'],
+            'classifiable_pairs': stats['classifiable_pairs'],
+            'excluded_no_contexts': stats['excluded_no_contexts'],
             'api_calls': stats['api_calls'],
             'from_cache': stats['from_cache'],
             'errors': stats['errors'],
@@ -496,7 +500,7 @@ def classify_all_papers(
         'classifications': classifications,
     }
 
-    return output
+    return output, excluded
 
 
 def main():
@@ -577,7 +581,7 @@ def main():
 
     print(f"Loaded {len(pair_records)} pair_records from {args.contexts_file}", file=sys.stderr)
 
-    output = classify_all_papers(
+    output, excluded = classify_all_papers(
         pair_records=pair_records,
         cache_dir=args.cache_dir,
         api_key=api_key,
@@ -594,6 +598,7 @@ def main():
     for cls in ['REUSE', 'MENTION', 'NEITHER']:
         count = counts.get(cls, 0)
         print(f"  {cls}: {count}", file=sys.stderr)
+    print(f"  Excluded (no contexts): {output['metadata']['excluded_no_contexts']}", file=sys.stderr)
     print(f"  Errors: {output['metadata']['errors']}", file=sys.stderr)
     print(f"  From cache: {output['metadata']['from_cache']}", file=sys.stderr)
     print(f"  API calls: {output['metadata']['api_calls']}", file=sys.stderr)
@@ -604,6 +609,31 @@ def main():
         with open(args.output, 'w') as f:
             f.write(output_str)
         print(f"\nResults written to {args.output}", file=sys.stderr)
+
+        excluded_path = args.output.parent / 'excluded_no_contexts.json'
+        excluded_pairs = [
+            {
+                'citing_doi': record['citing_doi'],
+                'cited_doi': record['cited_doi'],
+                'dandiset_id': record['dandiset_id'],
+                'dandiset_name': record.get('dandiset_name', ''),
+                'text_length': record.get('text_length', 0),
+                'text_source': record.get('text_source', ''),
+            }
+            for record in excluded
+        ]
+        excluded_document = {
+            'metadata': {
+                'timestamp': datetime.now(timezone.utc).isoformat(),
+                'count': len(excluded_pairs),
+                'reason': 'no_contexts_extracted',
+                'source_contexts_file': str(args.contexts_file),
+            },
+            'excluded_pairs': excluded_pairs,
+        }
+        with open(excluded_path, 'w') as f:
+            json.dump(excluded_document, f, indent=2)
+        print(f"Excluded-pair sidecar written to {excluded_path}", file=sys.stderr)
     else:
         print(output_str)
 
