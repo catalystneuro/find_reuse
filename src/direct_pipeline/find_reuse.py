@@ -30,12 +30,15 @@ from tqdm import tqdm
 from fetch_paper import PaperFetcher
 
 
+# Project root: three levels up from src/direct_pipeline/find_reuse.py
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+
 # Default cache directory for storing paper full text
-DEFAULT_CACHE_DIR = Path(__file__).parent / '.paper_cache'
+DEFAULT_CACHE_DIR = _PROJECT_ROOT / '.paper_cache'
 CACHE_DIR = DEFAULT_CACHE_DIR  # alias for classify_usage.py
 
 # Default cache directory for preprint-publication links
-DEFAULT_PREPRINT_CACHE_DIR = Path(__file__).parent / '.preprint_cache'
+DEFAULT_PREPRINT_CACHE_DIR = _PROJECT_ROOT / '.preprint_cache'
 
 
 # Data descriptor journal DOI patterns - journals that primarily publish dataset descriptions
