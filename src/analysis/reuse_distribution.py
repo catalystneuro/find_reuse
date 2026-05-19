@@ -6,7 +6,7 @@ Shows histograms of reuse counts per dataset at different observation windows,
 with stacked bars for complete vs incomplete (right-censored) datasets.
 
 Usage:
-    from analysis.reuse_distribution import plot_reuse_distribution
+    from src.analysis.reuse_distribution import plot_reuse_distribution
     plot_reuse_distribution(reuse, created, output_path, archive_name="CRCNS")
 """
 

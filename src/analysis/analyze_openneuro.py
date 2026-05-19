@@ -94,24 +94,24 @@ def main():
     print(f"Delays computed: {len(delays)}")
 
     # Source archives
-    from analysis.combined_plot import plot_combined
+    from .combined_plot import plot_combined
     plot_combined(reuse, delays, created, FIGURES_DIR / "combined_all_labs.png",
                   archive_name="OpenNeuro", analysis_cutoff=ANALYSIS_CUTOFF, lab_type="all")
 
     # Reuse rate model
-    from analysis.reuse_modeling import plot_model_2x2
+    from .reuse_modeling import plot_model_2x2
     plot_model_2x2(delays, created, datasets, FIGURES_DIR / "reuse_rate_model.png",
                    archive_name="OpenNeuro", analysis_cutoff=ANALYSIS_CUTOFF,
                    split_labs=False, project_years=6)
 
     # Reuse distribution
-    from analysis.reuse_distribution import plot_reuse_distribution
+    from .reuse_distribution import plot_reuse_distribution
     plot_reuse_distribution(reuse, created, FIGURES_DIR / "reuse_distribution.png",
                             archive_name="OpenNeuro", analysis_cutoff=ANALYSIS_CUTOFF,
                             windows=(5, None))
 
     # Flowcharts
-    from analysis.render_flowcharts import render_phase1, render_phase2, render_reference_flow
+    from .render_flowcharts import render_phase1, render_phase2, render_reference_flow
     if (OUTPUT_DIR / "datasets.json").exists():
         render_phase1(OUTPUT_DIR / "datasets.json", FIGURES_DIR / "phase1_coverage.png", "OpenNeuro")
     if (OUTPUT_DIR / "direct_ref_classifications.json").exists():

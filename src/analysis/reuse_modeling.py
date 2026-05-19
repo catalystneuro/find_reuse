@@ -9,7 +9,7 @@ Generates a 2x2 figure:
   D: Projected cumulative reuse (convolution of growth × MCF)
 
 Usage:
-    from analysis.reuse_modeling import plot_model_2x2
+    from src.analysis.reuse_modeling import plot_model_2x2
     plot_model_2x2(delays, created, datasets, output_path, archive_name="CRCNS")
 """
 

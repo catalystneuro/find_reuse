@@ -709,13 +709,13 @@ def main():
     plot_top_datasets(reuse, datasets)
 
     # 2x2 modeling figure (shared method)
-    from analysis.reuse_modeling import plot_model_2x2
+    from .reuse_modeling import plot_model_2x2
     plot_model_2x2(delays, created, datasets, FIGURES_DIR / "reuse_rate_model.png",
                    archive_name="CRCNS", analysis_cutoff=ANALYSIS_CUTOFF, split_labs=False,
                    project_years=6)
 
     # 6-panel combined figures (shared method)
-    from analysis.combined_plot import plot_combined
+    from .combined_plot import plot_combined
     plot_combined(reuse, delays, created, FIGURES_DIR / "combined_all_labs.png",
                   archive_name="CRCNS", analysis_cutoff=ANALYSIS_CUTOFF, lab_type="all")
     plot_combined(reuse, delays, created, FIGURES_DIR / "combined_different_lab.png",
@@ -724,7 +724,7 @@ def main():
                   archive_name="CRCNS", analysis_cutoff=ANALYSIS_CUTOFF, lab_type="same")
 
     # Reuse count distribution
-    from analysis.reuse_distribution import plot_reuse_distribution
+    from .reuse_distribution import plot_reuse_distribution
     plot_reuse_distribution(reuse, created, FIGURES_DIR / "reuse_distribution.png",
                             archive_name="CRCNS", analysis_cutoff=ANALYSIS_CUTOFF,
                             windows=(5, None))

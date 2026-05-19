@@ -29,7 +29,7 @@ import numpy as np
 import requests
 from tqdm import tqdm
 
-from generate_combined_dashboard import merge_data
+from .generate_combined_dashboard import merge_data
 
 DAYS_PER_MONTH = 30.44
 DATE_CACHE_PATH = Path(__file__).parent / ".doi_date_cache.json"

@@ -252,7 +252,7 @@ def step8_update_delays():
 def step9_andersen_gill():
     """Run Andersen-Gill Cox PH regression analysis."""
     run(
-        ["python3", "andersen_gill_analysis.py"],
+        ["python3", "-m", "src.analysis.andersen_gill_analysis"],
         "Step 9: Andersen-Gill Cox PH regression",
     )
 
@@ -263,8 +263,12 @@ def step10_regenerate_figures():
     print("  Step 10: Regenerate all figures", file=sys.stderr)
     print("="*60, file=sys.stderr, flush=True)
 
+    # Module-form (moved into src/analysis/)
+    if Path("src/analysis/analyze_reuse_delays.py").exists():
+        run(["python3", "-m", "src.analysis.analyze_reuse_delays"], "  Analysis figures")
+
+    # Top-level rendering scripts (not yet moved)
     scripts = [
-        ("analyze_reuse_delays.py", "Analysis figures"),
         ("render_phase2_flow.py", "Phase 2 flowchart"),
         ("render_dandiset_coverage_flow.py", "Phase 1 flowchart"),
         ("render_reference_flow.py", "Reference flow"),
@@ -276,7 +280,7 @@ def step10_regenerate_figures():
 
     # Regenerate Andersen-Gill forest plot from cached results
     if Path("output/andersen_gill_results.json").exists():
-        run(["python3", "andersen_gill_analysis.py", "--plot-only"], "  Andersen-Gill forest plot")
+        run(["python3", "-m", "src.analysis.andersen_gill_analysis", "--plot-only"], "  Andersen-Gill forest plot")
 
 
 def mirror_to_dandi_dir():

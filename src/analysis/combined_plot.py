@@ -11,7 +11,7 @@ Panels:
   F: Reuse rate (events/dataset/yr) with Poisson CIs
 
 Usage:
-    from analysis.combined_plot import plot_combined
+    from src.analysis.combined_plot import plot_combined
     plot_combined(reuse, delays, created, output_path, archive_name="CRCNS")
 """
 

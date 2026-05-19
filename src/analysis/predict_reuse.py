@@ -29,11 +29,11 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import curve_fit
 
-from analyze_time_to_reuse import (
+from .analyze_time_to_reuse import (
     backfill_citing_dates,
     load_dandiset_creation_dates,
 )
-from generate_combined_dashboard import merge_data
+from .generate_combined_dashboard import merge_data
 
 TODAY = datetime(2026, 3, 1)
 DATA_CUTOFF = TODAY - timedelta(days=183)  # ~6 months; OpenAlex indexing delay
