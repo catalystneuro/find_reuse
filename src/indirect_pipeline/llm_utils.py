@@ -17,7 +17,7 @@ import requests
 
 # OpenRouter API
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
-DEFAULT_MODEL = "google/gemini-3-flash-preview"
+DEFAULT_MODEL = "google/gemini-3.5-flash"
 
 
 def get_api_key() -> str:
@@ -28,8 +28,8 @@ def get_api_key() -> str:
     """
     api_key = os.environ.get('OPENROUTER_API_KEY')
     if not api_key:
-        # Try loading from .env file in the project directory
-        env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
+        # Project root is two levels up from src/indirect_pipeline/llm_utils.py
+        env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '.env')
         if os.path.exists(env_path):
             with open(env_path) as f:
                 for line in f:
@@ -89,6 +89,7 @@ def call_openrouter_api(
         'model': model,
         'max_tokens': max_tokens,
         'temperature': temperature,
+        'service_tier': 'flex',
         'messages': [
             {'role': 'user', 'content': prompt}
         ]

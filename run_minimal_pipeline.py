@@ -116,8 +116,8 @@ def main():
                         help="Cap to first N datasets (sorted by ID) that have ≥1 citing paper. Default: all.")
     parser.add_argument("--max-citing-papers", type=int, default=None,
                         help="Cap citing papers fetched per dataset. Default: all.")
-    parser.add_argument("--model", default="google/gemini-3-flash-preview",
-                        help="OpenRouter model for classification (default: google/gemini-3-flash-preview).")
+    parser.add_argument("--model", default="google/gemini-3.5-flash",
+                        help="OpenRouter model for classification (default: google/gemini-3.5-flash).")
     parser.add_argument("--clear-cache", action="store_true",
                         help="Clear classification cache before running.")
     args = parser.parse_args()
