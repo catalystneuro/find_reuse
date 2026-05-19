@@ -21,7 +21,7 @@ import time
 from collections import Counter
 from pathlib import Path
 
-from llm_utils import call_openrouter_api, get_api_key, parse_json_response
+from src.indirect_pipeline.llm_utils import call_openrouter_api, get_api_key, parse_json_response
 
 CLASSIFICATIONS_FILE = Path("output/all_classifications.json")
 PAPER_CACHE_DIR = Path(".paper_cache")

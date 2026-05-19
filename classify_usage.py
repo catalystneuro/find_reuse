@@ -31,7 +31,7 @@ import requests
 
 # Import from find_reuse.py
 from find_reuse import ArchiveFinder, ARCHIVE_PATTERNS, CACHE_DIR
-from llm_utils import get_api_key, call_openrouter_api, parse_json_response
+from src.indirect_pipeline.llm_utils import get_api_key, call_openrouter_api, parse_json_response
 
 
 # Classification categories

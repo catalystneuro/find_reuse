@@ -29,7 +29,7 @@ from datetime import datetime
 from pathlib import Path
 import threading
 
-from llm_utils import call_openrouter_api, get_api_key
+from src.indirect_pipeline.llm_utils import call_openrouter_api, get_api_key
 
 CACHE_DIR = Path(".reuse_type_cache")
 REUSE_TYPES = [
