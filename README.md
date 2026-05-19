@@ -37,7 +37,7 @@ classify_source_archive.py   # Source archive normalization
 deduplicate_preprints.py     # Preprint/published pair deduplication
 convert_refs_to_classifications.py  # Direct refs -> classification format
 
-run_pipeline.py              # DANDI end-to-end pipeline
+old_run_dandi_pipeline.py    # DANDI end-to-end pipeline (legacy direct pipeline)
 run_archive_pipeline.py      # Generic multi-archive pipeline
 ```
 
@@ -95,7 +95,7 @@ python find_reuse.py 10.1038/s41593-024-01783-4
 
 ```bash
 # DANDI (uses existing output/)
-python run_pipeline.py --figures-only
+python old_run_dandi_pipeline.py --figures-only
 
 # CRCNS
 python analyze_crcns.py

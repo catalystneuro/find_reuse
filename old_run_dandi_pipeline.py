@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-run_pipeline.py — Run the complete DANDI reuse analysis pipeline end-to-end.
+old_run_dandi_pipeline.py — Run the complete DANDI reuse analysis pipeline end-to-end.
 
 Steps:
 1. Discover dandisets and their primary papers (metadata + LLM)
@@ -18,9 +18,9 @@ Steps:
 13. Regenerate all figures and flowcharts
 
 Usage:
-    python run_pipeline.py              # Full run
-    python run_pipeline.py --skip-fetch # Skip steps 1-4 (use cached data)
-    python run_pipeline.py --figures-only # Only regenerate figures (step 12)
+    python old_run_dandi_pipeline.py              # Full run
+    python old_run_dandi_pipeline.py --skip-fetch # Skip steps 1-4 (use cached data)
+    python old_run_dandi_pipeline.py --figures-only # Only regenerate figures (step 12)
 """
 
 import argparse
