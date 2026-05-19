@@ -10,8 +10,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-sys.path.insert(0, ".")
-from dandi_primary_papers import fetch_citing_paper_texts
+from .dandi_primary_papers import fetch_citing_paper_texts
 
 DATASETS_FILE = "output/crcns/datasets.json"
 CLASSIFICATIONS_FILE = "output/crcns/classifications.json"
@@ -193,7 +192,7 @@ print(f"Removed {before - after} DANDI-leaked entries", file=sys.stderr)
 
 # Step 9: Deduplicate preprints
 print("\n=== Step 9: Deduplicate preprints ===", file=sys.stderr, flush=True)
-from deduplicate_preprints import deduplicate, is_preprint_doi, normalize_title
+from .deduplicate_preprints import deduplicate, is_preprint_doi, normalize_title
 
 with open(CLASSIFICATIONS_FILE) as f:
     cls_data = json.load(f)

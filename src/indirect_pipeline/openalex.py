@@ -347,7 +347,7 @@ def fetch_citing_paper_texts(
     cache_dir: str = "/Volumes/microsd64/data/",
 ) -> list[dict]:
     """Fetch full text for papers that cite the primary papers."""
-    from find_reuse import ArchiveFinder
+    from src.direct_pipeline.find_reuse import ArchiveFinder
 
     finder = ArchiveFinder(verbose=verbose, use_cache=True, cache_dir=cache_dir)
 

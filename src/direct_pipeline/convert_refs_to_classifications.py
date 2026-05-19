@@ -24,7 +24,7 @@ from pathlib import Path
 import requests
 from tqdm import tqdm
 
-from classify_usage import find_dandi_mentions_with_positions, extract_word_context
+from .classify_usage import find_dandi_mentions_with_positions, extract_word_context
 from src.indirect_pipeline.llm_utils import get_api_key, call_openrouter_api, parse_json_response, DEFAULT_MODEL
 
 CACHE_DIR = Path(__file__).parent / ".paper_cache"

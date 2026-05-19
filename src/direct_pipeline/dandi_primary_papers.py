@@ -844,7 +844,7 @@ def fetch_citing_paper_texts(
         Updated results with citing_papers added to each dandiset result
     """
     # Import ArchiveFinder from find_reuse module
-    from find_reuse import ArchiveFinder
+    from .find_reuse import ArchiveFinder
 
     finder = ArchiveFinder(verbose=verbose, use_cache=True, cache_dir=cache_dir)
 

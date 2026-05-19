@@ -16,7 +16,7 @@ import sys
 import time
 from pathlib import Path
 
-from archives import get_adapter
+from src.archives import get_adapter
 
 
 def run(cmd, desc):
@@ -131,7 +131,7 @@ def step_direct_refs(adapter):
     """Step 3: Discover direct dataset references via full-text search."""
     output_path = adapter.output_dir / "direct_refs.json"
     run(
-        ["python3", "find_reuse.py", "--discover",
+        ["python3", "-m", "src.direct_pipeline.find_reuse", "--discover",
          "--archives", adapter.name, "--deduplicate",
          "--max-results", "9999",
          "-o", str(output_path), "-v"],
@@ -146,7 +146,7 @@ def step_classify(adapter):
     output_path = adapter.output_dir / "classifications.json"
 
     run(
-        ["python3", "fetch_and_classify_new.py",
+        ["python3", "-m", "src.direct_pipeline.fetch_and_classify_new",
          "--datasets", str(datasets_path),
          "--output", str(output_path)],
         f"Text fetch + classification for {adapter.name}",

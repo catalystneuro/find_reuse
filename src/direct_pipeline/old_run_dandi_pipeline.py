@@ -49,7 +49,7 @@ def run(cmd, desc):
 def step1_discover_dandisets():
     """Discover dandisets and their primary papers."""
     run(
-        ["python3", "dandi_primary_papers.py",
+        ["python3", "-m", "src.direct_pipeline.dandi_primary_papers",
          "--citations", "--fetch-text",
          "--cache-dir", ".paper_cache",
          "--max-citing-papers", "999",
@@ -61,7 +61,7 @@ def step1_discover_dandisets():
 def step2_llm_find_papers():
     """Use LLM to find papers for dandisets without formal links."""
     run(
-        ["python3", "find_missing_papers.py", "--workers", "8"],
+        ["python3", "-m", "src.direct_pipeline.find_missing_papers", "--workers", "8"],
         "Step 2: LLM paper discovery",
     )
 
@@ -69,7 +69,7 @@ def step2_llm_find_papers():
 def step3_merge_sources():
     """Merge formal + LLM paper sources."""
     run(
-        ["python3", "merge_paper_sources.py", "-o", "output/all_dandiset_papers.json"],
+        ["python3", "-m", "src.direct_pipeline.merge_paper_sources", "-o", "output/all_dandiset_papers.json"],
         "Step 3: Merge paper sources",
     )
 
@@ -103,7 +103,7 @@ def step3_merge_sources():
 def step4_fetch_citations():
     """Fetch citing papers from OpenAlex."""
     run(
-        ["python3", "fetch_remaining_citations.py"],
+        ["python3", "-m", "src.direct_pipeline.fetch_remaining_citations"],
         "Step 4: Fetch citing papers from OpenAlex",
     )
 
@@ -111,13 +111,13 @@ def step4_fetch_citations():
 def step5_direct_refs():
     """Discover direct dandiset references."""
     run(
-        ["python3", "find_reuse.py", "--discover",
+        ["python3", "-m", "src.direct_pipeline.find_reuse", "--discover",
          "--archives", "DANDI Archive", "--deduplicate",
          "-o", "output/results_dandi.json", "-v"],
         "Step 5a: Discover direct dandiset references",
     )
     run(
-        ["python3", "convert_refs_to_classifications.py",
+        ["python3", "-m", "src.direct_pipeline.convert_refs_to_classifications",
          "-i", "output/results_dandi.json",
          "-o", "output/direct_ref_classifications.json"],
         "Step 5b: Classify direct references",
@@ -128,7 +128,7 @@ def step6_fetch_text_and_classify():
     """Fetch text, extract contexts, classify, merge, normalize."""
     # Text fetch + context extraction + classification
     run(
-        ["python3", "fetch_and_classify_new.py"],
+        ["python3", "-m", "src.direct_pipeline.fetch_and_classify_new"],
         "Step 6: Fetch text, extract contexts, classify, merge, normalize",
     )
 
@@ -136,7 +136,7 @@ def step6_fetch_text_and_classify():
 def step6b_deduplicate_preprints():
     """Remove preprint/published duplicate entries."""
     run(
-        ["python3", "deduplicate_preprints.py"],
+        ["python3", "-m", "src.direct_pipeline.deduplicate_preprints"],
         "Step 6b: Deduplicate preprint/published pairs",
     )
 
@@ -144,7 +144,7 @@ def step6b_deduplicate_preprints():
 def step7_classify_reuse_type():
     """Classify reuse type for all REUSE papers."""
     run(
-        ["python3", "classify_reuse_type.py", "--workers", "8"],
+        ["python3", "-m", "src.shared.classify_reuse_type", "--workers", "8"],
         "Step 7: Classify reuse type",
     )
 
