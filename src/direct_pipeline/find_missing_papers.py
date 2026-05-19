@@ -26,7 +26,7 @@ from pathlib import Path
 
 import requests
 
-from src.indirect_pipeline.llm_utils import call_openrouter_api, get_api_key
+from src.shared.llm_utils import call_openrouter_api, get_api_key
 
 DANDI_API_URL = "https://api.dandiarchive.org/api"
 CACHE_FILE = Path(".missing_paper_cache.json")

@@ -48,7 +48,7 @@ from .citation_context import (
     get_dataset_deposit_doi,
     get_paper_metadata,
 )
-from .llm_utils import get_api_key, call_openrouter_api, parse_json_response, DEFAULT_MODEL
+from ..shared.llm_utils import get_api_key, call_openrouter_api, parse_json_response, DEFAULT_MODEL
 
 # Classification cache (anchored to CWD so it matches root-level cache from prior runs)
 CLASSIFICATION_CACHE_DIR = Path('.classification_cache')
