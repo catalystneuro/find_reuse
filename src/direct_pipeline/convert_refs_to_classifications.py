@@ -25,7 +25,7 @@ import requests
 from tqdm import tqdm
 
 from .classify_usage import find_dandi_mentions_with_positions, extract_word_context
-from src.indirect_pipeline.llm_utils import get_api_key, call_openrouter_api, parse_json_response, DEFAULT_MODEL
+from src.shared.llm_utils import get_api_key, call_openrouter_api, parse_json_response, DEFAULT_MODEL
 
 CACHE_DIR = Path(__file__).parent / ".paper_cache"
 CLASSIFICATION_CACHE_DIR = Path(__file__).parent / ".direct_ref_cache"
@@ -120,28 +120,29 @@ def build_classification_prompt(
     dandiset_id: str,
     contexts: list[dict],
     doi: str,
+    archive: str = "DANDI Archive",
 ) -> str:
     """Build LLM prompt for classifying a direct reference as PRIMARY/REUSE/NEITHER."""
     excerpts_text = ""
     for i, ctx in enumerate(contexts, 1):
         excerpts_text += f"--- Excerpt {i} (matched via {ctx['method']}) ---\n{ctx['text']}\n\n"
 
-    return f"""Analyze these excerpts from a scientific paper that directly references DANDI dataset {dandiset_id}.
+    return f"""Analyze these excerpts from a scientific paper that directly references {archive} dataset {dandiset_id}.
 
 Paper DOI: {doi}
 
 {excerpts_text}
 
-Based on the excerpts above, classify the paper's relationship to DANDI dataset {dandiset_id} as one of:
+Based on the excerpts above, classify the paper's relationship to {archive} dataset {dandiset_id} as one of:
 - PRIMARY: The authors of THIS PAPER created and deposited this dataset. Look for language like "we deposited our data", "data are available at", "our dataset", "we recorded and shared", "data generated in this study have been deposited".
 - REUSE: The authors downloaded/accessed and reused this existing dataset created by others. Look for "we downloaded data from", "we used the dataset", "data were obtained from", "we analyzed data from".
-- NEITHER: Not a meaningful reference to actually using or creating the dataset (e.g., general mention of the DANDI archive, listing it as a resource, methodology description mentioning DANDI as an example).
+- NEITHER: Not a meaningful reference to actually using or creating the dataset (e.g., general mention of {archive}, listing it as a resource, methodology description mentioning {archive} as an example).
 
 Key guidance:
-- If the paper says "our data" or "data generated in this study" followed by the DANDI reference, it's PRIMARY.
-- If the paper says "we used data from" or "obtained from" the DANDI archive, it's REUSE.
+- If the paper says "our data" or "data generated in this study" followed by the {archive} reference, it's PRIMARY.
+- If the paper says "we used data from" or "obtained from" {archive}, it's REUSE.
 - If the reference appears only in a data availability statement saying the authors deposited their own data, it's PRIMARY.
-- If the reference is just mentioning DANDI as a platform/resource without using or creating specific data, it's NEITHER.
+- If the reference is just mentioning {archive} as a platform/resource without using or creating specific data, it's NEITHER.
 
 DECISION 2 - If REUSE, is it the same lab?
 Check whether the citing paper's author list shares names with the primary dataset's authors. If the same group reused or extended their own data, same_lab is true. If a different group used it, same_lab is false.
@@ -159,8 +160,9 @@ def classify_direct_reference(
     contexts: list[dict],
     api_key: str,
     model: str,
+    archive: str = "DANDI Archive",
 ) -> dict:
-    """Classify a single paper-dandiset direct reference using LLM."""
+    """Classify a single paper-dataset direct reference using LLM."""
     if not contexts:
         return {
             "classification": "REUSE",
@@ -168,7 +170,7 @@ def classify_direct_reference(
             "reasoning": "No text context available; defaulting to REUSE since paper directly references dataset",
         }
 
-    prompt = build_classification_prompt(dandiset_id, contexts, doi)
+    prompt = build_classification_prompt(dandiset_id, contexts, doi, archive=archive)
 
     try:
         result = call_openrouter_api(prompt, api_key, model)
@@ -320,7 +322,7 @@ def convert(input_file: Path, output_file: Path, classify: bool = True, model: s
         if text:
             context_excerpts = extract_contexts_for_dataset(text, ds_id)
 
-        cls_result = classify_direct_reference(doi, ds_id, context_excerpts, api_key, model)
+        cls_result = classify_direct_reference(doi, ds_id, context_excerpts, api_key, model, archive=archive)
         save_classification_cache(doi, ds_id, cls_result)
         return ("api", r, ds_id, ds_matches, cls_result)
 
