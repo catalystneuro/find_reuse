@@ -441,20 +441,24 @@ def build_review_html(
     review_round_dir: Path,
     classification_round: str = "001_initial",
     archive_name: str | None = None,
+    output_path: Path | None = None,
 ) -> Path:
     """Render review.html for a review round from one of its classification rounds.
 
     Reads classifications from the named classification round (which is already
     scoped to the sample), joins sample_order from sample.json by the
-    (citing_doi, cited_doi, dandiset_id) triple, and writes review.html alongside
-    sample.json. Returns the output path.
+    (citing_doi, cited_doi, dandiset_id) triple, and writes review.html. By
+    default writes to ``review_round_dir/review.html``; pass ``output_path`` to
+    write elsewhere (e.g. alongside a later classification round so the original
+    review.html is preserved). Returns the output path.
     """
     classifications_path = (
         review_round_dir / "classification_rounds" / classification_round / "classifications.json"
     )
     sample_path = review_round_dir / "sample.json"
     datasets_path = review_round_dir / "pipeline_snapshot" / "datasets.json"
-    output_path = review_round_dir / "review.html"
+    if output_path is None:
+        output_path = review_round_dir / "review.html"
 
     sample_data = json.loads(sample_path.read_text())
     sample_order_by_triple = {
