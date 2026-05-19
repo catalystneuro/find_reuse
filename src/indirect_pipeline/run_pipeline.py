@@ -26,7 +26,7 @@ from pathlib import Path
 
 from tqdm import tqdm
 
-from .archives import get_adapter
+from ..archives import get_adapter
 from .openalex import (
     _make_openalex_session,
     fetch_citing_paper_texts,
