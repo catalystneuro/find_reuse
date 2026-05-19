@@ -54,7 +54,7 @@ print("\n=== Step 2b: Pre-populate cache from direct refs ===", file=sys.stderr,
 if Path(DIRECT_CLASSIFICATIONS_FILE).exists():
     with open(DIRECT_CLASSIFICATIONS_FILE) as f:
         direct_cls = json.load(f)
-    from classify_citing_papers import get_cache_path, CLASSIFICATION_CACHE_DIR
+    from src.indirect_pipeline.classify_citing_papers import get_cache_path, CLASSIFICATION_CACHE_DIR
     CLASSIFICATION_CACHE_DIR.mkdir(exist_ok=True)
     n_cached = 0
     for c in direct_cls.get("classifications", []):
