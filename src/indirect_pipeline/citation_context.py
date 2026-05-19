@@ -18,6 +18,35 @@ from typing import Optional
 import requests
 
 
+# Tokens that, when they appear immediately after a candidate citation number,
+# indicate the number is a quantity (e.g. "30 s", "30 trials") and not a citation.
+# Used by find_numbered_citations to filter out false-positive matches like the
+# "30" in "the first 30 s of all repetitions".
+_QUANTITY_UNIT_RE = (
+    r'\s*('
+    # SI / time / electrical units, word-boundary anchored
+    r'(?:[kMG]?Hz|kHz|MHz|GHz)\b'
+    r'|[kMG]?Ω\b|ω\b|μs\b|ms\b|s\b|min\b|hr?\b|d\b'
+    r'|%|°|nm\b|μm\b|mm\b|cm\b|m\b|mV\b|μV\b|V\b|nA\b|pA\b|μA\b|mA\b|A\b'
+    # Common neuroscience-experiment count nouns
+    r'|cells?\b|trials?\b|sessions?\b|neurons?\b|subjects?\b|participants?\b'
+    r'|samples?\b|experiments?\b|repetitions?\b|animals?\b|mice\b|rats\b'
+    r'|spikes?\b|recordings?\b|epochs?\b|years?\b|months?\b|weeks?\b|days?\b'
+    r'|hours?\b|minutes?\b|seconds?\b'
+    r')'
+)
+
+# Words that, when they precede a candidate citation number, indicate the number
+# is a count being quantified ("first 30 cells", "last 30 trials") rather than
+# a superscript citation. Closed lowercase stoplist; matched case-insensitively.
+_QUANTITY_DETERMINERS = frozenset({
+    'first', 'last', 'all', 'each', 'every', 'next', 'prior', 'previous',
+    'past', 'top', 'bottom', 'these', 'those', 'about', 'approximately',
+    'approx', 'roughly', 'nearly', 'almost', 'only', 'just', 'over', 'under',
+    'remaining', 'final', 'initial', 'middle', 'other', 'another',
+})
+
+
 def get_paper_metadata(doi: str, session: Optional[requests.Session] = None) -> Optional[dict]:
     """
     Get author names, publication year, and title for a DOI from CrossRef.
@@ -74,7 +103,7 @@ _CRCNS_CODE_TO_DOI: Optional[dict] = None
 def _load_crcns_code_to_doi() -> dict:
     global _CRCNS_CODE_TO_DOI
     if _CRCNS_CODE_TO_DOI is None:
-        path = Path(__file__).parent / ".crcns_doi_to_code.json"
+        path = Path(".crcns_doi_to_code.json")
         doi_to_code = json.loads(path.read_text())
         _CRCNS_CODE_TO_DOI = {code: doi for doi, code in doi_to_code.items()}
     return _CRCNS_CODE_TO_DOI
@@ -492,8 +521,26 @@ def find_numbered_citations(text: str, ref_number: int) -> list[int]:
         context = text[max(0, m.start() - 5):min(len(text), m.end() + 20)]
         # Count numbers in context - citations tend to cluster
         numbers_nearby = len(re.findall(r'\b\d{1,3}\b', context))
-        if numbers_nearby >= 1:  # At least 1 reference number
-            positions.append(m.start())
+        if numbers_nearby < 1:
+            continue
+
+        # Skip if the number is followed by a measurement unit or quantity noun
+        # (e.g. "30 s", "30 trials") — the number is a quantity, not a citation.
+        after = text[m.end():min(len(text), m.end() + 30)]
+        if re.match(_QUANTITY_UNIT_RE, after, re.IGNORECASE):
+            continue
+
+        # Skip if the preceding word is a quantity-determiner (e.g. "first 30",
+        # "last 30"). The matched letter (m.start()) is the final letter of the
+        # preceding word; walk backward over alphabetic chars to find the word.
+        word_start = m.start()
+        while word_start > 0 and text[word_start - 1].isalpha():
+            word_start -= 1
+        preceding_word = text[word_start:m.start() + 1].lower()
+        if preceding_word in _QUANTITY_DETERMINERS:
+            continue
+
+        positions.append(m.start())
 
     # Pattern 5: Citation after closing parenthesis: "text) 62 using..."
     # Common when citations follow identifiers like RRIDs
@@ -638,6 +685,12 @@ def find_author_citations(text: str, authors: list[str], year: int, year_toleran
                     rf'\({author_esc}\s*,\s*[A-Z][A-Za-z\-]+\s+et\s+al\.?\s*,?\s*{year_str}[a-z]?\)',
                     rf'{author_esc}\s*,\s*[A-Z][A-Za-z\-]+\s+et\s+al\.?\s*\({year_str}[a-z]?\)',
                     rf'{author_esc}\s*,\s*[A-Z][A-Za-z\-]+\s+et\s+al\.?\s*,?\s*{year_str}[a-z]?',
+                    # Serial-comma & style: "Coen-Cagli, Kohn, & Schwartz, 2015"
+                    # Supports arbitrary intermediate names; `&` or `and` before final author;
+                    # optional Oxford comma before the connector.
+                    rf'\({author_esc}\s*,\s*[A-Z][A-Za-z\-]+(?:\s*,\s*[A-Z][A-Za-z\-]+)*\s*,?\s*(?:&|and)\s*[A-Z][A-Za-z\-]+\s*,?\s*{year_str}[a-z]?\)',
+                    rf'{author_esc}\s*,\s*[A-Z][A-Za-z\-]+(?:\s*,\s*[A-Z][A-Za-z\-]+)*\s*,?\s*(?:&|and)\s*[A-Z][A-Za-z\-]+\s*\({year_str}[a-z]?\)',
+                    rf'{author_esc}\s*,\s*[A-Z][A-Za-z\-]+(?:\s*,\s*[A-Z][A-Za-z\-]+)*\s*,?\s*(?:&|and)\s*[A-Z][A-Za-z\-]+\s*,?\s*{year_str}[a-z]?',
                 ])
 
         # Numbered reference patterns (year-independent): Smith (42), Smith et al. (42)

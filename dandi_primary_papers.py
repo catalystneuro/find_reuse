@@ -734,6 +734,84 @@ def get_citing_papers(
     return citing_papers
 
 
+def _make_openalex_session() -> requests.Session:
+    session = requests.Session()
+    session.headers.update({
+        'User-Agent': 'DANDIPrimaryPapers/1.0 (https://github.com/dandi; mailto:ben.dichter@catalystneuro.com)'
+    })
+    return session
+
+
+def find_citing_papers(
+    result: dict,
+    session: requests.Session,
+    max_citing_papers_per_dandiset: int,
+    rate_limit: float = 0.1,
+) -> list[dict]:
+    """Populate `result['citing_papers']` with citing-paper metadata via OpenAlex.
+
+    Mutates `result` in place and returns the populated list. Does not fetch
+    full text. Looks up alternate (preprint↔published) DOI versions for each
+    primary paper and queries OpenAlex for papers citing them after the
+    dataset creation date.
+    """
+    ds_created_str = result.get('dandiset_created')
+    if not ds_created_str:
+        result['citing_papers'] = []
+        return result['citing_papers']
+
+    try:
+        ds_created = datetime.fromisoformat(ds_created_str.replace('Z', '+00:00'))
+        from_date = ds_created.strftime('%Y-%m-%d')
+    except ValueError:
+        result['citing_papers'] = []
+        return result['citing_papers']
+
+    all_citing = []
+    seen_citing_dois = set()
+
+    for paper in result['paper_relations']:
+        doi = paper.get('doi')
+        if not doi:
+            continue
+
+        openalex_ids = []
+
+        openalex_data = get_openalex_paper_data(session, doi)
+        if openalex_data and openalex_data.get('openalex_id'):
+            openalex_ids.append((openalex_data['openalex_id'], doi))
+
+        alt_doi = get_alternate_doi(session, doi)
+        if alt_doi:
+            alt_data = get_openalex_paper_data(session, alt_doi)
+            if alt_data and alt_data.get('openalex_id'):
+                openalex_ids.append((alt_data['openalex_id'], alt_doi))
+
+        if not openalex_ids:
+            continue
+
+        for oa_id, version_doi in openalex_ids:
+            citing = get_citing_papers(
+                session, oa_id, from_date,
+                max_results=max_citing_papers_per_dandiset
+            )
+
+            for c in citing:
+                c_doi = c.get('doi')
+                if c_doi and c_doi not in seen_citing_dois:
+                    c['cited_paper_doi'] = doi
+                    all_citing.append(c)
+                    seen_citing_dois.add(c_doi)
+
+            time.sleep(rate_limit)
+
+        if len(all_citing) >= max_citing_papers_per_dandiset:
+            break
+
+    result['citing_papers'] = all_citing[:max_citing_papers_per_dandiset]
+    return result['citing_papers']
+
+
 def fetch_citing_paper_texts(
     results: list[dict],
     max_citing_papers_per_dandiset: int = 10,
@@ -770,79 +848,23 @@ def fetch_citing_paper_texts(
 
     finder = ArchiveFinder(verbose=verbose, use_cache=True, cache_dir=cache_dir)
 
-    session = requests.Session()
-    session.headers.update({
-        'User-Agent': 'DANDIPrimaryPapers/1.0 (https://github.com/dandi; mailto:ben.dichter@catalystneuro.com)'
-    })
+    session = _make_openalex_session()
 
-    # Step 1: Get citing papers for each dandiset
+    # Step 1: Get citing papers for each dandiset (skipped per-result if already populated)
     pbar = tqdm(results, desc="Fetching citing papers from OpenAlex", disable=not show_progress)
 
     for result in pbar:
         ds_id = result['dandiset_id']
         pbar.set_postfix({'dandiset': ds_id})
 
-        ds_created_str = result.get('dandiset_created')
-        if not ds_created_str:
-            result['citing_papers'] = []
+        if result.get('citing_papers'):
             continue
 
-        # Parse dandiset creation date to get the filter date
-        try:
-            ds_created = datetime.fromisoformat(ds_created_str.replace('Z', '+00:00'))
-            from_date = ds_created.strftime('%Y-%m-%d')
-        except ValueError:
-            result['citing_papers'] = []
-            continue
-
-        # Collect citing papers from all primary papers (including alternate versions)
-        all_citing = []
-        seen_citing_dois = set()
-
-        for paper in result['paper_relations']:
-            doi = paper.get('doi')
-            if not doi:
-                continue
-
-            # Build list of (openalex_id, doi) for all versions of this paper
-            openalex_ids = []
-
-            openalex_data = get_openalex_paper_data(session, doi)
-            if openalex_data and openalex_data.get('openalex_id'):
-                openalex_ids.append((openalex_data['openalex_id'], doi))
-
-            # Look up alternate version (preprint↔published)
-            alt_doi = get_alternate_doi(session, doi)
-            if alt_doi:
-                alt_data = get_openalex_paper_data(session, alt_doi)
-                if alt_data and alt_data.get('openalex_id'):
-                    openalex_ids.append((alt_data['openalex_id'], alt_doi))
-
-            if not openalex_ids:
-                continue
-
-            # Query citations from ALL versions of this paper
-            for oa_id, version_doi in openalex_ids:
-                citing = get_citing_papers(
-                    session, oa_id, from_date,
-                    max_results=max_citing_papers_per_dandiset
-                )
-
-                for c in citing:
-                    c_doi = c.get('doi')
-                    if c_doi and c_doi not in seen_citing_dois:
-                        c['cited_paper_doi'] = doi  # Always use original DOI from metadata
-                        all_citing.append(c)
-                        seen_citing_dois.add(c_doi)
-
-                time.sleep(rate_limit)
-
-            # Stop if we have enough citing papers
-            if len(all_citing) >= max_citing_papers_per_dandiset:
-                break
-
-        # Limit to max per dandiset
-        result['citing_papers'] = all_citing[:max_citing_papers_per_dandiset]
+        find_citing_papers(
+            result, session,
+            max_citing_papers_per_dandiset=max_citing_papers_per_dandiset,
+            rate_limit=rate_limit,
+        )
 
     # Step 2: Collect all unique citing paper DOIs to fetch
     all_citing_dois = []

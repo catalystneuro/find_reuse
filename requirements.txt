@@ -1,4 +1,31 @@
+# Core HTTP / HTML parsing — needed by every pipeline step
 requests>=2.28.0
 beautifulsoup4>=4.11.0
 lxml>=4.9.0
 tqdm>=4.65.0
+
+# Data analysis / plotting — needed by analysis/, analyze_*.py, predict_reuse.py
+matplotlib
+numpy
+pandas
+scipy
+
+# Survival / Cox regression — andersen_gill_analysis.py, analyze_reuse_delays.py
+lifelines
+
+# Flowchart rendering — render_*.py, analysis/render_flowcharts.py
+# Note: also requires the Graphviz system binary (e.g. `brew install graphviz`)
+graphviz
+
+# Full-text fetching fallbacks — fetch_paper.py (optional; degrades gracefully
+# if absent, but coverage drops for preprints and paywalled publishers)
+# Note: playwright also requires `playwright install chromium` after pip install
+playwright
+PyMuPDF
+
+# Slide / presentation generation — create_presentation.py, create_talk.py (optional)
+python-pptx
+
+# .env loader — filter_patchseq_genetic.py only (the rest of the codebase
+# parses .env manually in llm_utils.get_api_key). Optional.
+python-dotenv

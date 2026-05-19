@@ -40,6 +40,39 @@ except ImportError:
 DEFAULT_CACHE_DIR = Path(__file__).parent / '.paper_cache'
 
 
+def format_crossref_reference(index: int, ref: dict) -> str:
+    """
+    Render a single CrossRef reference entry as a numbered text block.
+
+    Always emits `[index] ...`, where the body is the best metadata available
+    from the entry: prefer `unstructured` (the publisher's formatted citation
+    string), then a synthesized title+journal+year line, then bare DOI. The
+    DOI is appended at the end when present so the resolver can still find it
+    via DOI walkback. The leading `[index]` makes the entry parseable by
+    `parse_numbered_bibliography` regardless of what metadata follows.
+    """
+    parts = []
+    unstructured = ref.get('unstructured')
+    if unstructured:
+        parts.append(unstructured.strip())
+    else:
+        title = ref.get('article-title')
+        journal = ref.get('journal-title')
+        year = ref.get('year')
+        synthesized = '. '.join(
+            piece for piece in (title, journal, year) if piece
+        )
+        if synthesized:
+            parts.append(synthesized + '.')
+
+    doi = ref.get('DOI')
+    if doi:
+        parts.append(doi)
+
+    body = ' '.join(parts) if parts else ''
+    return f"[{index}] {body}".rstrip()
+
+
 class PaperFetcher:
     """Fetch full text of scientific papers from multiple sources."""
 
@@ -314,12 +347,14 @@ class PaperFetcher:
                 abstract = BeautifulSoup(message['abstract'], 'html.parser').get_text()
                 text_parts.append(abstract)
 
-            # References (might contain DANDI DOIs)
-            for ref in message.get('reference', []):
-                if ref.get('DOI'):
-                    text_parts.append(ref['DOI'])
-                if ref.get('unstructured'):
-                    text_parts.append(ref['unstructured'])
+            # References (might contain DANDI DOIs).
+            # Emit one entry per ref, 1-indexed and prefixed with [N], so the
+            # downstream resolver can map in-text [N] citations to the correct
+            # bibliography entry. Always emit something for every ref so
+            # positions stay aligned with the published bibliography even when
+            # CrossRef has no DOI deposited for an entry.
+            for index, ref in enumerate(message.get('reference', []), start=1):
+                text_parts.append(format_crossref_reference(index, ref))
 
             if text_parts:
                 return '\n\n'.join(text_parts)

@@ -1,0 +1,362 @@
+{
+  "10.1016/j.cell.2020.02.055|000003": {
+    "confirmed": "yes",
+    "notes": ""
+  },
+  "10.1016/j.celrep.2020.107551|000003": {
+    "confirmed": "yes",
+    "notes": ""
+  },
+  "10.1016/j.neuron.2021.09.002|000003": {
+    "confirmed": "unsure",
+    "notes": "Although Cell Explorer clearly reuses data from multiple sources, the 2017 Senzai and Buzsáki paper is notably absent from the deposited data section of the STAR Methods. This makes it unclear whether the paper’s data were actually reused. "
+  },
+  "10.1038/s41467-022-28090-5|000003": {
+    "confirmed": "yes",
+    "notes": ""
+  },
+  "10.1038/s41583-021-00479-z|000003": {
+    "confirmed": "yes",
+    "notes": ""
+  },
+  "10.1038/s41583-023-00710-z|000003": {
+    "confirmed": "yes",
+    "notes": ""
+  },
+  "10.1038/s41593-022-01176-5|000003": {
+    "confirmed": "yes",
+    "notes": ""
+  },
+  "10.1126/sciadv.abf1913|000003": {
+    "confirmed": "yes",
+    "notes": "This appears not to be re-use, but the citation number used in the reasoning is incorrect. It shouldn't be 21; it should be 58"
+  },
+  "10.1126/science.abf3119|000003": {
+    "confirmed": "yes",
+    "notes": ""
+  },
+  "10.1523/jneurosci.2455-20.2020|000003": {
+    "confirmed": "yes",
+    "notes": ""
+  },
+  "10.1007/s12021-023-09637-3|000004": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1016/j.cub.2022.06.015|000004": {
+    "confirmed": "yes",
+    "notes": ""
+  },
+  "10.1016/j.jneumeth.2023.110017|000004": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1038/s41597-021-00970-3|000004": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1038/s41597-022-01125-8|000004": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1038/s41597-024-03029-1|000004": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1109/isscc49661.2025.10904733|000004": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1523/jneurosci.2155-24.2025|000004": {
+    "confirmed": "yes",
+    "notes": ""
+  },
+  "10.7554/elife.108089.1|000004": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.7554/elife.78362|000004": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1016/j.cell.2022.02.006|000005": {
+    "confirmed": "no",
+    "notes": "I think this is clearly a mix-up: the citing paper reused data from Guo et al. 2017, but Yu et al. 2016 is only a mention. "
+  },
+  "10.1016/j.cell.2023.12.035|000005": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1016/j.isci.2020.101906|000005": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1016/j.neuron.2020.07.020|000005": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1016/j.neuron.2021.05.019|000005": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1016/j.neuron.2022.06.008|000005": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1038/s41586-022-05196-w|000005": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1038/s41593-021-00840-6|000005": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1146/annurev-neuro-092021-121730|000005": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1152/physrev.00019.2019|000005": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1016/j.cell.2021.04.021|000006": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1016/j.tins.2021.03.006|000006": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1038/s41586-020-2907-3|000006": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1038/s41586-021-03500-8|000006": {
+    "confirmed": "yes",
+    "notes": ""
+  },
+  "10.1038/s41586-021-03705-x|000006": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1038/s41586-021-03941-1|000006": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1038/s41586-021-03950-0|000006": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1038/s41586-021-03970-w|000006": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1038/s41586-024-07686-5|000006": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1038/s41593-022-01041-5|000006": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1016/j.cell.2022.02.006|000007": {
+    "confirmed": "yes",
+    "notes": "The pipeline reasoning is correct, but the excerpt mentioned doesn't show up in the review set of five excerpts."
+  },
+  "10.1016/j.neuron.2020.10.031|000007": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1038/s41583-021-00528-7|000007": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1038/s41583-022-00581-w|000007": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1038/s41593-020-00754-9|000007": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1126/sciadv.abl5547|000007": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1126/science.abd5059|000007": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1152/physrev.00019.2019|000007": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.7554/elife.54073|000007": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.7554/elife.58613|000007": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1016/j.cell.2020.09.057|000008": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1016/j.cell.2021.04.021|000008": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1016/j.cell.2022.06.031|000008": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1016/j.celrep.2022.111040|000008": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1016/j.neuron.2020.12.010|000008": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1038/s41583-021-00459-3|000008": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1038/s41586-021-03941-1|000008": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1038/s41586-021-03950-0|000008": {
+    "confirmed": "yes",
+    "notes": ""
+  },
+  "10.1038/s41586-023-06812-z|000008": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1126/science.abj5861|000008": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1016/j.cell.2022.02.006|000009": {
+    "confirmed": "yes",
+    "notes": "Once again, this reasoning is correct, but the excerpt does not show up in the review HTML. "
+  },
+  "10.1038/s41583-020-00390-z|000009": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1038/s41583-021-00459-3|000009": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1038/s41583-022-00581-w|000009": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1038/s41583-023-00701-0|000009": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1038/s41586-021-03941-1|000009": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1038/s41593-022-01041-5|000009": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1126/sciadv.abl5547|000009": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1152/physrev.00019.2019|000009": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1371/journal.pcbi.1008198|000009": {
+    "confirmed": "yes",
+    "notes": ""
+  },
+  "10.1016/j.cell.2020.11.046|000010": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1016/j.cell.2022.02.006|000010": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1016/j.neuron.2021.03.035|000010": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1016/j.neuron.2021.05.016|000010": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1038/s41467-020-20112-4|000010": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1038/s41583-021-00459-3|000010": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1038/s41583-022-00606-4|000010": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1038/s41593-020-0677-8|000010": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1146/annurev-neuro-100219-105424|000010": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1371/journal.pcbi.1008198|000010": {
+    "confirmed": "yes",
+    "notes": ""
+  },
+  "10.1016/j.cell.2022.02.006|000011": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1016/j.neuron.2021.03.035|000011": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1016/j.tins.2021.03.006|000011": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1038/s41583-022-00606-4|000011": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1038/s41583-022-00642-0|000011": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1038/s41592-021-01239-8|000011": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1146/annurev-neuro-092619-094115|000011": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1146/annurev-neuro-100219-105424|000011": {
+    "confirmed": null,
+    "notes": ""
+  },
+  "10.1371/journal.pcbi.1008198|000011": {
+    "confirmed": "no",
+    "notes": "Although the citing paper clearly reuses datasets, all of the references to Lee et al. 2016 are actually mentions of the findings or methodological choices there, rather than the data. "
+  },
+  "10.7554/elife.54073|000011": {
+    "confirmed": null,
+    "notes": ""
+  }
+}
