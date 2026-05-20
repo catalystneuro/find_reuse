@@ -40,6 +40,17 @@ CACHE_DIR = DEFAULT_CACHE_DIR  # alias for classify_usage.py
 # Default cache directory for preprint-publication links
 DEFAULT_PREPRINT_CACHE_DIR = _PROJECT_ROOT / '.preprint_cache'
 
+# Map full archive names to the short slug used for output/<slug>/ directories
+ARCHIVE_SHORT_NAMES = {
+    "DANDI Archive": "dandi",
+    "CRCNS": "crcns",
+    "OpenNeuro": "openneuro",
+    "SPARC": "sparc",
+    "EBRAINS": "ebrains",
+    "Figshare": "figshare",
+    "PhysioNet": "physionet",
+}
+
 
 # Data descriptor journal DOI patterns - journals that primarily publish dataset descriptions
 DATA_DESCRIPTOR_JOURNALS = {
@@ -1353,7 +1364,14 @@ def main():
         # Apply exclusions
         if args.exclude_archives:
             archives = [a for a in archives if a not in args.exclude_archives]
-        
+
+        # Default output into output/<archive>/ when a single archive is targeted
+        if not args.output and len(archives) == 1:
+            _short = ARCHIVE_SHORT_NAMES.get(archives[0], archives[0].lower())
+            _out_dir = _PROJECT_ROOT / "output" / _short
+            _out_dir.mkdir(parents=True, exist_ok=True)
+            args.output = str(_out_dir / "find_reuse_results.json")
+
         result = finder.discover_papers(max_results=args.max_results, archives=archives)
         
         # Apply deduplication if requested

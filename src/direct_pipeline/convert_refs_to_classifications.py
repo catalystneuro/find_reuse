@@ -423,14 +423,14 @@ def main():
     parser.add_argument(
         "-i",
         "--input",
-        default="output/results_dandi.json",
-        help="Input results_dandi.json file",
+        default=None,
+        help="Input find_reuse results JSON (default: output/<archive>/find_reuse_results.json)",
     )
     parser.add_argument(
         "-o",
         "--output",
-        default="output/direct_ref_classifications.json",
-        help="Output classification JSON file",
+        default=None,
+        help="Output classification JSON (default: output/<archive>/classifications.json)",
     )
     parser.add_argument(
         "--no-classify",
@@ -448,6 +448,17 @@ def main():
         help="Archive name to extract from results (default: 'DANDI Archive')",
     )
     args = parser.parse_args()
+
+    # Derive default input/output paths from the archive name
+    archive_short = {
+        "DANDI Archive": "dandi", "CRCNS": "crcns", "OpenNeuro": "openneuro",
+        "SPARC": "sparc", "EBRAINS": "ebrains", "Figshare": "figshare",
+        "PhysioNet": "physionet",
+    }.get(args.archive, args.archive.lower())
+    if args.input is None:
+        args.input = f"output/{archive_short}/find_reuse_results.json"
+    if args.output is None:
+        args.output = f"output/{archive_short}/classifications.json"
 
     input_path = Path(args.input)
     output_path = Path(args.output)
