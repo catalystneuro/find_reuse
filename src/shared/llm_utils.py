@@ -54,7 +54,7 @@ def call_openrouter_api(
     api_key: str,
     model: str = DEFAULT_MODEL,
     max_retries: int = 3,
-    max_tokens: int = 512,
+    max_tokens: int = 8192,
     temperature: float = 0.1,
     timeout: int = 90,
     return_raw: bool = False,
