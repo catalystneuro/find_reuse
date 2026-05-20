@@ -125,6 +125,9 @@ def main():
                         help="OpenRouter model for classification (default: google/gemini-3.5-flash).")
     parser.add_argument("--clear-cache", action="store_true",
                         help="Clear classification cache before running.")
+    parser.add_argument("--stop-after", choices=["discover", "find-citing", "fetch", "contexts"],
+                        default=None,
+                        help="Stop after the named stage instead of running the full pipeline.")
     args = parser.parse_args()
 
     start = time.time()
@@ -136,10 +139,25 @@ def main():
     print(f"Archive: {adapter.name}", file=sys.stderr)
     print(f"Output dir: {adapter.output_dir}", file=sys.stderr)
 
+    def _maybe_stop(stage):
+        if args.stop_after == stage:
+            print(f"\nStopped after '{stage}' in {(time.time() - start) / 60:.1f} min "
+                  f"(--stop-after {stage}).", file=sys.stderr)
+            return True
+        return False
+
     stage1_discover_datasets(adapter)
+    if _maybe_stop("discover"):
+        return
     stage2_find_citing_papers(adapter, args.limit, args.max_citing_papers)
+    if _maybe_stop("find-citing"):
+        return
     stage3_fetch_paper_texts(adapter, args.max_citing_papers)
+    if _maybe_stop("fetch"):
+        return
     stage4_extract_contexts(adapter)
+    if _maybe_stop("contexts"):
+        return
     classifications_path = stage5_classify(adapter, args.model, args.clear_cache)
 
     print(f"\nDone in {(time.time() - start) / 60:.1f} min. See {classifications_path}", file=sys.stderr)
