@@ -27,8 +27,10 @@ from tqdm import tqdm
 from .classify_usage import find_dandi_mentions_with_positions, extract_word_context
 from src.shared.llm_utils import get_api_key, call_openrouter_api, parse_json_response, DEFAULT_MODEL
 
-CACHE_DIR = Path(__file__).parent / ".paper_cache"
-CLASSIFICATION_CACHE_DIR = Path(__file__).parent / ".direct_ref_cache"
+# Project root: three levels up from src/direct_pipeline/<module>.py
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+CACHE_DIR = _PROJECT_ROOT / ".paper_cache"
+CLASSIFICATION_CACHE_DIR = _PROJECT_ROOT / ".direct_ref_cache"
 VALID_CLASSIFICATIONS = {"PRIMARY", "REUSE", "NEITHER"}
 CONTEXT_WORDS = 100
 API_DELAY = 0.5
@@ -230,7 +232,11 @@ def fetch_dandiset_names(dandiset_ids: list[str], archive: str = "DANDI Archive"
         if len(names) >= len(dandiset_ids) * 0.5:
             return names
 
-    # Fallback: query DANDI API directly (for backwards compatibility)
+    # DANDI-specific fallback: query DANDI API. Skip for other archives since
+    # their dataset IDs don't resolve there.
+    if archive != "DANDI Archive":
+        return {}
+
     names = {}
     for ds_id in tqdm(dandiset_ids, desc="Fetching dandiset names"):
         try:
