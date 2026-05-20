@@ -33,6 +33,26 @@ CACHE_DIR = _PROJECT_ROOT / ".paper_cache"
 CLASSIFICATION_CACHE_DIR = _PROJECT_ROOT / ".direct_ref_cache"
 VALID_CLASSIFICATIONS = {"PRIMARY", "REUSE", "NEITHER"}
 CONTEXT_WORDS = 100
+
+# Structured-output schema so the LLM returns guaranteed-valid JSON.
+# same_lab / same_lab_confidence only apply to REUSE, so they are nullable.
+RESPONSE_SCHEMA = {
+    "name": "direct_reference_classification",
+    "strict": True,
+    "schema": {
+        "type": "object",
+        "properties": {
+            "classification": {"type": "string", "enum": ["PRIMARY", "REUSE", "NEITHER"]},
+            "confidence": {"type": "integer"},
+            "same_lab": {"type": ["boolean", "null"]},
+            "same_lab_confidence": {"type": ["integer", "null"]},
+            "reasoning": {"type": "string"},
+        },
+        "required": ["classification", "confidence", "same_lab",
+                     "same_lab_confidence", "reasoning"],
+        "additionalProperties": False,
+    },
+}
 API_DELAY = 0.5
 
 
@@ -175,7 +195,7 @@ def classify_direct_reference(
     prompt = build_classification_prompt(dandiset_id, contexts, doi, archive=archive)
 
     try:
-        result = call_openrouter_api(prompt, api_key, model)
+        result = call_openrouter_api(prompt, api_key, model, json_schema=RESPONSE_SCHEMA)
         if result and isinstance(result, dict):
             # Normalize classification
             cls = result.get("classification", "").upper().replace(" ", "_")

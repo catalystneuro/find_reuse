@@ -59,6 +59,7 @@ def call_openrouter_api(
     timeout: int = 90,
     return_raw: bool = False,
     return_full_interaction: bool = False,
+    json_schema: dict | None = None,
 ) -> dict | str | None:
     """
     Call OpenRouter API with retry logic.
@@ -73,6 +74,11 @@ def call_openrouter_api(
         timeout: Request timeout in seconds
         return_raw: If True, return raw response text instead of parsed JSON
         return_full_interaction: If True, return dict with 'result', 'prompt', 'raw_response'
+        json_schema: Optional structured-output schema. When provided, sent as
+            response_format={'type': 'json_schema', 'json_schema': json_schema}
+            so the provider guarantees a response matching the schema. The dict
+            should have the OpenRouter shape: {'name': ..., 'strict': bool,
+            'schema': {<JSON Schema>}}.
 
     Returns:
         - If return_raw: Raw response text string, or None on failure
@@ -94,6 +100,8 @@ def call_openrouter_api(
             {'role': 'user', 'content': prompt}
         ]
     }
+    if json_schema is not None:
+        data['response_format'] = {'type': 'json_schema', 'json_schema': json_schema}
 
     last_error = None
     raw_response = None

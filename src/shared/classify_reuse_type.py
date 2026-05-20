@@ -43,6 +43,23 @@ REUSE_TYPES = [
     "TEACHING",
 ]
 
+# Structured-output schema so the LLM returns guaranteed-valid JSON
+# constrained to the eight reuse-type categories.
+RESPONSE_SCHEMA = {
+    "name": "reuse_type_classification",
+    "strict": True,
+    "schema": {
+        "type": "object",
+        "properties": {
+            "reuse_type": {"type": "string", "enum": REUSE_TYPES},
+            "confidence": {"type": "integer"},
+            "reasoning": {"type": "string"},
+        },
+        "required": ["reuse_type", "confidence", "reasoning"],
+        "additionalProperties": False,
+    },
+}
+
 
 def build_prompt(citing_doi, dandiset_id, dandiset_name, reasoning, context_excerpts):
     """Build prompt for reuse type classification."""
@@ -104,7 +121,8 @@ def classify_one(entry, api_key):
     )
 
     response = call_openrouter_api(
-        prompt, api_key, return_raw=True, max_tokens=300, timeout=60,
+        prompt, api_key, return_raw=True, max_tokens=8192, timeout=60,
+        json_schema=RESPONSE_SCHEMA,
     )
 
     result = {"citing_doi": citing_doi, "dandiset_id": dandiset_id}

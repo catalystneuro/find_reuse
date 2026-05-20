@@ -56,6 +56,29 @@ CLASSIFICATION_CACHE_DIR = Path('.classification_cache')
 # Valid classification values
 VALID_CLASSIFICATIONS = {'REUSE', 'MENTION', 'NEITHER'}
 
+# Structured-output schema passed to the LLM so the response is guaranteed
+# valid JSON matching this shape (no markdown fences, no parse failures).
+# same_lab / same_lab_confidence / source_archive only apply to REUSE, so they
+# are nullable; the model emits null for MENTION / NEITHER.
+RESPONSE_SCHEMA = {
+    "name": "citing_paper_classification",
+    "strict": True,
+    "schema": {
+        "type": "object",
+        "properties": {
+            "classification": {"type": "string", "enum": ["REUSE", "MENTION", "NEITHER"]},
+            "confidence": {"type": "integer"},
+            "same_lab": {"type": ["boolean", "null"]},
+            "same_lab_confidence": {"type": ["integer", "null"]},
+            "source_archive": {"type": ["string", "null"]},
+            "reasoning": {"type": "string"},
+        },
+        "required": ["classification", "confidence", "same_lab",
+                     "same_lab_confidence", "source_archive", "reasoning"],
+        "additionalProperties": False,
+    },
+}
+
 # DOI patterns for non-research documents (peer review, editorial comments, etc.)
 NON_RESEARCH_DOI_PATTERNS = [
     re.compile(r'\.sa\d+'),       # eLife sub-articles (peer review)
@@ -340,7 +363,8 @@ def classify_single_paper(
 
     response = call_openrouter_api(
         prompt, api_key, model,
-        return_raw=True, max_tokens=300, timeout=60,
+        return_raw=True, max_tokens=8192, timeout=60,
+        json_schema=RESPONSE_SCHEMA,
     )
 
     classification = parse_json_response(
