@@ -7,7 +7,7 @@ import json
 import sys
 from pathlib import Path
 
-from .dandi_primary_papers import fetch_citing_paper_texts
+from ..indirect_pipeline.dandi_primary_papers import fetch_citing_paper_texts
 
 # Step 1: Fetch text for new citing papers
 print("=== Step 1: Fetch text ===", file=sys.stderr, flush=True)

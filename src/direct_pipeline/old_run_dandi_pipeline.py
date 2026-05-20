@@ -49,7 +49,7 @@ def run(cmd, desc):
 def step1_discover_dandisets():
     """Discover dandisets and their primary papers."""
     run(
-        ["python3", "-m", "src.direct_pipeline.dandi_primary_papers",
+        ["python3", "-m", "src.indirect_pipeline.dandi_primary_papers",
          "--citations", "--fetch-text",
          "--cache-dir", ".paper_cache",
          "--max-citing-papers", "999",

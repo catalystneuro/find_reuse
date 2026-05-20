@@ -22,7 +22,7 @@ from pathlib import Path
 from tqdm import tqdm
 
 from src.archives import get_adapter
-from src.direct_pipeline.dandi_primary_papers import (
+from src.indirect_pipeline.dandi_primary_papers import (
     _make_openalex_session,
     fetch_citing_paper_texts,
     find_citing_papers,

@@ -10,7 +10,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-from .dandi_primary_papers import fetch_citing_paper_texts
+from ..indirect_pipeline.dandi_primary_papers import fetch_citing_paper_texts
 
 DATASETS_FILE = "output/crcns/datasets.json"
 CLASSIFICATIONS_FILE = "output/crcns/classifications.json"
