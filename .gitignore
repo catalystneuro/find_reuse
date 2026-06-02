@@ -9,6 +9,7 @@ build/
 .eggs/
 venv/
 .env
+.vscode/
 
 # Classification cache
 .classification_cache/
