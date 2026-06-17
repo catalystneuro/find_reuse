@@ -16,6 +16,7 @@ Output is always JSON.
 import argparse
 from datetime import datetime
 import json
+import os
 from pathlib import Path
 import re
 import sys
@@ -992,6 +993,95 @@ class ArchiveFinder:
             self.log(f"OpenAlex search error: {e}")
             return []
     
+    def search_scopus(self, search_terms: dict, max_results: int = 5000) -> list[dict]:
+        """
+        Search Scopus for papers matching archive search terms in full text.
+
+        Uses the Elsevier Scopus Search API with ALL() operator for full-text search.
+        Requires ELSEVIER_API_KEY environment variable.
+
+        Returns list of papers with DOI and title.
+        """
+        api_key = os.environ.get('ELSEVIER_API_KEY', '')
+        if not api_key:
+            from pathlib import Path
+            env_file = Path('.env')
+            if env_file.exists():
+                for line in env_file.read_text().splitlines():
+                    if line.startswith('ELSEVIER_API_KEY'):
+                        api_key = line.split('=', 1)[1].strip().strip('"').strip("'")
+        if not api_key:
+            self.log("No ELSEVIER_API_KEY found, skipping Scopus search")
+            return []
+
+        # Build Scopus query from search terms
+        # Use specific/unique terms (URLs, DOI prefixes) to avoid broad matches.
+        # Generic names like "SPARC" or "CRCNS" are too ambiguous for ALL() search.
+        query_parts = []
+        for url in search_terms.get('urls', []):
+            query_parts.append(f'"{url}"')
+        for prefix in search_terms.get('doi_prefixes', []):
+            query_parts.append(f'"{prefix}"')
+        # Use scopus_terms if provided, otherwise fall back to search_terms
+        # but only include multi-word terms to avoid broad single-word matches
+        for term in search_terms.get('scopus_terms', search_terms.get('search_terms', [])):
+            if ' ' in term or len(term) > 8:  # skip short/ambiguous terms
+                query_parts.append(f'"{term}"')
+
+        if not query_parts:
+            return []
+
+        query = 'ALL(' + ' OR '.join(query_parts) + ')'
+        # Restrict to neuroscience-related subject areas
+        query += ' AND SUBJAREA(NEUR OR COMP OR BIOC OR MULT OR MEDI OR MATH OR AGRI)'
+        self.log(f"Searching Scopus: {query}")
+
+        headers = {'X-ELS-APIKey': api_key, 'Accept': 'application/json'}
+        papers = []
+        seen_dois = set()
+        start = 0
+
+        try:
+            while len(papers) < max_results:
+                resp = self.session.get(
+                    'https://api.elsevier.com/content/search/scopus',
+                    params={'query': query, 'count': 25, 'start': start},
+                    headers=headers, timeout=30,
+                )
+                if resp.status_code != 200:
+                    self.log(f"Scopus error: {resp.status_code}")
+                    break
+
+                data = resp.json().get('search-results', {})
+                total = int(data.get('opensearch:totalResults', 0))
+                if start == 0:
+                    self.log(f"Scopus found {total} total results")
+
+                entries = data.get('entry', [])
+                if not entries:
+                    break
+
+                for entry in entries:
+                    doi = entry.get('prism:doi', '')
+                    if doi and doi.lower() not in seen_dois:
+                        seen_dois.add(doi.lower())
+                        papers.append({
+                            'doi': doi,
+                            'title': entry.get('dc:title', ''),
+                        })
+
+                start += 25
+                if start >= total:
+                    break
+                time.sleep(0.05)
+
+            self.log(f"Found {len(papers)} unique papers from Scopus")
+            return papers[:max_results]
+
+        except Exception as e:
+            self.log(f"Scopus search error: {e}")
+            return []
+
     def search_europe_pmc(self, query: str, max_results: int = 1000) -> list[dict]:
         """
         Search Europe PMC for papers matching a query (searches full text).
@@ -1112,7 +1202,7 @@ class ArchiveFinder:
         
         # Collect papers from each archive search, tracking which search found them
         all_papers = {}  # DOI -> paper info with search_sources
-        search_stats = {'europe_pmc': {}, 'openalex': {}}
+        search_stats = {'europe_pmc': {}, 'openalex': {}, 'scopus': {}}
         
         # Search Europe PMC (full text search)
         for archive_name, query in europe_pmc_queries.items():
@@ -1162,6 +1252,28 @@ class ArchiveFinder:
                 
                 time.sleep(1)
         
+        # Search Scopus (full text search in Elsevier journals + abstracts in all Scopus journals)
+        for archive_name in archives_to_search:
+            terms = ARCHIVE_SEARCH_TERMS.get(archive_name, {})
+            if terms:
+                self.log(f"Searching Scopus for {archive_name}")
+                papers = self.search_scopus(terms, max_results)
+                search_stats['scopus'][archive_name] = len(papers)
+                self.log(f"Found {len(papers)} papers from Scopus for {archive_name}")
+
+                for paper in papers:
+                    doi = paper.get('doi')
+                    if not doi:
+                        continue
+
+                    if doi in all_papers:
+                        all_papers[doi]['search_sources'].append(f"scopus:{archive_name}")
+                    else:
+                        paper['search_sources'] = [f"scopus:{archive_name}"]
+                        all_papers[doi] = paper
+
+                time.sleep(1)
+
         # Convert to list
         papers_list = list(all_papers.values())
         
