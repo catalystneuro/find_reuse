@@ -24,8 +24,13 @@ ANALYSIS_CUTOFF = datetime(2025, 10, 7)
 
 
 def load_data():
-    with open(OUTPUT_DIR / "direct_ref_classifications.json") as f:
+    # Prefer merged classifications (includes citation pipeline), fallback to direct refs
+    cls_path = OUTPUT_DIR / "classifications.json"
+    if not cls_path.exists():
+        cls_path = OUTPUT_DIR / "direct_ref_classifications.json"
+    with open(cls_path) as f:
         cls = json.load(f)
+    print(f"Loaded from {cls_path.name}")
 
     # Load datasets for creation dates
     datasets_path = OUTPUT_DIR / "datasets.json"
@@ -40,11 +45,11 @@ def load_data():
     reuse_diff = [c for c in reuse if c.get("same_lab") is False]
     reuse_same = [c for c in reuse if c.get("same_lab") is True]
 
-    # Creation dates from datasets.json or from classification dates
+    # Creation dates from datasets.json
     created = {}
     for r in datasets.get("results", []):
-        did = r.get("id", r.get("dandiset_id", ""))
-        date_str = r.get("created", "")
+        did = r.get("dataset_id") or r.get("dandiset_id") or r.get("id", "")
+        date_str = r.get("dandiset_created") or r.get("data_accessible") or r.get("created", "")
         if date_str:
             try:
                 created[did] = datetime.fromisoformat(date_str.replace("Z", "+00:00")).replace(tzinfo=None)
@@ -102,7 +107,8 @@ def main():
     from .reuse_modeling import plot_model_2x2
     plot_model_2x2(delays, created, datasets, FIGURES_DIR / "reuse_rate_model.png",
                    archive_name="OpenNeuro", analysis_cutoff=ANALYSIS_CUTOFF,
-                   split_labs=False, project_years=6)
+                   split_labs=False, project_years=6, mcf_model="power_law",
+                   show_lab_background=False, show_k_lines=False, show_rate_model=False)
 
     # Reuse distribution
     from .reuse_distribution import plot_reuse_distribution

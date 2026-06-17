@@ -128,19 +128,20 @@ def fit_mcf(t_years, mcf_vals, model="auto"):
         best = model if model in results else list(results.keys())[0]
 
     r = results[best]
-    t_fit = np.linspace(0, max(t_years[-1] * 1.5, 20), 300)
+    t_fit = np.linspace(0, t_years[-1] * 1.5, 300)
     mcf_fit = r["func"](t_fit, *r["params"])
     return best, r["params"], t_fit, mcf_fit
 
 
 def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive",
                    analysis_cutoff=None, project_years=5, growth_model="auto",
-                   split_labs=True, mcf_xlim=None, show_k_lines=True):
+                   split_labs=True, mcf_xlim=None, show_k_lines=True,
+                   mcf_model="auto", show_lab_background=None, show_rate_model=True):
     """Generate 2x2 modeling figure for any archive.
 
     Panels:
       A: MCF model fits (saturating exponential or Richards)
-      B: Reuse rate (events/dataset/yr) with Poisson CIs and model derivative
+      B: Reuse rate (events/dataset/yr) with Poisson CIs and optional model derivative
       C: Dataset creation growth (power law, logistic, or Richards)
       D: Projected cumulative reuse (observed past + convolution projection)
 
@@ -154,7 +155,13 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
         project_years: how far to project
         growth_model: "auto", "power_law", "logistic", or "richards" for Panel C
         split_labs: if True, show separate same/different lab curves; if False, combine
+        mcf_model: "auto", "richards", "saturating", "quadratic", "power_law" for MCF fit
+        show_lab_background: if False, suppress same/diff lab background when split_labs=False.
+                             Default: True when split_labs=False (existing behavior).
+        show_rate_model: if True, overlay MCF derivative on Panel B. Default True.
     """
+    if show_lab_background is None:
+        show_lab_background = not split_labs
     if analysis_cutoff is None:
         analysis_cutoff = datetime(2025, 10, 7)
 
@@ -185,7 +192,7 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
     fit_results = {}
 
     # When combined, show same/diff lab MCF curves with CIs and fits as background
-    if not split_labs and diff_delays and same_delays:
+    if show_lab_background and not split_labs and diff_delays and same_delays:
         rng_bg = np.random.default_rng(123)
         ds_ids = list(obs_months.keys())
         for bg_label, bg_delays, bg_color in [
@@ -217,7 +224,8 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
                 ax.plot(t_fit_bg, mcf_fit_bg, "--", color=bg_color, linewidth=1.5, alpha=0.7)
                 if show_k_lines:
                     ax.axhline(K_bg, color=bg_color, linestyle=":", linewidth=0.8, alpha=0.4)
-                    ax.text(0.3, K_bg, f" K={K_bg:.1f}", fontsize=7, color=bg_color, va="bottom", alpha=0.7)
+                    ax.text(0.95, K_bg, f"K={K_bg:.1f}", fontsize=7, color=bg_color, va="bottom", alpha=0.7,
+                            transform=ax.get_yaxis_transform(), ha="right")
 
     for label, delay_list, color in mcf_series:
         if not delay_list:
@@ -226,8 +234,8 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
         t_years = t / 12
 
         # Plot data
-        mcf_label = "Combined" if not split_labs else None
-        ax.step(t_years, mcf_vals, where="post", color="black", linewidth=1.5, label=mcf_label)
+        mcf_label = label if split_labs else "Combined"
+        ax.step(t_years, mcf_vals, where="post", color=color, linewidth=1.5, label=mcf_label)
 
         # Bootstrap confidence interval for MCF
         rng = np.random.default_rng(42)
@@ -258,14 +266,14 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
         ax.fill_between(t_grid, ci_lo, ci_hi, color="gray", alpha=0.2)
 
         # Fit
-        model_name, params, t_fit, mcf_fit = fit_mcf(t_years, mcf_vals, model="auto")
+        model_name, params, t_fit, mcf_fit = fit_mcf(t_years, mcf_vals, model=mcf_model)
         if model_name:
             if model_name == "saturating":
                 K, tau = params
-                fit_label = f"Saturating exp. (K={K:.1f})"
+                fit_label = f"Saturating exp."
             elif model_name == "richards":
                 K, r, t0, nu = params
-                fit_label = f"Richards (K={K:.1f})"
+                fit_label = f"Richards"
             elif model_name == "quadratic":
                 a, b = params
                 fit_label = f"Quadratic"
@@ -274,79 +282,108 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
                 fit_label = f"Power law (b={b:.1f})"
             else:
                 fit_label = model_name
-            ax.plot(t_fit, mcf_fit, "--", color=color, linewidth=2, label=fit_label)
+            ax.plot(t_fit, mcf_fit, "--", color=color, linewidth=2)
             if show_k_lines and model_name in ("saturating", "richards"):
                 K_val = params[0]
                 ax.axhline(K_val, color=color, linestyle=":", linewidth=0.8, alpha=0.5)
-                ax.text(0.3, K_val, f" K={K_val:.1f}", fontsize=7, color=color, va="bottom", alpha=0.8)
+                ax.text(0.95, K_val, f"K={K_val:.1f}", fontsize=7, color=color, va="bottom", alpha=0.8,
+                        transform=ax.get_yaxis_transform(), ha="right")
             # Store the actual function from fit_mcf results
             func_map = {"saturating": sat_exp, "richards": richards,
                         "quadratic": _quadratic, "power_law": _power_law_mcf}
             fit_results[label] = {"model": model_name, "params": params,
                                   "func": func_map.get(model_name, sat_exp)}
 
-    ax.set_ylabel("Expected reuse papers\nper dataset")
+    # Synthesize Combined = Same lab + Different lab (for split_labs)
+    if split_labs and "Different lab" in fit_results and "Same lab" in fit_results:
+        fr_diff = fit_results["Different lab"]
+        fr_same = fit_results["Same lab"]
+        t_comb = np.linspace(0.1, (mcf_xlim or 10) * 0.75, 200)
+        mcf_comb = fr_diff["func"](t_comb, *fr_diff["params"]) + fr_same["func"](t_comb, *fr_same["params"])
+        mcf_comb = np.maximum(mcf_comb, 0)
+        ax.plot(t_comb, mcf_comb, "-", color="black", linewidth=2, label="Combined")
+        # Also plot combined MCF data
+        t_all, mcf_all = compute_mcf(all_delay_months, obs_months)
+        ax.step(t_all / 12, mcf_all, where="post", color="black", linewidth=1, alpha=0.4)
+        # Store synthetic combined for Panels B and D
+        def _combined_func(t, *_args):
+            return np.maximum(fr_diff["func"](t, *fr_diff["params"]) + fr_same["func"](t, *fr_same["params"]), 0)
+        fit_results["Combined"] = {"model": "combined", "params": [],
+                                    "func": _combined_func}
+
+    ax.set_ylabel("Expected reuse events\nper dataset")
     ax.set_title("A. MCF: Model Fits", fontweight="bold")
     ax.legend(fontsize=9, frameon=False)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.tick_params(labelbottom=False)
+    ax.set_xlim(left=0)
+    ax.set_ylim(bottom=0)
     if mcf_xlim:
         ax.set_xlim(0, mcf_xlim)
 
     # === Panel B: Reuse Rate (data points + model derivative) ===
     ax = ax_b
     max_year = 18
+
+    # When split_labs, show combined data points + model fits for all three
     if split_labs:
-        rate_series = [("Different lab", diff_delays, "#2E7D32", "s"),
-                       ("Same lab", same_delays, "#7B1FA2", "D")]
+        # Combined data points with Poisson CIs
+        if all_delay_months:
+            delay_years = [d / 12 for d in all_delay_months]
+            bins = np.arange(0, min(int(max(delay_years)) + 2, max_year))
+            counts_b = np.histogram(delay_years, bins=bins)[0]
+            at_risk = np.array([max(sum(1 for obs in obs_months.values() if obs >= yr * 12), 1) for yr in bins[:-1]])
+            rate = counts_b / at_risk
+            centers = (bins[:-1] + bins[1:]) / 2
+            alpha_ci = 0.05
+            ci_lo = chi2.ppf(alpha_ci / 2, 2 * counts_b) / (2 * at_risk)
+            ci_hi = chi2.ppf(1 - alpha_ci / 2, 2 * (counts_b + 1)) / (2 * at_risk)
+            ci_lo = np.nan_to_num(ci_lo, 0)
+            ax.errorbar(centers, rate, yerr=[rate - ci_lo, ci_hi - rate],
+                        fmt="o", color="black", markersize=5, capsize=3,
+                        linewidth=1.2, alpha=0.5)
+
+        # Model fit derivatives for all three series
+        if show_rate_model:
+            for label, color, lw in [("Combined", "#000000", 2),
+                                      ("Different lab", "#2E7D32", 1.5),
+                                      ("Same lab", "#7B1FA2", 1.5)]:
+                if label in fit_results:
+                    fr = fit_results[label]
+                    t_smooth = np.linspace(0.1, mcf_xlim or 10, 200)
+                    mcf_smooth = fr["func"](t_smooth, *fr["params"])
+                    dt = t_smooth[1] - t_smooth[0]
+                    rate_smooth = np.gradient(mcf_smooth, dt)
+                    style = "-" if label == "Combined" else "--"
+                    ax.plot(t_smooth, rate_smooth, style, color=color, linewidth=lw,
+                            label=label, alpha=0.8)
     else:
         rate_series = [("All labs", all_delay_months, "#000000", "o")]
-    for label, delay_list, color, marker in rate_series:
-        if not delay_list:
-            continue
-        delay_years = [d / 12 for d in delay_list]
-        bins = np.arange(0, min(int(max(delay_years)) + 2, max_year))
-        counts = np.histogram(delay_years, bins=bins)[0]
-        at_risk = np.array([max(sum(1 for obs in obs_months.values() if obs >= yr * 12), 1) for yr in bins[:-1]])
-        rate = counts / at_risk
-        centers = (bins[:-1] + bins[1:]) / 2
+        for label, delay_list, color, marker in rate_series:
+            if not delay_list:
+                continue
+            delay_years = [d / 12 for d in delay_list]
+            bins = np.arange(0, min(int(max(delay_years)) + 2, max_year))
+            counts_b = np.histogram(delay_years, bins=bins)[0]
+            at_risk = np.array([max(sum(1 for obs in obs_months.values() if obs >= yr * 12), 1) for yr in bins[:-1]])
+            rate = counts_b / at_risk
+            centers = (bins[:-1] + bins[1:]) / 2
+            alpha_ci = 0.05
+            ci_lo = chi2.ppf(alpha_ci / 2, 2 * counts_b) / (2 * at_risk)
+            ci_hi = chi2.ppf(1 - alpha_ci / 2, 2 * (counts_b + 1)) / (2 * at_risk)
+            ci_lo = np.nan_to_num(ci_lo, 0)
+            ax.errorbar(centers, rate, yerr=[rate - ci_lo, ci_hi - rate],
+                        fmt=marker, color=color, markersize=5, capsize=3,
+                        linewidth=1.2, label=label, alpha=0.5)
 
-        # Poisson CIs
-        alpha = 0.05
-        ci_lo = chi2.ppf(alpha / 2, 2 * counts) / (2 * at_risk)
-        ci_hi = chi2.ppf(1 - alpha / 2, 2 * (counts + 1)) / (2 * at_risk)
-        ci_lo = np.nan_to_num(ci_lo, 0)
-
-        ax.errorbar(centers, rate, yerr=[rate - ci_lo, ci_hi - rate],
-                    fmt=marker, color=color, markersize=5, capsize=3,
-                    linewidth=1.2, label=label, alpha=0.5)
-
-        # Overlay derivative of MCF fit from Panel A
-        if label in fit_results:
-            fr = fit_results[label]
-            t_smooth = np.linspace(0.1, 20, 200)
-            mcf_smooth = fr["func"](t_smooth, *fr["params"])
-            # Numerical derivative (per year)
-            dt = t_smooth[1] - t_smooth[0]
-            rate_smooth = np.gradient(mcf_smooth, dt)
-            ax.plot(t_smooth, rate_smooth, "--", color=color, linewidth=2)
-
-    # When combined, also show same/diff lab derivatives
-    if not split_labs and diff_delays and same_delays:
-        for bg_label, bg_delays, bg_color in [
-            ("Different lab", diff_delays, "#2E7D32"),
-            ("Same lab", same_delays, "#7B1FA2"),
-        ]:
-            t_bg, mcf_bg = compute_mcf(bg_delays, obs_months)
-            model_bg, params_bg, t_fit_bg, mcf_fit_bg = fit_mcf(t_bg / 12, mcf_bg, model="auto")
-            if model_bg:
-                func_bg = {"saturating": sat_exp, "richards": richards, "quadratic": _quadratic, "power_law": _power_law_mcf}.get(model_bg, sat_exp)
-                t_smooth_bg = np.linspace(0.1, 20, 200)
-                mcf_smooth_bg = func_bg(t_smooth_bg, *params_bg)
-                dt_bg = t_smooth_bg[1] - t_smooth_bg[0]
-                rate_bg = np.gradient(mcf_smooth_bg, dt_bg)
-                ax.plot(t_smooth_bg, rate_bg, "--", color=bg_color, linewidth=1.2, alpha=0.5)
+            if show_rate_model and label in fit_results:
+                fr = fit_results[label]
+                t_smooth = np.linspace(0.1, 20, 200)
+                mcf_smooth = fr["func"](t_smooth, *fr["params"])
+                dt = t_smooth[1] - t_smooth[0]
+                rate_smooth = np.gradient(mcf_smooth, dt)
+                ax.plot(t_smooth, rate_smooth, "--", color=color, linewidth=2)
 
     ax.set_xlabel("Years after dataset creation")
     ax.set_ylabel("Reuse rate (events/dataset/yr)")
@@ -355,6 +392,7 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
         ax.legend(fontsize=9, frameon=False)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
+    ax.set_ylim(bottom=0)
 
     # === Panel C: Dataset Growth ===
     ax = ax_c
@@ -364,7 +402,7 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
         t_years_growth = np.array([(d - t0_date).days / 365.25 for d in creation_dates])
         cumulative = np.arange(1, len(creation_dates) + 1)
 
-        growth_color = "#000000" if not split_labs else "#1565c0"
+        growth_color = "#000000"
         ax.plot([t0_date + timedelta(days=t * 365.25) for t in t_years_growth],
                 cumulative, color=growth_color, linewidth=2)
 
@@ -464,6 +502,7 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
 
     ax.set_ylabel(f"Cumulative {archive_name} datasets")
     ax.set_title("C. Dataset Growth", fontweight="bold")
+    ax.set_ylim(bottom=0)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.tick_params(labelbottom=False)
@@ -476,7 +515,7 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
         future_end = now + timedelta(days=project_years * 365.25)
 
         # When combined, show same/diff lab observed + projected lines
-        if not split_labs and diff_delays and same_delays:
+        if show_lab_background and not split_labs and diff_delays and same_delays:
             for bg_label, bg_color, bg_same, bg_delays_m in [
                 ("Different lab", "#2E7D32", False, diff_delays),
                 ("Same lab", "#7B1FA2", True, same_delays),
@@ -502,18 +541,20 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
                         for c_date in creation_dates:
                             age_yr = (eval_date - c_date).days / 365.25
                             if age_yr > 0:
-                                total_bg += func_bg(age_yr, *params_bg)
+                                total_bg += max(0, func_bg(age_yr, *params_bg))
                         for j in range(len(creation_dates), n_ds):
                             frac = (j - len(creation_dates)) / max(n_ds - len(creation_dates), 1)
                             c_date = now + timedelta(days=frac * (eval_date - now).days)
                             age_yr = (eval_date - c_date).days / 365.25
                             if age_yr > 0:
-                                total_bg += func_bg(age_yr, *params_bg)
+                                total_bg += max(0, func_bg(age_yr, *params_bg))
                         proj_bg.append(total_bg)
                     ax.plot(future_dates_bg, proj_bg, "--", color=bg_color, linewidth=1.5, alpha=0.7)
 
         if split_labs:
-            proj_series = [("Different lab", "#2E7D32", False), ("Same lab", "#7B1FA2", True)]
+            proj_series = [("Combined", "#000000", None),
+                           ("Different lab", "#2E7D32", False),
+                           ("Same lab", "#7B1FA2", True)]
         else:
             proj_series = [("All labs", "#000000", None)]
         for label, color, is_same in proj_series:
@@ -548,14 +589,14 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
                 for c_date in creation_dates:
                     age_years = (eval_date - c_date).days / 365.25
                     if age_years > 0:
-                        total += fr["func"](age_years, *fr["params"])
+                        total += max(0, fr["func"](age_years, *fr["params"]))
                 # Projected new datasets
                 for j in range(len(creation_dates), n_datasets):
                     frac = (j - len(creation_dates)) / max(n_datasets - len(creation_dates), 1)
                     c_date = now + timedelta(days=frac * (eval_date - now).days)
                     age_years = (eval_date - c_date).days / 365.25
                     if age_years > 0:
-                        total += fr["func"](age_years, *fr["params"])
+                        total += max(0, fr["func"](age_years, *fr["params"]))
                 proj.append(total)
 
             ax.plot(future_dates, proj, "--", color=color, linewidth=2,
@@ -584,7 +625,7 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
                         va="bottom", ha="right", color="black", alpha=0.7)
 
             # Same/diff lab saturation
-            if not split_labs and diff_delays and same_delays:
+            if show_lab_background and not split_labs and diff_delays and same_delays:
                 for bg_label, bg_color, bg_delays_m in [
                     ("Different lab", "#2E7D32", diff_delays),
                     ("Same lab", "#7B1FA2", same_delays),
@@ -599,7 +640,7 @@ def plot_model_2x2(delays, created, datasets, output_path, archive_name="Archive
                                 va="bottom", ha="right", color=bg_color, alpha=0.7)
 
         ax.set_xlabel("Date")
-        ax.set_ylabel(f"Est. cumulative {archive_name} reuse papers")
+        ax.set_ylabel(f"Est. cumulative {archive_name} reuse events")
         ax.set_title("D. Projected Reuse", fontweight="bold")
         ax.legend(fontsize=8, frameon=False)
         ax.spines["top"].set_visible(False)

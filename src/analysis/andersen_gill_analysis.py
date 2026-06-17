@@ -330,8 +330,8 @@ def plot_forest(results_path="output/andersen_gill_results.json"):
         "is_cc0": "CC-0 license\n(vs CC-BY)",
     }
 
-    # Order by effect size descending
-    order = sorted(covs.keys(), key=lambda c: -covs[c]["hr"])
+    # Order by effect size ascending (most positive at top)
+    order = sorted(covs.keys(), key=lambda c: covs[c]["hr"])
 
     y_pos = np.arange(len(order))
     hr = np.array([covs[c]["hr"] for c in order])
@@ -349,25 +349,22 @@ def plot_forest(results_path="output/andersen_gill_results.json"):
         ax.plot([ci_lo[i], ci_hi[i]], [y_pos[i], y_pos[i]], color=colors[i], linewidth=2.5, solid_capstyle="round")
     ax.scatter(hr, y_pos, color=colors, s=90, zorder=3, edgecolors="white", linewidth=0.5)
     ax.axvline(1.0, color="gray", linestyle="--", linewidth=1, zorder=1)
-    ax.set_xscale("log")
 
     # Add significance stars on right
     for i, (h, p) in enumerate(zip(hr, pvals)):
         sig = "***" if p < 0.001 else "**" if p < 0.01 else "*" if p < 0.05 else ""
         if sig:
-            ax.text(ci_hi[i] * 1.1, i, sig, va="center", fontsize=10, fontweight="bold",
+            ax.text(ci_hi[i] + 0.15, i, sig, va="center", fontsize=10, fontweight="bold",
                     color="#2E7D32" if h > 1 else "#E53935")
 
     ax.set_yticks(y_pos)
     ax.set_yticklabels(names, fontsize=9)
-    ax.set_xlabel("Hazard Ratio (log scale)", fontsize=11)
+    ax.set_xlabel("Reuse Rate Ratio", fontsize=11)
     ax.set_title("Predictors of Different-Lab Reuse\nAndersen-Gill Cox Proportional Hazards",
                  fontsize=11, fontweight="bold")
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
-    ax.set_xticks([0.1, 0.2, 0.5, 1, 2, 5, 10])
-    ax.set_xticklabels(["0.1", "0.2", "0.5", "1", "2", "5", "10"])
-    ax.grid(axis="x", alpha=0.2, which="both")
+    ax.grid(axis="x", alpha=0.2)
 
     # Shade regions
     ax.axvspan(ax.get_xlim()[0], 1.0, alpha=0.03, color="#E53935", zorder=0)
