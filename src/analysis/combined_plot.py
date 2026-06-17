@@ -117,7 +117,7 @@ def plot_combined(reuse, delays, created, output_path, archive_name="Archive",
     ax.barh(range(len(names)), counts_a, color="black")
     ax.set_yticks(range(len(names)))
     ax.set_yticklabels(names, fontsize=9)
-    ax.set_xlabel("REUSE papers")
+    ax.set_xlabel("REUSE events")
     ax.invert_yaxis()
     ax.grid(axis="x", alpha=0.3)
 
@@ -138,8 +138,9 @@ def plot_combined(reuse, delays, created, output_path, archive_name="Archive",
     ax.barh(range(len(j_names)), j_counts, color=colors_j)
     ax.set_yticks(range(len(j_names)))
     ax.set_yticklabels(j_names, fontsize=8)
-    ax.set_xlabel("REUSE papers")
+    ax.set_xlabel("REUSE events")
     ax.invert_yaxis()
+    ax.grid(axis="x", alpha=0.3)
 
     # === Panel C: Cumulative Reuse (stacked area by source archive) ===
     ax = fig.add_subplot(gs[1, 0])
@@ -183,7 +184,7 @@ def plot_combined(reuse, delays, created, output_path, archive_name="Archive",
         ax.fill_between(sorted_dates, cum_archive + cum_unclear, cum_archive + cum_unclear + cum_other, alpha=0.7, color="#9E9E9E", label="Other")
         ax.legend(fontsize=8, frameon=False)
     ax.set_xlabel("Date")
-    ax.set_ylabel("Cumulative reuse papers")
+    ax.set_ylabel("Cumulative reuse events")
     ax.grid(axis="y", alpha=0.3)
 
     # === Panel D: Reuse by Year (stacked by source archive) ===
@@ -217,7 +218,8 @@ def plot_combined(reuse, delays, created, output_path, archive_name="Archive",
         ax.legend(fontsize=8, frameon=False)
         ax.set_xticks([y for y in all_years if y % 2 == 0])
     ax.set_xlabel("Year")
-    ax.set_ylabel("Reuse papers")
+    ax.set_ylabel("Reuse events")
+    ax.grid(axis="y", alpha=0.3)
 
     # Panel labels and despine
     all_axes = list(fig.axes)

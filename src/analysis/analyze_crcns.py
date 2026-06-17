@@ -26,7 +26,7 @@ OUTPUT_DIR = Path("output/crcns")
 FIGURES_DIR = OUTPUT_DIR / "figures"
 FIGURES_DIR.mkdir(parents=True, exist_ok=True)
 
-ANALYSIS_CUTOFF = datetime(2025, 10, 7)
+ANALYSIS_CUTOFF = datetime(2026, 4, 19)
 
 
 def load_data():
@@ -644,7 +644,7 @@ def run_andersen_gill(classifications, created, datasets):
         "rec_intracellular": "Intracellular recording\n(vs other type)",
     }
 
-    order = sorted(covariates, key=lambda c: -results["covariates"][c]["hr"])
+    order = sorted(covariates, key=lambda c: results["covariates"][c]["hr"])
     y_pos = np.arange(len(order))
     hr = np.array([results["covariates"][c]["hr"] for c in order])
     ci_lo = np.array([results["covariates"][c]["hr_lower"] for c in order])
@@ -675,7 +675,7 @@ def run_andersen_gill(classifications, created, datasets):
 
     ax.set_yticks(y_pos)
     ax.set_yticklabels(names, fontsize=9)
-    ax.set_xlabel("Hazard Ratio (log scale)", fontsize=11)
+    ax.set_xlabel("Reuse Rate Ratio (log scale)", fontsize=11)
     ax.set_title("Predictors of Different-Lab Reuse (CRCNS)\nAndersen-Gill Cox Proportional Hazards",
                  fontsize=11, fontweight="bold")
     ax.spines["top"].set_visible(False)
@@ -697,39 +697,40 @@ def main():
     print(f"Datasets with creation dates: {len(created)}")
 
     delays = compute_delays(reuse, created)
-    print(f"Delays computed: {len(delays)}")
+    print(f"Delays computed (all): {len(delays)}")
 
-    plot_source_archives(reuse)
-    plot_reuse_by_year(reuse_diff, reuse_same)
-    plot_cumulative_reuse(reuse_diff, reuse_same)
-    plot_mcf(delays, created, "different")
-    plot_mcf(delays, created, "same")
-    plot_mcf_modeled(delays, created)
+    # Filter to CRCNS-sourced reuse for modeling
+    reuse_crcns = [c for c in reuse if c.get("source_archive") == "CRCNS"]
+    reuse_crcns_diff = [c for c in reuse_crcns if c.get("same_lab") is False]
+    reuse_crcns_same = [c for c in reuse_crcns if c.get("same_lab") is True]
+    delays_crcns = compute_delays(reuse_crcns, created)
+    print(f"CRCNS-sourced REUSE: {len(reuse_crcns)} (diff: {len(reuse_crcns_diff)}, same: {len(reuse_crcns_same)})")
+    print(f"Delays (CRCNS-sourced): {len(delays_crcns)}")
+
     plot_reuse_type(reuse)
     plot_top_datasets(reuse, datasets)
 
-    # 2x2 modeling figure (shared method)
+    # 2x2 modeling figure — CRCNS-sourced reuse only
     from .reuse_modeling import plot_model_2x2
-    plot_model_2x2(delays, created, datasets, FIGURES_DIR / "reuse_rate_model.png",
-                   archive_name="CRCNS", analysis_cutoff=ANALYSIS_CUTOFF, split_labs=False,
-                   project_years=6)
+    plot_model_2x2(delays_crcns, created, datasets, FIGURES_DIR / "reuse_rate_model.png",
+                   archive_name="CRCNS", analysis_cutoff=ANALYSIS_CUTOFF, split_labs=True,
+                   project_years=10, mcf_xlim=20, show_rate_model=True,
+                   show_k_lines=False)
 
-    # 6-panel combined figures (shared method)
+    # 6-panel combined figure (shared method)
     from .combined_plot import plot_combined
     plot_combined(reuse, delays, created, FIGURES_DIR / "combined_all_labs.png",
                   archive_name="CRCNS", analysis_cutoff=ANALYSIS_CUTOFF, lab_type="all")
-    plot_combined(reuse, delays, created, FIGURES_DIR / "combined_different_lab.png",
-                  archive_name="CRCNS", analysis_cutoff=ANALYSIS_CUTOFF, lab_type="different")
-    plot_combined(reuse, delays, created, FIGURES_DIR / "combined_same_lab.png",
-                  archive_name="CRCNS", analysis_cutoff=ANALYSIS_CUTOFF, lab_type="same")
-
-    # Reuse count distribution
-    from .reuse_distribution import plot_reuse_distribution
-    plot_reuse_distribution(reuse, created, FIGURES_DIR / "reuse_distribution.png",
-                            archive_name="CRCNS", analysis_cutoff=ANALYSIS_CUTOFF,
-                            windows=(5, None))
 
     run_andersen_gill(classifications, created, datasets)
+
+    # Pipeline combined diagram
+    from .render_flowcharts import render_phase1, render_phase2, render_reference_flow, render_direct_ref_flow
+    render_reference_flow(str(OUTPUT_DIR / "classifications.json"), str(FIGURES_DIR / "reference_flow.png"), "CRCNS")
+    if (OUTPUT_DIR / "direct_refs.json").exists():
+        render_direct_ref_flow(str(OUTPUT_DIR / "direct_refs.json"),
+                               str(OUTPUT_DIR / "direct_ref_classifications.json"),
+                               str(FIGURES_DIR / "direct_ref_flow.png"), "CRCNS")
 
     print(f"\nAll figures saved to {FIGURES_DIR}/")
 

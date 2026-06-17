@@ -189,6 +189,88 @@ def render_reference_flow(classifications_path, output_path, archive_name="Archi
     print(f"Rendered {output_path}")
 
 
+def render_direct_ref_flow(direct_refs_path, direct_cls_path, output_path, archive_name="Archive"):
+    """Direct reference discovery pipeline flowchart."""
+    with open(direct_refs_path) as f:
+        refs = json.load(f)
+    with open(direct_cls_path) as f:
+        cls = json.load(f)
+
+    results = refs.get("results", refs if isinstance(refs, list) else [])
+    total_papers = len(results)
+
+    # Papers with archive matches
+    archive_key = archive_name
+    papers_with_matches = sum(1 for r in results
+                              if any(r.get("archives", {}).get(k, {}).get("dataset_ids")
+                                     for k in r.get("archives", {})))
+
+    # Text fetched
+    with_text = sum(1 for r in results if r.get("text_length", 0) and r["text_length"] > 200)
+    no_text = total_papers - with_text
+
+    # Classification counts
+    classifications = cls.get("classifications", [])
+    counts = Counter(c["classification"] for c in classifications)
+    total_pairs = len(classifications)
+
+    dot = graphviz.Digraph(f"direct_{archive_name.lower()}", format="png")
+    dot.attr(fontname="Helvetica", fontsize="12", bgcolor="white",
+             dpi="150", pad="0.4", ranksep="0.6", nodesep="0.5")
+    dot.attr("node", fontname="Helvetica", fontsize="10", margin="0.15,0.08",
+             shape="box", style="filled,rounded", penwidth="1.5")
+    dot.attr("edge", fontname="Helvetica", fontsize="9", penwidth="1.2", arrowsize="0.8")
+
+    dot.node("SEARCH", f"Search for papers mentioning\n{archive_name}",
+             fillcolor="#e3f2fd", color="#1565c0", fontcolor="#0d47a1",
+             fontsize="13", penwidth="2.5", style="filled,rounded,bold")
+
+    dot.node("FOUND", f"Papers found\n{total_papers}",
+             fillcolor="#e3f2fd", color="#1565c0", fontcolor="#0d47a1", penwidth="2")
+    dot.edge("SEARCH", "FOUND", color="#1565c0")
+
+    with dot.subgraph() as s:
+        s.attr(rank="same")
+        s.node("TEXT", f"Full text retrieved\n{with_text} papers",
+               fillcolor="#c8e6c9", color="#2e7d32", fontcolor="#1b5e20", penwidth="2")
+        s.node("NOTEXT", f"No text\n{no_text} papers",
+               fillcolor="#ffcdd2", color="#c62828", fontcolor="#b71c1c")
+    dot.edge("FOUND", "TEXT", label=f"  {with_text}  ", color="#2e7d32", fontcolor="#2e7d32")
+    dot.edge("FOUND", "NOTEXT", label=f"  {no_text}  ", color="#c62828", fontcolor="#c62828")
+
+    no_match = with_text - papers_with_matches
+    with dot.subgraph() as s:
+        s.attr(rank="same")
+        s.node("MATCHED", f"Papers with dataset references\n{papers_with_matches}",
+               fillcolor="#c8e6c9", color="#2e7d32", fontcolor="#1b5e20", penwidth="2")
+        s.node("NOMATCH", f"No dataset reference\n{no_match} papers",
+               fillcolor="#ffcdd2", color="#c62828", fontcolor="#b71c1c")
+    dot.edge("TEXT", "MATCHED", label=f"  {papers_with_matches}  ", color="#2e7d32", fontcolor="#2e7d32")
+    dot.edge("TEXT", "NOMATCH", label=f"  {no_match}  ", color="#c62828", fontcolor="#c62828")
+
+    dot.node("LLM", f"LLM classification\n{total_pairs} paper-dataset pairs",
+             fillcolor="#e8d5f5", color="#7b1fa2", fontcolor="#4a148c", penwidth="2")
+    dot.edge("MATCHED", "LLM", color="#7b1fa2")
+
+    with dot.subgraph() as s:
+        s.attr(rank="same")
+        n_reuse = counts.get("REUSE", 0)
+        n_primary = counts.get("PRIMARY", 0)
+        n_neither = counts.get("NEITHER", 0)
+        s.node("REUSE", f"REUSE\n{n_reuse}",
+               fillcolor="#2196F3", color="#1565c0", fontcolor="white", fontsize="11", penwidth="2")
+        s.node("PRIMARY", f"PRIMARY\n{n_primary}",
+               fillcolor="#c8e6c9", color="#2e7d32", fontcolor="#1b5e20", fontsize="11", penwidth="2")
+        s.node("NEITHER", f"NEITHER\n{n_neither}",
+               fillcolor="#eeeeee", color="#616161", fontcolor="#424242", fontsize="11", penwidth="2")
+    dot.edge("LLM", "REUSE", label=f"  {n_reuse}  ", color="#2196F3", fontcolor="#1565c0", penwidth="2")
+    dot.edge("LLM", "PRIMARY", label=f"  {n_primary}  ", color="#2e7d32", fontcolor="#2e7d32")
+    dot.edge("LLM", "NEITHER", label=f"  {n_neither}  ", color="#616161", fontcolor="#616161")
+
+    dot.render(str(output_path).replace(".png", ""), cleanup=True)
+    print(f"Rendered {output_path}")
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--archive", required=True)
