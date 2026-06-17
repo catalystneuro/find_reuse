@@ -1014,19 +1014,25 @@ class ArchiveFinder:
             self.log("No ELSEVIER_API_KEY found, skipping Scopus search")
             return []
 
-        # Build Scopus query from search terms
-        # Use specific/unique terms (URLs, DOI prefixes) to avoid broad matches.
-        # Generic names like "SPARC" or "CRCNS" are too ambiguous for ALL() search.
+        # Build Scopus query from search terms. URLs and DOI prefixes are always
+        # specific enough to use directly.
         query_parts = []
         for url in search_terms.get('urls', []):
             query_parts.append(f'"{url}"')
         for prefix in search_terms.get('doi_prefixes', []):
             query_parts.append(f'"{prefix}"')
-        # Use scopus_terms if provided, otherwise fall back to search_terms
-        # but only include multi-word terms to avoid broad single-word matches
-        for term in search_terms.get('scopus_terms', search_terms.get('search_terms', [])):
-            if ' ' in term or len(term) > 8:  # skip short/ambiguous terms
+        # An adapter may declare a curated `scopus_terms` allowlist of names that
+        # are distinctive enough for full-text ALL() search (e.g. "CRCNS"); these
+        # are trusted verbatim. Without a curated list, fall back to generic
+        # search_terms but drop short single-word tokens, which tend to be
+        # ambiguous acronyms (e.g. "SPARC" collides with the SPARC protein).
+        if search_terms.get('scopus_terms'):
+            for term in search_terms['scopus_terms']:
                 query_parts.append(f'"{term}"')
+        else:
+            for term in search_terms.get('search_terms', []):
+                if ' ' in term or len(term) > 8:
+                    query_parts.append(f'"{term}"')
 
         if not query_parts:
             return []
