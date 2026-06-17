@@ -15,6 +15,7 @@ Usage:
 
 import argparse
 import json
+import re
 import sys
 import time
 from collections import defaultdict
@@ -191,6 +192,59 @@ def deduplicate(classifications, dry_run=False):
     return kept
 
 
+# eLife publishes a paper under a base DOI (10.7554/eLife.NNNNN, the version of
+# record) plus per-version DOIs (…NNNNN.1, .2, .3). These are the same work and
+# should not be counted separately.
+_ELIFE_RE = re.compile(r"^(10\.7554/elife\.\d+)(?:\.(\d+))?$", re.IGNORECASE)
+
+# Preference order when collapsing duplicate versions of one work: keep the
+# entry carrying the strongest evidence so a REUSE is never dropped in favor of
+# a MENTION on another version.
+_CLASS_RANK = {"REUSE": 4, "PRIMARY": 3, "MENTION": 2, "NEITHER": 1}
+
+
+def _elife_base(doi):
+    """Return the version-stripped eLife base DOI, or None if not an eLife DOI."""
+    m = _ELIFE_RE.match((doi or "").strip())
+    return m.group(1).lower() if m else None
+
+
+def _keep_rank(c):
+    """Sort key for choosing which entry of a versioned group to keep."""
+    return (
+        _CLASS_RANK.get(c.get("classification"), 0),
+        c.get("text_length") or 0,
+        c.get("confidence") or 0,
+    )
+
+
+def collapse_elife_versions(classifications, dry_run=False):
+    """Collapse eLife versioned DOIs (…NNNNN.1/.2/.3 and base) to one entry.
+
+    Versions are grouped per (base DOI, dandiset_id) — a paper may legitimately
+    reuse several dandisets — and the entry with the strongest classification is
+    kept (ties broken by text length, then confidence).
+    """
+    groups = defaultdict(list)
+    for i, c in enumerate(classifications):
+        base = _elife_base(c.get("citing_doi", ""))
+        if base:
+            groups[(base, c.get("dandiset_id", ""))].append(i)
+
+    remove = set()
+    for indices in groups.values():
+        if len(indices) <= 1:
+            continue
+        keep = max(indices, key=lambda i: _keep_rank(classifications[i]))
+        remove.update(i for i in indices if i != keep)
+
+    if dry_run:
+        print(f"Would collapse {len(remove)} eLife version duplicates", file=sys.stderr)
+        return classifications
+
+    return [c for i, c in enumerate(classifications) if i not in remove]
+
+
 def main():
     parser = argparse.ArgumentParser(description="Deduplicate preprint/published pairs")
     parser.add_argument("--dry-run", action="store_true", help="Show what would be removed")
@@ -204,6 +258,7 @@ def main():
 
     before = len(data["classifications"])
     data["classifications"] = deduplicate(data["classifications"], dry_run=args.dry_run)
+    data["classifications"] = collapse_elife_versions(data["classifications"], dry_run=args.dry_run)
     after = len(data["classifications"])
 
     if args.dry_run:
