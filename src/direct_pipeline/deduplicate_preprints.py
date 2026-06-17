@@ -52,7 +52,10 @@ def resolve_preprint_doi(preprint_doi, session, cache):
     Uses bioRxiv/medRxiv API first, falls back to OpenAlex.
     Returns the published DOI or None.
     """
-    if preprint_doi in cache:
+    # Only trust a positive (resolved) cache entry. A falsy entry means we
+    # previously found no published version — but the preprint may have been
+    # published since, so re-resolve rather than trusting a stale negative.
+    if cache.get(preprint_doi):
         return cache[preprint_doi]
 
     published_doi = None
@@ -98,7 +101,10 @@ def resolve_preprint_doi(preprint_doi, session, cache):
         except Exception:
             pass
 
-    cache[preprint_doi] = published_doi
+    # Only cache positive resolutions. Caching None would pin an unpublished
+    # preprint permanently, so it would never be re-checked once it is published.
+    if published_doi:
+        cache[preprint_doi] = published_doi
     return published_doi
 
 
@@ -126,10 +132,11 @@ def deduplicate(classifications, dry_run=False):
     n_resolved = 0
     n_cached = 0
     for i, doi in enumerate(sorted(preprint_dois)):
-        if doi in cache:
+        # Trust only positive cache hits; re-resolve falsy (previously
+        # unpublished) entries in case the preprint has since been published.
+        if cache.get(doi):
             n_cached += 1
-            if cache[doi]:
-                doi_map[doi] = cache[doi]
+            doi_map[doi] = cache[doi]
             continue
 
         published = resolve_preprint_doi(doi, session, cache)
