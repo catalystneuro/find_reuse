@@ -5,6 +5,7 @@ Mirrors fetch_and_classify_new.py but uses CRCNS-specific paths.
 """
 
 import json
+import re
 import subprocess
 import sys
 from collections import Counter
@@ -94,6 +95,14 @@ print("\n=== Step 5: Merge ===", file=sys.stderr, flush=True)
 with open(cite_cls_file) as f:
     cite_data = json.load(f)
 
+# Remove DANDI ID leakage from shared classification cache
+before_leak = len(cite_data["classifications"])
+cite_data["classifications"] = [c for c in cite_data["classifications"]
+                                 if not re.match(r"^\d{6}$", c.get("dandiset_id", ""))]
+n_leaked = before_leak - len(cite_data["classifications"])
+if n_leaked:
+    print(f"Removed {n_leaked} DANDI-leaked entries from citation classifications", file=sys.stderr)
+
 for c in cite_data["classifications"]:
     c["source_type"] = "citation"
 
@@ -153,7 +162,6 @@ subprocess.run([
 
 # Step 7: Set source_archive=CRCNS for papers that cite CRCNS datasets directly
 print("\n=== Step 7: Assign CRCNS archive for direct dataset citations ===", file=sys.stderr, flush=True)
-import re
 with open(CLASSIFICATIONS_FILE) as f:
     cls_data = json.load(f)
 
