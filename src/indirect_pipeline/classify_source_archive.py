@@ -375,7 +375,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.input:
-        global CLASSIFICATIONS_FILE
         CLASSIFICATIONS_FILE = Path(args.input)
 
     classify_source_archives(resolve_unclear=args.resolve_unclear, write=args.write)
