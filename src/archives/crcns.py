@@ -24,6 +24,9 @@ class CRCNSAdapter(ArchiveAdapter):
         "names": ["crcns"],
         "urls": ["crcns.org"],
         "search_terms": ["CRCNS"],
+        # "CRCNS" is a distinctive acronym (no common collisions), so it is safe
+        # for Scopus full-text ALL() search unlike short ambiguous archive names.
+        "scopus_terms": ["CRCNS"],
         "doi_prefixes": ["10.6080"],
     }
     dataset_patterns = [
