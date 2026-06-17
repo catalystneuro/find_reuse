@@ -6,6 +6,7 @@ library functions used by `run_minimal_pipeline.py` and
 """
 
 import json
+import os
 import sys
 import time
 from datetime import datetime
@@ -259,6 +260,97 @@ def get_citing_papers(
     return citing_papers
 
 
+def _get_semantic_scholar_api_key() -> Optional[str]:
+    """Read SEMANTIC_SCHOLAR_API_KEY from env or .env (optional; raises rate limits)."""
+    key = os.environ.get('SEMANTIC_SCHOLAR_API_KEY')
+    if not key:
+        env_file = Path('.env')
+        if env_file.exists():
+            for line in env_file.read_text().splitlines():
+                if line.startswith('SEMANTIC_SCHOLAR_API_KEY='):
+                    key = line.split('=', 1)[1].strip().strip('"').strip("'")
+                    break
+    return key or None
+
+
+def get_semantic_scholar_citing_papers(
+    session: requests.Session,
+    doi: str,
+    after_date: str,
+    max_results: int = 10,
+    api_key: Optional[str] = None,
+    rate_limit: float = 1.0,
+) -> list[dict]:
+    """Find papers citing `doi` via the Semantic Scholar Graph API.
+
+    Complements OpenAlex citation discovery. Returns dicts in the same shape as
+    get_citing_papers (openalex_id is None). Papers published on or before
+    after_date are skipped when a publication date is available; entries without
+    a date are kept (the classifier sorts them out). Returns [] if the paper is
+    not in Semantic Scholar (404) or on persistent errors — never raises.
+    """
+    headers = {'x-api-key': api_key} if api_key else {}
+    citing_papers: list[dict] = []
+    offset = 0
+    page = min(1000, max(max_results, 100))
+    retries = 0
+
+    while len(citing_papers) < max_results:
+        try:
+            resp = session.get(
+                f"https://api.semanticscholar.org/graph/v1/paper/DOI:{doi}/citations",
+                params={'fields': 'externalIds,title,publicationDate,venue',
+                        'limit': page, 'offset': offset},
+                headers=headers, timeout=30,
+            )
+        except requests.RequestException:
+            break
+
+        if resp.status_code == 404:
+            break  # primary paper not indexed by Semantic Scholar
+        if resp.status_code == 429 and retries < 5:
+            retries += 1
+            time.sleep(2 * retries)
+            continue
+        if resp.status_code != 200:
+            break
+        retries = 0
+
+        data = resp.json()
+        items = data.get('data', [])
+        if not items:
+            break
+
+        for item in items:
+            cp = item.get('citingPaper') or {}
+            ext = cp.get('externalIds') or {}
+            c_doi = (ext.get('DOI') or '').replace('https://doi.org/', '').lower()
+            if not c_doi:
+                continue
+            pub_date = cp.get('publicationDate')
+            if after_date and pub_date and pub_date <= after_date:
+                continue
+            citing_papers.append({
+                'doi': c_doi,
+                'title': cp.get('title', ''),
+                'publication_date': pub_date,
+                'journal': cp.get('venue'),
+                'openalex_id': None,
+                'source': 'semantic_scholar',
+            })
+            if len(citing_papers) >= max_results:
+                break
+
+        next_offset = data.get('next')
+        if next_offset and items:
+            offset = next_offset
+            time.sleep(rate_limit)
+        else:
+            break
+
+    return citing_papers
+
+
 def _make_openalex_session() -> requests.Session:
     session = requests.Session()
     session.headers.update({
@@ -272,13 +364,16 @@ def find_citing_papers(
     session: requests.Session,
     max_citing_papers_per_dandiset: int,
     rate_limit: float = 0.1,
+    use_semantic_scholar: bool = True,
 ) -> list[dict]:
-    """Populate `result['citing_papers']` with citing-paper metadata via OpenAlex.
+    """Populate `result['citing_papers']` with citing-paper metadata.
 
     Mutates `result` in place and returns the populated list. Does not fetch
     full text. Looks up alternate (preprint↔published) DOI versions for each
     primary paper and queries OpenAlex for papers citing them after the
-    dataset creation date.
+    dataset creation date. When `use_semantic_scholar` is True, supplements
+    OpenAlex with Semantic Scholar citation discovery (deduped by DOI), which
+    also runs for primary papers OpenAlex has no record of.
     """
     ds_created_str = result.get('dandiset_created')
     if not ds_created_str:
@@ -294,12 +389,25 @@ def find_citing_papers(
 
     all_citing = []
     seen_citing_dois = set()
+    s2_api_key = _get_semantic_scholar_api_key() if use_semantic_scholar else None
+
+    def _add(citing, cited_doi):
+        """Merge citing-paper dicts into all_citing, deduped by lowercased DOI."""
+        for c in citing:
+            c_doi = (c.get('doi') or '').lower()
+            if c_doi and c_doi not in seen_citing_dois:
+                c.setdefault('source', 'openalex')
+                c['cited_paper_doi'] = cited_doi
+                all_citing.append(c)
+                seen_citing_dois.add(c_doi)
 
     for paper in result['paper_relations']:
         doi = paper.get('doi')
         if not doi:
             continue
 
+        # Collect this paper's DOI versions (primary + preprint/published alt)
+        version_dois = [doi]
         openalex_ids = []
 
         openalex_data = get_openalex_paper_data(session, doi)
@@ -308,27 +416,31 @@ def find_citing_papers(
 
         alt_doi = get_alternate_doi(session, doi)
         if alt_doi:
+            version_dois.append(alt_doi)
             alt_data = get_openalex_paper_data(session, alt_doi)
             if alt_data and alt_data.get('openalex_id'):
                 openalex_ids.append((alt_data['openalex_id'], alt_doi))
 
-        if not openalex_ids:
-            continue
-
+        # OpenAlex citation discovery
         for oa_id, version_doi in openalex_ids:
             citing = get_citing_papers(
                 session, oa_id, from_date,
                 max_results=max_citing_papers_per_dandiset,
             )
-
-            for c in citing:
-                c_doi = c.get('doi')
-                if c_doi and c_doi not in seen_citing_dois:
-                    c['cited_paper_doi'] = doi
-                    all_citing.append(c)
-                    seen_citing_dois.add(c_doi)
-
+            _add(citing, doi)
             time.sleep(rate_limit)
+
+        # Semantic Scholar supplement — runs even when OpenAlex has no record,
+        # which is where it adds the most (sparse-OpenAlex primary papers).
+        if use_semantic_scholar and len(all_citing) < max_citing_papers_per_dandiset:
+            for version_doi in version_dois:
+                if len(all_citing) >= max_citing_papers_per_dandiset:
+                    break
+                s2_citing = get_semantic_scholar_citing_papers(
+                    session, version_doi, from_date,
+                    max_results=max_citing_papers_per_dandiset, api_key=s2_api_key,
+                )
+                _add(s2_citing, doi)
 
         if len(all_citing) >= max_citing_papers_per_dandiset:
             break
