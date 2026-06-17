@@ -216,15 +216,15 @@ def classify_direct_reference(
             return result
     except Exception as e:
         return {
-            "classification": "REUSE",
-            "confidence": 1,
+            "classification": "ERROR",
+            "confidence": 0,
             "reasoning": f"LLM error: {e}",
         }
 
     return {
-        "classification": "REUSE",
-        "confidence": 1,
-        "reasoning": "Failed to get LLM classification",
+        "classification": "ERROR",
+        "confidence": 0,
+        "reasoning": "Failed to get LLM classification (no valid response)",
     }
 
 
@@ -349,7 +349,9 @@ def convert(input_file: Path, output_file: Path, classify: bool = True, model: s
             context_excerpts = extract_contexts_for_dataset(text, ds_id)
 
         cls_result = classify_direct_reference(doi, ds_id, context_excerpts, api_key, model, archive=archive)
-        save_classification_cache(doi, ds_id, cls_result)
+        # Do not cache errors (e.g. API failures) so they are retried next run
+        if cls_result.get("classification") != "ERROR":
+            save_classification_cache(doi, ds_id, cls_result)
         return ("api", r, ds_id, ds_matches, cls_result)
 
     # Process pairs in parallel
@@ -374,7 +376,7 @@ def convert(input_file: Path, output_file: Path, classify: bool = True, model: s
             doi = r["doi"]
             pattern_types = sorted(set(m["pattern_type"] for m in ds_matches))
 
-            classification = cls_result.get("classification", "REUSE")
+            classification = cls_result.get("classification", "ERROR")
             confidence = cls_result.get("confidence", 5)
             reasoning = cls_result.get("reasoning", "")
             same_lab = cls_result.get("same_lab")
