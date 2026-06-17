@@ -3,18 +3,26 @@
 deduplicate_preprints.py — Remove preprint/published duplicate entries from classifications.
 
 When a paper exists as both a preprint (bioRxiv/medRxiv/arXiv) and a published journal
-article, both may appear as separate citing papers. This script keeps the journal version
-and removes the preprint duplicate, matching by normalized title + dandiset_id.
+article, both may appear as separate citing papers. This script uses preprint server
+metadata (bioRxiv/medRxiv API, OpenAlex) to find the published DOI, then removes the
+preprint entry if the journal version is already in the classifications.
 
 Usage:
     python deduplicate_preprints.py
-    python deduplicate_preprints.py --dry-run   # show what would be removed
+    python deduplicate_preprints.py --dry-run
+    python deduplicate_preprints.py --input output/crcns/classifications.json
 """
 
 import argparse
 import json
 import sys
+import time
 from collections import defaultdict
+from pathlib import Path
+
+import requests
+
+CACHE_FILE = Path(".preprint_doi_map.json")
 
 
 def is_preprint_doi(doi):
@@ -24,36 +32,139 @@ def is_preprint_doi(doi):
             or "10.21203/" in doi_lower or "10.2139/" in doi_lower)
 
 
-def normalize_title(title):
-    """Normalize title for matching."""
-    return (title or "").strip().lower()
+def _load_doi_cache():
+    """Load cached preprint -> published DOI mapping."""
+    if CACHE_FILE.exists():
+        with open(CACHE_FILE) as f:
+            return json.load(f)
+    return {}
+
+
+def _save_doi_cache(cache):
+    """Save preprint -> published DOI mapping."""
+    with open(CACHE_FILE, "w") as f:
+        json.dump(cache, f, indent=2)
+
+
+def resolve_preprint_doi(preprint_doi, session, cache):
+    """Resolve a preprint DOI to its published journal DOI.
+
+    Uses bioRxiv/medRxiv API first, falls back to OpenAlex.
+    Returns the published DOI or None.
+    """
+    if preprint_doi in cache:
+        return cache[preprint_doi]
+
+    published_doi = None
+    doi_lower = preprint_doi.lower()
+
+    # bioRxiv / medRxiv API
+    if "10.1101/" in doi_lower:
+        for server in ["biorxiv", "medrxiv"]:
+            try:
+                resp = session.get(
+                    f"https://api.biorxiv.org/details/{server}/{preprint_doi}",
+                    timeout=10,
+                )
+                if resp.status_code == 200:
+                    data = resp.json()
+                    for entry in data.get("collection", []):
+                        pub = entry.get("published", "")
+                        if pub and pub != "NA":
+                            published_doi = pub
+                            break
+                if published_doi:
+                    break
+            except Exception:
+                pass
+
+    # Fallback: OpenAlex
+    if not published_doi:
+        try:
+            resp = session.get(
+                f"https://api.openalex.org/works/doi:{preprint_doi}",
+                timeout=10,
+            )
+            if resp.status_code == 200:
+                work = resp.json()
+                # Check locations for a non-preprint version
+                for loc in work.get("locations", []):
+                    source = loc.get("source") or {}
+                    if source.get("type") == "journal":
+                        loc_doi = loc.get("doi", "")
+                        if loc_doi and loc_doi != preprint_doi:
+                            published_doi = loc_doi.replace("https://doi.org/", "")
+                            break
+        except Exception:
+            pass
+
+    cache[preprint_doi] = published_doi
+    return published_doi
 
 
 def deduplicate(classifications, dry_run=False):
-    """Remove preprint duplicates, preferring journal versions."""
-    # Group by (normalized_title, dandiset_id)
-    groups = defaultdict(list)
-    for i, c in enumerate(classifications):
-        title = normalize_title(c.get("citing_title", ""))
-        did = c.get("dandiset_id", "")
-        if title and len(title) > 20:
-            groups[(title, did)].append(i)
+    """Remove preprint duplicates using preprint server metadata."""
+    # Find all preprint DOIs
+    preprint_dois = set()
+    for c in classifications:
+        doi = c.get("citing_doi", "")
+        if is_preprint_doi(doi):
+            preprint_dois.add(doi)
 
-    remove_indices = set()
-    for (title, did), indices in groups.items():
-        if len(indices) <= 1:
+    if not preprint_dois:
+        return classifications
+
+    # Build set of all DOIs in classifications
+    all_dois = set(c.get("citing_doi", "") for c in classifications)
+
+    # Resolve preprint -> published DOI
+    cache = _load_doi_cache()
+    session = requests.Session()
+    session.headers.update({"User-Agent": "FindReuse/1.0"})
+
+    doi_map = {}  # preprint_doi -> published_doi
+    n_resolved = 0
+    n_cached = 0
+    for i, doi in enumerate(sorted(preprint_dois)):
+        if doi in cache:
+            n_cached += 1
+            if cache[doi]:
+                doi_map[doi] = cache[doi]
             continue
 
-        entries = [(i, classifications[i]) for i in indices]
-        preprint_indices = [i for i, c in entries if is_preprint_doi(c["citing_doi"])]
-        journal_indices = [i for i, c in entries if not is_preprint_doi(c["citing_doi"])]
+        published = resolve_preprint_doi(doi, session, cache)
+        if published:
+            doi_map[doi] = published
+            n_resolved += 1
+        time.sleep(0.05)
 
-        if preprint_indices and journal_indices:
-            # Keep journal version(s), remove preprint version(s)
-            remove_indices.update(preprint_indices)
-        elif len(preprint_indices) > 1 and not journal_indices:
-            # Multiple preprints, no journal — keep the first
-            remove_indices.update(preprint_indices[1:])
+        if (i + 1) % 50 == 0:
+            _save_doi_cache(cache)
+            print(f"  Resolved {i+1}/{len(preprint_dois)}...", file=sys.stderr)
+
+    _save_doi_cache(cache)
+    print(f"  Preprints: {len(preprint_dois)}, resolved: {n_resolved}, cached: {n_cached}, "
+          f"with published version in data: {sum(1 for v in doi_map.values() if v.lower() in {d.lower() for d in all_dois})}",
+          file=sys.stderr)
+
+    # Find entries to remove: preprint entries where the published version
+    # is also present for the same dandiset_id
+    published_keys = set()
+    for c in classifications:
+        doi = c.get("citing_doi", "")
+        if not is_preprint_doi(doi):
+            did = c.get("dandiset_id", "")
+            published_keys.add((doi.lower(), did))
+
+    remove_indices = set()
+    for i, c in enumerate(classifications):
+        doi = c.get("citing_doi", "")
+        if doi not in doi_map:
+            continue
+        published_doi = doi_map[doi]
+        did = c.get("dandiset_id", "")
+        if (published_doi.lower(), did) in published_keys:
+            remove_indices.add(i)
 
     if dry_run:
         print(f"Would remove {len(remove_indices)} duplicate entries:")
@@ -65,7 +176,8 @@ def deduplicate(classifications, dry_run=False):
         print(f"\nExamples:")
         for i in sorted(remove_indices)[:10]:
             c = classifications[i]
-            print(f"  {c['citing_doi']} -> {c.get('dandiset_id', '')} ({c['classification']})")
+            pub = doi_map.get(c["citing_doi"], "?")
+            print(f"  {c['citing_doi']} -> {pub} ({c.get('dandiset_id', '')} {c['classification']})")
         return classifications
 
     kept = [c for i, c in enumerate(classifications) if i not in remove_indices]
@@ -75,9 +187,12 @@ def deduplicate(classifications, dry_run=False):
 def main():
     parser = argparse.ArgumentParser(description="Deduplicate preprint/published pairs")
     parser.add_argument("--dry-run", action="store_true", help="Show what would be removed")
+    parser.add_argument("--input", type=str, default=None,
+                        help="Input classifications file (default: output/all_classifications.json)")
     args = parser.parse_args()
 
-    with open("output/all_classifications.json") as f:
+    input_file = Path(args.input) if args.input else Path("output/all_classifications.json")
+    with open(input_file) as f:
         data = json.load(f)
 
     before = len(data["classifications"])
@@ -88,7 +203,7 @@ def main():
         return
 
     data["count"] = after
-    with open("output/all_classifications.json", "w") as f:
+    with open(input_file, "w") as f:
         json.dump(data, f, indent=2)
 
     print(f"Deduplicated: {before} -> {after} ({before - after} removed)", file=sys.stderr)
