@@ -39,6 +39,57 @@ DEFAULT_MODEL = "deepseek-v4-flash"
 
 VALID_CLASSIFICATIONS = frozenset({'REUSE', 'MENTION', 'NEITHER'})
 
+# Bumped whenever the prompt or the output schema changes. Cached results carry
+# the version they were produced under so a batch run can tell which entries are
+# stale rather than silently mixing outputs from two different questions.
+PROMPT_VERSION = 2
+
+# Reuse the archive vocabulary the citation pipeline already normalizes against,
+# so the two pathways produce comparable archive names rather than a second,
+# subtly different set.
+try:
+    from src.indirect_pipeline.classify_source_archive import (
+        CANONICAL_ARCHIVES, NORMALIZE_MAP,
+    )
+except ImportError:  # standalone use, e.g. the CLI from another directory
+    CANONICAL_ARCHIVES = {
+        "DANDI Archive", "CRCNS", "Figshare", "Allen Institute", "IBL",
+        "Zenodo", "Dryad", "OSF", "GIN", "OpenNeuro", "EBRAINS",
+        "Neural Latents Benchmark", "MICrONS Explorer", "Brain Image Library",
+        "NeuroMorpho.org", "GitHub", "Buzsaki Lab", "Lab website",
+        "MouseLight", "NEMO Archive", "AWS", "NIRD Research Data Archive",
+    }
+    NORMALIZE_MAP = {}
+
+ARCHIVE_UNCLEAR = 'unclear'
+
+
+def normalize_archive(value: str | None) -> Optional[str]:
+    """
+    Map a model-supplied archive name onto the canonical vocabulary.
+
+    Returns None when nothing usable was given, the canonical name when it is
+    recognized, and the cleaned free-text otherwise. Unrecognized names are kept
+    rather than discarded: a real archive the vocabulary has not seen yet is
+    more useful than a null, and it shows up as a candidate for the map.
+    """
+    if not value or not isinstance(value, str):
+        return None
+    cleaned = value.strip()
+    if not cleaned or cleaned.lower() in {'null', 'none', 'n/a', ARCHIVE_UNCLEAR}:
+        return None
+    if cleaned in CANONICAL_ARCHIVES:
+        return cleaned
+    if cleaned in NORMALIZE_MAP:
+        return NORMALIZE_MAP[cleaned]
+    lowered = {k.lower(): v for k, v in NORMALIZE_MAP.items()}
+    if cleaned.lower() in lowered:
+        return lowered[cleaned.lower()]
+    for canonical in CANONICAL_ARCHIVES:
+        if cleaned.lower() == canonical.lower():
+            return canonical
+    return cleaned
+
 # The model is a reasoning model, so completion tokens cover thinking as well as
 # the answer. Too small a budget truncates mid-JSON and yields an ERROR.
 DEFAULT_MAX_TOKENS = 8192
@@ -194,6 +245,8 @@ def build_prompt(
         target = "ANY EXTERNALLY-PUBLISHED DATASET THAT THE AUTHORS DID NOT COLLECT"
         described = ""
 
+    archive_list = '\n'.join(f'  - {a}' for a in sorted(CANONICAL_ARCHIVES))
+
     return f"""You are reading the full text of a scientific paper to determine whether its authors REUSED DATA from {target}.
 
 {described}
@@ -209,6 +262,17 @@ Evidence of REUSE typically appears in Methods, Data Availability, Results, or A
 
 A review, perspective, commentary, or editorial article does NOT reuse data, even when it describes datasets in detail. Classify those as MENTION.
 
+IF AND ONLY IF THE CLASSIFICATION IS REUSE, ALSO ANSWER THESE TWO
+For MENTION and NEITHER, set all three fields below to null.
+
+SAME LAB OR A DIFFERENT ONE?
+Compare the author list of this paper against the authors of the work whose data was reused. Set same_lab to true when the same group is reusing or extending its own data, and false when a different group is using someone else's. Judge this only from author overlap and statements like "our previously published dataset" or "data we collected in [citation]". Shared authorship is NOT itself evidence of reuse: decide the classification first, from the text, and answer this separately. Give same_lab_confidence from 1 to 10.
+
+WHICH ARCHIVE SUPPLIED THE DATA?
+Name where the data was actually obtained, using one of these names exactly when it applies:
+{archive_list}
+Use the name of another repository if the paper names one that is not on this list. Use "unclear" if the paper does not say where the data came from. Do not guess from the subject matter: name an archive only if the paper mentions it.
+
 EVIDENCE QUOTES — THIS IS THE CRITICAL REQUIREMENT
 You MUST quote the exact passage(s) from the paper that drove your judgement.
 - Copy the text CHARACTER FOR CHARACTER from the paper above. Do not paraphrase, summarize, correct, abridge, or join separated sentences.
@@ -222,7 +286,9 @@ Return ONLY a JSON object, no markdown fences and no commentary:
   "classification": "REUSE" | "MENTION" | "NEITHER",
   "confidence": <integer 1-10>,
   "evidence_quotes": ["<exact quote>", ...],
-  "source_archive": "<archive or source the data came from, or null>",
+  "same_lab": <true | false | null>,
+  "same_lab_confidence": <integer 1-10, or null>,
+  "source_archive": "<archive name, \\"unclear\\", or null>",
   "reasoning": "<2-4 sentences explaining the judgement>"
 }}
 
@@ -250,8 +316,11 @@ def _error_result(kind: str, message: str, **extra) -> dict:
         'evidence_quotes': [],
         'quote_warnings': [],
         'hallucinated_quote_count': 0,
+        'same_lab': None,
+        'same_lab_confidence': None,
         'source_archive': None,
         'reasoning': None,
+        'prompt_version': PROMPT_VERSION,
         'error': message,
         'error_kind': kind,
         'usage': None,
@@ -496,14 +565,34 @@ def classify_paper_reuse(
     if not isinstance(confidence, int) or not 1 <= confidence <= 10:
         warnings.append(f'confidence {confidence!r} out of range, recorded as-is')
 
+    # same_lab and the archive only mean anything for REUSE. Carrying a value
+    # through on MENTION or NEITHER would invite it being counted later.
+    is_reuse = parsed['classification'] == 'REUSE'
+    same_lab = parsed.get('same_lab') if is_reuse else None
+    if not isinstance(same_lab, bool):
+        if is_reuse and same_lab is not None:
+            warnings.append(f'same_lab was {same_lab!r}, not a boolean; recorded as unknown')
+        same_lab = None
+
+    same_lab_confidence = parsed.get('same_lab_confidence') if is_reuse else None
+    if not isinstance(same_lab_confidence, int) or not 1 <= same_lab_confidence <= 10:
+        same_lab_confidence = None
+
+    archive = normalize_archive(parsed.get('source_archive')) if is_reuse else None
+    if is_reuse and archive and archive not in CANONICAL_ARCHIVES:
+        warnings.append(f'archive {archive!r} is not in the canonical vocabulary')
+
     return {
         'classification': parsed['classification'],
         'confidence': confidence,
         'evidence_quotes': verified,
         'quote_warnings': warnings,
         'hallucinated_quote_count': hallucinated,
-        'source_archive': parsed.get('source_archive'),
+        'same_lab': same_lab,
+        'same_lab_confidence': same_lab_confidence,
+        'source_archive': archive,
         'reasoning': parsed.get('reasoning'),
+        'prompt_version': PROMPT_VERSION,
         'paper_doi': paper_doi,
         'input_chars': len(sent_text),
         'truncation': truncation,

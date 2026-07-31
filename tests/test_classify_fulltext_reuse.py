@@ -248,6 +248,88 @@ class TestQuoteReporting:
 # Truncation
 # --------------------------------------------------------------------------- #
 
+class TestSameLabAndArchive:
+    def reuse_payload(self, **over):
+        body = {'classification': 'REUSE', 'confidence': 9,
+                'evidence_quotes': ['publicly available on the CRCNS website'],
+                'same_lab': False, 'same_lab_confidence': 8,
+                'source_archive': 'CRCNS', 'reasoning': 'r'}
+        body.update(over)
+        return envelope(json.dumps(body))
+
+    def test_reuse_carries_lab_and_archive(self, monkeypatch):
+        stub_post(monkeypatch, FakeResponse(200, payload=self.reuse_payload()))
+        r = C.classify_paper_reuse(PAPER, api_key='k')
+        assert r['same_lab'] is False
+        assert r['same_lab_confidence'] == 8
+        assert r['source_archive'] == 'CRCNS'
+
+    def test_archive_alias_is_normalized(self, monkeypatch):
+        stub_post(monkeypatch, FakeResponse(
+            200, payload=self.reuse_payload(source_archive='DANDI')))
+        r = C.classify_paper_reuse(PAPER, api_key='k')
+        assert r['source_archive'] == 'DANDI Archive'
+
+    @pytest.mark.parametrize('value', ['unclear', '', '  ', None, 'n/a'])
+    def test_unusable_archive_becomes_none(self, monkeypatch, value):
+        stub_post(monkeypatch, FakeResponse(
+            200, payload=self.reuse_payload(source_archive=value)))
+        assert C.classify_paper_reuse(PAPER, api_key='k')['source_archive'] is None
+
+    def test_unknown_archive_is_kept_and_flagged(self, monkeypatch):
+        stub_post(monkeypatch, FakeResponse(
+            200, payload=self.reuse_payload(source_archive='Wombat Data Bank')))
+        r = C.classify_paper_reuse(PAPER, api_key='k')
+        assert r['source_archive'] == 'Wombat Data Bank'
+        assert any('canonical vocabulary' in w for w in r['quote_warnings'])
+
+    @pytest.mark.parametrize('label', ['MENTION', 'NEITHER'])
+    def test_non_reuse_never_carries_lab_or_archive(self, monkeypatch, label):
+        # The model may fill these in anyway; they must not survive, or they
+        # would be counted later as though the paper reused something.
+        stub_post(monkeypatch, FakeResponse(200, payload=self.reuse_payload(
+            classification=label, same_lab=True, source_archive='CRCNS')))
+        r = C.classify_paper_reuse(PAPER, api_key='k')
+        assert r['classification'] == label
+        assert r['same_lab'] is None
+        assert r['same_lab_confidence'] is None
+        assert r['source_archive'] is None
+
+    def test_non_boolean_same_lab_is_flagged_not_coerced(self, monkeypatch):
+        stub_post(monkeypatch, FakeResponse(
+            200, payload=self.reuse_payload(same_lab='probably')))
+        r = C.classify_paper_reuse(PAPER, api_key='k')
+        assert r['same_lab'] is None
+        assert any('same_lab' in w for w in r['quote_warnings'])
+
+    def test_out_of_range_lab_confidence_dropped(self, monkeypatch):
+        stub_post(monkeypatch, FakeResponse(
+            200, payload=self.reuse_payload(same_lab_confidence=99)))
+        assert C.classify_paper_reuse(PAPER, api_key='k')['same_lab_confidence'] is None
+
+    def test_result_records_prompt_version(self, monkeypatch):
+        stub_post(monkeypatch, FakeResponse(200, payload=self.reuse_payload()))
+        assert C.classify_paper_reuse(PAPER, api_key='k')['prompt_version'] == C.PROMPT_VERSION
+        assert C._error_result('x', 'y')['prompt_version'] == C.PROMPT_VERSION
+
+
+class TestNormalizeArchive:
+    @pytest.mark.parametrize('raw,expected', [
+        ('DANDI', 'DANDI Archive'),
+        ('dandi archive', 'DANDI Archive'),
+        ('CRCNS', 'CRCNS'),
+        ('crcns', 'CRCNS'),
+        ('  OSF  ', 'OSF'),
+        ('unclear', None),
+        ('none', None),
+        ('', None),
+        (None, None),
+        (123, None),
+    ])
+    def test_normalization(self, raw, expected):
+        assert C.normalize_archive(raw) == expected
+
+
 class TestTruncation:
     def test_short_paper_is_untouched(self):
         text, info = C._truncate('short paper', 1000)

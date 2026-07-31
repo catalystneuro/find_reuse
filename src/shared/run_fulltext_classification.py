@@ -29,7 +29,9 @@ warnings.filterwarnings('ignore')
 from tqdm import tqdm
 
 from fetch_paper import PaperFetcher
-from src.shared.classify_fulltext_reuse import classify_paper_reuse, DEFAULT_MODEL
+from src.shared.classify_fulltext_reuse import (
+    classify_paper_reuse, DEFAULT_MODEL, PROMPT_VERSION,
+)
 
 REPO = Path(__file__).resolve().parents[2]
 
@@ -106,6 +108,7 @@ def main():
 
     todo = []
     cached_results = []
+    stale = 0
     for item in work:
         path = cache_path(cache_dir, item['doi'], item['dandiset_id'])
         if path.exists():
@@ -114,14 +117,21 @@ def main():
             except Exception:
                 todo.append(item)
                 continue
-            if prior.get('classification') == 'ERROR' and args.retry_errors:
+            # A cached answer to a different question is not an answer to this
+            # one. Mixing prompt versions would silently produce a corpus where
+            # some rows have same_lab and archive and others cannot.
+            if prior.get('prompt_version') != PROMPT_VERSION:
+                stale += 1
+                todo.append(item)
+            elif prior.get('classification') == 'ERROR' and args.retry_errors:
                 todo.append(item)
             else:
                 cached_results.append(prior)
             continue
         todo.append(item)
 
-    print(f"{len(cached_results)} already classified, {len(todo)} to run",
+    print(f"{len(cached_results)} already classified, {len(todo)} to run"
+          + (f" ({stale} stale from an older prompt version)" if stale else ""),
           file=sys.stderr, flush=True)
 
     thread_local = threading.local()
