@@ -141,6 +141,19 @@ CSS = """
   .chip.difflab{background:var(--ok-soft);color:var(--ok);border-color:transparent;
                 font-weight:600}
   .chip.archive{font-family:var(--mono);font-size:11px}
+  .chip.neuro{background:var(--ok-soft);color:var(--ok);border-color:transparent;
+              font-weight:660}
+  .chip.notneuro{background:var(--bad-soft);color:var(--bad);border-color:transparent;
+                 font-weight:660}
+  .mods{display:flex;flex-wrap:wrap;gap:4px}
+  .mod{font-size:10.5px;font-family:var(--mono);text-transform:uppercase;
+       letter-spacing:.04em;padding:2px 6px;border-radius:4px;
+       background:var(--raise);color:var(--muted);border:1px solid var(--line)}
+  .mod.hosted{background:var(--ok-soft);color:var(--ok);border-color:transparent}
+  .provenance{margin-top:4px;padding-top:12px;border-top:1px dashed var(--line-strong)}
+  .provenance h4{margin:0 0 7px;font-size:10.5px;letter-spacing:.09em;
+                 text-transform:uppercase;color:var(--muted);font-weight:600}
+  .provenance .none{font-size:12.5px;color:var(--bad);font-style:italic}
   .chip.unknown{opacity:.7;font-style:italic}
   .conf{font-family:var(--mono);font-size:15px;font-variant-numeric:tabular-nums;
         font-weight:600;white-space:nowrap}
@@ -223,13 +236,37 @@ const isLoose = r => r.quotes.length > 0 &&
 
 function visible(){
   return ROWS.filter(r => {
-    if (filter === 'flagged')   return r.quotes.some(q => q.tier === 'not_found');
+    if (filter === 'neuro')     return r.neurophys === true;
+    if (filter === 'notneuro')  return r.neurophys === false;
+    if (filter === 'nosource')  return !r.source_quotes || !r.source_quotes.length;
+    if (filter === 'flagged')   return r.quotes.some(q => q.tier === 'not_found') ||
+                                       (r.source_quotes || []).some(q => q.tier === 'not_found');
     if (filter === 'loose')     return isLoose(r);
     if (filter === 'samelab')   return r.same_lab === true;
     if (filter === 'noarchive') return !r.archive;
     if (filter === 'todo')      return !calls[r.doi];
     return true;
   });
+}
+
+function neuroChip(r){
+  if (r.neurophys === true)  return `<span class="chip neuro">Neurophysiology</span>`;
+  if (r.neurophys === false) return `<span class="chip notneuro">Not neurophysiology</span>`;
+  return `<span class="chip unknown">Modality not assessed</span>`;
+}
+
+function modChips(r){
+  if (!r.modalities || !r.modalities.length) return '';
+  const hosted = new Set(['neurophysiology','behavior']);
+  return `<div class="mods">` + r.modalities.map(m =>
+    `<span class="mod ${hosted.has(m) ? 'hosted' : ''}">${esc(m)}</span>`).join('') + `</div>`;
+}
+
+function quoteBlock(q){
+  return `<figure class="q ${q.tier}">
+      <blockquote>&ldquo;${esc(q.q)}&rdquo;</blockquote>
+      <figcaption><span class="tier ${q.tier}">${tierLabel(q.tier)}</span></figcaption>
+    </figure>`;
 }
 
 function labChip(r){
@@ -246,12 +283,14 @@ function render(){
     const n = ROWS.indexOf(r) + 1;
     const call = calls[r.doi] || '';
     const note = notes[r.doi] || '';
-    const quotes = r.quotes.length ? r.quotes.map(q => `
-      <figure class="q ${q.tier}">
-        <blockquote>&ldquo;${esc(q.q)}&rdquo;</blockquote>
-        <figcaption><span class="tier ${q.tier}">${tierLabel(q.tier)}</span></figcaption>
-      </figure>`).join('') :
+    const quotes = r.quotes.length ? r.quotes.map(quoteBlock).join('') :
       `<figure class="q"><blockquote><em>No quote returned.</em></blockquote></figure>`;
+    const provenance = `<div class="provenance">
+        <h4>Where the data came from</h4>
+        ${r.source_quotes && r.source_quotes.length
+          ? r.source_quotes.map(quoteBlock).join('')
+          : '<p class="none">The paper never states a source.</p>'}
+      </div>`;
     return `<tr class="${isFlagged(r) ? 'flagged' : ''} ${call ? 'done' : ''}">
       <td class="idx">${n}</td>
       <td class="paper">
@@ -263,6 +302,8 @@ function render(){
         <div class="meta">
           <a class="ds" href="https://dandiarchive.org/dandiset/${esc(r.dandiset)}"
              target="_blank" rel="noopener">${esc(r.dandiset)}</a>
+          ${neuroChip(r)}
+          ${modChips(r)}
           ${labChip(r)}
           ${r.archive ? `<span class="chip archive">${esc(r.archive)}</span>`
                       : `<span class="chip unknown">No archive named</span>`}
@@ -271,6 +312,7 @@ function render(){
       </td>
       <td>
         <div class="evidence">${quotes}
+          ${provenance}
           <details class="why"><summary>Model's reasoning</summary>
             <p>${esc(r.reasoning)}</p></details>
         </div>
@@ -370,6 +412,8 @@ def build(rows: list[dict]) -> str:
     unsupported = n - located
     assessed = sum(1 for r in rows if r.get('same_lab') is not None)
     same = sum(1 for r in rows if r.get('same_lab') is True)
+    neuro = sum(1 for r in rows if r.get('neurophys') is True)
+    not_neuro = sum(1 for r in rows if r.get('neurophys') is False)
 
     lab_stat = (f'<div class="stat"><b>{same}</b><span>same-lab reuse</span></div>'
                 if assessed else
@@ -387,11 +431,20 @@ def build(rows: list[dict]) -> str:
       paper, so each one carries the tier at which it matched.</p>
     <div class="stats">
       <div class="stat"><b>{n}</b><span>reuse claims</span></div>
-      <div class="stat"><b>{located}</b><span>with a located quote</span></div>
+      <div class="stat"><b>{neuro}</b><span>reuse neurophysiology</span></div>
+      <div class="stat"><b>{not_neuro}</b><span>other modality only</span></div>
       <div class="stat"><b>{unsupported}</b><span>quote not in the paper</span></div>
       {lab_stat}
     </div>
   </header>
+
+  <div class="note">
+    <b>Modality is the decisive field.</b> DANDI hosts neurophysiology and the behavior
+    recorded alongside it. Morphological reconstructions and transcriptomics live in other
+    repositories, so a Patch-seq paper that reuses only gene expression or only
+    reconstructions cites the same study without touching DANDI data. Green modality chips
+    are the parts DANDI actually holds.
+  </div>
 
   <div class="note">
     <b>How to read the tiers.</b> <em>Exact</em> means the quote appears character for
@@ -404,10 +457,11 @@ def build(rows: list[dict]) -> str:
   <div class="toolbar">
     <div class="filters" role="group" aria-label="Filter cases">
       <button class="btn" data-f="all" aria-pressed="true">All {n}</button>
+      <button class="btn" data-f="neuro" aria-pressed="false">Neurophysiology</button>
+      <button class="btn" data-f="notneuro" aria-pressed="false">Other modality only</button>
+      <button class="btn" data-f="nosource" aria-pressed="false">No provenance quote</button>
       <button class="btn" data-f="flagged" aria-pressed="false">Unsupported quote</button>
-      <button class="btn" data-f="loose" aria-pressed="false">Loose match only</button>
       <button class="btn" data-f="samelab" aria-pressed="false">Same lab</button>
-      <button class="btn" data-f="noarchive" aria-pressed="false">No archive</button>
       <button class="btn" data-f="todo" aria-pressed="false">Not yet checked</button>
     </div>
     <div class="spacer"></div>
@@ -467,11 +521,17 @@ def main():
             'archive': r.get('source_archive'),
             'same_lab': r.get('same_lab'),
             'same_lab_confidence': r.get('same_lab_confidence'),
+            'modalities': r.get('reused_modalities') or [],
+            'neurophys': r.get('reused_neurophysiology'),
+            'dandi_hosted': r.get('reused_dandi_hosted'),
             'reasoning': r.get('reasoning') or '',
             'quotes': [{'q': q['quote'], 'tier': q['match_type']}
                        for q in r.get('evidence_quotes', [])],
+            'source_quotes': [{'q': q['quote'], 'tier': q['match_type']}
+                              for q in r.get('source_quotes', [])],
         })
-    rows.sort(key=lambda r: (-(r['confidence'] or 0), r['doi']))
+    # Neurophysiology reuse first: that is what the study is counting.
+    rows.sort(key=lambda r: (not r['neurophys'], -(r['confidence'] or 0), r['doi']))
 
     Path(args.output).write_text(build(rows))
     print(f"{len(rows)} REUSE cases -> {args.output}")

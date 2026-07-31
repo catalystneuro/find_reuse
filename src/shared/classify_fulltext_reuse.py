@@ -42,7 +42,30 @@ VALID_CLASSIFICATIONS = frozenset({'REUSE', 'MENTION', 'NEITHER'})
 # Bumped whenever the prompt or the output schema changes. Cached results carry
 # the version they were produced under so a batch run can tell which entries are
 # stale rather than silently mixing outputs from two different questions.
-PROMPT_VERSION = 2
+PROMPT_VERSION = 3
+
+# Which part of a multimodal dataset was actually reused.
+#
+# This matters because a large share of DANDI holdings are Patch-seq, which pairs
+# electrophysiological recordings with reconstructed morphology and with
+# transcriptomics. Those components are hosted in different places. DANDI holds
+# the neurophysiology and the behavioral data recorded alongside it; morphology
+# reconstructions live in NeuroMorpho, the Allen Cell Types Database, or the
+# Brain Image Library, and transcriptomics lives on GEO, CELLxGENE, or NeMO. A
+# paper reusing only gene expression or only reconstructions from a Patch-seq
+# study has therefore not reused DANDI data, even though it cites the same study.
+MODALITIES = (
+    'neurophysiology',   # recordings of neural activity
+    'behavior',          # behavioral or task data recorded alongside
+    'morphology',        # reconstructions, dendritic/axonal structure
+    'transcriptomics',   # gene expression, RNA-seq, cell-type clustering
+    'other',             # anything else the paper describes obtaining
+    'unclear',
+)
+
+# Modalities DANDI actually hosts. Reuse of anything outside this set is reuse of
+# some other repository's holdings, whatever study the data originated with.
+DANDI_HOSTED_MODALITIES = frozenset({'neurophysiology', 'behavior'})
 
 # Reuse the archive vocabulary the citation pipeline already normalizes against,
 # so the two pathways produce comparable archive names rather than a second,
@@ -273,6 +296,22 @@ Name where the data was actually obtained, using one of these names exactly when
 {archive_list}
 Use the name of another repository if the paper names one that is not on this list. Use "unclear" if the paper does not say where the data came from. Do not guess from the subject matter: name an archive only if the paper mentions it.
 
+WHICH PART OF THE DATA WAS REUSED? — THE DECISIVE QUESTION FOR THIS STUDY
+Many neuroscience datasets are multimodal, and their components are hosted in different places. Patch-seq studies in particular pair electrophysiological recordings with reconstructed cell morphology and with transcriptomics. The recordings and the behavior recorded alongside them live in the neurophysiology archive; morphological reconstructions live in NeuroMorpho, the Allen Cell Types Database, or the Brain Image Library; gene expression lives on GEO, CELLxGENE, or NeMO.
+
+Identify which parts THIS paper actually obtained and analyzed, as a list from:
+  - neurophysiology: recordings of neural activity. Intracellular or extracellular electrophysiology, patch-clamp traces, spike trains, firing rates, membrane or intrinsic properties, LFP, EEG, ECoG, or calcium/voltage imaging of activity.
+  - behavior: behavioral, task, or positional data recorded alongside the neural data.
+  - morphology: reconstructed cell shape, dendritic or axonal structure, anatomical reconstructions.
+  - transcriptomics: gene expression, RNA-seq counts, transcriptomic cell-type labels or clusters.
+  - other: anything else obtained that none of the above covers.
+  - unclear: the paper does not say which part it used.
+
+Judge this from what the paper says it analyzed, NOT from what the cited dataset contains. This is the most common error to avoid: a paper that cites a Patch-seq study but analyzes only its gene expression or only its reconstructions has reused transcriptomics or morphology alone. Do not list neurophysiology merely because the original study also recorded it. List neurophysiology only when the text shows this paper handled the recordings themselves.
+
+QUOTE THE PROVENANCE SEPARATELY
+Alongside the reuse evidence, quote the passage(s) that establish WHERE the data came from: the archive name, an accession or dataset identifier, a DOI, a URL, or a data availability statement. These go in source_quotes and are subject to the same character-for-character rule. If the paper never says where the data came from, return an empty list rather than inferring it.
+
 EVIDENCE QUOTES — THIS IS THE CRITICAL REQUIREMENT
 You MUST quote the exact passage(s) from the paper that drove your judgement.
 - Copy the text CHARACTER FOR CHARACTER from the paper above. Do not paraphrase, summarize, correct, abridge, or join separated sentences.
@@ -289,6 +328,8 @@ Return ONLY a JSON object, no markdown fences and no commentary:
   "same_lab": <true | false | null>,
   "same_lab_confidence": <integer 1-10, or null>,
   "source_archive": "<archive name, \\"unclear\\", or null>",
+  "reused_modalities": ["neurophysiology" | "behavior" | "morphology" | "transcriptomics" | "other" | "unclear", ...],
+  "source_quotes": ["<exact quote establishing where the data came from>", ...],
   "reasoning": "<2-4 sentences explaining the judgement>"
 }}
 
@@ -319,6 +360,10 @@ def _error_result(kind: str, message: str, **extra) -> dict:
         'same_lab': None,
         'same_lab_confidence': None,
         'source_archive': None,
+        'reused_modalities': [],
+        'reused_neurophysiology': None,
+        'reused_dandi_hosted': None,
+        'source_quotes': [],
         'reasoning': None,
         'prompt_version': PROMPT_VERSION,
         'error': message,
@@ -374,6 +419,71 @@ def parse_strict(content: str) -> dict:
         raise ClassificationError(f'unrecognized classification {label!r}')
     parsed['classification'] = label
     return parsed
+
+
+def _verify_quote_list(
+    raw: Any, paper_text: str, field: str, warnings: list[str],
+) -> tuple[list[dict], int]:
+    """
+    Verify one list of model-supplied quotes, returning records and a fabrication count.
+
+    Shared by the reuse evidence and the provenance quotes so both are held to
+    the same standard: a quote that cannot be located is reported, not trusted.
+    """
+    if isinstance(raw, str):          # a lone quote instead of a list
+        raw = [raw]
+    if raw is None:
+        raw = []
+    if not isinstance(raw, list):
+        warnings.append(f'{field} was {type(raw).__name__}, not a list')
+        raw = []
+
+    records, hallucinated = [], 0
+    for quote in raw:
+        if not isinstance(quote, str):
+            warnings.append(
+                f'ignored non-string {field} entry of type {type(quote).__name__}')
+            continue
+        record = verify_quote(quote, paper_text)
+        records.append(record)
+        if record['match_type'] == 'not_found':
+            hallucinated += 1
+            warnings.append(
+                f'{field} quote not found in paper (possible fabrication): '
+                f'{quote[:120]!r}')
+        elif record['match_type'] != 'exact':
+            warnings.append(
+                f"{field} quote matched only after {record['match_type']} "
+                f'normalization: {quote[:80]!r}')
+    return records, hallucinated
+
+
+def _parse_modalities(raw: Any, warnings: list[str]) -> list[str]:
+    """Validate the modality list against the vocabulary, dropping anything unrecognized."""
+    if isinstance(raw, str):
+        raw = [raw]
+    if not isinstance(raw, list):
+        if raw is not None:
+            warnings.append(f'reused_modalities was {type(raw).__name__}, not a list')
+        return []
+
+    seen, out = set(), []
+    for item in raw:
+        if not isinstance(item, str):
+            continue
+        value = item.strip().lower().replace(' ', '_')
+        # Accept the obvious synonyms rather than losing a correct answer to wording.
+        value = {'electrophysiology': 'neurophysiology', 'ephys': 'neurophysiology',
+                 'physiology': 'neurophysiology', 'transcriptomic': 'transcriptomics',
+                 'gene_expression': 'transcriptomics', 'genetics': 'transcriptomics',
+                 'behaviour': 'behavior', 'morphological': 'morphology'}.get(value, value)
+        if value not in MODALITIES:
+            warnings.append(f'unrecognized modality {item!r} dropped')
+            continue
+        if value not in seen:
+            seen.add(value)
+            out.append(value)
+    return out
 
 
 def _truncate(paper_text: str, max_chars: int) -> tuple[str, Optional[dict]]:
@@ -536,30 +646,13 @@ def classify_paper_reuse(
         return _error_result('parse_error', str(e), paper_doi=paper_doi,
                              usage=usage, truncation=truncation)
 
-    # Verify quotes against the text the model was actually shown.
-    verified, warnings, hallucinated = [], [], 0
-    quotes = parsed.get('evidence_quotes') or []
-    if isinstance(quotes, str):
-        quotes = [quotes]
-    if not isinstance(quotes, list):
-        warnings.append(f'evidence_quotes was {type(quotes).__name__}, not a list')
-        quotes = []
-
-    for quote in quotes:
-        if not isinstance(quote, str):
-            warnings.append(f'ignored non-string quote of type {type(quote).__name__}')
-            continue
-        record = verify_quote(quote, sent_text)
-        verified.append(record)
-        if record['match_type'] == 'not_found':
-            hallucinated += 1
-            warnings.append(
-                f'quote not found in paper (possible fabrication): '
-                f'{quote[:120]!r}')
-        elif record['match_type'] != 'exact':
-            warnings.append(
-                f"quote matched only after {record['match_type']} normalization: "
-                f'{quote[:80]!r}')
+    # Verify both quote lists against the text the model was actually shown.
+    warnings: list[str] = []
+    verified, hallucinated = _verify_quote_list(
+        parsed.get('evidence_quotes'), sent_text, 'evidence_quotes', warnings)
+    source_quotes, source_hallucinated = _verify_quote_list(
+        parsed.get('source_quotes'), sent_text, 'source_quotes', warnings)
+    hallucinated += source_hallucinated
 
     confidence = parsed.get('confidence')
     if not isinstance(confidence, int) or not 1 <= confidence <= 10:
@@ -582,15 +675,29 @@ def classify_paper_reuse(
     if is_reuse and archive and archive not in CANONICAL_ARCHIVES:
         warnings.append(f'archive {archive!r} is not in the canonical vocabulary')
 
+    modalities = _parse_modalities(parsed.get('reused_modalities'), warnings) \
+        if is_reuse else []
+    # Left as None rather than False for non-reuse rows, so "we did not ask" stays
+    # distinguishable from "we asked and the answer was no".
+    reused_neuro = ('neurophysiology' in modalities) if is_reuse else None
+    reused_dandi = (
+        bool(DANDI_HOSTED_MODALITIES.intersection(modalities)) if is_reuse else None)
+    if is_reuse and not modalities:
+        warnings.append('REUSE with no usable modality; treated as unclear')
+
     return {
         'classification': parsed['classification'],
         'confidence': confidence,
         'evidence_quotes': verified,
+        'source_quotes': source_quotes,
         'quote_warnings': warnings,
         'hallucinated_quote_count': hallucinated,
         'same_lab': same_lab,
         'same_lab_confidence': same_lab_confidence,
         'source_archive': archive,
+        'reused_modalities': modalities,
+        'reused_neurophysiology': reused_neuro,
+        'reused_dandi_hosted': reused_dandi,
         'reasoning': parsed.get('reasoning'),
         'prompt_version': PROMPT_VERSION,
         'paper_doi': paper_doi,

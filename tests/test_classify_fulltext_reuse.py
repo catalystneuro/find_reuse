@@ -313,6 +313,111 @@ class TestSameLabAndArchive:
         assert C._error_result('x', 'y')['prompt_version'] == C.PROMPT_VERSION
 
 
+class TestModalities:
+    """
+    The study counts reuse of DANDI holdings, and DANDI hosts neurophysiology and
+    the behavior recorded with it, not morphology or transcriptomics. A Patch-seq
+    paper reusing only gene expression or only reconstructions has not touched
+    DANDI data, so the modality list is what separates a real positive from a
+    citation that merely looks like one.
+    """
+
+    def payload(self, modalities, label='REUSE'):
+        return envelope(json.dumps({
+            'classification': label, 'confidence': 9,
+            'evidence_quotes': ['publicly available on the CRCNS website'],
+            'source_quotes': ['publicly available on the CRCNS website'],
+            'same_lab': False, 'same_lab_confidence': 7,
+            'source_archive': 'CRCNS', 'reused_modalities': modalities,
+            'reasoning': 'r'}))
+
+    def test_neurophysiology_counts(self, monkeypatch):
+        stub_post(monkeypatch, FakeResponse(200, payload=self.payload(['neurophysiology'])))
+        r = C.classify_paper_reuse(PAPER, api_key='k')
+        assert r['reused_modalities'] == ['neurophysiology']
+        assert r['reused_neurophysiology'] is True
+        assert r['reused_dandi_hosted'] is True
+
+    def test_behavior_is_dandi_hosted_but_not_neurophysiology(self, monkeypatch):
+        stub_post(monkeypatch, FakeResponse(200, payload=self.payload(['behavior'])))
+        r = C.classify_paper_reuse(PAPER, api_key='k')
+        assert r['reused_neurophysiology'] is False
+        assert r['reused_dandi_hosted'] is True
+
+    @pytest.mark.parametrize('modality', ['transcriptomics', 'morphology'])
+    def test_modalities_dandi_does_not_host(self, monkeypatch, modality):
+        stub_post(monkeypatch, FakeResponse(200, payload=self.payload([modality])))
+        r = C.classify_paper_reuse(PAPER, api_key='k')
+        assert r['reused_neurophysiology'] is False
+        assert r['reused_dandi_hosted'] is False
+
+    def test_patchseq_mixed_reuse_still_counts(self, monkeypatch):
+        stub_post(monkeypatch, FakeResponse(
+            200, payload=self.payload(['transcriptomics', 'neurophysiology'])))
+        r = C.classify_paper_reuse(PAPER, api_key='k')
+        assert r['reused_neurophysiology'] is True
+
+    @pytest.mark.parametrize('raw,expected', [
+        (['electrophysiology'], ['neurophysiology']),
+        (['ephys'], ['neurophysiology']),
+        (['Gene_Expression'], ['transcriptomics']),
+        (['genetics'], ['transcriptomics']),
+        (['behaviour'], ['behavior']),
+        ('neurophysiology', ['neurophysiology']),
+        (['neurophysiology', 'neurophysiology'], ['neurophysiology']),
+    ])
+    def test_synonyms_and_dedup(self, monkeypatch, raw, expected):
+        stub_post(monkeypatch, FakeResponse(200, payload=self.payload(raw)))
+        assert C.classify_paper_reuse(PAPER, api_key='k')['reused_modalities'] == expected
+
+    def test_unrecognized_modality_dropped_and_flagged(self, monkeypatch):
+        stub_post(monkeypatch, FakeResponse(200, payload=self.payload(['telepathy'])))
+        r = C.classify_paper_reuse(PAPER, api_key='k')
+        assert r['reused_modalities'] == []
+        assert any('telepathy' in w for w in r['quote_warnings'])
+
+    def test_reuse_without_modality_is_flagged(self, monkeypatch):
+        stub_post(monkeypatch, FakeResponse(200, payload=self.payload([])))
+        r = C.classify_paper_reuse(PAPER, api_key='k')
+        assert r['reused_neurophysiology'] is False
+        assert any('no usable modality' in w for w in r['quote_warnings'])
+
+    @pytest.mark.parametrize('label', ['MENTION', 'NEITHER'])
+    def test_non_reuse_leaves_modality_unasked(self, monkeypatch, label):
+        stub_post(monkeypatch, FakeResponse(
+            200, payload=self.payload(['neurophysiology'], label=label)))
+        r = C.classify_paper_reuse(PAPER, api_key='k')
+        assert r['reused_modalities'] == []
+        # None, not False: "not asked" must stay distinct from "asked, answer no".
+        assert r['reused_neurophysiology'] is None
+        assert r['reused_dandi_hosted'] is None
+
+
+class TestSourceQuotes:
+    def test_source_quotes_are_verified_like_evidence(self, monkeypatch):
+        stub_post(monkeypatch, FakeResponse(200, payload=envelope(json.dumps({
+            'classification': 'REUSE', 'confidence': 9,
+            'evidence_quotes': ['We recorded from mouse hippocampus.'],
+            'source_quotes': ['publicly available on the CRCNS website',
+                              'downloaded from the DANDI Archive'],
+            'same_lab': False, 'same_lab_confidence': 7, 'source_archive': 'CRCNS',
+            'reused_modalities': ['neurophysiology'], 'reasoning': 'r'}))))
+        r = C.classify_paper_reuse(PAPER, api_key='k')
+        tiers = [q['match_type'] for q in r['source_quotes']]
+        assert tiers == ['exact', 'not_found']
+        # A fabricated provenance quote counts toward the same total.
+        assert r['hallucinated_quote_count'] == 1
+        assert any('source_quotes' in w for w in r['quote_warnings'])
+
+    def test_missing_source_quotes_is_empty_not_error(self, monkeypatch):
+        stub_post(monkeypatch, FakeResponse(200, payload=envelope(json.dumps({
+            'classification': 'MENTION', 'confidence': 5,
+            'evidence_quotes': [], 'reasoning': 'r'}))))
+        r = C.classify_paper_reuse(PAPER, api_key='k')
+        assert r['classification'] == 'MENTION'
+        assert r['source_quotes'] == []
+
+
 class TestNormalizeArchive:
     @pytest.mark.parametrize('raw,expected', [
         ('DANDI', 'DANDI Archive'),
