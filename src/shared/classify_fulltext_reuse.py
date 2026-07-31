@@ -37,7 +37,20 @@ import requests
 DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions"
 DEFAULT_MODEL = "deepseek-v4-flash"
 
+# The indirect pathway asks how a citing paper relates to a dataset it cites.
 VALID_CLASSIFICATIONS = frozenset({'REUSE', 'MENTION', 'NEITHER'})
+
+# The direct pathway starts from a paper that names a dataset identifier outright,
+# so the question is not whether the dataset is relevant but who the paper is in
+# relation to it: the group that published it, or someone else using it.
+VALID_DIRECT_CLASSIFICATIONS = frozenset({'PRIMARY', 'REUSE', 'NEITHER'})
+
+MODE_CITING = 'citing'
+MODE_DIRECT = 'direct'
+LABELS_FOR_MODE = {
+    MODE_CITING: VALID_CLASSIFICATIONS,
+    MODE_DIRECT: VALID_DIRECT_CLASSIFICATIONS,
+}
 
 # Bumped whenever the prompt or the output schema changes. Cached results carry
 # the version they were produced under so a batch run can tell which entries are
@@ -251,8 +264,17 @@ def build_prompt(
     dataset_name: str = '',
     dataset_description: str = '',
     primary_paper_doi: str = '',
+    mode: str = MODE_CITING,
+    matched_patterns: Optional[list] = None,
 ) -> str:
-    """Build the classification prompt around the full paper text."""
+    """
+    Build the classification prompt around the full paper text.
+
+    `mode` selects the question. MODE_CITING asks how a paper that cites a
+    dataset's primary publication relates to the data. MODE_DIRECT asks about a
+    paper that names the dataset identifier outright, where the live question is
+    whether this is the group that published it or someone else using it.
+    """
     if dataset_id or dataset_name:
         target = "THE DATASET DESCRIBED BELOW"
         described = "THE DATASET IN QUESTION\n"
@@ -269,11 +291,50 @@ def build_prompt(
         described = ""
 
     archive_list = '\n'.join(f'  - {a}' for a in sorted(CANONICAL_ARCHIVES))
+    label_union = ' | '.join(
+        f'"{label}"' for label in sorted(LABELS_FOR_MODE.get(mode, VALID_CLASSIFICATIONS)))
 
-    return f"""You are reading the full text of a scientific paper to determine whether its authors REUSED DATA from {target}.
+    if mode == MODE_DIRECT:
+        found = ''
+        if matched_patterns:
+            shown = ', '.join(str(m) for m in list(matched_patterns)[:6])
+            found = (f"\nThe identifier was detected in this paper's text as: {shown}\n")
+        opening = (
+            f"You are reading the full text of a scientific paper that names the dataset "
+            f"identifier below somewhere in its text. Your job is to determine the paper's "
+            f"RELATIONSHIP to that dataset.\n{found}"
+        )
+        quote_guidance = (
+            "For PRIMARY, quote the passage showing these authors produced or "
+            "deposited the data. For REUSE, quote the passage showing they obtained "
+            "data they did not collect. For NEITHER, quote whatever passage is most "
+            "relevant, or use an empty list if genuinely nothing is relevant."
+        )
+        classifications = """CLASSIFICATIONS
+- PRIMARY: This paper is the one that produced and published the dataset. The authors collected the data and deposited it; the identifier appears because they are pointing readers to their own deposit. Signals: a data availability statement saying the authors' data "are available at" the identifier, the paper describing the experiments that generated the recordings, or heavy author overlap with the dataset's contributors.
+- REUSE: The authors obtained and analyzed data they did not collect. Downloading, re-analyzing, re-processing, training on, or benchmarking against someone else's deposit all count.
+- NEITHER: The identifier appears without either relationship. Use this when the reference is a bibliography entry for another study, a passing mention of the archive, a mention of the dataset as related work the authors did not touch, or a parsing artifact where the matched string is not really this dataset.
 
-{described}
-CLASSIFICATIONS
+HOW TO DECIDE
+The identifier is present, so the question is not whether the dataset is relevant but who these authors are with respect to it. Decide PRIMARY versus REUSE from whether the text shows the authors GENERATING the data or OBTAINING it.
+
+PRIMARY reads like: "data are available at [identifier]", "we deposited", "our recordings have been made available". The paper will describe performing the experiments that produced the data.
+
+REUSE reads like: "data were downloaded from", "we analyzed the publicly available dataset", "obtained from the X archive", "we used the dataset of [author]".
+
+A paper can be PRIMARY for its own deposit while also reusing other datasets; judge only the identifier named above. A review or commentary that merely lists the identifier is NEITHER, not REUSE."""
+    else:
+        opening = (
+            f"You are reading the full text of a scientific paper to determine whether "
+            f"its authors REUSED DATA from {target}.\n"
+        )
+        quote_guidance = (
+            "For REUSE, quote the passage showing the authors obtained the data. "
+            "For MENTION, quote the passage showing the citation is background rather "
+            "than reuse. For NEITHER, quote whatever passage is most relevant, or use "
+            "an empty list if genuinely nothing is relevant."
+        )
+        classifications = """CLASSIFICATIONS
 - REUSE: The authors obtained and analyzed the actual DATA (recordings, images, behavioral traces, scans, spike trains, etc.) that they did not collect themselves. Downloading, re-analyzing, re-processing, training on, or benchmarking against the data all count.
 - MENTION: The paper cites or discusses the work as background, prior findings, methodology, or comparison, but the authors did not obtain and analyze the data itself.
 - NEITHER: The paper has no meaningful relationship to it at all, or the apparent reference is a parsing artifact.
@@ -283,10 +344,14 @@ Data reuse is the rare case. Most references to other work are background mentio
 
 Evidence of REUSE typically appears in Methods, Data Availability, Results, or Acknowledgements, and reads like: "data were downloaded from", "we analyzed the publicly available dataset", "obtained from the X archive", "we used the dataset of [author]", "accession number", or a description of re-processing someone else's recordings.
 
-A review, perspective, commentary, or editorial article does NOT reuse data, even when it describes datasets in detail. Classify those as MENTION.
+A review, perspective, commentary, or editorial article does NOT reuse data, even when it describes datasets in detail. Classify those as MENTION."""
 
-IF AND ONLY IF THE CLASSIFICATION IS REUSE, ALSO ANSWER THESE TWO
-For MENTION and NEITHER, set all three fields below to null.
+    return f"""{opening}
+{described}
+{classifications}
+
+IF AND ONLY IF THE CLASSIFICATION IS REUSE, ALSO ANSWER THE FOLLOWING
+For every other classification, set same_lab, same_lab_confidence, source_archive and reused_modalities to null.
 
 SAME LAB OR A DIFFERENT ONE?
 Compare the author list of this paper against the authors of the work whose data was reused. Set same_lab to true when the same group is reusing or extending its own data, and false when a different group is using someone else's. Judge this only from author overlap and statements like "our previously published dataset" or "data we collected in [citation]". Shared authorship is NOT itself evidence of reuse: decide the classification first, from the text, and answer this separately. Give same_lab_confidence from 1 to 10.
@@ -316,13 +381,13 @@ EVIDENCE QUOTES — THIS IS THE CRITICAL REQUIREMENT
 You MUST quote the exact passage(s) from the paper that drove your judgement.
 - Copy the text CHARACTER FOR CHARACTER from the paper above. Do not paraphrase, summarize, correct, abridge, or join separated sentences.
 - Each quote should be one or two complete sentences: long enough to stand on its own, short enough to be precise.
-- Give 1 to 3 quotes. For REUSE, quote the passage showing the authors obtained the data. For MENTION, quote the passage showing the citation is background rather than reuse. For NEITHER, quote whatever passage is most relevant, or use an empty list if genuinely nothing is relevant.
+- Give 1 to 3 quotes. {quote_guidance}
 - If you cannot find a supporting passage, return an empty list rather than inventing one. A fabricated quote is far worse than no quote.
 
 OUTPUT
 Return ONLY a JSON object, no markdown fences and no commentary:
 {{
-  "classification": "REUSE" | "MENTION" | "NEITHER",
+  "classification": {label_union},
   "confidence": <integer 1-10>,
   "evidence_quotes": ["<exact quote>", ...],
   "same_lab": <true | false | null>,
@@ -365,6 +430,7 @@ def _error_result(kind: str, message: str, **extra) -> dict:
         'reused_dandi_hosted': None,
         'source_quotes': [],
         'reasoning': None,
+        'mode': None,
         'prompt_version': PROMPT_VERSION,
         'error': message,
         'error_kind': kind,
@@ -375,7 +441,7 @@ def _error_result(kind: str, message: str, **extra) -> dict:
     return result
 
 
-def parse_strict(content: str) -> dict:
+def parse_strict(content: str, valid_labels: frozenset = VALID_CLASSIFICATIONS) -> dict:
     """
     Parse the model's JSON response, rejecting anything unrecognized.
 
@@ -415,7 +481,7 @@ def parse_strict(content: str) -> dict:
         raise ClassificationError(f'missing classification field: {text[:200]}')
 
     label = raw_label.strip().upper().replace(' ', '_')
-    if label not in VALID_CLASSIFICATIONS:
+    if label not in valid_labels:
         raise ClassificationError(f'unrecognized classification {label!r}')
     parsed['classification'] = label
     return parsed
@@ -531,6 +597,8 @@ def classify_paper_reuse(
     temperature: float = 0.1,
     timeout: int = 300,
     max_retries: int = 3,
+    mode: str = MODE_CITING,
+    matched_patterns: Optional[list] = None,
 ) -> dict:
     """
     Classify data reuse by sending the whole paper to DeepSeek.
@@ -564,9 +632,14 @@ def classify_paper_reuse(
             'No DeepSeek API key. Set DEEPSEEK_API_KEY in the environment or .env.',
             paper_doi=paper_doi)
 
+    if mode not in LABELS_FOR_MODE:
+        return _error_result('bad_mode', f'unknown mode {mode!r}', paper_doi=paper_doi)
+    valid_labels = LABELS_FOR_MODE[mode]
+
     sent_text, truncation = _truncate(paper_text, max_input_chars)
     prompt = build_prompt(sent_text, dataset_id, dataset_name,
-                          dataset_description, primary_paper_doi)
+                          dataset_description, primary_paper_doi,
+                          mode=mode, matched_patterns=matched_patterns)
 
     payload = {
         'model': model,
@@ -641,7 +714,7 @@ def classify_paper_reuse(
             paper_doi=paper_doi, usage=usage, truncation=truncation)
 
     try:
-        parsed = parse_strict(content)
+        parsed = parse_strict(content, valid_labels)
     except ClassificationError as e:
         return _error_result('parse_error', str(e), paper_doi=paper_doi,
                              usage=usage, truncation=truncation)
@@ -699,6 +772,7 @@ def classify_paper_reuse(
         'reused_neurophysiology': reused_neuro,
         'reused_dandi_hosted': reused_dandi,
         'reasoning': parsed.get('reasoning'),
+        'mode': mode,
         'prompt_version': PROMPT_VERSION,
         'paper_doi': paper_doi,
         'input_chars': len(sent_text),

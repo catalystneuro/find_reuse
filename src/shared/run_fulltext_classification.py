@@ -30,7 +30,7 @@ from tqdm import tqdm
 
 from fetch_paper import PaperFetcher
 from src.shared.classify_fulltext_reuse import (
-    classify_paper_reuse, DEFAULT_MODEL, PROMPT_VERSION,
+    classify_paper_reuse, DEFAULT_MODEL, PROMPT_VERSION, MODE_CITING, MODE_DIRECT,
 )
 
 REPO = Path(__file__).resolve().parents[2]
@@ -78,8 +78,49 @@ def build_worklist(results_path: Path, fetcher: PaperFetcher, limit: int) -> lis
     return keep
 
 
+def build_direct_worklist(path: Path, fetcher: PaperFetcher, limit: int) -> list[dict]:
+    """
+    Worklist for the direct pathway, taken from the existing classifications.
+
+    Each (paper, dataset) pair is its own question, because one paper can name
+    several dataset identifiers and stand in a different relationship to each:
+    primary for its own deposit, reuser of another. `limit` therefore counts
+    pairs here, not papers.
+    """
+    data = json.loads(path.read_text())
+    work = []
+    for entry in data['classifications']:
+        doi = entry.get('citing_doi')
+        if not doi:
+            continue
+        work.append({
+            'doi': doi,
+            'title': entry.get('citing_title', ''),
+            'dandiset_id': entry.get('dandiset_id', ''),
+            'dandiset_name': entry.get('dandiset_name', ''),
+            'primary_paper_doi': entry.get('cited_doi') or '',
+            'matched_patterns': entry.get('match_patterns'),
+            'prior_classification': entry.get('classification'),
+        })
+
+    keep = []
+    for item in tqdm(work, desc='Selecting pairs with full text', file=sys.stderr):
+        fetched = fetcher.get_paper_text_detailed(item['doi'])
+        if fetched['status'] == 'full_text':
+            item['text_chars'] = len(fetched['text'])
+            keep.append(item)
+        if len(keep) >= limit:
+            break
+    return keep
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--mode', choices=[MODE_CITING, MODE_DIRECT],
+                        default=MODE_CITING,
+                        help="'citing' asks how a citing paper relates to a dataset; "
+                             "'direct' asks whether a paper that names a dataset "
+                             "identifier published it or reused it.")
     parser.add_argument('--limit', type=int, default=500)
     parser.add_argument('--workers', type=int, default=8)
     parser.add_argument('--model', default=DEFAULT_MODEL)
@@ -99,12 +140,24 @@ def main():
                              'and come back as truncated_response.')
     args = parser.parse_args()
 
+    # Keep the two pathways in separate caches and outputs; they answer different
+    # questions and their labels are not interchangeable.
+    if args.mode == MODE_DIRECT:
+        if args.cache_dir == str(REPO / '.fulltext_classification_cache'):
+            args.cache_dir = str(REPO / '.fulltext_direct_cache')
+        if args.output == str(REPO / 'output/fulltext_classifications.json'):
+            args.output = str(REPO / 'output/fulltext_direct_classifications.json')
+        if args.results_file == str(REPO / 'output/all_dandiset_papers.json'):
+            args.results_file = str(REPO / 'output/direct_ref_classifications.json')
+
     cache_dir = Path(args.cache_dir)
     cache_dir.mkdir(parents=True, exist_ok=True)
 
     fetcher = PaperFetcher(use_cache=True, cache_dir=args.paper_cache)
-    work = build_worklist(Path(args.results_file), fetcher, args.limit)
-    print(f"{len(work)} papers with full text selected", file=sys.stderr, flush=True)
+    builder = build_direct_worklist if args.mode == MODE_DIRECT else build_worklist
+    work = builder(Path(args.results_file), fetcher, args.limit)
+    print(f"{len(work)} items with full text selected ({args.mode} mode)",
+          file=sys.stderr, flush=True)
 
     todo = []
     cached_results = []
@@ -162,10 +215,14 @@ def main():
                 paper_doi=item['doi'],
                 model=args.model,
                 max_tokens=args.max_tokens,
+                mode=args.mode,
+                matched_patterns=item.get('matched_patterns'),
             )
         result['citing_doi'] = item['doi']
         result['dandiset_id'] = item['dandiset_id']
         result['title'] = item['title']
+        if item.get('prior_classification'):
+            result['prior_classification'] = item['prior_classification']
         cache_path(cache_dir, item['doi'], item['dandiset_id']).write_text(
             json.dumps(result, indent=2))
         return result

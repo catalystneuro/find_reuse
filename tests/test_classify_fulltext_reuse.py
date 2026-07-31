@@ -393,6 +393,63 @@ class TestModalities:
         assert r['reused_dandi_hosted'] is None
 
 
+class TestDirectMode:
+    """
+    The direct pathway starts from a paper that names a dataset identifier, so
+    the question is whether these authors published it or reused it. PRIMARY is
+    a valid answer there and meaningless in the citing pathway; MENTION is the
+    reverse. Mixing the vocabularies would silently corrupt either corpus.
+    """
+
+    def payload(self, label):
+        return envelope(json.dumps({
+            'classification': label, 'confidence': 9,
+            'evidence_quotes': ['We recorded from mouse hippocampus.'],
+            'source_quotes': [], 'same_lab': None, 'same_lab_confidence': None,
+            'source_archive': None, 'reused_modalities': [], 'reasoning': 'r'}))
+
+    def test_primary_accepted_in_direct_mode(self, monkeypatch):
+        stub_post(monkeypatch, FakeResponse(200, payload=self.payload('PRIMARY')))
+        r = C.classify_paper_reuse(PAPER, api_key='k', mode=C.MODE_DIRECT)
+        assert r['classification'] == 'PRIMARY'
+        assert r['mode'] == C.MODE_DIRECT
+
+    def test_primary_rejected_in_citing_mode(self, monkeypatch):
+        stub_post(monkeypatch, FakeResponse(200, payload=self.payload('PRIMARY')))
+        assert_is_error(C.classify_paper_reuse(PAPER, api_key='k'), 'parse_error')
+
+    def test_mention_rejected_in_direct_mode(self, monkeypatch):
+        stub_post(monkeypatch, FakeResponse(200, payload=self.payload('MENTION')))
+        assert_is_error(
+            C.classify_paper_reuse(PAPER, api_key='k', mode=C.MODE_DIRECT),
+            'parse_error')
+
+    @pytest.mark.parametrize('label', ['REUSE', 'NEITHER'])
+    def test_shared_labels_work_in_both_modes(self, monkeypatch, label):
+        stub_post(monkeypatch, FakeResponse(200, payload=self.payload(label)))
+        for mode in (C.MODE_CITING, C.MODE_DIRECT):
+            r = C.classify_paper_reuse(PAPER, api_key='k', mode=mode)
+            assert r['classification'] == label
+
+    def test_unknown_mode_is_an_error(self):
+        assert_is_error(
+            C.classify_paper_reuse(PAPER, api_key='k', mode='sideways'), 'bad_mode')
+
+    def test_direct_prompt_names_the_relationship_question(self):
+        prompt = C.build_prompt('text', dataset_id='000003',
+                                mode=C.MODE_DIRECT,
+                                matched_patterns=['DANDI:000003'])
+        assert 'PRIMARY' in prompt
+        assert 'RELATIONSHIP' in prompt
+        assert 'DANDI:000003' in prompt
+        assert 'MENTION' not in prompt
+
+    def test_citing_prompt_is_unchanged_by_the_branch(self):
+        prompt = C.build_prompt('text', dataset_id='000003')
+        assert 'MENTION' in prompt
+        assert 'PRIMARY:' not in prompt
+
+
 class TestSourceQuotes:
     def test_source_quotes_are_verified_like_evidence(self, monkeypatch):
         stub_post(monkeypatch, FakeResponse(200, payload=envelope(json.dumps({
