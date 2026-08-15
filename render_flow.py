@@ -11,7 +11,7 @@ from pathlib import Path
 
 import graphviz
 
-from paper_text_fetcher import is_full_text
+from paper_text_fetcher import cache_filename, is_full_text, legacy_cache_filename
 
 # Prefer the refreshed corpus when a search-and-fetch run has produced one.
 CANDIDATES = [
@@ -41,8 +41,12 @@ def status_of(doi, paper):
     """
     if paper.get('text_status'):
         return paper['text_status']
-    safe = doi.replace('/', '_').replace(':', '_').replace('\\', '_')
-    cache_path = CACHE_DIR / f"{safe}.json"
+    # Ask the library for the filename rather than rebuilding it here: the
+    # scheme changed to percent-encoding, and hand-rolling the old one would
+    # silently report every newer entry as unavailable.
+    cache_path = CACHE_DIR / cache_filename(doi)
+    if not cache_path.exists():
+        cache_path = CACHE_DIR / legacy_cache_filename(doi)
     if not cache_path.exists():
         return 'unavailable'
     try:
