@@ -847,6 +847,12 @@ class ArchiveFinder:
         or (None, '', False) if not found.
         """
         return self.fetcher.get_paper_text(doi)
+
+    def get_paper_text_detailed(self, doi: str) -> dict:
+        """
+        Get paper text plus retrieval status. See PaperFetcher.get_paper_text_detailed.
+        """
+        return self.fetcher.get_paper_text_detailed(doi)
     
     def find_references(self, doi: str) -> tuple[dict, bool]:
         """
@@ -861,28 +867,35 @@ class ArchiveFinder:
             'archives': {},
             'source': '',
             'text_length': 0,
+            'has_full_text': False,
+            'text_status': 'unavailable',
             'error': None
         }
-        
+
         # Get paper text
-        text, source, from_cache = self.get_paper_text(doi)
-        
+        fetched = self.get_paper_text_detailed(doi)
+        text = fetched['text']
+        source = fetched['source']
+        from_cache = fetched['from_cache']
+
+        result['has_full_text'] = fetched['has_full_text']
+        result['text_status'] = fetched['status']
+
         if not text:
-            result['error'] = 'Could not retrieve paper text'
+            result['error'] = fetched['reason'] or 'Could not retrieve paper text'
             return result, from_cache
-        
+
         result['source'] = source
         result['text_length'] = len(text)
-        
-        # Check if we have sufficient content (not just CrossRef metadata)
-        # CrossRef-only results are typically < 1000 chars and just have title + references
-        # Full papers should have at least 3000 chars
-        MIN_FULL_TEXT_LENGTH = 3000
-        
-        if len(text) < MIN_FULL_TEXT_LENGTH and source == 'crossref':
-            result['error'] = 'Insufficient content (CrossRef metadata only, no full text available)'
-            return result, from_cache
-        
+
+        # Without the article body we still scan what we have, because a dataset
+        # DOI appearing in the CrossRef reference list is a direct citation and
+        # is detectable from metadata alone. What is NOT reliable from metadata
+        # is any judgement about reuse, so `has_full_text` is recorded above and
+        # the reuse classifier must gate on it.
+        if not fetched['has_full_text']:
+            result['warning'] = fetched['reason']
+
         # Find direct references from all archives
         archive_matches = self.find_all_archive_references(text)
         

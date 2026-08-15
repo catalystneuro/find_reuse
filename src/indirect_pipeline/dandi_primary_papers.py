@@ -692,6 +692,12 @@ def get_citing_papers(
         try:
             resp = session.get(url, timeout=30)
             if resp.status_code != 200:
+                print(
+                    f"  WARNING: OpenAlex returned HTTP {resp.status_code} for "
+                    f"cites:{openalex_id}; citing-paper list is TRUNCATED at "
+                    f"{len(citing_papers)}",
+                    file=sys.stderr, flush=True,
+                )
                 break
 
             data = resp.json()
@@ -735,11 +741,10 @@ def get_citing_papers(
 
 
 def _make_openalex_session() -> requests.Session:
-    session = requests.Session()
-    session.headers.update({
-        'User-Agent': 'DANDIPrimaryPapers/1.0 (https://github.com/dandi; mailto:ben.dichter@catalystneuro.com)'
-    })
-    return session
+    """Delegates to the retrying session in openalex.py, which is the one place
+    the retry policy is defined."""
+    from .openalex import _make_openalex_session as _make
+    return _make()
 
 
 def find_citing_papers(
@@ -845,6 +850,7 @@ def fetch_citing_paper_texts(
     """
     # Import ArchiveFinder from find_reuse module
     from ..direct_pipeline.find_reuse import ArchiveFinder
+    from .openalex import _fetch_full_text_only
 
     finder = ArchiveFinder(verbose=verbose, use_cache=True, cache_dir=cache_dir)
 
@@ -902,16 +908,7 @@ def fetch_citing_paper_texts(
 
     # Fetch cached papers quickly (single-threaded, no rate limit needed)
     for doi in tqdm(cached_dois, desc="Loading cached papers", disable=not show_progress):
-        text, source, from_cache = finder.get_paper_text(doi)
-        if text:
-            doi_texts[doi] = {
-                'text': text, 'source': source, 'text_length': len(text),
-            }
-        else:
-            doi_texts[doi] = {
-                'text': None, 'source': None, 'text_length': 0,
-                'error': 'Could not retrieve paper text',
-            }
+        doi_texts[doi] = _fetch_full_text_only(finder, doi)
 
     # Fetch uncached papers in parallel
     if uncached_dois:
@@ -930,18 +927,7 @@ def fetch_citing_paper_texts(
 
         def fetch_one(doi):
             f = get_finder()
-            text, source, from_cache = f.get_paper_text(doi)
-            if not from_cache:
-                time.sleep(0.2)  # Light rate limit per thread
-            if text:
-                return doi, {
-                    'text': text, 'source': source, 'text_length': len(text),
-                }
-            else:
-                return doi, {
-                    'text': None, 'source': None, 'text_length': 0,
-                    'error': 'Could not retrieve paper text',
-                }
+            return doi, _fetch_full_text_only(f, doi, sleep_when_live=True)
 
         pbar = tqdm(total=len(uncached_dois), desc=f"Fetching paper texts ({n_workers} workers)",
                     disable=not show_progress)
@@ -964,6 +950,8 @@ def fetch_citing_paper_texts(
                 citing['text_source'] = text_info.get('source')
                 citing['text_length'] = text_info.get('text_length', 0)
                 citing['text_cached'] = text_info.get('text') is not None
+                citing['has_full_text'] = text_info.get('has_full_text', False)
+                citing['text_status'] = text_info.get('text_status', 'unavailable')
                 if text_info.get('error'):
                     citing['text_error'] = text_info['error']
             else:

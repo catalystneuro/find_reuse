@@ -17,11 +17,14 @@ lifelines
 # Note: also requires the Graphviz system binary (e.g. `brew install graphviz`)
 graphviz
 
-# Full-text fetching fallbacks — fetch_paper.py (optional; degrades gracefully
-# if absent, but coverage drops for preprints and paywalled publishers)
-# Note: playwright also requires `playwright install chromium` after pip install
-playwright
-PyMuPDF
+# DOI -> full text retrieval. Lives in its own repo since it has no dependency
+# on this project; fetch_paper.py is a thin wrapper supplying our settings.
+# Install from a local checkout with:
+#   pip install -e ../paper-text-fetcher[all]
+# The [all] extra pulls in playwright and PyMuPDF, without which coverage drops
+# for preprints and paywalled publishers. playwright also needs
+# `python -m playwright install chromium` afterwards.
+paper-text-fetcher[all]
 
 # Slide / presentation generation — create_presentation.py, create_talk.py (optional)
 python-pptx

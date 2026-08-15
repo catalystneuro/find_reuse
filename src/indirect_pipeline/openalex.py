@@ -220,6 +220,15 @@ def get_citing_papers(
         try:
             resp = session.get(url, timeout=30)
             if resp.status_code != 200:
+                # Retries are already exhausted by this point. Returning the
+                # pages gathered so far is the only option, but it must not look
+                # like a complete result.
+                print(
+                    f"  WARNING: OpenAlex returned HTTP {resp.status_code} for "
+                    f"cites:{openalex_id}; citing-paper list is TRUNCATED at "
+                    f"{len(citing_papers)}",
+                    file=sys.stderr, flush=True,
+                )
                 break
 
             data = resp.json()
@@ -253,17 +262,69 @@ def get_citing_papers(
             meta = data.get('meta', {})
             cursor = meta.get('next_cursor')
 
-        except requests.RequestException:
+        except requests.RequestException as e:
+            print(
+                f"  WARNING: OpenAlex request failed for cites:{openalex_id} "
+                f"({type(e).__name__}); citing-paper list is TRUNCATED at "
+                f"{len(citing_papers)}",
+                file=sys.stderr, flush=True,
+            )
             break
 
     return citing_papers
 
 
 def _make_openalex_session() -> requests.Session:
+    """
+    Session for OpenAlex with retries on throttling and transient server errors.
+
+    Without this, a single 429 during cursor pagination silently truncates the
+    result set: `get_citing_papers` stops and returns the pages it already has,
+    and the caller cannot tell a genuinely short result from a throttled one.
+    Two consecutive discovery runs disagreed by 1,321 DOIs before this was added.
+    """
+    from requests.adapters import HTTPAdapter
+    from urllib3.util.retry import Retry
+
+    class _CappedRetry(Retry):
+        """
+        Retry that refuses to sleep for hours inside a single request.
+
+        OpenAlex answers a spent daily quota with `Retry-After` in the tens of
+        thousands of seconds. Honoring that verbatim parks the process for most
+        of a day with no output, which is indistinguishable from a hang. Above
+        the cap we stop waiting so the retries drain quickly and the caller gets
+        a real failure it can report.
+        """
+        MAX_RETRY_AFTER_SECONDS = 120
+
+        def get_retry_after(self, response):
+            seconds = super().get_retry_after(response)
+            if seconds is not None and seconds > self.MAX_RETRY_AFTER_SECONDS:
+                print(
+                    f"  WARNING: OpenAlex asked us to wait {seconds:.0f}s "
+                    f"({seconds/3600:.1f}h), which means the quota is spent, not "
+                    "a transient burst. Giving up rather than sleeping.",
+                    file=sys.stderr, flush=True,
+                )
+                return None
+            return seconds
+
     session = requests.Session()
     session.headers.update({
         'User-Agent': 'DANDIPrimaryPapers/1.0 (https://github.com/dandi; mailto:ben.dichter@catalystneuro.com)'
     })
+    retry = _CappedRetry(
+        total=5,
+        backoff_factor=1.0,
+        status_forcelist=(429, 500, 502, 503, 504),
+        allowed_methods=frozenset(['GET']),
+        respect_retry_after_header=True,
+        raise_on_status=False,
+    )
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount('https://', adapter)
+    session.mount('http://', adapter)
     return session
 
 
@@ -337,6 +398,38 @@ def find_citing_papers(
     return result['citing_papers']
 
 
+def _fetch_full_text_only(finder, doi: str, sleep_when_live: bool = False) -> dict:
+    """
+    Fetch a citing paper, keeping the text only when the article body was retrieved.
+
+    The indirect pathway infers reuse from how a paper discusses the work it
+    cites, which lives in Methods, Results, and Data Availability. A title,
+    abstract, and reference list cannot support that judgement, so a
+    metadata-only fetch is recorded as unusable rather than passed downstream.
+    """
+    info = finder.get_paper_text_detailed(doi)
+    if sleep_when_live and not info['from_cache']:
+        time.sleep(0.2)
+
+    if info['status'] == 'full_text':
+        return {
+            'text': info['text'],
+            'source': info['source'],
+            'text_length': len(info['text']),
+            'has_full_text': True,
+            'text_status': 'full_text',
+        }
+
+    return {
+        'text': None,
+        'source': info['source'] or None,
+        'text_length': 0,
+        'has_full_text': False,
+        'text_status': info['status'],
+        'error': info['reason'] or 'Could not retrieve paper text',
+    }
+
+
 def fetch_citing_paper_texts(
     results: list[dict],
     max_citing_papers_per_dandiset: int = 10,
@@ -399,16 +492,7 @@ def fetch_citing_paper_texts(
     print(f"  {len(cached_dois)} already cached, {len(uncached_dois)} to fetch", file=sys.stderr)
 
     for doi in tqdm(cached_dois, desc="Loading cached papers", disable=not show_progress):
-        text, source, from_cache = finder.get_paper_text(doi)
-        if text:
-            doi_texts[doi] = {
-                'text': text, 'source': source, 'text_length': len(text),
-            }
-        else:
-            doi_texts[doi] = {
-                'text': None, 'source': None, 'text_length': 0,
-                'error': 'Could not retrieve paper text',
-            }
+        doi_texts[doi] = _fetch_full_text_only(finder, doi)
 
     if uncached_dois:
         import concurrent.futures
@@ -425,18 +509,8 @@ def fetch_citing_paper_texts(
 
         def fetch_one(doi):
             f = get_finder()
-            text, source, from_cache = f.get_paper_text(doi)
-            if not from_cache:
-                time.sleep(0.2)
-            if text:
-                return doi, {
-                    'text': text, 'source': source, 'text_length': len(text),
-                }
-            else:
-                return doi, {
-                    'text': None, 'source': None, 'text_length': 0,
-                    'error': 'Could not retrieve paper text',
-                }
+            info = _fetch_full_text_only(f, doi, sleep_when_live=True)
+            return doi, info
 
         pbar = tqdm(total=len(uncached_dois), desc=f"Fetching paper texts ({n_workers} workers)",
                     disable=not show_progress)
@@ -457,12 +531,16 @@ def fetch_citing_paper_texts(
                 citing['text_source'] = text_info.get('source')
                 citing['text_length'] = text_info.get('text_length', 0)
                 citing['text_cached'] = text_info.get('text') is not None
+                citing['has_full_text'] = text_info.get('has_full_text', False)
+                citing['text_status'] = text_info.get('text_status', 'unavailable')
                 if text_info.get('error'):
                     citing['text_error'] = text_info['error']
             else:
                 citing['text_source'] = None
                 citing['text_length'] = 0
                 citing['text_cached'] = False
+                citing['has_full_text'] = False
+                citing['text_status'] = 'unavailable'
                 citing['text_error'] = 'No DOI available'
 
     return results
