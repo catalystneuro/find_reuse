@@ -35,6 +35,10 @@ from src.shared.classify_fulltext_reuse import (
 
 REPO = Path(__file__).resolve().parents[2]
 
+# Direct-mode discovery output covers several archives incidentally; this study
+# is scoped to DANDI, so only its references are classified.
+DIRECT_ARCHIVE = 'DANDI Archive'
+
 
 def cache_path(cache_dir: Path, doi: str, dataset_id: str) -> Path:
     safe = f"{doi}__{dataset_id}".replace('/', '_').replace(':', '_').replace('\\', '_')
@@ -89,19 +93,47 @@ def build_direct_worklist(path: Path, fetcher: PaperFetcher, limit: int) -> list
     """
     data = json.loads(path.read_text())
     work = []
-    for entry in data['classifications']:
-        doi = entry.get('citing_doi')
-        if not doi:
-            continue
-        work.append({
-            'doi': doi,
-            'title': entry.get('citing_title', ''),
-            'dandiset_id': entry.get('dandiset_id', ''),
-            'dandiset_name': entry.get('dandiset_name', ''),
-            'primary_paper_doi': entry.get('cited_doi') or '',
-            'matched_patterns': entry.get('match_patterns'),
-            'prior_classification': entry.get('classification'),
-        })
+
+    if 'classifications' in data:
+        # A previous classification run: re-judge the same pairs, carrying the
+        # old label so the two methods can be compared.
+        for entry in data['classifications']:
+            doi = entry.get('citing_doi')
+            if not doi:
+                continue
+            work.append({
+                'doi': doi,
+                'title': entry.get('citing_title', ''),
+                'dandiset_id': entry.get('dandiset_id', ''),
+                'dandiset_name': entry.get('dandiset_name', ''),
+                'primary_paper_doi': entry.get('cited_doi') or '',
+                'matched_patterns': entry.get('match_patterns'),
+                'prior_classification': entry.get('classification'),
+            })
+    else:
+        # Raw discovery output. One work item per (paper, dataset) pair, with
+        # the strings that actually matched, so the model can recognize a
+        # pattern-matching artifact rather than assuming the reference is real.
+        for entry in data.get('results', []):
+            doi = entry.get('doi')
+            if not doi:
+                continue
+            for archive, info in (entry.get('archives') or {}).items():
+                if archive != DIRECT_ARCHIVE:
+                    continue
+                matches = info.get('matches') or []
+                for dataset_id in info.get('dataset_ids', []):
+                    patterns = [m.get('matched_string') for m in matches
+                                if m.get('id') == dataset_id and m.get('matched_string')]
+                    work.append({
+                        'doi': doi,
+                        'title': entry.get('title', ''),
+                        'dandiset_id': dataset_id,
+                        'dandiset_name': '',
+                        'primary_paper_doi': '',
+                        'matched_patterns': patterns or None,
+                        'prior_classification': None,
+                    })
 
     keep = []
     for item in tqdm(work, desc='Selecting pairs with full text', file=sys.stderr):

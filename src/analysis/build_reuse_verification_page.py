@@ -18,6 +18,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
+from collections import Counter
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
@@ -141,6 +143,9 @@ CSS = """
   .chip.difflab{background:var(--ok-soft);color:var(--ok);border-color:transparent;
                 font-weight:600}
   .chip.archive{font-family:var(--mono);font-size:11px}
+  .chip.dandi{background:var(--accent-soft);color:var(--accent);border-color:transparent;
+              font-weight:600;white-space:normal;max-width:22ch}
+  .chip.both{background:var(--raise);color:var(--muted);border-style:dashed}
   .chip.neuro{background:var(--ok-soft);color:var(--ok);border-color:transparent;
               font-weight:660}
   .chip.notneuro{background:var(--bad-soft);color:var(--bad);border-color:transparent;
@@ -270,6 +275,7 @@ function quoteBlock(q){
 }
 
 function labChip(r){
+  if (r.same_lab === 'mixed') return `<span class="chip samelab">Mixed across datasets</span>`;
   if (r.same_lab === true)  return `<span class="chip samelab">Same lab${
     r.same_lab_confidence ? ' \\u00b7 ' + esc(r.same_lab_confidence) : ''}</span>`;
   if (r.same_lab === false) return `<span class="chip difflab">Different lab${
@@ -305,6 +311,8 @@ function render(){
           ${neuroChip(r)}
           ${modChips(r)}
           ${labChip(r)}
+          ${r.dandi_reason ? `<span class="chip dandi">DANDI: ${esc(r.dandi_reason)}</span>` : ''}
+          ${(r.pathways || []).length > 1 ? `<span class="chip both">both pathways</span>` : ''}
           ${r.archive ? `<span class="chip archive">${esc(r.archive)}</span>`
                       : `<span class="chip unknown">No archive named</span>`}
           <span class="conf">${esc(r.confidence)}<small>confidence</small></span>
@@ -404,7 +412,7 @@ render();
 """
 
 
-def build(rows: list[dict]) -> str:
+def build(rows: list[dict], heading: str = '') -> str:
     payload = json.dumps(rows, ensure_ascii=False).replace('</', r'<\/')
     n = len(rows)
     located = sum(1 for r in rows
@@ -418,6 +426,12 @@ def build(rows: list[dict]) -> str:
     lab_stat = (f'<div class="stat"><b>{same}</b><span>same-lab reuse</span></div>'
                 if assessed else
                 '<div class="stat"><b>&mdash;</b><span>lab not yet assessed</span></div>')
+    both = sum(1 for r in rows if len(r.get('pathways') or []) > 1)
+    title_text = heading or 'Data reuse claims awaiting a human check'
+    reasons = Counter(r.get('dandi_reason') for r in rows if r.get('dandi_reason'))
+    reason_bits = ''.join(
+        f'<div class="stat"><b>{n}</b><span>{k}</span></div>'
+        for k, n in reasons.most_common())
 
     return f"""<title>DANDI Reuse Verification &mdash; {n} cases</title>
 <style>{CSS}</style>
@@ -425,18 +439,25 @@ def build(rows: list[dict]) -> str:
 <div class="wrap">
   <header class="page">
     <div class="eyebrow">Manual verification worksheet</div>
-    <h1>Data reuse claims awaiting a human check</h1>
+    <h1>{title_text}</h1>
     <p class="lede">Every case the full-text classifier labelled <b>REUSE</b>, shown with the
       passage it judged from. A quote is only worth trusting if it was actually found in the
       paper, so each one carries the tier at which it matched.</p>
     <div class="stats">
       <div class="stat"><b>{n}</b><span>reuse claims</span></div>
       <div class="stat"><b>{neuro}</b><span>reuse neurophysiology</span></div>
-      <div class="stat"><b>{not_neuro}</b><span>other modality only</span></div>
+      {reason_bits}
+      <div class="stat"><b>{both}</b><span>found by both pathways</span></div>
       <div class="stat"><b>{unsupported}</b><span>quote not in the paper</span></div>
-      {lab_stat}
     </div>
   </header>
+
+  <div class="note">
+    <b>Why each paper is here.</b> Every row reuses neurophysiology data, was judged to
+    come from a lab other than the one that produced it, and carries textual evidence that
+    the data came from DANDI rather than another repository. The provenance quotes below are
+    that evidence &mdash; check them first, since the whole cohort rests on them.
+  </div>
 
   <div class="note">
     <b>Modality is the decisive field.</b> DANDI hosts neurophysiology and the behavior
@@ -501,40 +522,141 @@ const ROWS = {payload};
 """
 
 
+DANDI_MARKER = re.compile(r'dandiarchive\.org|10\.48324|\bDANDI\b|dandiset', re.I)
+
+# Version suffixes. '/vN' is unambiguous. '.N' is not: 10.1002/brx2.47 and
+# brx2.65 are different articles, not versions of one, so it only counts as a
+# version when the unversioned DOI is also present or the base ends in a long
+# article number.
+_VERSION_SLASH = re.compile(r'^(?P<base>.+?)/v\d{1,2}$', re.I)
+_VERSION_DOT = re.compile(r'^(?P<base>.+?)\.\d{1,2}$')
+_ARTICLE_NUMBER = re.compile(r'\d{4,}$')
+
+
+def canonical_doi(doi: str, known: set) -> str:
+    """
+    Collapse a versioned DOI onto the work it is a version of.
+
+    eLife's reviewed-preprint model mints .1, .2 and .3 alongside the base DOI,
+    so one paper can appear five times and be counted five times. Research
+    Square, F1000Research, Authorea and Qeios do the same with other suffixes.
+    """
+    m = _VERSION_SLASH.match(doi)
+    if m:
+        return m.group('base')
+    m = _VERSION_DOT.match(doi)
+    if m:
+        base = m.group('base')
+        if base in known or _ARTICLE_NUMBER.search(base.split('/')[-1]):
+            return base
+    return doi
+
+
+def merge_by_paper(inputs: list[str]) -> dict:
+    """
+    Collapse per-(paper, dataset) records into one row per paper.
+
+    A paper can appear several times, once per dataset it reuses and once per
+    pathway that found it, so the fields are unioned rather than overwritten:
+    all dandisets, all archives named, all modalities, all quotes. same_lab
+    becomes 'mixed' when the answer differs across that paper's datasets, which
+    is a real answer rather than a contradiction.
+    """
+    loaded = [(Path(p), json.loads(Path(p).read_text())) for p in inputs]
+    known = {r['citing_doi'] for _, d in loaded for r in d['classifications']}
+
+    merged: dict = {}
+    for path, data in loaded:
+        pathway = 'direct' if 'direct' in path.name else 'citing'
+        for r in data['classifications']:
+            if r.get('classification') != 'REUSE':
+                continue
+            doi = canonical_doi(r['citing_doi'], known)
+            row = merged.setdefault(doi, {
+                'doi': doi, 'title': '', 'dandisets': [], 'confidence': 0,
+                'archives': [], 'same_lab_vals': set(), 'same_lab_confidence': None,
+                'modalities': [], 'neurophys': False, 'pathways': set(),
+                'reasoning': '', 'quotes': [], 'source_quotes': [],
+            })
+            row['pathways'].add(pathway)
+            if r.get('title') and len(r['title']) > len(row['title']):
+                row['title'] = r['title'].strip()
+            if r.get('dandiset_id') and r['dandiset_id'] not in row['dandisets']:
+                row['dandisets'].append(r['dandiset_id'])
+            if r.get('source_archive') and r['source_archive'] not in row['archives']:
+                row['archives'].append(r['source_archive'])
+            if r.get('same_lab') is not None:
+                row['same_lab_vals'].add(bool(r['same_lab']))
+                if row['same_lab_confidence'] is None:
+                    row['same_lab_confidence'] = r.get('same_lab_confidence')
+            for m in r.get('reused_modalities') or []:
+                if m not in row['modalities']:
+                    row['modalities'].append(m)
+            if r.get('reused_neurophysiology'):
+                row['neurophys'] = True
+            row['confidence'] = max(row['confidence'], r.get('confidence') or 0)
+            if len(r.get('reasoning') or '') > len(row['reasoning']):
+                row['reasoning'] = r.get('reasoning') or ''
+            for key, field in (('quotes', 'evidence_quotes'),
+                               ('source_quotes', 'source_quotes')):
+                for q in r.get(field, []):
+                    rec = {'q': q['quote'], 'tier': q['match_type']}
+                    if rec not in row[key]:
+                        row[key].append(rec)
+    return merged
+
+
+def finalize(row: dict) -> dict:
+    """Derive the display fields the page needs from a merged row."""
+    vals = row.pop('same_lab_vals')
+    row['same_lab'] = (True if vals == {True} else
+                       False if vals == {False} else
+                       'mixed' if vals == {True, False} else None)
+    row['pathways'] = sorted(row.pop('pathways'))
+
+    # Why this paper counts as DANDI-sourced, which is what a reviewer checks.
+    if 'direct' in row['pathways']:
+        row['dandi_reason'] = 'names a DANDI identifier in its text'
+    elif 'DANDI Archive' in row['archives']:
+        row['dandi_reason'] = 'names DANDI Archive as the source'
+    else:
+        hit = next((q for q in row['source_quotes'] + row['quotes']
+                    if q['tier'] != 'not_found' and DANDI_MARKER.search(q['q'])), None)
+        row['dandi_reason'] = ('quotes DANDI in the text' if hit else None)
+    row['archive'] = ', '.join(row['archives']) or None
+    row['dandiset'] = ', '.join(row['dandisets'][:4]) + (
+        f" +{len(row['dandisets']) - 4}" if len(row['dandisets']) > 4 else '')
+    return row
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('-i', '--input',
-                        default=str(REPO / 'output/fulltext_classifications.json'))
+    parser.add_argument('-i', '--input', action='append', required=True,
+                        help='Classification JSON; repeat to merge both pathways.')
     parser.add_argument('-o', '--output', default='/tmp/reuse_verify.html')
+    parser.add_argument('--neuro-only', action='store_true',
+                        help='Keep only papers that reused neurophysiology.')
+    parser.add_argument('--lab', choices=['different', 'same', 'any'], default='any',
+                        help="'different' keeps outside reuse, and mixed cases with it.")
+    parser.add_argument('--dandi-evidenced', action='store_true',
+                        help='Keep only papers with textual evidence of DANDI as source.')
+    parser.add_argument('--title', default='')
     args = parser.parse_args()
 
-    data = json.loads(Path(args.input).read_text())
-    rows = []
-    for r in data['classifications']:
-        if r.get('classification') != 'REUSE':
-            continue
-        rows.append({
-            'doi': r['citing_doi'],
-            'title': (r.get('title') or '').strip(),
-            'dandiset': r.get('dandiset_id', ''),
-            'confidence': r.get('confidence'),
-            'archive': r.get('source_archive'),
-            'same_lab': r.get('same_lab'),
-            'same_lab_confidence': r.get('same_lab_confidence'),
-            'modalities': r.get('reused_modalities') or [],
-            'neurophys': r.get('reused_neurophysiology'),
-            'dandi_hosted': r.get('reused_dandi_hosted'),
-            'reasoning': r.get('reasoning') or '',
-            'quotes': [{'q': q['quote'], 'tier': q['match_type']}
-                       for q in r.get('evidence_quotes', [])],
-            'source_quotes': [{'q': q['quote'], 'tier': q['match_type']}
-                              for q in r.get('source_quotes', [])],
-        })
-    # Neurophysiology reuse first: that is what the study is counting.
-    rows.sort(key=lambda r: (not r['neurophys'], -(r['confidence'] or 0), r['doi']))
+    rows = [finalize(r) for r in merge_by_paper(args.input).values()]
 
-    Path(args.output).write_text(build(rows))
-    print(f"{len(rows)} REUSE cases -> {args.output}")
+    if args.neuro_only:
+        rows = [r for r in rows if r['neurophys']]
+    if args.lab == 'different':
+        rows = [r for r in rows if r['same_lab'] in (False, 'mixed')]
+    elif args.lab == 'same':
+        rows = [r for r in rows if r['same_lab'] in (True, 'mixed')]
+    if args.dandi_evidenced:
+        rows = [r for r in rows if r['dandi_reason']]
+
+    rows.sort(key=lambda r: (-(r['confidence'] or 0), r['doi']))
+    Path(args.output).write_text(build(rows, args.title))
+    print(f"{len(rows)} papers -> {args.output}")
 
 
 if __name__ == '__main__':
