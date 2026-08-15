@@ -17,7 +17,16 @@ import requests
 
 # OpenRouter API
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
-DEFAULT_MODEL = "google/gemini-3.5-flash"
+# Pinned snapshot on OpenRouter, matching src/shared/classify_fulltext_reuse.py
+# so the two pipelines are comparable. Callers that route through OpenRouter
+# should also pin a provider; see DEFAULT_PROVIDER there for why.
+DEFAULT_MODEL = "deepseek/deepseek-v4-flash-0731"
+
+# OpenRouter serves this snapshot from many providers at prices spanning 3.5x and
+# picks one per request unless told otherwise. Unpinned, consecutive calls land on
+# different backends: the price varies and prefix caching never hits, because each
+# provider keeps its own cache.
+DEFAULT_PROVIDER = "DeepInfra"
 
 
 def get_api_key() -> str:
@@ -60,6 +69,7 @@ def call_openrouter_api(
     return_raw: bool = False,
     return_full_interaction: bool = False,
     json_schema: dict | None = None,
+    provider: str | None = DEFAULT_PROVIDER,
 ) -> dict | str | None:
     """
     Call OpenRouter API with retry logic.
@@ -102,6 +112,8 @@ def call_openrouter_api(
     }
     if json_schema is not None:
         data['response_format'] = {'type': 'json_schema', 'json_schema': json_schema}
+    if provider:
+        data['provider'] = {'order': [provider], 'allow_fallbacks': False}
 
     last_error = None
     raw_response = None

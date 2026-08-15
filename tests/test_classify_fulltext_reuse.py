@@ -66,7 +66,8 @@ class TestFailuresNeverClassify:
 
     def test_missing_api_key(self, monkeypatch):
         monkeypatch.delenv('DEEPSEEK_API_KEY', raising=False)
-        monkeypatch.setattr(C, 'get_deepseek_api_key', lambda: None)
+        monkeypatch.delenv('OPENROUTER_API_KEY', raising=False)
+        monkeypatch.setattr(C, 'get_api_key_for', lambda model: None)
         assert_is_error(C.classify_paper_reuse('text'), 'no_api_key')
 
     @pytest.mark.parametrize('exc,kind', [
@@ -131,6 +132,63 @@ class TestFailuresNeverClassify:
 # --------------------------------------------------------------------------- #
 # Strict parsing
 # --------------------------------------------------------------------------- #
+
+class TestProviderRouting:
+    """
+    OpenRouter serves the pinned snapshot from 28 providers at prices spanning
+    3.5x and picks one per request. Unpinned, consecutive calls landed on
+    different backends, which cost more and destroyed prefix caching because
+    each provider keeps its own cache.
+    """
+
+    def test_openrouter_slug_is_detected_by_namespace(self):
+        assert C.uses_openrouter('deepseek/deepseek-v4-flash-0731') is True
+        assert C.uses_openrouter('deepseek-v4-flash') is False
+
+    def test_openrouter_request_pins_the_provider(self, monkeypatch):
+        captured = {}
+
+        def fake(url, headers=None, json=None, timeout=None):
+            captured['url'] = url
+            captured['json'] = json
+            return FakeResponse(200, payload=envelope(
+                '{"classification": "MENTION", "confidence": 5, '
+                '"evidence_quotes": [], "reasoning": "r"}'))
+
+        monkeypatch.setattr(requests, 'post', fake)
+        C.classify_paper_reuse(PAPER, api_key='k',
+                               model='deepseek/deepseek-v4-flash-0731',
+                               provider='DeepInfra')
+        assert captured['url'] == C.OPENROUTER_API_URL
+        assert captured['json']['provider'] == {
+            'order': ['DeepInfra'], 'allow_fallbacks': False}
+
+    def test_direct_deepseek_request_sends_no_provider_block(self, monkeypatch):
+        captured = {}
+
+        def fake(url, headers=None, json=None, timeout=None):
+            captured['url'] = url
+            captured['json'] = json
+            return FakeResponse(200, payload=envelope(
+                '{"classification": "MENTION", "confidence": 5, '
+                '"evidence_quotes": [], "reasoning": "r"}'))
+
+        monkeypatch.setattr(requests, 'post', fake)
+        C.classify_paper_reuse(PAPER, api_key='k', model='deepseek-v4-flash')
+        assert captured['url'] == C.DEEPSEEK_API_URL
+        assert 'provider' not in captured['json']
+
+
+class TestPromptLayout:
+    def test_paper_precedes_the_instructions(self):
+        """Prefix caching only works if the bulk of the prompt comes first."""
+        prompt = C.build_prompt('UNIQUEPAPERBODY', dataset_id='000003')
+        assert prompt.index('UNIQUEPAPERBODY') < 100
+        assert prompt.count('UNIQUEPAPERBODY') == 1
+        # The task must still be present, after the paper.
+        assert 'CLASSIFICATIONS' in prompt
+        assert prompt.index('CLASSIFICATIONS') > prompt.index('UNIQUEPAPERBODY')
+
 
 class TestEmptyContentRetry:
     """

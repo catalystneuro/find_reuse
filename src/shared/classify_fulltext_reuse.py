@@ -35,7 +35,17 @@ from typing import Any, Optional
 import requests
 
 DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions"
-DEFAULT_MODEL = "deepseek-v4-flash"
+OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
+
+# A pinned snapshot, so a re-run months from now is comparable to this one.
+DEFAULT_MODEL = "deepseek/deepseek-v4-flash-0731"
+
+# OpenRouter serves this snapshot from 28 providers at prices spanning 3.5x, and
+# picks one per request unless told otherwise. Left alone it routed consecutive
+# calls to StreamLake and then Morph, which cost more AND destroyed prefix
+# caching, since each provider keeps its own cache. Pinning one provider fixes
+# both: it is cheaper, it is reproducible, and the cache actually hits.
+DEFAULT_PROVIDER = "DeepInfra"
 
 # The indirect pathway asks how a citing paper relates to a dataset it cites.
 VALID_CLASSIFICATIONS = frozenset({'REUSE', 'MENTION', 'NEITHER'})
@@ -55,7 +65,7 @@ LABELS_FOR_MODE = {
 # Bumped whenever the prompt or the output schema changes. Cached results carry
 # the version they were produced under so a batch run can tell which entries are
 # stale rather than silently mixing outputs from two different questions.
-PROMPT_VERSION = 3
+PROMPT_VERSION = 4
 
 # Which part of a multimodal dataset was actually reused.
 #
@@ -145,11 +155,11 @@ class ClassificationError(Exception):
 # API key
 # --------------------------------------------------------------------------- #
 
-def get_deepseek_api_key() -> Optional[str]:
-    """Return the DeepSeek API key from the environment or the project .env."""
-    api_key = os.environ.get('DEEPSEEK_API_KEY')
-    if api_key:
-        return api_key
+def _read_key(name: str) -> Optional[str]:
+    """Read an API key from the environment, falling back to the project .env."""
+    value = os.environ.get(name)
+    if value:
+        return value
 
     env_path = os.path.join(
         os.path.dirname(os.path.abspath(__file__)), '..', '..', '.env')
@@ -158,10 +168,27 @@ def get_deepseek_api_key() -> Optional[str]:
             for line in f:
                 line = line.strip()
                 if line and not line.startswith('#') and '=' in line:
-                    key, _, value = line.partition('=')
-                    if key.strip() == 'DEEPSEEK_API_KEY':
-                        return value.strip().strip('"').strip("'")
+                    key, _, raw = line.partition('=')
+                    if key.strip() == name:
+                        return raw.strip().strip('"').strip("'")
     return None
+
+
+def uses_openrouter(model: str) -> bool:
+    """OpenRouter slugs are namespaced ('vendor/model'); DeepSeek's own are not."""
+    return '/' in model
+
+
+def get_api_key_for(model: str) -> Optional[str]:
+    """Return the key for whichever service serves `model`."""
+    if uses_openrouter(model):
+        return _read_key('OPENROUTER_API_KEY')
+    return _read_key('DEEPSEEK_API_KEY')
+
+
+def get_deepseek_api_key() -> Optional[str]:
+    """Backwards-compatible accessor for the DeepSeek key."""
+    return _read_key('DEEPSEEK_API_KEY')
 
 
 # --------------------------------------------------------------------------- #
@@ -346,7 +373,17 @@ Evidence of REUSE typically appears in Methods, Data Availability, Results, or A
 
 A review, perspective, commentary, or editorial article does NOT reuse data, even when it describes datasets in detail. Classify those as MENTION."""
 
-    return f"""{opening}
+    # The paper comes first, and everything that varies comes after it. Providers
+    # cache by prompt prefix, so this makes the bulk of the prompt cacheable:
+    # a second question about the same paper reuses ~99% of it at a fraction of
+    # the price. With the paper last, only the instruction block cached, which
+    # measured at 6.4% of tokens.
+    return f"""FULL TEXT OF THE PAPER
+{paper_text}
+
+=== END OF PAPER. THE TASK FOLLOWS. ===
+
+{opening}
 {described}
 {classifications}
 
@@ -398,8 +435,6 @@ Return ONLY a JSON object, no markdown fences and no commentary:
   "reasoning": "<2-4 sentences explaining the judgement>"
 }}
 
-FULL TEXT OF THE PAPER
-{paper_text}
 """
 
 
@@ -616,6 +651,7 @@ def classify_paper_reuse(
     max_retries: int = 3,
     mode: str = MODE_CITING,
     matched_patterns: Optional[list] = None,
+    provider: Optional[str] = DEFAULT_PROVIDER,
 ) -> dict:
     """
     Classify data reuse by sending the whole paper to DeepSeek.
@@ -642,11 +678,12 @@ def classify_paper_reuse(
         return _error_result('empty_input', 'No paper text supplied',
                              paper_doi=paper_doi)
 
-    key = api_key or get_deepseek_api_key()
+    key = api_key or get_api_key_for(model)
     if not key:
+        needed = 'OPENROUTER_API_KEY' if uses_openrouter(model) else 'DEEPSEEK_API_KEY'
         return _error_result(
             'no_api_key',
-            'No DeepSeek API key. Set DEEPSEEK_API_KEY in the environment or .env.',
+            f'No API key for {model}. Set {needed} in the environment or .env.',
             paper_doi=paper_doi)
 
     if mode not in LABELS_FOR_MODE:
@@ -670,11 +707,22 @@ def classify_paper_reuse(
         'Content-Type': 'application/json',
     }
 
+    if uses_openrouter(model):
+        api_url = OPENROUTER_API_URL
+        headers['HTTP-Referer'] = 'https://github.com/catalystneuro/find_reuse'
+        if provider:
+            # Without this OpenRouter picks a provider per request. Consecutive
+            # calls then land on different backends, so the prefix cache never
+            # hits and the price varies by up to 3.5x between them.
+            payload['provider'] = {'order': [provider], 'allow_fallbacks': False}
+    else:
+        api_url = DEEPSEEK_API_URL
+
     raw = None
     last_error = None
     for attempt in range(max_retries):
         try:
-            response = requests.post(DEEPSEEK_API_URL, headers=headers,
+            response = requests.post(api_url, headers=headers,
                                      json=payload, timeout=timeout)
             if response.status_code == 429 or response.status_code >= 500:
                 last_error = f'HTTP {response.status_code}'
@@ -807,6 +855,7 @@ def classify_paper_reuse(
         'truncation': truncation,
         'usage': usage,
         'model': model,
+        'provider': (raw.get('provider') if isinstance(raw, dict) else None) or provider,
         'error': None,
         'error_kind': None,
     }

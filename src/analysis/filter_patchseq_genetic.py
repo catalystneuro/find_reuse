@@ -37,7 +37,7 @@ import requests
 # like a clean no-op.
 VOCAB_VERSION = 2
 CACHE_DIR = Path(f".patchseq_filter_cache_v{VOCAB_VERSION}")
-MODEL = "google/gemini-3.5-flash"
+MODEL = "deepseek/deepseek-v4-flash-0731"
 
 PROMPT = """You are classifying what type of data a paper reused from a Patch-seq dataset.
 

@@ -28,7 +28,7 @@ Input:
 Usage:
     python classify_citing_papers.py --contexts-file output/citation_contexts.json
     python classify_citing_papers.py --contexts-file output/citation_contexts.json --max-papers 10
-    python classify_citing_papers.py --contexts-file output/citation_contexts.json --model google/gemini-3.5-flash
+    python classify_citing_papers.py --contexts-file output/citation_contexts.json --model deepseek/deepseek-v4-flash-0731
 """
 
 import argparse

@@ -171,8 +171,8 @@ def main():
     parser.add_argument("--description", required=True,
                         help="Short description of what's being tried "
                              "(used to slug-name the directory and recorded in metadata).")
-    parser.add_argument("--model", default="google/gemini-3.5-flash",
-                        help="OpenRouter model for classification (default: google/gemini-3.5-flash).")
+    parser.add_argument("--model", default="deepseek/deepseek-v4-flash-0731",
+                        help="OpenRouter model for classification (default: deepseek/deepseek-v4-flash-0731).")
     parser.add_argument("--rerun-extraction", action="store_true",
                         help="Re-run extract_citation_contexts.py on the sampled pairs before classifying. "
                              "Use when a fix lives in the extraction stage.")
