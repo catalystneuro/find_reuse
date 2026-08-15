@@ -146,6 +146,33 @@ def build_direct_worklist(path: Path, fetcher: PaperFetcher, limit: int) -> list
     return keep
 
 
+def build_retry_worklist(cache_dir: Path) -> list[dict]:
+    """
+    Rebuild work items straight from cached ERROR results.
+
+    Every cached result carries the DOI and dandiset it was asked about, so a
+    retry can be reconstructed without touching the corpus or the network.
+    """
+    work = []
+    for path in sorted(cache_dir.glob('*.json')):
+        try:
+            prior = json.loads(path.read_text())
+        except Exception:
+            continue
+        if prior.get('classification') != 'ERROR' or not prior.get('citing_doi'):
+            continue
+        work.append({
+            'doi': prior['citing_doi'],
+            'title': prior.get('title', ''),
+            'dandiset_id': prior.get('dandiset_id', ''),
+            'dandiset_name': '',
+            'primary_paper_doi': '',
+            'matched_patterns': None,
+            'prior_classification': prior.get('prior_classification'),
+        })
+    return work
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--mode', choices=[MODE_CITING, MODE_DIRECT],
@@ -186,10 +213,20 @@ def main():
     cache_dir.mkdir(parents=True, exist_ok=True)
 
     fetcher = PaperFetcher(use_cache=True, cache_dir=args.paper_cache)
-    builder = build_direct_worklist if args.mode == MODE_DIRECT else build_worklist
-    work = builder(Path(args.results_file), fetcher, args.limit)
-    print(f"{len(work)} items with full text selected ({args.mode} mode)",
-          file=sys.stderr, flush=True)
+
+    if args.retry_errors:
+        # Retrying failures does not need the corpus rescanned. Selection calls
+        # the fetcher for every paper, and metadata-only cache entries now
+        # expire, so a rescan refetches roughly 1,400 papers over the network to
+        # find a hundred cached errors. The errors already record what they were.
+        work = build_retry_worklist(cache_dir)
+        print(f"{len(work)} cached errors to retry ({args.mode} mode)",
+              file=sys.stderr, flush=True)
+    else:
+        builder = build_direct_worklist if args.mode == MODE_DIRECT else build_worklist
+        work = builder(Path(args.results_file), fetcher, args.limit)
+        print(f"{len(work)} items with full text selected ({args.mode} mode)",
+              file=sys.stderr, flush=True)
 
     todo = []
     cached_results = []

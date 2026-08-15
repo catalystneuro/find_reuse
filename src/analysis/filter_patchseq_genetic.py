@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
 """
-filter_patchseq_genetic.py — Identify Patch-seq reuse entries that only use genetic data.
+filter_patchseq_genetic.py — Reclassify Patch-seq reuse that did not touch DANDI data.
 
-Patch-seq datasets on DANDI contain electrophysiology and morphology data, but the
-transcriptomic component is typically hosted elsewhere (GEO, CELLxGENE, NeMO). Papers
-that only reuse the transcriptomic/gene expression data are not actually using DANDI data.
+DANDI holds the neurophysiology and the behavioral data recorded alongside it. It does
+NOT hold morphological reconstructions, which live in NeuroMorpho, the Allen Cell Types
+Database or the Brain Image Library, nor transcriptomics, which lives on GEO, CELLxGENE
+or NeMO. A paper reusing only gene expression or only reconstructions from a Patch-seq
+study has therefore not reused DANDI data, though at the citation level it is
+indistinguishable from one that did.
+
+Note: newer runs answer this question inline, from the full paper text, in
+src/shared/classify_fulltext_reuse.py. This script remains only because
+output/all_classifications.json still feeds the survival and dashboard analyses.
 
 This script sends each Patch-seq REUSE entry to an LLM to determine which data modality
 was used, and reclassifies genetics-only entries as MENTION.
@@ -24,18 +31,25 @@ from pathlib import Path
 
 import requests
 
-CACHE_DIR = Path(".patchseq_filter_cache")
+# Bumped when the modality vocabulary changes. Cached verdicts from an older
+# version answer a different question and must not be reused: the labels would
+# simply never match, so nothing would be reclassified and the run would look
+# like a clean no-op.
+VOCAB_VERSION = 2
+CACHE_DIR = Path(f".patchseq_filter_cache_v{VOCAB_VERSION}")
 MODEL = "google/gemini-3.5-flash"
 
 PROMPT = """You are classifying what type of data a paper reused from a Patch-seq dataset.
 
-Patch-seq datasets contain THREE modalities:
-1. **Electrophysiology** (voltage traces, firing patterns, intrinsic properties)
-2. **Morphology** (cell reconstructions, dendritic/axonal morphology)
-3. **Transcriptomics** (gene expression, RNA-seq, cell type clustering)
+Patch-seq datasets contain several modalities:
+1. **Neurophysiology** (voltage traces, firing patterns, intrinsic properties, spike trains)
+2. **Behavior** (task or positional data recorded alongside the neural data)
+3. **Morphology** (cell reconstructions, dendritic/axonal morphology)
+4. **Transcriptomics** (gene expression, RNA-seq, cell type clustering)
 
-On DANDI, only the electrophysiology and morphology data are stored. The transcriptomic data
-is typically hosted on other platforms (GEO, CELLxGENE, NeMO Archive, Allen Cell Types Database).
+DANDI stores only the neurophysiology and the behavior recorded with it. Morphological
+reconstructions are hosted elsewhere (NeuroMorpho, Allen Cell Types Database, Brain Image
+Library), as is the transcriptomic data (GEO, CELLxGENE, NeMO Archive).
 
 Based on the citation context and classification reasoning below, determine which data
 modality the citing paper actually used.
@@ -48,7 +62,7 @@ Citation context excerpts:
 
 Respond with ONLY a JSON object:
 {{
-  "modality": "ephys_or_morphology" | "transcriptomics_only" | "both" | "unclear",
+  "modality": "dandi_hosted" | "not_dandi_hosted" | "both" | "unclear",
   "confidence": 1-10,
   "reasoning": "brief explanation"
 }}
@@ -161,21 +175,21 @@ def main():
     for m, n in modalities.most_common():
         print(f"  {m}: {n}", file=sys.stderr)
 
-    transcriptomics_only = [
+    not_dandi_hosted = [
         r for r in results
-        if r.get("modality") == "transcriptomics_only"
+        if r.get("modality") == "not_dandi_hosted"
     ]
-    print(f"\nTranscriptomics-only (to be reclassified): {len(transcriptomics_only)}", file=sys.stderr)
+    print(f"\nNot hosted on DANDI (to be reclassified): {len(not_dandi_hosted)}", file=sys.stderr)
 
     if args.dry_run:
         print("\nDry run — no changes made.", file=sys.stderr)
-        for r in transcriptomics_only[:10]:
+        for r in not_dandi_hosted[:10]:
             print(f"  {r['citing_doi']} -> {r['dandiset_id']}: {r.get('reasoning', '')[:100]}", file=sys.stderr)
         return
 
     # Reclassify transcriptomics-only entries as MENTION
     reclassify_keys = set(
-        (r["citing_doi"], r["dandiset_id"]) for r in transcriptomics_only
+        (r["citing_doi"], r["dandiset_id"]) for r in not_dandi_hosted
     )
     n_changed = 0
     for c in cls["classifications"]:
@@ -183,7 +197,7 @@ def main():
         if key in reclassify_keys and c["classification"] == "REUSE":
             c["classification"] = "MENTION"
             c["reclassified_from"] = "REUSE"
-            c["reclassify_reason"] = "transcriptomics_only_not_on_dandi"
+            c["reclassify_reason"] = "modality_not_hosted_on_dandi"
             n_changed += 1
 
     with open("output/all_classifications.json", "w") as f:

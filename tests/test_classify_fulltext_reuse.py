@@ -101,9 +101,10 @@ class TestFailuresNeverClassify:
         stub_post(monkeypatch, FakeResponse(200, payload={'choices': []}))
         assert_is_error(C.classify_paper_reuse('text', api_key='k'), 'no_choices')
 
-    def test_empty_content(self, monkeypatch):
+    def test_empty_content_after_retries_is_an_error(self, monkeypatch):
         stub_post(monkeypatch, FakeResponse(200, payload=envelope('')))
-        assert_is_error(C.classify_paper_reuse('text', api_key='k'), 'parse_error')
+        assert_is_error(
+            C.classify_paper_reuse('text', api_key='k', max_retries=1), 'parse_error')
 
     def test_output_hit_token_cap(self, monkeypatch):
         stub_post(monkeypatch,
@@ -130,6 +131,47 @@ class TestFailuresNeverClassify:
 # --------------------------------------------------------------------------- #
 # Strict parsing
 # --------------------------------------------------------------------------- #
+
+class TestEmptyContentRetry:
+    """
+    A reasoning model can spend its thinking budget and emit no content, in an
+    envelope that is otherwise a normal 200. Retrying gets an answer; not
+    retrying manufactured 91 of the 122 errors in a full corpus run.
+    """
+
+    def test_retries_and_succeeds_when_content_arrives(self, monkeypatch):
+        good = json.dumps({'classification': 'MENTION', 'confidence': 6,
+                           'evidence_quotes': [], 'reasoning': 'r'})
+        responses = [FakeResponse(200, payload=envelope('')),
+                     FakeResponse(200, payload=envelope('')),
+                     FakeResponse(200, payload=envelope(good))]
+        calls = {'n': 0}
+
+        def fake(*args, **kwargs):
+            r = responses[min(calls['n'], len(responses) - 1)]
+            calls['n'] += 1
+            return r
+
+        monkeypatch.setattr(requests, 'post', fake)
+        monkeypatch.setattr(C.time, 'sleep', lambda *_: None)
+        result = C.classify_paper_reuse('text', api_key='k', max_retries=3)
+        assert result['classification'] == 'MENTION'
+        assert calls['n'] == 3
+
+    def test_does_not_retry_when_content_is_present(self, monkeypatch):
+        bad = FakeResponse(200, payload=envelope('not json at all'))
+        calls = {'n': 0}
+
+        def fake(*args, **kwargs):
+            calls['n'] += 1
+            return bad
+
+        monkeypatch.setattr(requests, 'post', fake)
+        monkeypatch.setattr(C.time, 'sleep', lambda *_: None)
+        assert_is_error(C.classify_paper_reuse('text', api_key='k', max_retries=3))
+        # Content arrived; it was simply unusable. Retrying would not help.
+        assert calls['n'] == 1
+
 
 class TestParseStrict:
     def test_accepts_plain_object(self):

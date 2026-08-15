@@ -552,6 +552,23 @@ def _parse_modalities(raw: Any, warnings: list[str]) -> list[str]:
     return out
 
 
+def _is_empty_completion(raw: Any) -> bool:
+    """
+    True only for a well-formed response whose message content is empty.
+
+    Deliberately narrow. An explicit error envelope or a missing choices array
+    is a real failure that should be reported immediately, not retried three
+    times with backoff first. The case worth retrying is the one that looks
+    entirely successful and simply has no answer in it.
+    """
+    if not isinstance(raw, dict) or raw.get('error'):
+        return False
+    choices = raw.get('choices') or []
+    if not choices:
+        return False
+    return not ((choices[0].get('message') or {}).get('content') or '').strip()
+
+
 def _truncate(paper_text: str, max_chars: int) -> tuple[str, Optional[dict]]:
     """
     Trim an oversized paper, keeping the head and the tail.
@@ -673,7 +690,18 @@ def classify_paper_reuse(
                                      f'HTTP {response.status_code}: {body}',
                                      paper_doi=paper_doi, truncation=truncation)
             raw = response.json()
-            break
+
+            # A reasoning model sometimes spends its thinking budget and then
+            # emits no content at all. The envelope is a valid 200 with a
+            # finish_reason of 'stop', so nothing looks wrong, but there is no
+            # answer to parse. It is transient, and retrying gets one: this
+            # accounted for 91 of 122 errors in a full corpus run, every one of
+            # which succeeded on a second attempt.
+            if not _is_empty_completion(raw) or attempt == max_retries - 1:
+                break
+            last_error = 'empty content despite HTTP 200'
+            time.sleep(2 ** attempt)
+            continue
         except (requests.Timeout, requests.ConnectionError) as e:
             last_error = f'{type(e).__name__}: {e}'
             if attempt < max_retries - 1:
