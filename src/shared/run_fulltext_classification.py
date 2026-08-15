@@ -45,7 +45,53 @@ def cache_path(cache_dir: Path, doi: str, dataset_id: str) -> Path:
     return cache_dir / f"{safe}.json"
 
 
-def build_worklist(results_path: Path, fetcher: PaperFetcher, limit: int) -> list[dict]:
+def select_with_full_text(work: list[dict], limit: int, paper_cache: str,
+                          workers: int = 12) -> list[dict]:
+    """
+    Keep the items whose paper text we can actually retrieve.
+
+    Parallel because this is network-bound, not CPU-bound: metadata-only cache
+    entries now expire, so a serial pass refetches thousands of papers one at a
+    time and spends over an hour before any classification starts.
+
+    Order is preserved so that `--limit` selects the same items it always did,
+    rather than whichever happened to resolve first.
+    """
+    local = threading.local()
+
+    def fetcher_for_thread() -> PaperFetcher:
+        if not hasattr(local, 'fetcher'):
+            local.fetcher = PaperFetcher(use_cache=True, cache_dir=paper_cache)
+        return local.fetcher
+
+    def status_of(index_item):
+        index, item = index_item
+        try:
+            fetched = fetcher_for_thread().get_paper_text_detailed(item['doi'])
+        except Exception:
+            return index, item, 0
+        if fetched['status'] != 'full_text':
+            return index, item, 0
+        return index, item, len(fetched['text'])
+
+    resolved: list[tuple[int, dict, int]] = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as ex:
+        futures = [ex.submit(status_of, pair) for pair in enumerate(work)]
+        for fut in tqdm(concurrent.futures.as_completed(futures), total=len(futures),
+                        desc='Selecting papers with full text', file=sys.stderr):
+            resolved.append(fut.result())
+
+    keep = []
+    for _, item, chars in sorted(resolved, key=lambda r: r[0]):
+        if chars:
+            item['text_chars'] = chars
+            keep.append(item)
+            if len(keep) >= limit:
+                break
+    return keep
+
+
+def build_worklist(results_path: Path, paper_cache: str, limit: int) -> list[dict]:
     """
     Pick the papers to classify: those whose text we actually have.
 
@@ -70,19 +116,10 @@ def build_worklist(results_path: Path, fetcher: PaperFetcher, limit: int) -> lis
                 'primary_paper_doi': (ds.get('paper_relations') or [{}])[0].get('doi', ''),
             })
 
-    # Only papers with a retrievable body can be classified at all.
-    keep = []
-    for item in tqdm(work, desc='Selecting papers with full text', file=sys.stderr):
-        fetched = fetcher.get_paper_text_detailed(item['doi'])
-        if fetched['status'] == 'full_text':
-            item['text_chars'] = len(fetched['text'])
-            keep.append(item)
-        if len(keep) >= limit:
-            break
-    return keep
+    return select_with_full_text(work, limit, paper_cache)
 
 
-def build_direct_worklist(path: Path, fetcher: PaperFetcher, limit: int) -> list[dict]:
+def build_direct_worklist(path: Path, paper_cache: str, limit: int) -> list[dict]:
     """
     Worklist for the direct pathway, taken from the existing classifications.
 
@@ -135,15 +172,7 @@ def build_direct_worklist(path: Path, fetcher: PaperFetcher, limit: int) -> list
                         'prior_classification': None,
                     })
 
-    keep = []
-    for item in tqdm(work, desc='Selecting pairs with full text', file=sys.stderr):
-        fetched = fetcher.get_paper_text_detailed(item['doi'])
-        if fetched['status'] == 'full_text':
-            item['text_chars'] = len(fetched['text'])
-            keep.append(item)
-        if len(keep) >= limit:
-            break
-    return keep
+    return select_with_full_text(work, limit, paper_cache)
 
 
 def load_cached_results(cache_dir: Path, skip_errors: bool = False) -> list[dict]:
@@ -245,7 +274,7 @@ def main():
               f"forward ({args.mode} mode)", file=sys.stderr, flush=True)
     else:
         builder = build_direct_worklist if args.mode == MODE_DIRECT else build_worklist
-        work = builder(Path(args.results_file), fetcher, args.limit)
+        work = builder(Path(args.results_file), args.paper_cache, args.limit)
         print(f"{len(work)} items with full text selected ({args.mode} mode)",
               file=sys.stderr, flush=True)
 
