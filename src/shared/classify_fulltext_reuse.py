@@ -151,6 +151,13 @@ class ClassificationError(Exception):
     """Raised only by helpers; the public entry point returns ERROR instead."""
 
 
+# HTTP statuses that will not improve by trying the next paper. A spent key or a
+# revoked credential fails identically for every remaining item, so a batch of
+# 11,580 produces 11,580 copies of the same error and, worse, overwrites good
+# cached results with each one.
+FATAL_HTTP_STATUSES = frozenset({401, 402, 403})
+
+
 # --------------------------------------------------------------------------- #
 # API key
 # --------------------------------------------------------------------------- #
@@ -453,6 +460,7 @@ def _error_result(kind: str, message: str, **extra) -> dict:
     """
     result = {
         'classification': 'ERROR',
+        'fatal': False,
         'confidence': 0,
         'evidence_quotes': [],
         'quote_warnings': [],
@@ -684,7 +692,7 @@ def classify_paper_reuse(
         return _error_result(
             'no_api_key',
             f'No API key for {model}. Set {needed} in the environment or .env.',
-            paper_doi=paper_doi)
+            paper_doi=paper_doi, fatal=True)
 
     if mode not in LABELS_FOR_MODE:
         return _error_result('bad_mode', f'unknown mode {mode!r}', paper_doi=paper_doi)
@@ -734,9 +742,10 @@ def classify_paper_reuse(
                                      paper_doi=paper_doi, truncation=truncation)
             if response.status_code != 200:
                 body = response.text[:300]
-                return _error_result('http_error',
-                                     f'HTTP {response.status_code}: {body}',
-                                     paper_doi=paper_doi, truncation=truncation)
+                return _error_result(
+                    'http_error', f'HTTP {response.status_code}: {body}',
+                    paper_doi=paper_doi, truncation=truncation,
+                    fatal=response.status_code in FATAL_HTTP_STATUSES)
             raw = response.json()
 
             # A reasoning model sometimes spends its thinking budget and then

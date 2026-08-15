@@ -20,12 +20,14 @@ import threading
 import time
 from collections import Counter
 from pathlib import Path
+from typing import Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import warnings
 warnings.filterwarnings('ignore')
 
+import requests
 from tqdm import tqdm
 
 from fetch_paper import PaperFetcher
@@ -175,6 +177,31 @@ def build_direct_worklist(path: Path, paper_cache: str, limit: int) -> list[dict
     return select_with_full_text(work, limit, paper_cache)
 
 
+def openrouter_credit_remaining(model: str) -> Optional[float]:
+    """
+    Remaining credit on the OpenRouter key, or None if not applicable/unknown.
+
+    Cheap to ask and worth asking: a key that is already spent turns a whole run
+    into a single repeated 403, and finding that out after the fact costs more
+    than the check.
+    """
+    if '/' not in model:
+        return None
+    from src.shared.classify_fulltext_reuse import _read_key
+    key = _read_key('OPENROUTER_API_KEY')
+    if not key:
+        return None
+    try:
+        resp = requests.get('https://openrouter.ai/api/v1/key',
+                            headers={'Authorization': f'Bearer {key}'}, timeout=20)
+        if resp.status_code != 200:
+            return None
+        data = resp.json().get('data') or {}
+        return data.get('limit_remaining')
+    except Exception:
+        return None
+
+
 def load_cached_results(cache_dir: Path, skip_errors: bool = False) -> list[dict]:
     """Read every cached result, optionally excluding the errors."""
     out = []
@@ -233,6 +260,9 @@ def main():
                         default=str(REPO / '.fulltext_classification_cache'))
     parser.add_argument('-o', '--output',
                         default=str(REPO / 'output/fulltext_classifications.json'))
+    parser.add_argument('--min-credit', type=float, default=5.0,
+                        help='Refuse to start if the OpenRouter key has less '
+                             'than this much credit left (default 5.0).')
     parser.add_argument('--retry-errors', action='store_true',
                         help='Re-run pairs whose cached result was an ERROR')
     parser.add_argument('--max-tokens', type=int, default=8192,
@@ -306,6 +336,16 @@ def main():
           + (f" ({stale} stale from an older prompt version)" if stale else ""),
           file=sys.stderr, flush=True)
 
+    remaining = openrouter_credit_remaining(args.model)
+    if remaining is not None and remaining < args.min_credit:
+        print(f"ABORT: OpenRouter key has ${remaining:.2f} remaining, below the "
+              f"${args.min_credit:.2f} floor. Top it up or pass --min-credit 0 "
+              "to proceed anyway.", file=sys.stderr, flush=True)
+        raise SystemExit(2)
+    if remaining is not None:
+        print(f"OpenRouter credit remaining: ${remaining:.2f}",
+              file=sys.stderr, flush=True)
+
     thread_local = threading.local()
 
     def get_fetcher():
@@ -342,11 +382,25 @@ def main():
         result['title'] = item['title']
         if item.get('prior_classification'):
             result['prior_classification'] = item['prior_classification']
-        cache_path(cache_dir, item['doi'], item['dandiset_id']).write_text(
-            json.dumps(result, indent=2))
+
+        path = cache_path(cache_dir, item['doi'], item['dandiset_id'])
+        # An error must never replace a successful classification. A spent API
+        # key once turned 10,559 good results into 10,559 copies of the same
+        # 403, destroying a full corpus pass that had cost $47 to produce. A
+        # stale good answer is worth more than a fresh failure.
+        if result.get('classification') == 'ERROR' and path.exists():
+            try:
+                prior = json.loads(path.read_text())
+            except Exception:
+                prior = {}
+            if prior.get('classification') not in (None, 'ERROR'):
+                result['kept_prior_result'] = True
+                return result
+        path.write_text(json.dumps(result, indent=2))
         return result
 
     fresh = []
+    aborted = None
     t0 = time.time()
     if todo:
         with concurrent.futures.ThreadPoolExecutor(max_workers=args.workers) as ex:
@@ -357,6 +411,8 @@ def main():
             for fut in pbar:
                 try:
                     result = fut.result()
+                except concurrent.futures.CancelledError:
+                    continue
                 except Exception as e:
                     print(f"  worker crashed: {type(e).__name__}: {e}",
                           file=sys.stderr, flush=True)
@@ -364,6 +420,16 @@ def main():
                 fresh.append(result)
                 counts[result['classification']] += 1
                 pbar.set_postfix({k: v for k, v in counts.most_common(4)})
+
+                if result.get('fatal'):
+                    # Nothing after this can succeed: the credential is spent or
+                    # rejected, so every remaining paper would fail identically.
+                    aborted = result.get('error')
+                    print(f"\n  FATAL: {aborted}\n  Stopping; {len(futures) - len(fresh)} "
+                          "items were not attempted.", file=sys.stderr, flush=True)
+                    for pending in futures:
+                        pending.cancel()
+                    break
     elapsed = time.time() - t0
 
     # `carried` is empty outside retry mode, where `cached_results` already
@@ -390,6 +456,7 @@ def main():
         'estimated_cost_usd': round(cost, 2),
         'seconds': round(elapsed, 1),
         'model': args.model,
+        'aborted': aborted,
     }
 
     Path(args.output).write_text(json.dumps(

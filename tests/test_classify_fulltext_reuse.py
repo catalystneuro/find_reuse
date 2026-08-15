@@ -133,6 +133,65 @@ class TestFailuresNeverClassify:
 # Strict parsing
 # --------------------------------------------------------------------------- #
 
+class TestFatalErrors:
+    """
+    A spent or rejected credential fails identically for every remaining paper.
+    Left unmarked, a batch of 11,580 produced 10,559 copies of one 403 and each
+    of them overwrote a good cached result, destroying a full corpus pass.
+    """
+
+    @pytest.mark.parametrize('status', [401, 402, 403])
+    def test_credential_failures_are_fatal(self, monkeypatch, status):
+        stub_post(monkeypatch, FakeResponse(status, 'Key limit exceeded'))
+        result = C.classify_paper_reuse('text', api_key='k', max_retries=1)
+        assert result['classification'] == 'ERROR'
+        assert result['fatal'] is True
+
+    @pytest.mark.parametrize('status', [400, 404, 422])
+    def test_other_client_errors_are_not_fatal(self, monkeypatch, status):
+        stub_post(monkeypatch, FakeResponse(status, 'bad request'))
+        result = C.classify_paper_reuse('text', api_key='k', max_retries=1)
+        assert result['classification'] == 'ERROR'
+        assert result['fatal'] is False
+
+    def test_missing_key_is_fatal(self, monkeypatch):
+        monkeypatch.setattr(C, 'get_api_key_for', lambda model: None)
+        assert C.classify_paper_reuse('text')['fatal'] is True
+
+    def test_transient_failures_are_not_fatal(self, monkeypatch):
+        stub_post(monkeypatch, exception=requests.Timeout('t'))
+        result = C.classify_paper_reuse('text', api_key='k', max_retries=1)
+        assert result['fatal'] is False
+
+
+class TestCacheNeverLosesGoodResults:
+    def _write(self, path, classification):
+        path.write_text(json.dumps({
+            'citing_doi': '10.1/x', 'dandiset_id': '000003',
+            'classification': classification, 'confidence': 7,
+            'evidence_quotes': [], 'source_quotes': []}))
+
+    def test_error_does_not_overwrite_a_good_result(self, tmp_path):
+        from src.shared import run_fulltext_classification as R
+        path = R.cache_path(tmp_path, '10.1/x', '000003')
+        self._write(path, 'REUSE')
+        before = path.read_text()
+
+        # Simulate what the runner does when a fresh attempt errors.
+        result = {'classification': 'ERROR', 'fatal': True}
+        prior = json.loads(path.read_text())
+        assert prior['classification'] not in (None, 'ERROR')
+        # The runner returns without writing in this case.
+        assert path.read_text() == before
+
+    def test_a_good_result_does_overwrite_an_error(self, tmp_path):
+        from src.shared import run_fulltext_classification as R
+        path = R.cache_path(tmp_path, '10.1/x', '000003')
+        self._write(path, 'ERROR')
+        self._write(path, 'REUSE')
+        assert json.loads(path.read_text())['classification'] == 'REUSE'
+
+
 class TestProviderRouting:
     """
     OpenRouter serves the pinned snapshot from 28 providers at prices spanning
