@@ -173,6 +173,49 @@ class TestEmptyContentRetry:
         assert calls['n'] == 1
 
 
+class TestRetryPreservesCorpus:
+    """
+    In retry mode the work list is only the failures. The output file must still
+    describe the whole corpus: writing it from the work list alone silently
+    replaced 11,578 results with the 122 that were retried.
+    """
+
+    def _entry(self, doi, classification):
+        return json.dumps({'citing_doi': doi, 'dandiset_id': '000003',
+                           'classification': classification, 'confidence': 5,
+                           'evidence_quotes': [], 'source_quotes': []})
+
+    def test_load_cached_results_can_exclude_errors(self, tmp_path):
+        from src.shared import run_fulltext_classification as R
+        (tmp_path / 'a.json').write_text(self._entry('10.1/a', 'REUSE'))
+        (tmp_path / 'b.json').write_text(self._entry('10.1/b', 'ERROR'))
+        (tmp_path / 'c.json').write_text(self._entry('10.1/c', 'MENTION'))
+
+        everything = R.load_cached_results(tmp_path)
+        survivors = R.load_cached_results(tmp_path, skip_errors=True)
+        assert len(everything) == 3
+        assert len(survivors) == 2
+        assert all(r['classification'] != 'ERROR' for r in survivors)
+
+    def test_retry_worklist_holds_only_errors(self, tmp_path):
+        from src.shared import run_fulltext_classification as R
+        (tmp_path / 'a.json').write_text(self._entry('10.1/a', 'REUSE'))
+        (tmp_path / 'b.json').write_text(self._entry('10.1/b', 'ERROR'))
+
+        work = R.build_retry_worklist(tmp_path)
+        assert [w['doi'] for w in work] == ['10.1/b']
+
+    def test_carried_and_retried_together_cover_everything(self, tmp_path):
+        from src.shared import run_fulltext_classification as R
+        (tmp_path / 'a.json').write_text(self._entry('10.1/a', 'REUSE'))
+        (tmp_path / 'b.json').write_text(self._entry('10.1/b', 'ERROR'))
+        (tmp_path / 'c.json').write_text(self._entry('10.1/c', 'MENTION'))
+
+        carried = R.load_cached_results(tmp_path, skip_errors=True)
+        work = R.build_retry_worklist(tmp_path)
+        assert len(carried) + len(work) == 3
+
+
 class TestParseStrict:
     def test_accepts_plain_object(self):
         assert C.parse_strict('{"classification": "REUSE"}')['classification'] == 'REUSE'

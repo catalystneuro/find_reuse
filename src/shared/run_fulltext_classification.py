@@ -146,6 +146,20 @@ def build_direct_worklist(path: Path, fetcher: PaperFetcher, limit: int) -> list
     return keep
 
 
+def load_cached_results(cache_dir: Path, skip_errors: bool = False) -> list[dict]:
+    """Read every cached result, optionally excluding the errors."""
+    out = []
+    for path in sorted(cache_dir.glob('*.json')):
+        try:
+            prior = json.loads(path.read_text())
+        except Exception:
+            continue
+        if skip_errors and prior.get('classification') == 'ERROR':
+            continue
+        out.append(prior)
+    return out
+
+
 def build_retry_worklist(cache_dir: Path) -> list[dict]:
     """
     Rebuild work items straight from cached ERROR results.
@@ -214,14 +228,21 @@ def main():
 
     fetcher = PaperFetcher(use_cache=True, cache_dir=args.paper_cache)
 
+    # Results already on disk that this run is not re-running. In retry mode the
+    # work list is only the failures, so without this the output file would be
+    # rewritten with just those and the rest of the corpus would vanish from it.
+    # The cache is the source of truth; the output file is a view of it.
+    carried: list[dict] = []
+
     if args.retry_errors:
         # Retrying failures does not need the corpus rescanned. Selection calls
         # the fetcher for every paper, and metadata-only cache entries now
         # expire, so a rescan refetches roughly 1,400 papers over the network to
         # find a hundred cached errors. The errors already record what they were.
         work = build_retry_worklist(cache_dir)
-        print(f"{len(work)} cached errors to retry ({args.mode} mode)",
-              file=sys.stderr, flush=True)
+        carried = load_cached_results(cache_dir, skip_errors=True)
+        print(f"{len(work)} cached errors to retry, {len(carried)} results carried "
+              f"forward ({args.mode} mode)", file=sys.stderr, flush=True)
     else:
         builder = build_direct_worklist if args.mode == MODE_DIRECT else build_worklist
         work = builder(Path(args.results_file), fetcher, args.limit)
@@ -316,7 +337,9 @@ def main():
                 pbar.set_postfix({k: v for k, v in counts.most_common(4)})
     elapsed = time.time() - t0
 
-    all_results = cached_results + fresh
+    # `carried` is empty outside retry mode, where `cached_results` already
+    # covers everything the work list skipped.
+    all_results = carried + cached_results + fresh
     counts = Counter(r['classification'] for r in all_results)
     halluc = sum(r.get('hallucinated_quote_count', 0) for r in all_results)
     with_quotes = sum(1 for r in all_results if r.get('evidence_quotes'))
