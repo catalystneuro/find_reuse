@@ -28,6 +28,7 @@ import json
 import os
 import re
 import sys
+import threading
 import time
 import unicodedata
 from typing import Any, Optional
@@ -145,6 +146,29 @@ DEFAULT_MAX_TOKENS = 8192
 # it exists so that an unusually large input degrades visibly rather than by
 # being silently rejected.
 DEFAULT_MAX_INPUT_CHARS = 600_000
+
+
+# One HTTP session per thread, rather than a fresh connection per request.
+#
+# `requests.post` builds and discards a Session on every call, so each of the
+# ~14,000 classification requests paid for a new TCP connect and TLS handshake
+# against the same host. A session per thread reuses one connection for all the
+# requests that thread makes. Thread-local rather than shared because
+# requests.Session is not documented as thread-safe, and a thread only has one
+# request in flight at a time so a small pool per thread is ample.
+_sessions = threading.local()
+
+
+def _session() -> requests.Session:
+    session = getattr(_sessions, 'session', None)
+    if session is None:
+        session = requests.Session()
+        adapter = requests.adapters.HTTPAdapter(
+            pool_connections=4, pool_maxsize=4, max_retries=0)
+        session.mount('https://', adapter)
+        session.mount('http://', adapter)
+        _sessions.session = session
+    return session
 
 
 class ClassificationError(Exception):
@@ -730,7 +754,7 @@ def classify_paper_reuse(
     last_error = None
     for attempt in range(max_retries):
         try:
-            response = requests.post(api_url, headers=headers,
+            response = _session().post(api_url, headers=headers,
                                      json=payload, timeout=timeout)
             if response.status_code == 429 or response.status_code >= 500:
                 last_error = f'HTTP {response.status_code}'

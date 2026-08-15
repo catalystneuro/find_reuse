@@ -36,12 +36,26 @@ def envelope(content, finish_reason='stop'):
             'usage': {'total_tokens': 1}}
 
 
+class FakeSession:
+    """Stands in for the thread-local requests.Session the classifier uses."""
+
+    def __init__(self, response=None, exception=None):
+        self._response = response
+        self._exception = exception
+        self.calls = 0
+
+    def post(self, *args, **kwargs):
+        self.calls += 1
+        if self._exception is not None:
+            raise self._exception
+        return self._response
+
+
 def stub_post(monkeypatch, response=None, exception=None):
-    def fake(*args, **kwargs):
-        if exception is not None:
-            raise exception
-        return response
-    monkeypatch.setattr(requests, 'post', fake)
+    """Replace the per-thread session so no request leaves the process."""
+    session = FakeSession(response, exception)
+    monkeypatch.setattr(C, '_session', lambda: session)
+    return session
 
 
 def assert_is_error(result, kind=None):
@@ -133,6 +147,36 @@ class TestFailuresNeverClassify:
 # Strict parsing
 # --------------------------------------------------------------------------- #
 
+class TestConnectionReuse:
+    """
+    requests.post builds and discards a Session per call, so every one of the
+    ~14,000 classification requests paid for a fresh TCP connect and TLS
+    handshake. A session per thread reuses one connection for all of that
+    thread's requests.
+    """
+
+    def test_session_is_reused_within_a_thread(self):
+        assert C._session() is C._session()
+
+    def test_each_thread_gets_its_own_session(self):
+        import threading
+        seen = {}
+
+        def grab(name):
+            seen[name] = C._session()
+
+        threads = [threading.Thread(target=grab, args=(f't{i}',)) for i in range(3)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        assert len({id(v) for v in seen.values()}) == 3
+
+    def test_session_keeps_a_connection_pool(self):
+        adapter = C._session().get_adapter('https://api.deepseek.com')
+        assert adapter._pool_maxsize > 1
+
+
 class TestFatalErrors:
     """
     A spent or rejected credential fails identically for every remaining paper.
@@ -214,7 +258,7 @@ class TestProviderRouting:
                 '{"classification": "MENTION", "confidence": 5, '
                 '"evidence_quotes": [], "reasoning": "r"}'))
 
-        monkeypatch.setattr(requests, 'post', fake)
+        monkeypatch.setattr(C, '_session', lambda: type('S', (), {'post': staticmethod(fake)})())
         C.classify_paper_reuse(PAPER, api_key='k',
                                model='deepseek/deepseek-v4-flash-0731',
                                provider='DeepInfra')
@@ -232,7 +276,7 @@ class TestProviderRouting:
                 '{"classification": "MENTION", "confidence": 5, '
                 '"evidence_quotes": [], "reasoning": "r"}'))
 
-        monkeypatch.setattr(requests, 'post', fake)
+        monkeypatch.setattr(C, '_session', lambda: type('S', (), {'post': staticmethod(fake)})())
         C.classify_paper_reuse(PAPER, api_key='k', model='deepseek-v4-flash')
         assert captured['url'] == C.DEEPSEEK_API_URL
         assert 'provider' not in captured['json']
@@ -269,7 +313,7 @@ class TestEmptyContentRetry:
             calls['n'] += 1
             return r
 
-        monkeypatch.setattr(requests, 'post', fake)
+        monkeypatch.setattr(C, '_session', lambda: type('S', (), {'post': staticmethod(fake)})())
         monkeypatch.setattr(C.time, 'sleep', lambda *_: None)
         result = C.classify_paper_reuse('text', api_key='k', max_retries=3)
         assert result['classification'] == 'MENTION'
@@ -283,7 +327,7 @@ class TestEmptyContentRetry:
             calls['n'] += 1
             return bad
 
-        monkeypatch.setattr(requests, 'post', fake)
+        monkeypatch.setattr(C, '_session', lambda: type('S', (), {'post': staticmethod(fake)})())
         monkeypatch.setattr(C.time, 'sleep', lambda *_: None)
         assert_is_error(C.classify_paper_reuse('text', api_key='k', max_retries=3))
         # Content arrived; it was simply unusable. Retrying would not help.
