@@ -521,18 +521,18 @@ def command_list(args) -> int:
             continue
         if args.dandiset and described['dandiset_id'] != args.dandiset:
             continue
-        if args.source and (described['text_source'] or '') != args.source:
-            continue
         rows.append(described)
         if len(rows) >= args.limit:
             break
 
+    # Both DOIs, because the row is a pair and investigating one means opening
+    # both papers: the citing paper is what was read, the cited paper is what it
+    # was asked about.
     print(_table(
-        ['citing DOI', 'dandiset', 'cause', 'cites', 'body', 'DANDI', 'source', 'title'],
-        [[r['citing_doi'], r['dandiset_id'], r['cause'], r['citation_count'],
-          len(r['citation_in_body_offsets']), r['dandi_mentions'],
-          (r['text_source'] or '-')[:24], (r['title'] or '')[:44]] for r in rows],
-        'llrrrrll'))
+        ['citing DOI', 'cited DOI', 'dandiset', 'cause'],
+        [[r['citing_doi'], r['cited_doi'] or '-', r['dandiset_id'], r['cause']]
+         for r in rows],
+        'llll'))
     print(f'\n{len(rows)} rows. Read one with:')
     print('  python -m src.analysis.analyze_neither show <citing DOI> --dandiset <id>')
     return 0
@@ -640,7 +640,6 @@ def main() -> int:
     add_mode(p_list)
     p_list.add_argument('--cause', choices=sorted({CAUSE_CITING, CAUSE_DIRECT, OTHER}))
     p_list.add_argument('--dandiset')
-    p_list.add_argument('--source')
     p_list.add_argument('--label', default='NEITHER',
                         help='restrict to a label, or "" for every classification')
     p_list.add_argument('--limit', type=int, default=25)
