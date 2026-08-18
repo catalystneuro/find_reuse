@@ -56,6 +56,25 @@ CLASSIFICATION_CACHE_DIR = Path('.classification_cache')
 # Valid classification values
 VALID_CLASSIFICATIONS = {'REUSE', 'MENTION', 'NEITHER'}
 
+# Text sources that provide the full article body (as opposed to CrossRef, which
+# yields only title + abstract + reference list). Reuse can only be judged from
+# full text, so papers lacking one of these are skipped before classification.
+FULL_TEXT_SOURCES = {
+    'europe_pmc', 'ncbi_pmc', 'pmc_playwright', 'playwright_biorxiv',
+    'publisher_html', 'elsevier', 'unpaywall',
+}
+MIN_FULL_TEXT_CHARS = 5000
+
+
+def has_full_text(text_source: str, text_length: int) -> bool:
+    """True only if the citing paper's entire text was retrieved.
+
+    Requires both a full-text source (not CrossRef abstract/references alone)
+    and a plausible full-article length.
+    """
+    sources = set((text_source or '').split('+'))
+    return bool(sources & FULL_TEXT_SOURCES) and (text_length or 0) >= MIN_FULL_TEXT_CHARS
+
 # Structured-output schema passed to the LLM so the response is guaranteed
 # valid JSON matching this shape (no markdown fences, no parse failures).
 # same_lab / same_lab_confidence / source_archive only apply to REUSE, so they
@@ -337,6 +356,21 @@ def classify_single_paper(
         'text_length': pair_record.get('text_length', 0),
         'text_source': pair_record.get('text_source', ''),
     }
+
+    # Full text only: skip papers where we have just an abstract or reference
+    # list. These cannot support a reuse judgment, so don't spend an LLM call on
+    # them. Not cached, so they are reclassified if full text is fetched later.
+    if not has_full_text(result['text_source'], result['text_length']):
+        result['classification'] = 'NEITHER'
+        result['confidence'] = 10
+        result['num_contexts'] = 0
+        result['excluded_no_fulltext'] = True
+        result['reasoning'] = (
+            'Skipped: no full text retrieved '
+            f'(text_source={result["text_source"] or "none"}, '
+            f'text_length={result["text_length"]})'
+        )
+        return result
 
     raw_contexts = pair_record.get('contexts', [])
     contexts_with_text = []
