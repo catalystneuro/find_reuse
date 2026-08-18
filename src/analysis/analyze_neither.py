@@ -565,7 +565,7 @@ def command_summary(args) -> int:
         print(_table(['label', 'n', 'share'],
                      [[k, v, f'{v/total:.1%}'] for k, v in labels.most_common()], 'lrr'))
 
-        neither = [r for r in described_rows(mode)]
+        neither = list(described_rows(mode))
         if not neither:
             continue
 
@@ -574,68 +574,7 @@ def command_summary(args) -> int:
         print(_table(['cause', 'n', 'share', 'note'],
                      [[c, causes[c], f'{causes[c]/len(neither):.1%}', CAUSE_NOTES[c]]
                       for c in CAUSE_ORDER_FOR_MODE[mode] if causes[c]], 'lrrl'))
-
-        print('\n--- concentration by dandiset')
-        by_dandiset = Counter(r['dandiset_id'] for r in neither)
-        ranked = by_dandiset.most_common()
-        running = 0
-        rows = []
-        for i, (_, n) in enumerate(ranked, 1):
-            running += n
-            if i in (5, 10, 20, 50, 100):
-                rows.append([f'top {i}', running, f'{running/len(neither):.0%}'])
-        print(_table(['dandisets', 'NEITHER', 'share'], rows, 'lrr'))
-        print(f'{len(ranked)} distinct dandisets carry NEITHER rows')
-
-        by_paper = Counter(r['citing_doi'] for r in neither).most_common(5)
-        # Citing mode asks about each paper once, so this is flat by construction
-        # and says nothing. Direct mode asks per identifier, where one paper can
-        # dominate the whole bucket.
-        if by_paper and by_paper[0][1] > 2:
-            print('\n--- most concentrated single papers')
-            titles = {r['citing_doi']: r['title'] for r in neither}
-            print(_table(['n', 'citing DOI', 'title'],
-                         [[n, d, titles[d][:60]] for d, n in by_paper], 'rll'))
-
-        if mode == MODE_CITING:
-            _print_primary_health()
-            _print_pairing_coverage(mode)
     return 0
-
-
-def _print_primary_health() -> None:
-    discovery = load_discovery()
-    kinds, pairs_by_kind = Counter(), Counter()
-    damage, pairs_by_damage = Counter(), Counter()
-    for dandiset_id, record in discovery['dandisets'].items():
-        doi = primary_relation(dandiset_id).get('doi')
-        pairs = len(record.get('citing_papers', []))
-        kinds[primary_doi_kind(doi)] += 1
-        pairs_by_kind[primary_doi_kind(doi)] += pairs
-        damage[primary_doi_damage(doi)] += 1
-        pairs_by_damage[primary_doi_damage(doi)] += pairs
-
-    print('\n--- primary-paper health across all dandisets')
-    print(_table(['what the primary DOI points at', 'dandisets', 'discovery pairs'],
-                 [[k, kinds[k], pairs_by_kind[k]]
-                  for k in ('journal', 'preprint', 'non_paper', 'missing') if kinds[k]], 'lrr'))
-    print()
-    print(_table(['how the DOI string is written', 'dandisets', 'discovery pairs'],
-                 [[k, damage[k], pairs_by_damage[k]]
-                  for k in ('clean', 'whitespace', 'url_form', 'missing') if damage[k]], 'lrr'))
-
-
-def _print_pairing_coverage(mode: str) -> None:
-    discovery = load_discovery()
-    index = classification_index(mode)
-    all_pairs = sum(len(v) for v in discovery['paper_to_ds'].values())
-    print('\n--- pairing coverage')
-    print(f'{len(discovery["paper_to_ds"])} distinct citing papers, '
-          f'{all_pairs} (paper, dandiset) pairs in discovery')
-    print(f'{len(index)} pairs classified; {all_pairs - len(index)} never asked')
-    multi = Counter(len(v) for v in discovery['paper_to_ds'].values())
-    print(_table(['dandisets per paper', 'papers'],
-                 [[k, multi[k]] for k in sorted(multi)][:8], 'rr'))
 
 
 def command_dandisets(args) -> int:
