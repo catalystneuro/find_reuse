@@ -43,6 +43,13 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, Iterator, Optional
 
+# .paper_cache holds two filename schemes and both are live: the fetcher moved
+# from replacing '/', ':' and '\' with '_' to percent-encoding the lowercased
+# DOI, and it reads either, so entries written before and after the change sit
+# side by side -- currently about 69,900 legacy and 6,100 encoded. Both are
+# imported rather than reimplemented so the two cannot drift apart.
+from paper_text_fetcher.cache import cache_filename, legacy_cache_filename
+
 REPO = Path(__file__).resolve().parents[2]
 
 CITING_CACHE = REPO / '.fulltext_classification_cache'
@@ -161,9 +168,6 @@ def find_references_start(text: str) -> tuple[Optional[int], str]:
 # Cache loading
 # --------------------------------------------------------------------------- #
 
-def _safe_name(*parts: str) -> str:
-    joined = '__'.join(parts)
-    return joined.replace('/', '_').replace(':', '_').replace('\\', '_')
 
 
 @lru_cache(maxsize=1)
@@ -212,10 +216,11 @@ def classification_index(mode: str) -> dict[tuple[str, str], dict]:
 @lru_cache(maxsize=512)
 def load_paper(doi: str) -> Optional[dict]:
     """The cached fetch for a DOI: text, source, cached_at. None if not cached."""
-    path = PAPER_CACHE / f'{_safe_name(doi)}.json'
-    if not path.exists():
-        return None
-    return json.loads(path.read_text())
+    for filename in (cache_filename(doi), legacy_cache_filename(doi)):
+        path = PAPER_CACHE / filename
+        if path.exists():
+            return json.loads(path.read_text())
+    return None
 
 
 def primary_relation(dandiset_id: str) -> dict:
@@ -418,26 +423,17 @@ def describe_pair(citing_doi: str, dandiset_id: str, mode: str = MODE_CITING) ->
 # faults are about that link and about whether the model found the citation.
 # Direct mode reaches a paper because the dandiset identifier is already in its
 # text, so the only live question is where in the text the identifier sits.
-CAUSE_ORDER_CITING = (
-    'no_cached_text',
-    'bad_primary',
-    'suspect_primary',
-    'dandi_evidence',
-    'citation_in_body',
-    'citation_in_bibliography',
-    'citation_absent',
-)
-
-CAUSE_ORDER_DIRECT = (
-    'no_cached_text',
-    'catalog_listing',
-    'identifier_in_bibliography',
-    'identifier_in_body',
-)
+# Investigating one cause at a time. Only the test below runs; every row that
+# does not match falls to OTHER. The suppressed causes are recoverable from the
+# raw features that `export` carries, and the next one to look at replaces this
+# one rather than joining it.
+CAUSE_CITING = 'citation_in_bibliography'
+CAUSE_DIRECT = 'catalog_listing'
+OTHER = 'other'
 
 CAUSE_ORDER_FOR_MODE = {
-    MODE_CITING: CAUSE_ORDER_CITING,
-    MODE_DIRECT: CAUSE_ORDER_DIRECT,
+    MODE_CITING: (CAUSE_CITING, OTHER),
+    MODE_DIRECT: (CAUSE_DIRECT, OTHER),
 }
 
 # How many other dandiset-shaped identifiers have to appear before the text is
@@ -449,46 +445,22 @@ CAUSE_ORDER_FOR_MODE = {
 CATALOG_MIN_OTHER_IDS = 20
 
 CAUSE_NOTES = {
-    'no_cached_text': 'classified earlier; the paper text is no longer in .paper_cache',
-    'bad_primary': "dandiset's primary DOI is a deposit, malformed, or missing",
-    'suspect_primary': f'dandiset has >={SUSPECT_MIN_PAIRS} pairs and '
-                       f'>={SUSPECT_MIN_NEITHER_RATE:.0%} NEITHER',
-    'dandi_evidence': 'text names DANDI or a dandiset ID; possible missed REUSE or PRIMARY',
-    'citation_in_body': 'cited DOI appears before the bibliography',
-    'citation_in_bibliography': 'cited DOI present, bibliography only; likely a mislabeled MENTION',
-    'citation_absent': 'cited DOI not in text; spurious edge or preprint/published mismatch',
-    'catalog_listing': f'text lists >={CATALOG_MIN_OTHER_IDS} other dandiset IDs; the match is a '
-                       'catalog entry, not a reference to this dataset',
-    'identifier_in_bibliography': 'dandiset ID appears only in the bibliography',
-    'identifier_in_body': 'dandiset ID appears in the body without either relationship',
+    CAUSE_CITING: 'cited DOI present, bibliography only; likely a mislabeled MENTION',
+    CAUSE_DIRECT: f'text lists >={CATALOG_MIN_OTHER_IDS} other dandiset IDs; the match is a '
+                  'catalog entry, not a reference to this dataset',
+    OTHER: 'not this cause',
 }
 
 
 def assign_cause(described: dict) -> str:
-    if described['text_missing']:
-        return 'no_cached_text'
-
     if described['mode'] == MODE_DIRECT:
         if len(described['other_dandiset_ids']) >= CATALOG_MIN_OTHER_IDS:
-            return 'catalog_listing'
-        references_start = described['references_start']
-        offsets = described['dandiset_id_offsets']
-        if references_start is not None and offsets and all(o >= references_start for o in offsets):
-            return 'identifier_in_bibliography'
-        return 'identifier_in_body'
+            return CAUSE_DIRECT
+        return OTHER
 
-    if (described['primary_doi_kind'] in ('non_paper', 'missing')
-            or described['primary_doi_damage'] != 'clean'):
-        return 'bad_primary'
-    if described['dandiset_suspect']:
-        return 'suspect_primary'
-    if described['dandi_mentions'] or described['dandiset_id_offsets']:
-        return 'dandi_evidence'
-    if described['citation_in_body_offsets']:
-        return 'citation_in_body'
-    if described['citation_offsets']:
-        return 'citation_in_bibliography'
-    return 'citation_absent'
+    if described['citation_offsets'] and not described['citation_in_body_offsets']:
+        return CAUSE_CITING
+    return OTHER
 
 
 def described_rows(mode: str, label: Optional[str] = 'NEITHER') -> Iterator[dict]:
@@ -831,7 +803,7 @@ def main() -> int:
 
     p_list = sub.add_parser('list', help='pick rows to read')
     add_mode(p_list)
-    p_list.add_argument('--cause', choices=sorted(set(CAUSE_ORDER_CITING + CAUSE_ORDER_DIRECT)))
+    p_list.add_argument('--cause', choices=sorted({CAUSE_CITING, CAUSE_DIRECT, OTHER}))
     p_list.add_argument('--dandiset')
     p_list.add_argument('--source')
     p_list.add_argument('--label', default='NEITHER',
