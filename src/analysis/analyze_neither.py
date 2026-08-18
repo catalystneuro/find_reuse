@@ -392,12 +392,16 @@ def describe_pair(citing_doi: str, dandiset_id: str, mode: str = MODE_CITING) ->
 # does not match falls to OTHER. The suppressed causes are recoverable from the
 # raw features that `export` carries, and the next one to look at replaces this
 # one rather than joining it.
-CAUSE_CITING = 'citation_in_bibliography'
+CAUSE_NO_BODY = 'no_article_body'
+CAUSE_CITING = 'citation_not_found'
 CAUSE_DIRECT = 'catalog_listing'
 OTHER = 'other'
 
+# no_article_body sits above citation_not_found: when the fetch never produced a
+# paper, the model's failure to find the citation is a consequence of that and
+# says nothing about its retrieval. Rows are counted under the upstream fault.
 CAUSE_ORDER_FOR_MODE = {
-    MODE_CITING: (CAUSE_CITING, OTHER),
+    MODE_CITING: (CAUSE_NO_BODY, CAUSE_CITING, OTHER),
     MODE_DIRECT: (CAUSE_DIRECT, OTHER),
 }
 
@@ -410,11 +414,61 @@ CAUSE_ORDER_FOR_MODE = {
 CATALOG_MIN_OTHER_IDS = 20
 
 CAUSE_NOTES = {
-    CAUSE_CITING: 'cited DOI present, bibliography only; likely a mislabeled MENTION',
+    CAUSE_NO_BODY: 'the fetch returned no article body, so there was nothing to find '
+                   'the citation in',
+    CAUSE_CITING: "the model reports it could not find the citation, contradicting the "
+                  'OpenAlex edge that put the pair on the worklist',
     CAUSE_DIRECT: f'text lists >={CATALOG_MIN_OTHER_IDS} other dandiset IDs; the match is a '
                   'catalog entry, not a reference to this dataset',
     OTHER: 'not this cause',
 }
+
+
+# Every pair on the citing worklist is there because OpenAlex recorded the paper
+# as citing the dataset's primary publication. So a reasoning that reports the
+# citation is absent contradicts the source that created the pair, and one of the
+# two is wrong.
+#
+# This is the whole bucket, not a slice of it: 3,067 of the 3,085 NEITHER rows
+# assert absence, and the 18 that do not are cases where the model found the
+# citation and judged it anyway. The split is therefore between a retrieval
+# failure and a judgement, and the retrieval side is 99.4% of NEITHER.
+#
+# What this test does NOT establish is whether the citation was findable. That
+# needs resolving the in-text marker through the reference list, which is the
+# adjudicator, not this.
+# An article body cites as it goes, so it carries in-text citation markers in one
+# of three styles. Front matter, landing pages, reference-only fragments and
+# reviewer reports carry almost none.
+#
+# Neither half of this test works alone, which is why it is a conjunction. Marker
+# count alone flags long real papers whose markers the extraction mangled -- a
+# 117,000-character document scoring 1. Length alone flags short but genuine
+# articles, such as a 9,510-character IEEE paper carrying 41 markers. Together
+# they separate cleanly: the known failures score 3/14k, 6/11.6k, 6/14.3k and
+# 5/12k, while real bodies score 41, 83, 85, 128 and 151.
+#
+# The `[a-z]` prefix on the superscript pattern matters. Allowing `)` or `.`
+# before the digits matches statistics like "OR, 2.25" and "P = 9.03", which took
+# a JAMA structured abstract from 3 markers to 59 and destroyed the separation.
+CITATION_MARKERS = (
+    re.compile(r'\[\s*\d{1,3}\s*(?:[,\u2013\u2014-]\s*\d{1,3}\s*)*\]'),
+    re.compile(r'\(\s*[A-Z][A-Za-z\u00C0-\u017F\'\u2019-]+'
+               r'(?:\s+(?:et\s+al\.?|and|&)[^)]{0,20})?,?\s*(?:19|20)\d{2}[a-z]?\s*[;)]'),
+    re.compile(r'[a-z]\d{1,3}(?:[,\u2013\u2014-]\d{1,3})*(?![\d\w])'),
+)
+MAX_MARKERS_WITHOUT_BODY = 10
+MAX_CHARS_WITHOUT_BODY = 20_000
+
+
+def citation_marker_count(text: str) -> int:
+    return sum(len(pattern.findall(text)) for pattern in CITATION_MARKERS)
+
+
+ABSENCE_CLAIM = re.compile(
+    r'(does not|no|never|without|lacks?|absent)[^.]{0,40}'
+    r'(mention|cit|referenc|refer to|discuss)'
+    r'|not (mentioned|cited|referenced|discussed)', re.I)
 
 
 def assign_cause(described: dict) -> str:
@@ -423,7 +477,10 @@ def assign_cause(described: dict) -> str:
             return CAUSE_DIRECT
         return OTHER
 
-    if described['citation_offsets'] and not described['citation_in_body_offsets']:
+    if (described['text_chars'] < MAX_CHARS_WITHOUT_BODY
+            and citation_marker_count(described['text']) <= MAX_MARKERS_WITHOUT_BODY):
+        return CAUSE_NO_BODY
+    if ABSENCE_CLAIM.search(described['reasoning'] or ''):
         return CAUSE_CITING
     return OTHER
 
@@ -638,7 +695,7 @@ def main() -> int:
 
     p_list = sub.add_parser('list', help='pick rows to read')
     add_mode(p_list)
-    p_list.add_argument('--cause', choices=sorted({CAUSE_CITING, CAUSE_DIRECT, OTHER}))
+    p_list.add_argument('--cause', choices=sorted({CAUSE_NO_BODY, CAUSE_CITING, CAUSE_DIRECT, OTHER}))
     p_list.add_argument('--dandiset')
     p_list.add_argument('--label', default='NEITHER',
                         help='restrict to a label, or "" for every classification')
