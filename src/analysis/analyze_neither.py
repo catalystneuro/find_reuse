@@ -1,40 +1,29 @@
 #!/usr/bin/env python3
 """
-Decompose the NEITHER classifications by what actually went wrong upstream.
+Investigate the NEITHER classifications one cause at a time.
 
 NEITHER is meant to be a rare residual label. In the citing pipeline it is 22%
-of all pairs, which makes it a symptom rather than an answer. This module reads
-the existing caches and attributes each NEITHER row to one of four upstream
-faults, so the question "why is NEITHER so large" becomes four smaller questions
-with numbers attached:
+of all pairs, which makes it a symptom rather than an answer: the label says the
+paper has no relationship to the dataset, but not why the pipeline ever put the
+two together.
 
-  discovery    the dandiset's primary paper is not the dataset's paper, so every
-               paper citing it is genuinely unrelated to the data
-  pairing      each paper was asked about one dandiset out of the several that
-               cite it, so a NEITHER can be an answer about the wrong dataset
-  text         the fetch source shapes the answer; NEITHER rate varies 5x across
-               sources over the same question
-  classifier   the model reports "does not cite" for papers whose text contains
-               the cited DOI verbatim
+`summary` measures how many NEITHER rows match the one cause currently under
+investigation, `list` picks rows out of that bucket, and `show` renders a single
+pair with every piece of evidence located in the text, so a row can be judged by
+reading rather than by grepping a 90,000-character blob.
 
 Read-only, and offline by construction: nothing here fetches, classifies, or
-writes to the caches. `show` is the point of the module — it renders one pair
-with every piece of evidence located in the text, so a row can be judged by
-reading rather than by grepping a 90,000-character blob.
+writes to the caches.
 
 Usage:
     python -m src.analysis.analyze_neither summary
-    python -m src.analysis.analyze_neither dandisets --min-pairs 20 --sort rate
-    python -m src.analysis.analyze_neither sources
-    python -m src.analysis.analyze_neither list --cause citation_in_body --limit 30
+    python -m src.analysis.analyze_neither list --cause citation_in_bibliography --limit 30
     python -m src.analysis.analyze_neither show 10.1038/s41586-023-06271-6
-    python -m src.analysis.analyze_neither export --out /tmp/neither.csv
 """
 
 from __future__ import annotations
 
 import argparse
-import csv
 import json
 import re
 import sys
@@ -60,15 +49,6 @@ DISCOVERY = REPO / 'output' / 'all_dandiset_papers_refreshed.json'
 MODE_CITING = 'citing'
 MODE_DIRECT = 'direct'
 CACHE_FOR_MODE = {MODE_CITING: CITING_CACHE, MODE_DIRECT: DIRECT_CACHE}
-
-# A dandiset is flagged as a suspect primary-paper link when it has enough pairs
-# for the rate to mean something and most of them came back NEITHER. At 20/0.40
-# this selects 15 dandisets holding 892 NEITHER rows, headed by 000336, whose
-# listed primary paper is a 2012 Trends in Neurosciences review. Both numbers are
-# knobs: raising the rate isolates the clearest cases, lowering it pulls in
-# dandisets whose primary paper is merely a poor match rather than a wrong one.
-SUSPECT_MIN_PAIRS = 20
-SUSPECT_MIN_NEITHER_RATE = 0.40
 
 # Preprint registrants, for telling a dandiset whose primary paper is a preprint
 # from one whose primary paper is a journal article. A citing paper generally
@@ -276,16 +256,6 @@ def dandiset_label_counts(mode: str) -> dict[str, Counter]:
     return dict(counts)
 
 
-@lru_cache(maxsize=2)
-def suspect_dandisets(mode: str) -> frozenset:
-    flagged = set()
-    for dandiset_id, counts in dandiset_label_counts(mode).items():
-        total = sum(counts.values())
-        if total >= SUSPECT_MIN_PAIRS and counts['NEITHER'] / total >= SUSPECT_MIN_NEITHER_RATE:
-            flagged.add(dandiset_id)
-    return frozenset(flagged)
-
-
 # --------------------------------------------------------------------------- #
 # Per-pair description
 # --------------------------------------------------------------------------- #
@@ -363,11 +333,7 @@ def describe_pair(citing_doi: str, dandiset_id: str, mode: str = MODE_CITING) ->
 
         'text_missing': cached is None,
         'text_chars': len(text),
-        # The source of the text that was actually classified. Discovery records
-        # its own text_source, kept separately: when the two disagree the paper
-        # was refetched from somewhere else after discovery ran.
         'text_source': (cached or {}).get('source'),
-        'discovery_text_source': paper_entry.get('text_source'),
         'text_drift': (
             None if (cached is None or not record)
             else len(text) - record.get('input_chars', 0)),
@@ -398,7 +364,6 @@ def describe_pair(citing_doi: str, dandiset_id: str, mode: str = MODE_CITING) ->
         'dandiset_pairs': dandiset_total,
         'dandiset_neither': counts.get('NEITHER', 0),
         'dandiset_neither_rate': (counts.get('NEITHER', 0) / dandiset_total) if dandiset_total else 0.0,
-        'dandiset_suspect': dandiset_id in suspect_dandisets(mode),
 
         'linked_dandisets': linked_dandisets,
         'linked_dandiset_count': len(linked_dandisets),
@@ -549,83 +514,6 @@ def command_summary(args) -> int:
     return 0
 
 
-def command_dandisets(args) -> int:
-    counts = dandiset_label_counts(args.mode)
-    rows = []
-    for dandiset_id, label_counts in counts.items():
-        total = sum(label_counts.values())
-        if total < args.min_pairs:
-            continue
-        neither = label_counts.get('NEITHER', 0)
-        relation = primary_relation(dandiset_id)
-        record = load_discovery()['dandisets'].get(dandiset_id) or {}
-        rows.append({
-            'dandiset_id': dandiset_id,
-            'neither': neither,
-            'total': total,
-            'rate': neither / total,
-            'primary_doi': (relation.get('doi') or '').strip() or '-',
-            'kind': primary_doi_kind(relation.get('doi')),
-            'damage': primary_doi_damage(relation.get('doi')),
-            'primary_title': (relation.get('name') or '')[:44],
-            'dandiset_name': (record.get('dandiset_name') or '')[:38],
-        })
-    key = (lambda r: r['rate']) if args.sort == 'rate' else (lambda r: r['neither'])
-    rows.sort(key=key, reverse=True)
-    rows = rows[:args.limit]
-
-    print(f'dandisets with >={args.min_pairs} classified pairs, sorted by {args.sort}')
-    print(f'(flagged as suspect_primary at >={SUSPECT_MIN_NEITHER_RATE:.0%})\n')
-    print(_table(
-        ['dandiset', 'NEITHER', 'pairs', 'rate', '!', 'primary DOI', 'kind', 'string',
-         'primary paper title'],
-        [[r['dandiset_id'], r['neither'], r['total'], f'{r["rate"]:.0%}',
-          '*' if r['rate'] >= SUSPECT_MIN_NEITHER_RATE else ' ',
-          r['primary_doi'], r['kind'], r['damage'], r['primary_title']] for r in rows],
-        'lrrrllllll'))
-    print('\nRows marked * are candidates for a primary-paper override. Confirm each by hand:')
-    print('  python -m src.analysis.analyze_neither list --dandiset <id> --limit 5')
-    return 0
-
-
-def command_sources(args) -> int:
-    by_source: dict[str, Counter] = defaultdict(Counter)
-    for record in load_classifications(args.mode):
-        cached = load_paper(record['citing_doi'])
-        source = (cached or {}).get('source') or '(no cached text)'
-        by_source[source][record['classification']] += 1
-
-    extra: dict[str, Counter] = defaultdict(Counter)
-    for described in described_rows(args.mode):
-        source = described['text_source'] or '(no cached text)'
-        extra[source]['neither'] += 1
-        extra[source]['refs_found'] += bool(described['references_detector'] != 'none')
-        extra[source]['cited_doi_found'] += bool(described['citation_offsets'])
-        extra[source]['citing_preprint'] += described['citing_doi'].startswith(PREPRINT_PREFIXES)
-        extra[source]['cited_preprint'] += described['cited_doi'].startswith(PREPRINT_PREFIXES)
-
-    rows = []
-    for source, labels in sorted(by_source.items(), key=lambda kv: -sum(kv[1].values())):
-        total = sum(labels.values())
-        if total < args.min_pairs:
-            continue
-        n = extra[source]['neither'] or 1
-        rows.append([
-            source, total, f'{labels["NEITHER"]/total:.0%}',
-            f'{extra[source]["refs_found"]/n:.0%}',
-            f'{extra[source]["cited_doi_found"]/n:.0%}',
-            f'{extra[source]["citing_preprint"]/n:.0%}',
-            f'{extra[source]["cited_preprint"]/n:.0%}',
-        ])
-    print('NEITHER rate by fetch source. The last four columns describe the NEITHER')
-    print('rows only: did the extraction keep a bibliography, was the cited DOI')
-    print('anywhere in the text, and were the two papers preprints.\n')
-    print(_table(
-        ['fetch source', 'pairs', 'NEITHER', 'refs', 'cited DOI', 'citing pp', 'cited pp'],
-        rows, 'lrrrrrr'))
-    return 0
-
-
 def command_list(args) -> int:
     rows = []
     for described in described_rows(args.mode, label=args.label):
@@ -686,8 +574,7 @@ def _render_pair(d: dict) -> None:
           f'[{d["primary_doi_kind"]}, string {d["primary_doi_damage"]}]')
     print(f'                  {d["primary_title"]}')
     print(f'  this dandiset   {d["dandiset_neither"]}/{d["dandiset_pairs"]} NEITHER '
-          f'({d["dandiset_neither_rate"]:.0%})'
-          + ('   FLAGGED as a suspect primary-paper link' if d['dandiset_suspect'] else ''))
+          f'({d["dandiset_neither_rate"]:.0%})')
 
     print(f'\nPAPER TEXT  {d["text_chars"]:,} chars   source {d["text_source"] or "-"}')
     if d['text_missing']:
@@ -736,46 +623,6 @@ def _render_pair(d: dict) -> None:
     print()
 
 
-EXPORT_FIELDS = (
-    'citing_doi', 'dandiset_id', 'cause', 'classification', 'confidence',
-    'title', 'dandiset_name',
-    'text_missing', 'text_chars', 'text_source', 'text_drift',
-    'cited_doi', 'cited_doi_kind', 'citation_count',
-    'references_start', 'references_detector',
-    'dandi_mentions', 'other_dandiset_ids',
-    'reuse_near_citation',
-    'primary_doi', 'primary_doi_kind', 'primary_doi_damage', 'primary_title',
-    'dandiset_pairs', 'dandiset_neither', 'dandiset_neither_rate', 'dandiset_suspect',
-    'linked_dandiset_count', 'unasked_dandisets',
-    'hallucinated_quote_count', 'input_chars',
-)
-
-
-def command_export(args) -> int:
-    out = Path(args.out)
-    with out.open('w', newline='') as handle:
-        writer = csv.writer(handle)
-        writer.writerow(list(EXPORT_FIELDS) + [
-            'citation_in_body', 'citation_in_bibliography', 'reuse_phrase_hits'])
-        count = 0
-        for described in described_rows(args.mode, label=args.label):
-            row = []
-            for field in EXPORT_FIELDS:
-                value = described[field]
-                row.append(','.join(value) if isinstance(value, list) else value)
-            row += [len(described['citation_in_body_offsets']),
-                    len(described['citation_in_bibliography_offsets']),
-                    len(described['reuse_phrase_offsets'])]
-            writer.writerow(row)
-            count += 1
-    print(f'wrote {count} rows to {out}')
-    return 0
-
-
-# --------------------------------------------------------------------------- #
-# CLI
-# --------------------------------------------------------------------------- #
-
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -784,22 +631,10 @@ def main() -> int:
     def add_mode(p, default=MODE_CITING):
         p.add_argument('--mode', choices=[MODE_CITING, MODE_DIRECT], default=default)
 
-    p_summary = sub.add_parser('summary', help='label counts, causes, and the four faults')
+    p_summary = sub.add_parser('summary', help='label counts and how many match the cause under investigation')
     p_summary.add_argument('--mode', choices=[MODE_CITING, MODE_DIRECT], default=None,
                            help='default: both pipelines')
     p_summary.set_defaults(func=command_summary)
-
-    p_dandisets = sub.add_parser('dandisets', help='per-dandiset NEITHER rate and primary paper')
-    add_mode(p_dandisets)
-    p_dandisets.add_argument('--min-pairs', type=int, default=SUSPECT_MIN_PAIRS)
-    p_dandisets.add_argument('--sort', choices=['rate', 'count'], default='rate')
-    p_dandisets.add_argument('--limit', type=int, default=40)
-    p_dandisets.set_defaults(func=command_dandisets)
-
-    p_sources = sub.add_parser('sources', help='NEITHER rate by paper-fetch source')
-    add_mode(p_sources)
-    p_sources.add_argument('--min-pairs', type=int, default=30)
-    p_sources.set_defaults(func=command_sources)
 
     p_list = sub.add_parser('list', help='pick rows to read')
     add_mode(p_list)
@@ -816,12 +651,6 @@ def main() -> int:
     p_show.add_argument('doi')
     p_show.add_argument('--dandiset')
     p_show.set_defaults(func=command_show)
-
-    p_export = sub.add_parser('export', help='one CSV row per pair, all features flat')
-    add_mode(p_export)
-    p_export.add_argument('--out', required=True)
-    p_export.add_argument('--label', default='NEITHER')
-    p_export.set_defaults(func=command_export)
 
     args = parser.parse_args()
     return args.func(args)
