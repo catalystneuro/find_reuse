@@ -334,6 +334,7 @@ def describe_pair(citing_doi: str, dandiset_id: str, mode: str = MODE_CITING) ->
         'text_missing': cached is None,
         'text_chars': len(text),
         'text_source': (cached or {}).get('source'),
+        'cached_at': (cached or {}).get('cached_at'),
         'text_drift': (
             None if (cached is None or not record)
             else len(text) - record.get('input_chars', 0)),
@@ -407,7 +408,7 @@ def describe_pair(citing_doi: str, dandiset_id: str, mode: str = MODE_CITING) ->
 # The order below is display order only.
 
 CAUSE_NO_BODY = 'no_article_body'
-CAUSE_STALE_REFS = 'references_stripped_to_dois'
+CAUSE_STALE_REFS = 'stale_extraction'
 CAUSE_CITING = 'citation_not_found'
 CAUSE_DIRECT = 'catalog_listing'
 OTHER = 'other'
@@ -452,40 +453,53 @@ def has_no_article_body(described: dict) -> bool:
             and citation_marker_count(described['text']) <= MAX_MARKERS_WITHOUT_BODY)
 
 
-FORMATTED_REFERENCE = re.compile(r'\[\d{1,3}\]\s+[A-Z][^\n]{15,}')
-BARE_DOI = re.compile(r'\b10\.\d{4,9}/\S{3,}')
-MIN_DOIS_FOR_STALE_REFS = 30
-MAX_FORMATTED_FOR_STALE_REFS = 10
+# The fetcher used to keep only the DOI from each CrossRef reference and discard
+# the title, journal and year that came with it, leaving naked identifiers where
+# the bibliography should be. Today it emits "[300] Fast and sensitive GCaMP
+# calcium indicators for imaging neural populations. Nature. 2023. 10.1038/..."
+#
+# Testing the cache date rather than the text is the defensible form of this
+# check: it answers the actionable question -- would re-fetching this paper fix
+# it -- instead of guessing from content. The boundary is sharp. Share of cached
+# documents carrying formatted reference entries, by month:
+#
+#   2026-01   935 docs    0%      2026-07   675 docs   97%
+#   2026-03  6863 docs    0%      2026-08   722 docs   91%
+#   2026-04  4669 docs    1%
+#   2026-05    92 docs    0%
+#
+# Nothing was cached in June, so any cutoff in that gap gives the same answer.
+REFERENCE_FORMATTING_FIX = '2026-07-01'
 
 
-def has_references_stripped_to_dois(described: dict) -> bool:
+def has_stale_extraction(described: dict) -> bool:
     """
-    The bibliography survives only as naked DOI strings.
+    The paper text was cached before the fetcher learned to format references.
 
-    Before 2026-07-31 the fetcher kept the DOI from each CrossRef reference and
-    discarded the title, journal and year that came with it. Today's
-    `format_crossref_reference` emits "[300] Fast and sensitive GCaMP calcium
-    indicators for imaging neural populations. Nature. 2023. 10.1038/..."
-    instead. Measured over crossref-sourced documents: 1% of entries cached
-    before that date carry formatted references, against 78% of those after.
+    These documents carry their bibliography as bare DOI strings with the title,
+    author and journal stripped out, so a cited work is identifiable only by an
+    opaque identifier. Re-fetching repairs them, because CrossRef still holds the
+    metadata that was discarded.
 
-Shown causal by intervention, on one pair so far. Rewriting the bare DOIs of
+    Shown causal by intervention on one pair: rewriting the bare DOIs of
     10.1002/1873-3468.70268 into formatted references flipped it from NEITHER 3/3
-    to MENTION 3/3, both arms deterministic, with the model naming "reference 300"
-    and quoting the in-text marker it had previously reported as absent. Run it
-    yourself with `tmp/probe_citation.py --enrich references`.
+    to MENTION 3/3, both arms deterministic, with the model naming "reference
+    300" and quoting the in-text marker it had reported as absent. Run it with
+    `tmp/probe_citation.py --enrich references`.
 
-    The base rate is not evidence against this. The defect sits in 83.8% of
-    NEITHER documents but also 87.5% of MENTION and 85.4% of REUSE, so comparing
-    those shares says nothing -- a defect present nearly everywhere can still be
-    the binding constraint on the rows that fail. Only the intervention decides.
+    Base rates are not evidence either way here. The defect sits in 83.8% of
+    NEITHER documents but also 87.5% of MENTION and 85.4% of REUSE -- a defect
+    present nearly everywhere can still be the binding constraint on the rows
+    that fail, and only an intervention distinguishes those.
 
-    Tests content rather than `cached_at` so it stays true of a document
-    whatever produced it.
+    What this does NOT cover is a reference that has no title anywhere to
+    restore. Wiley-style entries such as "[44] A. C. Paulk, ... Nat. Neurosci.
+    2022, 25, 252." carry authors and journal but never a title, in the paper or
+    in the publisher's deposit, so re-fetching leaves them exactly as opaque.
+    That is a different defect and this test deliberately does not claim it.
     """
-    text = described['text']
-    return (len(BARE_DOI.findall(text)) >= MIN_DOIS_FOR_STALE_REFS
-            and len(FORMATTED_REFERENCE.findall(text)) < MAX_FORMATTED_FOR_STALE_REFS)
+    cached_at = described.get('cached_at')
+    return bool(cached_at) and cached_at[:10] < REFERENCE_FORMATTING_FIX
 
 
 ABSENCE_CLAIM = re.compile(
@@ -537,7 +551,7 @@ def is_catalog_listing(described: dict) -> bool:
 CAUSE_TESTS_FOR_MODE = {
     MODE_CITING: (
         (CAUSE_NO_BODY, has_no_article_body),
-        (CAUSE_STALE_REFS, has_references_stripped_to_dois),
+        (CAUSE_STALE_REFS, has_stale_extraction),
         (CAUSE_CITING, reports_citation_not_found),
     ),
     MODE_DIRECT: (
@@ -553,9 +567,9 @@ CAUSE_ORDER_FOR_MODE = {
 CAUSE_NOTES = {
     CAUSE_NO_BODY: 'the fetch returned no article body, so there was nothing to find '
                    'the citation in',
-    CAUSE_STALE_REFS: 'references survive only as bare DOI strings, stripped of the title, '
-                      'author and journal CrossRef supplied; restoring them flipped the one '
-                      'pair tested from NEITHER to MENTION',
+    CAUSE_STALE_REFS: f'text cached before {REFERENCE_FORMATTING_FIX}, when the fetcher kept '
+                      'only bare DOIs from each reference; re-fetching restores the titles and '
+                      'flipped the one pair tested from NEITHER to MENTION',
     CAUSE_CITING: 'the model reports it could not find the citation, contradicting the '
                   'OpenAlex edge that put the pair on the worklist',
     CAUSE_DIRECT: f'text lists >={CATALOG_MIN_OTHER_IDS} other dandiset IDs; the match is a '
@@ -664,6 +678,12 @@ def command_list(args) -> int:
     rows = []
     for described in described_rows(args.mode, label=args.label):
         if args.cause and args.cause not in described['causes']:
+            continue
+        # --only isolates the rows a cause does not share with any other, which
+        # is where an unexplained residual lives: 396 rows carry
+        # citation_not_found while the paper is intact and its references are
+        # formatted, so neither known defect accounts for them.
+        if args.only and len(described['causes']) > 1:
             continue
         if args.dandiset and described['dandiset_id'] != args.dandiset:
             continue
@@ -789,6 +809,8 @@ def main() -> int:
     p_list.add_argument('--dandiset')
     p_list.add_argument('--label', default='NEITHER',
                         help='restrict to a label, or "" for every classification')
+    p_list.add_argument('--only', action='store_true',
+                        help='keep only rows where --cause is the sole matching cause')
     p_list.add_argument('--limit', type=int, default=25)
     p_list.set_defaults(func=command_list)
 
