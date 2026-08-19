@@ -388,74 +388,41 @@ def describe_pair(citing_doi: str, dandiset_id: str, mode: str = MODE_CITING) ->
 # faults are about that link and about whether the model found the citation.
 # Direct mode reaches a paper because the dandiset identifier is already in its
 # text, so the only live question is where in the text the identifier sits.
-# Investigating one cause at a time. Only the test below runs; every row that
-# does not match falls to OTHER. The suppressed causes are recoverable from the
-# raw features that `export` carries, and the next one to look at replaces this
-# one rather than joining it.
+# --------------------------------------------------------------------------- #
+# Causes
+# --------------------------------------------------------------------------- #
+
+# Each cause is an independent predicate over a described pair, and the
+# reasoning for it lives in that predicate's docstring rather than in a comment
+# block that drifts away from the code it explains.
+#
+# Causes are NOT mutually exclusive, because a NEITHER is not. A paper whose
+# fetch returned no body also has no usable bibliography, and the model reports
+# both as an absent citation; all three tests fire on the same row. Every test
+# is therefore run against every row and all the matches are kept, so the shares
+# overlap and sum past 100%. Reporting one cause per row would mean an upstream
+# test silently claiming rows a downstream one also matched, and the counts
+# would read as explanatory when they were only an artefact of the order.
+#
+# The order below is display order only.
+
 CAUSE_NO_BODY = 'no_article_body'
+CAUSE_STALE_REFS = 'references_stripped_to_dois'
 CAUSE_CITING = 'citation_not_found'
 CAUSE_DIRECT = 'catalog_listing'
 OTHER = 'other'
 
-# no_article_body sits above citation_not_found: when the fetch never produced a
-# paper, the model's failure to find the citation is a consequence of that and
-# says nothing about its retrieval. Rows are counted under the upstream fault.
-CAUSE_ORDER_FOR_MODE = {
-    MODE_CITING: (CAUSE_NO_BODY, CAUSE_CITING, OTHER),
-    MODE_DIRECT: (CAUSE_DIRECT, OTHER),
-}
 
-# How many other dandiset-shaped identifiers have to appear before the text is
-# read as a catalog of datasets rather than a paper discussing one. Across the
-# direct NEITHER rows the counts are 0, 2, 2, 10, 14, then 71 for each of the 65
-# rows belonging to the NWB ecosystem paper, whose Appendix 6 tabulates the
-# archive. The threshold sits in that gap; lowering it pulls in papers that
-# merely name several dandisets rather than enumerating the archive.
-CATALOG_MIN_OTHER_IDS = 20
-
-CAUSE_NOTES = {
-    CAUSE_NO_BODY: 'the fetch returned no article body, so there was nothing to find '
-                   'the citation in',
-    CAUSE_CITING: "the model reports it could not find the citation, contradicting the "
-                  'OpenAlex edge that put the pair on the worklist',
-    CAUSE_DIRECT: f'text lists >={CATALOG_MIN_OTHER_IDS} other dandiset IDs; the match is a '
-                  'catalog entry, not a reference to this dataset',
-    OTHER: 'not this cause',
-}
-
-
-# Every pair on the citing worklist is there because OpenAlex recorded the paper
-# as citing the dataset's primary publication. So a reasoning that reports the
-# citation is absent contradicts the source that created the pair, and one of the
-# two is wrong.
-#
-# This is the whole bucket, not a slice of it: 3,067 of the 3,085 NEITHER rows
-# assert absence, and the 18 that do not are cases where the model found the
-# citation and judged it anyway. The split is therefore between a retrieval
-# failure and a judgement, and the retrieval side is 99.4% of NEITHER.
-#
-# What this test does NOT establish is whether the citation was findable. That
-# needs resolving the in-text marker through the reference list, which is the
-# adjudicator, not this.
-# An article body cites as it goes, so it carries in-text citation markers in one
-# of three styles. Front matter, landing pages, reference-only fragments and
-# reviewer reports carry almost none.
-#
-# Neither half of this test works alone, which is why it is a conjunction. Marker
-# count alone flags long real papers whose markers the extraction mangled -- a
-# 117,000-character document scoring 1. Length alone flags short but genuine
-# articles, such as a 9,510-character IEEE paper carrying 41 markers. Together
-# they separate cleanly: the known failures score 3/14k, 6/11.6k, 6/14.3k and
-# 5/12k, while real bodies score 41, 83, 85, 128 and 151.
-#
-# The `[a-z]` prefix on the superscript pattern matters. Allowing `)` or `.`
-# before the digits matches statistics like "OR, 2.25" and "P = 9.03", which took
-# a JAMA structured abstract from 3 markers to 59 and destroyed the separation.
+# An article body cites as it goes, so it carries in-text citation markers in
+# one of three styles: bracketed, author-year, or superscripts that lost their
+# markup. The `[a-z]` prefix on the superscript pattern matters -- allowing `)`
+# or `.` before the digits matches statistics like "OR, 2.25" and "P = 9.03",
+# which took a JAMA structured abstract from 3 markers to 59.
 CITATION_MARKERS = (
-    re.compile(r'\[\s*\d{1,3}\s*(?:[,\u2013\u2014-]\s*\d{1,3}\s*)*\]'),
-    re.compile(r'\(\s*[A-Z][A-Za-z\u00C0-\u017F\'\u2019-]+'
+    re.compile(r'\[\s*\d{1,3}\s*(?:[,–—-]\s*\d{1,3}\s*)*\]'),
+    re.compile(r'\(\s*[A-Z][A-Za-zÀ-ſ\'’-]+'
                r'(?:\s+(?:et\s+al\.?|and|&)[^)]{0,20})?,?\s*(?:19|20)\d{2}[a-z]?\s*[;)]'),
-    re.compile(r'[a-z]\d{1,3}(?:[,\u2013\u2014-]\d{1,3})*(?![\d\w])'),
+    re.compile(r'[a-z]\d{1,3}(?:[,–—-]\d{1,3})*(?![\d\w])'),
 )
 MAX_MARKERS_WITHOUT_BODY = 10
 MAX_CHARS_WITHOUT_BODY = 20_000
@@ -465,24 +432,143 @@ def citation_marker_count(text: str) -> int:
     return sum(len(pattern.findall(text)) for pattern in CITATION_MARKERS)
 
 
+def has_no_article_body(described: dict) -> bool:
+    """
+    The fetch returned front matter, a landing page, or reference fragments.
+
+    A conjunction because neither half works alone. Marker count alone flags
+    long real papers whose markers the extraction mangled -- a 117,000-character
+    document scoring 1. Length alone flags short but genuine articles, such as a
+    9,510-character IEEE paper carrying 41 markers. Together they separate: the
+    hand-checked failures score 3/14k, 6/11.6k, 6/14.3k and 5/12k, while real
+    bodies score 41, 83, 85, 128 and 151.
+
+    Blind-sampled at 6 rows, 5 were clearly bodyless (publisher navigation, PMC
+    funding metadata, bare reference fragments, an abstract, a book chapter's
+    bibliography) and 1 was borderline -- a JoVE video protocol that is
+    legitimately short. Treat the count as approximate.
+    """
+    return (described['text_chars'] < MAX_CHARS_WITHOUT_BODY
+            and citation_marker_count(described['text']) <= MAX_MARKERS_WITHOUT_BODY)
+
+
+FORMATTED_REFERENCE = re.compile(r'\[\d{1,3}\]\s+[A-Z][^\n]{15,}')
+BARE_DOI = re.compile(r'\b10\.\d{4,9}/\S{3,}')
+MIN_DOIS_FOR_STALE_REFS = 30
+MAX_FORMATTED_FOR_STALE_REFS = 10
+
+
+def has_references_stripped_to_dois(described: dict) -> bool:
+    """
+    The bibliography survives only as naked DOI strings.
+
+    Before 2026-07-31 the fetcher kept the DOI from each CrossRef reference and
+    discarded the title, journal and year that came with it. Today's
+    `format_crossref_reference` emits "[300] Fast and sensitive GCaMP calcium
+    indicators for imaging neural populations. Nature. 2023. 10.1038/..."
+    instead. Measured over crossref-sourced documents: 1% of entries cached
+    before that date carry formatted references, against 78% of those after.
+
+Shown causal by intervention, on one pair so far. Rewriting the bare DOIs of
+    10.1002/1873-3468.70268 into formatted references flipped it from NEITHER 3/3
+    to MENTION 3/3, both arms deterministic, with the model naming "reference 300"
+    and quoting the in-text marker it had previously reported as absent. Run it
+    yourself with `tmp/probe_citation.py --enrich references`.
+
+    The base rate is not evidence against this. The defect sits in 83.8% of
+    NEITHER documents but also 87.5% of MENTION and 85.4% of REUSE, so comparing
+    those shares says nothing -- a defect present nearly everywhere can still be
+    the binding constraint on the rows that fail. Only the intervention decides.
+
+    Tests content rather than `cached_at` so it stays true of a document
+    whatever produced it.
+    """
+    text = described['text']
+    return (len(BARE_DOI.findall(text)) >= MIN_DOIS_FOR_STALE_REFS
+            and len(FORMATTED_REFERENCE.findall(text)) < MAX_FORMATTED_FOR_STALE_REFS)
+
+
 ABSENCE_CLAIM = re.compile(
     r'(does not|no|never|without|lacks?|absent)[^.]{0,40}'
     r'(mention|cit|referenc|refer to|discuss)'
     r'|not (mentioned|cited|referenced|discussed)', re.I)
 
 
-def assign_cause(described: dict) -> str:
-    if described['mode'] == MODE_DIRECT:
-        if len(described['other_dandiset_ids']) >= CATALOG_MIN_OTHER_IDS:
-            return CAUSE_DIRECT
-        return OTHER
+def reports_citation_not_found(described: dict) -> bool:
+    """
+    The model says the citation is absent, contradicting the OpenAlex edge.
 
-    if (described['text_chars'] < MAX_CHARS_WITHOUT_BODY
-            and citation_marker_count(described['text']) <= MAX_MARKERS_WITHOUT_BODY):
-        return CAUSE_NO_BODY
-    if ABSENCE_CLAIM.search(described['reasoning'] or ''):
-        return CAUSE_CITING
-    return OTHER
+    Every pair on the citing worklist exists because OpenAlex recorded the paper
+    as citing the dataset's primary publication, so a reasoning that reports the
+    citation absent disagrees with the source that created the pair, and one of
+    the two is wrong. It is almost always the model: of the rows reaching this
+    test, the cited DOI is literally in the text in 77% of them, and of the rest
+    77% carry two or more of the cited paper's author surnames. Only about 2%
+    show no trace of the cited paper at all, which is where a spurious OpenAlex
+    edge would sit.
+
+    This is nearly definitional for NEITHER rather than a slice of it: 3,067 of
+    3,085 rows assert absence in some form. The 18 that do not are cases where
+    the model found the citation and judged it anyway.
+
+    What it does NOT establish is why the model missed it. Five document
+    properties -- length, whether the cited author is named in the body, topical
+    distance, where the DOI sits, and reference formatting -- all fail to
+    separate these rows from MENTION.
+    """
+    return bool(ABSENCE_CLAIM.search(described['reasoning'] or ''))
+
+
+# How many other dandiset-shaped identifiers make the text a catalog of datasets
+# rather than a paper discussing one. Across the direct NEITHER rows the counts
+# are 0, 2, 2, 10, 14, then 71 for each of the 65 rows belonging to the NWB
+# ecosystem paper, whose Appendix 6 tabulates the archive. The threshold sits in
+# that gap.
+CATALOG_MIN_OTHER_IDS = 20
+
+
+def is_catalog_listing(described: dict) -> bool:
+    """The identifier is one row of a dataset catalog, not a reference to it."""
+    return len(described['other_dandiset_ids']) >= CATALOG_MIN_OTHER_IDS
+
+
+# The ladder itself. Adding a cause means writing its predicate above and adding
+# one line here plus one note below.
+CAUSE_TESTS_FOR_MODE = {
+    MODE_CITING: (
+        (CAUSE_NO_BODY, has_no_article_body),
+        (CAUSE_STALE_REFS, has_references_stripped_to_dois),
+        (CAUSE_CITING, reports_citation_not_found),
+    ),
+    MODE_DIRECT: (
+        (CAUSE_DIRECT, is_catalog_listing),
+    ),
+}
+
+CAUSE_ORDER_FOR_MODE = {
+    mode: tuple(cause for cause, _ in tests) + (OTHER,)
+    for mode, tests in CAUSE_TESTS_FOR_MODE.items()
+}
+
+CAUSE_NOTES = {
+    CAUSE_NO_BODY: 'the fetch returned no article body, so there was nothing to find '
+                   'the citation in',
+    CAUSE_STALE_REFS: 'references survive only as bare DOI strings, stripped of the title, '
+                      'author and journal CrossRef supplied; restoring them flipped the one '
+                      'pair tested from NEITHER to MENTION',
+    CAUSE_CITING: 'the model reports it could not find the citation, contradicting the '
+                  'OpenAlex edge that put the pair on the worklist',
+    CAUSE_DIRECT: f'text lists >={CATALOG_MIN_OTHER_IDS} other dandiset IDs; the match is a '
+                  'catalog entry, not a reference to this dataset',
+    OTHER: 'not this cause',
+}
+
+
+def assign_causes(described: dict) -> tuple[str, ...]:
+    """Every cause matching this row, in display order; (OTHER,) if none do."""
+    matched = tuple(cause for cause, test in CAUSE_TESTS_FOR_MODE[described['mode']]
+                    if test(described))
+    return matched or (OTHER,)
 
 
 def described_rows(mode: str, label: Optional[str] = 'NEITHER') -> Iterator[dict]:
@@ -491,7 +577,7 @@ def described_rows(mode: str, label: Optional[str] = 'NEITHER') -> Iterator[dict
         if label and record['classification'] != label:
             continue
         described = describe_pair(record['citing_doi'], record['dandiset_id'], mode)
-        described['cause'] = assign_cause(described)
+        described['causes'] = assign_causes(described)
         yield described
 
 
@@ -564,17 +650,20 @@ def command_summary(args) -> int:
             continue
 
         print(f'\n--- cause of {len(neither)} NEITHER')
-        causes = Counter(r['cause'] for r in neither)
+        causes = Counter(c for r in neither for c in r['causes'])
         print(_table(['cause', 'n', 'share', 'note'],
                      [[c, causes[c], f'{causes[c]/len(neither):.1%}', CAUSE_NOTES[c]]
                       for c in CAUSE_ORDER_FOR_MODE[mode] if causes[c]], 'lrrl'))
+        multiple = sum(1 for r in neither if len(r['causes']) > 1)
+        print(f'shares overlap and do not sum to 100%: {multiple} rows '
+              f'({multiple/len(neither):.0%}) match more than one cause')
     return 0
 
 
 def command_list(args) -> int:
     rows = []
     for described in described_rows(args.mode, label=args.label):
-        if args.cause and described['cause'] != args.cause:
+        if args.cause and args.cause not in described['causes']:
             continue
         if args.dandiset and described['dandiset_id'] != args.dandiset:
             continue
@@ -586,8 +675,8 @@ def command_list(args) -> int:
     # both papers: the citing paper is what was read, the cited paper is what it
     # was asked about.
     print(_table(
-        ['citing DOI', 'cited DOI', 'dandiset', 'cause'],
-        [[r['citing_doi'], r['cited_doi'] or '-', r['dandiset_id'], r['cause']]
+        ['citing DOI', 'cited DOI', 'dandiset', 'causes'],
+        [[r['citing_doi'], r['cited_doi'] or '-', r['dandiset_id'], ' + '.join(r['causes'])]
          for r in rows],
         'llll'))
     print(f'\n{len(rows)} rows. Read one with:')
@@ -607,7 +696,7 @@ def command_show(args) -> int:
 
     for citing_doi, dandiset_id in sorted(candidates):
         described = describe_pair(citing_doi, dandiset_id, args.mode)
-        described['cause'] = assign_cause(described)
+        described['causes'] = assign_causes(described)
         _render_pair(described)
     return 0
 
@@ -622,8 +711,9 @@ def _render_pair(d: dict) -> None:
     print('=' * 100)
 
     print(f'\nVERDICT   {d["classification"]}  confidence {d["confidence"]}'
-          f'   cause: {d["cause"]}')
-    print(f'  {CAUSE_NOTES.get(d["cause"], "")}')
+          f'   causes: {" + ".join(d["causes"])}')
+    for cause in d['causes']:
+        print(f'  {cause}: {CAUSE_NOTES.get(cause, "")}')
     print(f'\nREASONING\n  {(d["reasoning"] or "").strip()}')
 
     print(f'\nDANDISET  {d["dandiset_id"]}  {d["dandiset_name"]}')
@@ -695,7 +785,7 @@ def main() -> int:
 
     p_list = sub.add_parser('list', help='pick rows to read')
     add_mode(p_list)
-    p_list.add_argument('--cause', choices=sorted({CAUSE_NO_BODY, CAUSE_CITING, CAUSE_DIRECT, OTHER}))
+    p_list.add_argument('--cause', choices=sorted({CAUSE_NO_BODY, CAUSE_STALE_REFS, CAUSE_CITING, CAUSE_DIRECT, OTHER}))
     p_list.add_argument('--dandiset')
     p_list.add_argument('--label', default='NEITHER',
                         help='restrict to a label, or "" for every classification')
