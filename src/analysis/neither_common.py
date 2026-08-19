@@ -217,11 +217,22 @@ def load_paper(doi: str) -> Optional[dict]:
     return None
 
 
-def primary_relation(dandiset_id: str) -> dict:
-    """The dandiset's first paper_relations entry, or an empty dict."""
+def primary_relation(dandiset_id: str, cited_doi: str = '') -> dict:
+    """
+    The paper_relations entry a pair was built from, or an empty dict.
+
+    A dandiset can declare several papers -- 37 of them do -- and discovery
+    records which one produced each pair. Taking the first entry regardless
+    would name a different paper than the row is actually about, which it does
+    for 598 of the NEITHER rows.
+    """
     record = load_discovery()['dandisets'].get(dandiset_id) or {}
-    relations = record.get('paper_relations') or []
-    return (relations[0] if relations else None) or {}
+    relations = [r for r in (record.get('paper_relations') or []) if r]
+    if cited_doi:
+        for relation in relations:
+            if (relation.get('doi') or '').strip() == cited_doi:
+                return relation
+    return relations[0] if relations else {}
 
 
 def normalize_primary_doi(doi: Optional[str]) -> str:
@@ -297,12 +308,13 @@ def describe_pair(pipeline, citing_doi: str, dandiset_id: str) -> dict:
     record = classification_index(pipeline.cache_dir).get((citing_doi, dandiset_id))
     discovery = load_discovery()
     paper_entry = discovery['pair'].get((citing_doi, dandiset_id)) or {}
-    relation = primary_relation(dandiset_id)
     dandiset_record = discovery['dandisets'].get(dandiset_id) or {}
     counts = dandiset_label_counts(pipeline.cache_dir).get(dandiset_id, Counter())
     dandiset_total = sum(counts.values())
 
-    cited_doi = (paper_entry.get('cited_paper_doi') or relation.get('doi') or '').strip()
+    cited_doi = (paper_entry.get('cited_paper_doi') or '').strip()
+    relation = primary_relation(dandiset_id, cited_doi)
+    cited_doi = cited_doi or (relation.get('doi') or '').strip()
     cached = load_paper(citing_doi)
     text = (cached or {}).get('text') or ''
     lowered = text.lower()
@@ -372,6 +384,9 @@ def describe_pair(pipeline, citing_doi: str, dandiset_id: str) -> dict:
         'reuse_near_citation': reuse_near_citation,
 
         'dandiset_name': dandiset_record.get('dandiset_name', ''),
+        'dandiset_relation_count': len([r for r in
+                                        (dandiset_record.get('paper_relations') or []) if r]),
+        'primary_relation_source': relation.get('source'),
         'primary_doi': (relation.get('doi') or ''),
         'primary_doi_kind': primary_doi_kind(relation.get('doi')),
         'primary_doi_damage': primary_doi_damage(relation.get('doi')),
@@ -521,6 +536,7 @@ def command_list(pipeline, args) -> int:
         'llll'))
     print(f'\n{len(rows)} rows. Read one with:')
     print(f'  python -m src.analysis.{pipeline.module} show <citing DOI> --dandiset <id>')
+    print(f'  python -m src.analysis.{pipeline.module} show <citing DOI> --cited-doi <DOI>')
     return 0
 
 
@@ -529,13 +545,22 @@ def command_show(pipeline, args) -> int:
     candidates = [key for key in index if key[0] == args.doi]
     if args.dandiset:
         candidates = [key for key in candidates if key[1] == args.dandiset]
-    if not candidates:
-        print(f'No {pipeline.name} classification cached for {args.doi}'
-              + (f' / {args.dandiset}' if args.dandiset else ''), file=sys.stderr)
+
+    described_pairs = [describe_pair(pipeline, citing_doi, dandiset_id)
+                       for citing_doi, dandiset_id in sorted(candidates)]
+    if args.cited_doi:
+        # The cited DOI is derived from the pair rather than stored on it, so
+        # this filters after describing rather than on the cache key.
+        wanted = args.cited_doi.strip().lower()
+        described_pairs = [d for d in described_pairs
+                           if (d['cited_doi'] or '').lower() == wanted]
+
+    if not described_pairs:
+        asked = ' / '.join(filter(None, [args.doi, args.dandiset, args.cited_doi]))
+        print(f'No {pipeline.name} classification cached for {asked}', file=sys.stderr)
         return 1
 
-    for citing_doi, dandiset_id in sorted(candidates):
-        described = describe_pair(pipeline, citing_doi, dandiset_id)
+    for described in described_pairs:
         described['causes'] = pipeline.assign_causes(described)
         _render_pair(pipeline, described)
     return 0
@@ -558,8 +583,13 @@ def _render_pair(pipeline, d: dict) -> None:
 
     print(f'\nDANDISET  {d["dandiset_id"]}  {d["dandiset_name"]}')
     print(f'  primary paper   {d["primary_doi"] or "-"}  '
-          f'[{d["primary_doi_kind"]}, string {d["primary_doi_damage"]}]')
+          f'[{d["primary_doi_kind"]}, string {d["primary_doi_damage"]}'
+          + (f', via {d["primary_relation_source"]}' if d['primary_relation_source'] else '')
+          + ']')
     print(f'                  {d["primary_title"]}')
+    if d['dandiset_relation_count'] > 1:
+        print(f'  NOTE            this dandiset declares {d["dandiset_relation_count"]} papers; '
+              'the one shown is the one this pair was built from')
     print(f'  this dandiset   {d["dandiset_neither"]}/{d["dandiset_pairs"]} NEITHER '
           f'({d["dandiset_neither_rate"]:.0%})')
 
@@ -806,8 +836,11 @@ def run(pipeline) -> int:
     p_list.set_defaults(func=command_list)
 
     p_show = sub.add_parser('show', help='render one pair with all evidence located in the text')
-    p_show.add_argument('doi')
+    p_show.add_argument('doi', help='the citing paper')
     p_show.add_argument('--dandiset')
+    p_show.add_argument('--cited-doi',
+                        help='select the pair by the paper that was cited, as an alternative '
+                             'to --dandiset')
     p_show.set_defaults(func=command_show)
 
     p_plot = sub.add_parser('plot', help='Euler diagram of the causes, as a PNG')
