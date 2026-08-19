@@ -453,10 +453,10 @@ def has_no_article_body(described: dict) -> bool:
             and citation_marker_count(described['text']) <= MAX_MARKERS_WITHOUT_BODY)
 
 
-# The fetcher used to keep only the DOI from each CrossRef reference and discard
-# the title, journal and year that came with it, leaving naked identifiers where
-# the bibliography should be. Today it emits "[300] Fast and sensitive GCaMP
-# calcium indicators for imaging neural populations. Nature. 2023. 10.1038/..."
+# The fetcher used to emit each CrossRef reference as a bare DOI. Today it emits
+# "[300] Fast and sensitive GCaMP calcium indicators for imaging neural
+# populations. Nature. 2023. 10.1038/..." -- an index, whatever metadata CrossRef
+# holds, then the DOI.
 #
 # Testing the cache date rather than the text is the defensible form of this
 # check: it answers the actionable question -- would re-fetching this paper fix
@@ -474,29 +474,31 @@ REFERENCE_FORMATTING_FIX = '2026-07-01'
 
 def has_stale_extraction(described: dict) -> bool:
     """
-    The paper text was cached before the fetcher learned to format references.
+    The paper text was cached before the fetcher learned to number references.
 
-    These documents carry their bibliography as bare DOI strings with the title,
-    author and journal stripped out, so a cited work is identifiable only by an
-    opaque identifier. Re-fetching repairs them, because CrossRef still holds the
-    metadata that was discarded.
+    These documents carry their bibliography as an unlabelled run of bare DOI
+    strings, so nothing connects a DOI to the in-text marker that cites it.
 
-    Shown causal by intervention on one pair: rewriting the bare DOIs of
-    10.1002/1873-3468.70268 into formatted references flipped it from NEITHER 3/3
-    to MENTION 3/3, both arms deterministic, with the model naming "reference
-    300" and quoting the in-text marker it had reported as absent. Run it with
-    `tmp/probe_citation.py --enrich references`.
+    Shown causal by intervention on two pairs, both flipping NEITHER 3/3 ->
+    MENTION 3/3 with deterministic arms, via `tmp/probe_citation.py --enrich
+    references`:
+
+      10.1002/1873-3468.70268   references restored with index and title
+      10.1002/adbi.202300366    index only -- 5.9 characters per reference
+
+    The second is the informative one. Its references gained nothing but "[N] "
+    prefixes, and it flipped as cleanly as the first, with the model quoting the
+    in-text marker "[32,43-45]" it had previously reported as absent. So the
+    index is what matters, not the recovered metadata: numbering makes the DOI
+    block joinable to the markers and to the reference list, and the join cannot
+    be reconstructed otherwise -- in that paper the target is the 41st DOI in the
+    block but reference [44], because three cited works have no DOI deposited and
+    the two sequences drift apart.
 
     Base rates are not evidence either way here. The defect sits in 83.8% of
     NEITHER documents but also 87.5% of MENTION and 85.4% of REUSE -- a defect
     present nearly everywhere can still be the binding constraint on the rows
     that fail, and only an intervention distinguishes those.
-
-    What this does NOT cover is a reference that has no title anywhere to
-    restore. Wiley-style entries such as "[44] A. C. Paulk, ... Nat. Neurosci.
-    2022, 25, 252." carry authors and journal but never a title, in the paper or
-    in the publisher's deposit, so re-fetching leaves them exactly as opaque.
-    That is a different defect and this test deliberately does not claim it.
     """
     cached_at = described.get('cached_at')
     return bool(cached_at) and cached_at[:10] < REFERENCE_FORMATTING_FIX
@@ -567,9 +569,9 @@ CAUSE_ORDER_FOR_MODE = {
 CAUSE_NOTES = {
     CAUSE_NO_BODY: 'the fetch returned no article body, so there was nothing to find '
                    'the citation in',
-    CAUSE_STALE_REFS: f'text cached before {REFERENCE_FORMATTING_FIX}, when the fetcher kept '
-                      'only bare DOIs from each reference; re-fetching restores the titles and '
-                      'flipped the one pair tested from NEITHER to MENTION',
+    CAUSE_STALE_REFS: f'text cached before {REFERENCE_FORMATTING_FIX}, when the fetcher emitted '
+                      'references as unnumbered bare DOIs; re-fetching numbers them, which '
+                      'flipped both pairs tested from NEITHER to MENTION',
     CAUSE_CITING: 'the model reports it could not find the citation, contradicting the '
                   'OpenAlex edge that put the pair on the worklist',
     CAUSE_DIRECT: f'text lists >={CATALOG_MIN_OTHER_IDS} other dandiset IDs; the match is a '
