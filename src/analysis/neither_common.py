@@ -1,24 +1,14 @@
 #!/usr/bin/env python3
 """
-Investigate the NEITHER classifications one cause at a time.
+Shared machinery for the NEITHER analysis scripts.
 
-NEITHER is meant to be a rare residual label. In the citing pipeline it is 22%
-of all pairs, which makes it a symptom rather than an answer: the label says the
-paper has no relationship to the dataset, but not why the pipeline ever put the
-two together.
-
-`summary` measures how many NEITHER rows match the one cause currently under
-investigation, `list` picks rows out of that bucket, and `show` renders a single
-pair with every piece of evidence located in the text, so a row can be judged by
-reading rather than by grepping a 90,000-character blob.
+Not a CLI. `analyze_indirect_neither.py` and `analyze_direct_neither.py` each
+define their own causes and hand a Pipeline to `run()`; everything that does not
+differ between the two pathways lives here: reading the caches, describing a
+(paper, dataset) pair, and rendering the summary/list/show commands.
 
 Read-only, and offline by construction: nothing here fetches, classifies, or
 writes to the caches.
-
-Usage:
-    python -m src.analysis.analyze_neither summary
-    python -m src.analysis.analyze_neither list --cause citation_in_bibliography --limit 30
-    python -m src.analysis.analyze_neither show 10.1038/s41586-023-06271-6
 """
 
 from __future__ import annotations
@@ -48,7 +38,31 @@ DISCOVERY = REPO / 'output' / 'all_dandiset_papers_refreshed.json'
 
 MODE_CITING = 'citing'
 MODE_DIRECT = 'direct'
-CACHE_FOR_MODE = {MODE_CITING: CITING_CACHE, MODE_DIRECT: DIRECT_CACHE}
+
+
+class Pipeline:
+    """What differs between the two pathways."""
+
+    def __init__(self, name, module, mode, cache_dir, cause_tests, cause_notes, description):
+        self.name = name                  # 'indirect' / 'direct', for messages
+        self.module = module              # module name, for the hint printed by `list`
+        self.mode = mode                  # MODE_CITING / MODE_DIRECT, for prompts and display
+        self.cache_dir = cache_dir
+        self.cause_tests = cause_tests    # ordered ((cause, predicate), ...)
+        self.cause_notes = cause_notes
+        self.description = description    # the script's module docstring
+
+    @property
+    def causes(self):
+        return tuple(cause for cause, _ in self.cause_tests) + (OTHER,)
+
+    def assign_causes(self, described):
+        """Every cause matching this row, in display order; (OTHER,) if none do."""
+        matched = tuple(cause for cause, test in self.cause_tests if test(described))
+        return matched or (OTHER,)
+
+
+OTHER = 'other'
 
 # Preprint registrants, for telling a dandiset whose primary paper is a preprint
 # from one whose primary paper is a journal article. A citing paper generally
@@ -179,9 +193,8 @@ def load_discovery() -> dict:
 
 
 @lru_cache(maxsize=2)
-def load_classifications(mode: str) -> tuple[dict, ...]:
-    """Every cached classification for a mode, in filename order."""
-    cache_dir = CACHE_FOR_MODE[mode]
+def load_classifications(cache_dir: Path) -> tuple[dict, ...]:
+    """Every cached classification in a directory, in filename order."""
     records = []
     for path in sorted(cache_dir.glob('*.json')):
         records.append(json.loads(path.read_text()))
@@ -189,8 +202,8 @@ def load_classifications(mode: str) -> tuple[dict, ...]:
 
 
 @lru_cache(maxsize=2)
-def classification_index(mode: str) -> dict[tuple[str, str], dict]:
-    return {(r['citing_doi'], r['dandiset_id']): r for r in load_classifications(mode)}
+def classification_index(cache_dir: Path) -> dict[tuple[str, str], dict]:
+    return {(r['citing_doi'], r['dandiset_id']): r for r in load_classifications(cache_dir)}
 
 
 @lru_cache(maxsize=512)
@@ -248,10 +261,10 @@ def primary_doi_kind(doi: Optional[str]) -> str:
 
 
 @lru_cache(maxsize=2)
-def dandiset_label_counts(mode: str) -> dict[str, Counter]:
-    """Per-dandiset label counts, the input to the suspect-primary flag."""
+def dandiset_label_counts(cache_dir: Path) -> dict[str, Counter]:
+    """Per-dandiset label counts, for the context line in `show`."""
     counts: dict[str, Counter] = defaultdict(Counter)
-    for record in load_classifications(mode):
+    for record in load_classifications(cache_dir):
         counts[record['dandiset_id']][record['classification']] += 1
     return dict(counts)
 
@@ -272,7 +285,7 @@ def _occurrences(haystack_lower: str, needle: str) -> list[int]:
     return found
 
 
-def describe_pair(citing_doi: str, dandiset_id: str, mode: str = MODE_CITING) -> dict:
+def describe_pair(pipeline, citing_doi: str, dandiset_id: str) -> dict:
     """
     Everything known about one (paper, dandiset) pair, from the caches alone.
 
@@ -280,12 +293,12 @@ def describe_pair(citing_doi: str, dandiset_id: str, mode: str = MODE_CITING) ->
     the model was looking at when it concluded it. Keeping both in one record is
     what lets a NEITHER be attributed to a fault rather than merely counted.
     """
-    record = classification_index(mode).get((citing_doi, dandiset_id))
+    record = classification_index(pipeline.cache_dir).get((citing_doi, dandiset_id))
     discovery = load_discovery()
     paper_entry = discovery['pair'].get((citing_doi, dandiset_id)) or {}
     relation = primary_relation(dandiset_id)
     dandiset_record = discovery['dandisets'].get(dandiset_id) or {}
-    counts = dandiset_label_counts(mode).get(dandiset_id, Counter())
+    counts = dandiset_label_counts(pipeline.cache_dir).get(dandiset_id, Counter())
     dandiset_total = sum(counts.values())
 
     cited_doi = (paper_entry.get('cited_paper_doi') or relation.get('doi') or '').strip()
@@ -314,13 +327,13 @@ def describe_pair(citing_doi: str, dandiset_id: str, mode: str = MODE_CITING) ->
         for reuse in reuse_offsets for body in body_offsets)
 
     linked_dandisets = discovery['paper_to_ds'].get(citing_doi, [])
-    index = classification_index(mode)
+    index = classification_index(pipeline.cache_dir)
     unasked = [d for d in linked_dandisets if (citing_doi, d) not in index]
 
     return {
         'citing_doi': citing_doi,
         'dandiset_id': dandiset_id,
-        'mode': mode,
+        'mode': pipeline.mode,
         'title': (record or {}).get('title') or paper_entry.get('title', ''),
 
         'classification': (record or {}).get('classification'),
@@ -389,211 +402,16 @@ def describe_pair(citing_doi: str, dandiset_id: str, mode: str = MODE_CITING) ->
 # faults are about that link and about whether the model found the citation.
 # Direct mode reaches a paper because the dandiset identifier is already in its
 # text, so the only live question is where in the text the identifier sits.
-# --------------------------------------------------------------------------- #
-# Causes
-# --------------------------------------------------------------------------- #
-
-# Each cause is an independent predicate over a described pair, and the
-# reasoning for it lives in that predicate's docstring rather than in a comment
-# block that drifts away from the code it explains.
-#
-# Causes are NOT mutually exclusive, because a NEITHER is not. A paper whose
-# fetch returned no body also has no usable bibliography, and the model reports
-# both as an absent citation; all three tests fire on the same row. Every test
-# is therefore run against every row and all the matches are kept, so the shares
-# overlap and sum past 100%. Reporting one cause per row would mean an upstream
-# test silently claiming rows a downstream one also matched, and the counts
-# would read as explanatory when they were only an artefact of the order.
-#
-# The order below is display order only.
-
-CAUSE_NO_BODY = 'no_article_body'
-CAUSE_STALE_REFS = 'stale_extraction'
-CAUSE_CITING = 'citation_not_found'
-CAUSE_DIRECT = 'catalog_listing'
-OTHER = 'other'
-
-
-# An article body cites as it goes, so it carries in-text citation markers in
-# one of three styles: bracketed, author-year, or superscripts that lost their
-# markup. The `[a-z]` prefix on the superscript pattern matters -- allowing `)`
-# or `.` before the digits matches statistics like "OR, 2.25" and "P = 9.03",
-# which took a JAMA structured abstract from 3 markers to 59.
-CITATION_MARKERS = (
-    re.compile(r'\[\s*\d{1,3}\s*(?:[,–—-]\s*\d{1,3}\s*)*\]'),
-    re.compile(r'\(\s*[A-Z][A-Za-zÀ-ſ\'’-]+'
-               r'(?:\s+(?:et\s+al\.?|and|&)[^)]{0,20})?,?\s*(?:19|20)\d{2}[a-z]?\s*[;)]'),
-    re.compile(r'[a-z]\d{1,3}(?:[,–—-]\d{1,3})*(?![\d\w])'),
-)
-MAX_MARKERS_WITHOUT_BODY = 10
-MAX_CHARS_WITHOUT_BODY = 20_000
-
-
-def citation_marker_count(text: str) -> int:
-    return sum(len(pattern.findall(text)) for pattern in CITATION_MARKERS)
-
-
-def has_no_article_body(described: dict) -> bool:
-    """
-    The fetch returned front matter, a landing page, or reference fragments.
-
-    A conjunction because neither half works alone. Marker count alone flags
-    long real papers whose markers the extraction mangled -- a 117,000-character
-    document scoring 1. Length alone flags short but genuine articles, such as a
-    9,510-character IEEE paper carrying 41 markers. Together they separate: the
-    hand-checked failures score 3/14k, 6/11.6k, 6/14.3k and 5/12k, while real
-    bodies score 41, 83, 85, 128 and 151.
-
-    Blind-sampled at 6 rows, 5 were clearly bodyless (publisher navigation, PMC
-    funding metadata, bare reference fragments, an abstract, a book chapter's
-    bibliography) and 1 was borderline -- a JoVE video protocol that is
-    legitimately short. Treat the count as approximate.
-    """
-    return (described['text_chars'] < MAX_CHARS_WITHOUT_BODY
-            and citation_marker_count(described['text']) <= MAX_MARKERS_WITHOUT_BODY)
-
-
-# The fetcher used to emit each CrossRef reference as a bare DOI. Today it emits
-# "[300] Fast and sensitive GCaMP calcium indicators for imaging neural
-# populations. Nature. 2023. 10.1038/..." -- an index, whatever metadata CrossRef
-# holds, then the DOI.
-#
-# Testing the cache date rather than the text is the defensible form of this
-# check: it answers the actionable question -- would re-fetching this paper fix
-# it -- instead of guessing from content. The boundary is sharp. Share of cached
-# documents carrying formatted reference entries, by month:
-#
-#   2026-01   935 docs    0%      2026-07   675 docs   97%
-#   2026-03  6863 docs    0%      2026-08   722 docs   91%
-#   2026-04  4669 docs    1%
-#   2026-05    92 docs    0%
-#
-# Nothing was cached in June, so any cutoff in that gap gives the same answer.
-REFERENCE_FORMATTING_FIX = '2026-07-01'
-
-
-def has_stale_extraction(described: dict) -> bool:
-    """
-    The paper text was cached before the fetcher learned to number references.
-
-    These documents carry their bibliography as an unlabelled run of bare DOI
-    strings, so nothing connects a DOI to the in-text marker that cites it.
-
-    Shown causal by intervention on two pairs, both flipping NEITHER 3/3 ->
-    MENTION 3/3 with deterministic arms, via `tmp/probe_citation.py --enrich
-    references`:
-
-      10.1002/1873-3468.70268   references restored with index and title
-      10.1002/adbi.202300366    index only -- 5.9 characters per reference
-
-    The second is the informative one. Its references gained nothing but "[N] "
-    prefixes, and it flipped as cleanly as the first, with the model quoting the
-    in-text marker "[32,43-45]" it had previously reported as absent. So the
-    index is what matters, not the recovered metadata: numbering makes the DOI
-    block joinable to the markers and to the reference list, and the join cannot
-    be reconstructed otherwise -- in that paper the target is the 41st DOI in the
-    block but reference [44], because three cited works have no DOI deposited and
-    the two sequences drift apart.
-
-    Base rates are not evidence either way here. The defect sits in 83.8% of
-    NEITHER documents but also 87.5% of MENTION and 85.4% of REUSE -- a defect
-    present nearly everywhere can still be the binding constraint on the rows
-    that fail, and only an intervention distinguishes those.
-    """
-    cached_at = described.get('cached_at')
-    return bool(cached_at) and cached_at[:10] < REFERENCE_FORMATTING_FIX
-
-
-ABSENCE_CLAIM = re.compile(
-    r'(does not|no|never|without|lacks?|absent)[^.]{0,40}'
-    r'(mention|cit|referenc|refer to|discuss)'
-    r'|not (mentioned|cited|referenced|discussed)', re.I)
-
-
-def reports_citation_not_found(described: dict) -> bool:
-    """
-    The model says the citation is absent, contradicting the OpenAlex edge.
-
-    Every pair on the citing worklist exists because OpenAlex recorded the paper
-    as citing the dataset's primary publication, so a reasoning that reports the
-    citation absent disagrees with the source that created the pair, and one of
-    the two is wrong. It is almost always the model: of the rows reaching this
-    test, the cited DOI is literally in the text in 77% of them, and of the rest
-    77% carry two or more of the cited paper's author surnames. Only about 2%
-    show no trace of the cited paper at all, which is where a spurious OpenAlex
-    edge would sit.
-
-    This is nearly definitional for NEITHER rather than a slice of it: 3,067 of
-    3,085 rows assert absence in some form. The 18 that do not are cases where
-    the model found the citation and judged it anyway.
-
-    What it does NOT establish is why the model missed it. Five document
-    properties -- length, whether the cited author is named in the body, topical
-    distance, where the DOI sits, and reference formatting -- all fail to
-    separate these rows from MENTION.
-    """
-    return bool(ABSENCE_CLAIM.search(described['reasoning'] or ''))
-
-
-# How many other dandiset-shaped identifiers make the text a catalog of datasets
-# rather than a paper discussing one. Across the direct NEITHER rows the counts
-# are 0, 2, 2, 10, 14, then 71 for each of the 65 rows belonging to the NWB
-# ecosystem paper, whose Appendix 6 tabulates the archive. The threshold sits in
-# that gap.
-CATALOG_MIN_OTHER_IDS = 20
-
-
-def is_catalog_listing(described: dict) -> bool:
-    """The identifier is one row of a dataset catalog, not a reference to it."""
-    return len(described['other_dandiset_ids']) >= CATALOG_MIN_OTHER_IDS
-
-
-# The ladder itself. Adding a cause means writing its predicate above and adding
-# one line here plus one note below.
-CAUSE_TESTS_FOR_MODE = {
-    MODE_CITING: (
-        (CAUSE_NO_BODY, has_no_article_body),
-        (CAUSE_STALE_REFS, has_stale_extraction),
-        (CAUSE_CITING, reports_citation_not_found),
-    ),
-    MODE_DIRECT: (
-        (CAUSE_DIRECT, is_catalog_listing),
-    ),
-}
-
-CAUSE_ORDER_FOR_MODE = {
-    mode: tuple(cause for cause, _ in tests) + (OTHER,)
-    for mode, tests in CAUSE_TESTS_FOR_MODE.items()
-}
-
-CAUSE_NOTES = {
-    CAUSE_NO_BODY: 'the fetch returned no article body, so there was nothing to find '
-                   'the citation in',
-    CAUSE_STALE_REFS: f'text cached before {REFERENCE_FORMATTING_FIX}, when the fetcher emitted '
-                      'references as unnumbered bare DOIs; re-fetching numbers them, which '
-                      'flipped both pairs tested from NEITHER to MENTION',
-    CAUSE_CITING: 'the model reports it could not find the citation, contradicting the '
-                  'OpenAlex edge that put the pair on the worklist',
-    CAUSE_DIRECT: f'text lists >={CATALOG_MIN_OTHER_IDS} other dandiset IDs; the match is a '
-                  'catalog entry, not a reference to this dataset',
-    OTHER: 'not this cause',
-}
-
-
-def assign_causes(described: dict) -> tuple[str, ...]:
-    """Every cause matching this row, in display order; (OTHER,) if none do."""
-    matched = tuple(cause for cause, test in CAUSE_TESTS_FOR_MODE[described['mode']]
-                    if test(described))
-    return matched or (OTHER,)
-
-
-def described_rows(mode: str, label: Optional[str] = 'NEITHER') -> Iterator[dict]:
+def described_rows(pipeline, label: Optional[str] = 'NEITHER') -> Iterator[dict]:
     """Describe every cached pair, optionally restricted to one label."""
-    for record in load_classifications(mode):
+    for record in load_classifications(pipeline.cache_dir):
+        # Filter before describing. describe_pair reads the paper text off disk
+        # and runs every regex over it, so describing all 13,956 rows to keep
+        # 3,085 costs several times what the caller asked for.
         if label and record['classification'] != label:
             continue
-        described = describe_pair(record['citing_doi'], record['dandiset_id'], mode)
-        described['causes'] = assign_causes(described)
+        described = describe_pair(pipeline, record['citing_doi'], record['dandiset_id'])
+        described['causes'] = pipeline.assign_causes(described)
         yield described
 
 
@@ -652,39 +470,38 @@ def _print_windows(text: str, offsets: list, references_start: Optional[int],
 # Subcommands
 # --------------------------------------------------------------------------- #
 
-def command_summary(args) -> int:
-    for mode in ([args.mode] if args.mode else [MODE_CITING, MODE_DIRECT]):
-        records = load_classifications(mode)
-        labels = Counter(r['classification'] for r in records)
-        total = len(records)
-        print(f'\n=== {mode} pipeline: {total} classified pairs')
-        print(_table(['label', 'n', 'share'],
-                     [[k, v, f'{v/total:.1%}'] for k, v in labels.most_common()], 'lrr'))
+def command_summary(pipeline, args) -> int:
+    records = load_classifications(pipeline.cache_dir)
+    labels = Counter(r['classification'] for r in records)
+    total = len(records)
+    print(f'\n=== {pipeline.name} pipeline: {total} classified pairs')
+    print(_table(['label', 'n', 'share'],
+                 [[k, v, f'{v/total:.1%}'] for k, v in labels.most_common()], 'lrr'))
 
-        neither = list(described_rows(mode))
-        if not neither:
-            continue
+    neither = list(described_rows(pipeline))
+    if not neither:
+        return 0
 
-        print(f'\n--- cause of {len(neither)} NEITHER')
-        causes = Counter(c for r in neither for c in r['causes'])
-        print(_table(['cause', 'n', 'share', 'note'],
-                     [[c, causes[c], f'{causes[c]/len(neither):.1%}', CAUSE_NOTES[c]]
-                      for c in CAUSE_ORDER_FOR_MODE[mode] if causes[c]], 'lrrl'))
-        multiple = sum(1 for r in neither if len(r['causes']) > 1)
-        print(f'shares overlap and do not sum to 100%: {multiple} rows '
-              f'({multiple/len(neither):.0%}) match more than one cause')
+    print(f'\n--- cause of {len(neither)} NEITHER')
+    causes = Counter(c for r in neither for c in r['causes'])
+    print(_table(['cause', 'n', 'share', 'note'],
+                 [[c, causes[c], f'{causes[c]/len(neither):.1%}', pipeline.cause_notes[c]]
+                  for c in pipeline.causes if causes[c]], 'lrrl'))
+    multiple = sum(1 for r in neither if len(r['causes']) > 1)
+    print(f'shares overlap and do not sum to 100%: {multiple} rows '
+          f'({multiple/len(neither):.0%}) match more than one cause')
     return 0
 
 
-def command_list(args) -> int:
+def command_list(pipeline, args) -> int:
     rows = []
-    for described in described_rows(args.mode, label=args.label):
+    for described in described_rows(pipeline, label=args.label):
         if args.cause and args.cause not in described['causes']:
             continue
         # --only isolates the rows a cause does not share with any other, which
-        # is where an unexplained residual lives: 396 rows carry
-        # citation_not_found while the paper is intact and its references are
-        # formatted, so neither known defect accounts for them.
+        # is where an unexplained residual lives: in the indirect pipeline 396
+        # rows carry citation_not_found while the paper is intact and its
+        # references are numbered, so no known defect accounts for them.
         if args.only and len(described['causes']) > 1:
             continue
         if args.dandiset and described['dandiset_id'] != args.dandiset:
@@ -702,28 +519,28 @@ def command_list(args) -> int:
          for r in rows],
         'llll'))
     print(f'\n{len(rows)} rows. Read one with:')
-    print('  python -m src.analysis.analyze_neither show <citing DOI> --dandiset <id>')
+    print(f'  python -m src.analysis.{pipeline.module} show <citing DOI> --dandiset <id>')
     return 0
 
 
-def command_show(args) -> int:
-    index = classification_index(args.mode)
+def command_show(pipeline, args) -> int:
+    index = classification_index(pipeline.cache_dir)
     candidates = [key for key in index if key[0] == args.doi]
     if args.dandiset:
         candidates = [key for key in candidates if key[1] == args.dandiset]
     if not candidates:
-        print(f'No {args.mode} classification cached for {args.doi}'
+        print(f'No {pipeline.name} classification cached for {args.doi}'
               + (f' / {args.dandiset}' if args.dandiset else ''), file=sys.stderr)
         return 1
 
     for citing_doi, dandiset_id in sorted(candidates):
-        described = describe_pair(citing_doi, dandiset_id, args.mode)
-        described['causes'] = assign_causes(described)
-        _render_pair(described)
+        described = describe_pair(pipeline, citing_doi, dandiset_id)
+        described['causes'] = pipeline.assign_causes(described)
+        _render_pair(pipeline, described)
     return 0
 
 
-def _render_pair(d: dict) -> None:
+def _render_pair(pipeline, d: dict) -> None:
     text = d['text']
     references_start = d['references_start']
 
@@ -735,7 +552,7 @@ def _render_pair(d: dict) -> None:
     print(f'\nVERDICT   {d["classification"]}  confidence {d["confidence"]}'
           f'   causes: {" + ".join(d["causes"])}')
     for cause in d['causes']:
-        print(f'  {cause}: {CAUSE_NOTES.get(cause, "")}')
+        print(f'  {cause}: {pipeline.cause_notes.get(cause, "")}')
     print(f'\nREASONING\n  {(d["reasoning"] or "").strip()}')
 
     print(f'\nDANDISET  {d["dandiset_id"]}  {d["dandiset_name"]}')
@@ -756,8 +573,8 @@ def _render_pair(d: dict) -> None:
     print(f'  bibliography starts at {references_start if references_start is not None else "not found"}'
           f'  (detector: {d["references_detector"]})')
 
-    heading = ('CITED PRIMARY DOI' if d['mode'] == MODE_CITING
-               else "CITED PRIMARY DOI (context only; direct mode asks about the identifier)")
+    heading = ('CITED PRIMARY DOI' if pipeline.mode == MODE_CITING
+               else "CITED PRIMARY DOI (context only; the direct pathway asks about the identifier)")
     print(f'\n{heading}  {d["cited_doi"] or "-"}  [{d["cited_doi_kind"]}]')
     print(f'  {d["citation_count"]} occurrence(s): '
           f'{len(d["citation_in_body_offsets"])} in body, '
@@ -792,39 +609,37 @@ def _render_pair(d: dict) -> None:
     print()
 
 
-def main() -> int:
+
+
+# --------------------------------------------------------------------------- #
+# CLI
+# --------------------------------------------------------------------------- #
+
+def run(pipeline) -> int:
+    """Parse arguments for a pipeline and dispatch. The scripts' whole main()."""
     parser = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+        description=pipeline.description,
+        formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest='command', required=True)
 
-    def add_mode(p, default=MODE_CITING):
-        p.add_argument('--mode', choices=[MODE_CITING, MODE_DIRECT], default=default)
-
-    p_summary = sub.add_parser('summary', help='label counts and how many match the cause under investigation')
-    p_summary.add_argument('--mode', choices=[MODE_CITING, MODE_DIRECT], default=None,
-                           help='default: both pipelines')
+    p_summary = sub.add_parser(
+        'summary', help='label counts and how many NEITHER rows match each cause')
     p_summary.set_defaults(func=command_summary)
 
     p_list = sub.add_parser('list', help='pick rows to read')
-    add_mode(p_list)
-    p_list.add_argument('--cause', choices=sorted({CAUSE_NO_BODY, CAUSE_STALE_REFS, CAUSE_CITING, CAUSE_DIRECT, OTHER}))
+    p_list.add_argument('--cause', choices=sorted(pipeline.causes))
+    p_list.add_argument('--only', action='store_true',
+                        help='keep only rows where --cause is the sole matching cause')
     p_list.add_argument('--dandiset')
     p_list.add_argument('--label', default='NEITHER',
                         help='restrict to a label, or "" for every classification')
-    p_list.add_argument('--only', action='store_true',
-                        help='keep only rows where --cause is the sole matching cause')
     p_list.add_argument('--limit', type=int, default=25)
     p_list.set_defaults(func=command_list)
 
     p_show = sub.add_parser('show', help='render one pair with all evidence located in the text')
-    add_mode(p_show)
     p_show.add_argument('doi')
     p_show.add_argument('--dandiset')
     p_show.set_defaults(func=command_show)
 
     args = parser.parse_args()
-    return args.func(args)
-
-
-if __name__ == '__main__':
-    sys.exit(main())
+    return args.func(pipeline, args)
