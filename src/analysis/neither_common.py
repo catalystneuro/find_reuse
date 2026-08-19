@@ -17,6 +17,7 @@ import argparse
 import json
 import re
 import sys
+import textwrap
 from collections import Counter, defaultdict
 from functools import lru_cache
 from pathlib import Path
@@ -612,6 +613,174 @@ def _render_pair(pipeline, d: dict) -> None:
 
 
 # --------------------------------------------------------------------------- #
+# Plot
+# --------------------------------------------------------------------------- #
+
+# Causes overlap, so a pie or a stacked bar of them would double-count. They also
+# nest rather than cross -- in the indirect pipeline citation_not_found covers
+# 99.4% of rows and 301 of the 306 no_article_body rows sit inside
+# stale_extraction -- so a Venn would draw seven regions when only four exist and
+# imply a symmetry that is not there. An Euler diagram draws the regions that
+# exist and sizes them to the data.
+#
+# The figure has two panels because the causes alone do not convey scope. The bar
+# puts NEITHER back in the context of every pair the pipeline classified, and the
+# circles below break that slice open.
+#
+# Distinct hues rather than shades of one colour: the circles are nested, so
+# neighbouring areas touch along a shared edge and a sequential ramp makes the
+# boundaries hard to see.
+CAUSE_COLOURS = ('#264653', '#E76F51', '#E9C46A', '#8AB17D')
+OTHER_COLOUR = '#B0BEC5'
+# Where the OTHER blob sits: outside every cause circle, because that is what
+# matching no cause means. Far enough from the outer circle's centre to stay
+# disjoint from it at any plausible size.
+OTHER_CENTRE = (-1.12, -0.82)
+# Below this the blob is invisible at print size, so it is floored. The floor
+# breaks area-proportionality for that one shape, which the caption states.
+MIN_VISIBLE_RADIUS = 0.035
+
+
+def _share(count: int, total: int) -> str:
+    """A share that never rounds a real category down to 0%."""
+    fraction = count / total
+    return '<1%' if 0 < fraction < 0.005 else f'{fraction:.0%}'
+NEITHER_COLOUR = '#264653'
+OTHER_LABEL_COLOUR = '#CFD8DC'
+NESTING_OFFSET = 0.10   # fraction of the outer radius, per level
+
+
+def command_plot(pipeline, args) -> int:
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    from matplotlib.lines import Line2D
+    from matplotlib.patches import ConnectionPatch
+
+    records = load_classifications(pipeline.cache_dir)
+    label_counts = Counter(r['classification'] for r in records)
+    classified = len(records)
+
+    rows = list(described_rows(pipeline))
+    counts = Counter(c for r in rows for c in r['causes'])
+    total = len(rows)
+
+    # OTHER is the absence of a cause, not one of them, so it gets no circle.
+    # Largest first, so each circle is drawn inside the one before it.
+    ordered = [(cause, counts[cause]) for cause in pipeline.causes
+               if counts[cause] and cause != OTHER]
+    ordered.sort(key=lambda pair: -pair[1])
+
+    figure, (bar_axes, euler_axes) = plt.subplots(
+        2, 1, figsize=(7.6, 9.2), gridspec_kw={'height_ratios': [1, 6]})
+
+    # ---- panel 1: every classified pair, by label -------------------------
+    left = 0.0
+    neither_span = (0.0, 0.0)
+    for label, count in label_counts.most_common():
+        width = count / classified
+        is_neither = label == 'NEITHER'
+        bar_axes.barh(0, width, left=left, height=0.55,
+                      color=NEITHER_COLOUR if is_neither else OTHER_LABEL_COLOUR,
+                      edgecolor='white', linewidth=1.5)
+        caption = f'{label}\n{count:,}  ({_share(count, classified)})'
+        if width >= 0.13:
+            bar_axes.text(left + width / 2, 0, caption, ha='center', va='center',
+                          fontsize=9.5, color='white' if is_neither else '#37474F',
+                          fontweight='bold' if is_neither else 'normal')
+        else:
+            # Too narrow to hold text. Put it above the bar rather than let it
+            # overrun the neighbouring segment.
+            bar_axes.text(left + width / 2, 0.42, caption, ha='center', va='bottom',
+                          fontsize=8.5, color='#37474F', linespacing=1.2)
+        if is_neither:
+            neither_span = (left, left + width)
+        left += width
+
+    bar_axes.set_xlim(0, 1)
+    bar_axes.set_ylim(-0.6, 0.6)
+    bar_axes.axis('off')
+    # Extra padding so a label pushed above a narrow segment clears the title.
+    bar_axes.set_title(f'{pipeline.name} pipeline: {classified:,} classified pairs',
+                       fontsize=13, pad=34)
+
+    # ---- panel 2: what is wrong with the NEITHER rows ---------------------
+    outer = 1.0
+    handles, labels = [], []
+    for level, (cause, count) in enumerate(ordered):
+        radius = outer * (count / total) ** 0.5
+        # Walk each successive circle toward the same edge, so the crescent of
+        # "outer cause only" opens on one side instead of closing to a hairline.
+        centre_x = (outer - radius) * (1 - NESTING_OFFSET * level)
+        colour = CAUSE_COLOURS[level % len(CAUSE_COLOURS)]
+        euler_axes.add_patch(plt.Circle((centre_x, 0.0), radius, zorder=level + 1,
+                                        facecolor=colour, edgecolor='white',
+                                        linewidth=2.5))
+        handles.append(Line2D([], [], marker='o', linestyle='none', markersize=13,
+                              markerfacecolor=colour, markeredgecolor='white'))
+        labels.append(f'{cause}   {count:,}  ({_share(count, total)} of NEITHER)')
+
+    # OTHER is the absence of a cause, so it is drawn disjoint from the nest
+    # rather than left off. At 2 of 3,085 rows it is a speck, which is honest.
+    if counts[OTHER]:
+        radius = outer * (counts[OTHER] / total) ** 0.5
+        euler_axes.add_patch(plt.Circle(OTHER_CENTRE, max(radius, MIN_VISIBLE_RADIUS),
+                                        zorder=len(ordered) + 1,
+                                        facecolor=OTHER_COLOUR, edgecolor='white',
+                                        linewidth=1.5))
+        handles.append(Line2D([], [], marker='o', linestyle='none', markersize=13,
+                              markerfacecolor=OTHER_COLOUR, markeredgecolor='white'))
+        labels.append(f'{OTHER}   {counts[OTHER]:,}  '
+                      f'({_share(counts[OTHER], total)} of NEITHER)')
+
+    euler_axes.set_xlim(-1.30, 1.16)
+    euler_axes.set_ylim(-1.15, 1.15)
+    euler_axes.set_aspect('equal')
+    euler_axes.axis('off')
+
+    # Tie the two panels together: the circles are the NEITHER bar segment,
+    # opened up. The lines land on the outer circle's upper shoulders rather
+    # than on the panel corners, which are empty space.
+    if ordered:
+        widest_radius = outer * (ordered[0][1] / total) ** 0.5
+        widest_centre = outer - widest_radius
+        shoulder = widest_radius * 0.7071
+        for fraction, side in zip(neither_span, (-1.0, 1.0)):
+            figure.add_artist(ConnectionPatch(
+                xyA=(fraction, -0.30), coordsA=bar_axes.transData,
+                xyB=(widest_centre + side * shoulder, shoulder),
+                coordsB=euler_axes.transData,
+                color='#B0BEC5', linewidth=1.0, linestyle=(0, (4, 3)), zorder=0))
+
+    legend = euler_axes.legend(handles, labels, loc='upper center',
+                               bbox_to_anchor=(0.5, -0.02), ncol=1, frameon=False,
+                               fontsize=10.5, handletextpad=0.9, labelspacing=0.8)
+    for text in legend.get_texts():
+        text.set_va('center')
+
+    multiple = sum(1 for r in rows if len(r['causes']) > 1)
+    note = 'Circle area is proportional to row count.'
+    if multiple:
+        note += (f' {multiple:,} of {total:,} rows carry more than one cause, so the areas '
+                 'overlap and do not sum to the total.')
+    if counts[OTHER]:
+        note += (' Rows matching no cause are drawn outside the nest, at a minimum '
+                 'size so they stay visible.')
+    # Anchored to the axes, below the legend. Figure-level text would be placed
+    # before bbox_inches='tight' recomputes the bounding box, and would land on
+    # top of the legend.
+    euler_axes.text(0.5, -0.10 - 0.068 * len(handles), textwrap.fill(note, 80),
+                    transform=euler_axes.transAxes, ha='center', va='top',
+                    fontsize=8.5, color='#5C6F7C')
+
+    out = Path(args.out)
+    figure.savefig(out, dpi=200, bbox_inches='tight', facecolor='white',
+                   pad_inches=0.35)
+    print(f'wrote {out}')
+    return 0
+
+
+# --------------------------------------------------------------------------- #
 # CLI
 # --------------------------------------------------------------------------- #
 
@@ -641,5 +810,12 @@ def run(pipeline) -> int:
     p_show.add_argument('--dandiset')
     p_show.set_defaults(func=command_show)
 
+    p_plot = sub.add_parser('plot', help='Euler diagram of the causes, as a PNG')
+    p_plot.add_argument('--out', default=None,
+                        help=f'output path (default: {{pipeline.module}}.png)')
+    p_plot.set_defaults(func=command_plot)
+
     args = parser.parse_args()
+    if getattr(args, 'out', None) is None and args.func is command_plot:
+        args.out = f'{pipeline.module}.png'
     return args.func(pipeline, args)
