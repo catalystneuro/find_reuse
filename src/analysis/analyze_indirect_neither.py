@@ -24,16 +24,57 @@ Usage:
 
 from __future__ import annotations
 
+import json
 import re
 import sys
+from functools import lru_cache
+from pathlib import Path
 
 from src.analysis.neither_common import (
     CITING_CACHE, MODE_CITING, OTHER, Pipeline, run,
 )
 
+CAUSE_FABRICATED_LINK = 'fabricated_paper_link'
 CAUSE_NO_BODY = 'no_article_body'
 CAUSE_STALE_REFS = 'stale_extraction'
 CAUSE_CITATION = 'citation_not_found'
+
+
+# 159 of the 365 dandisets declare no paper: no DataCite relation and no DOI in
+# the description. Their primary paper was inferred by an LLM, which recorded a
+# title and a DOI. Resolving those DOIs shows 96 point at a different paper and 7
+# do not resolve at all -- the model knew the title and invented the identifier,
+# at confidence 10. 001414 is the type specimen: its link resolves to "Old age
+# variably impacts chimpanzee engagement and efficiency in stone tool use", so
+# discovery fetched papers citing that and asked the classifier about an
+# astrocyte-calcium dataset.
+#
+# The verdicts are precomputed by verify_llm_dois.py in this directory, because
+# checking them needs CrossRef and this module is offline. Re-run it when
+# discovery changes.
+LLM_DOI_VERDICTS = Path(__file__).resolve().parent / 'llm_doi_verdicts.json'
+
+
+@lru_cache(maxsize=1)
+def unusable_paper_links() -> frozenset:
+    """Dandisets whose LLM-supplied DOI is not the paper the LLM named."""
+    verdicts = json.loads(LLM_DOI_VERDICTS.read_text())
+    return frozenset(dandiset_id for dandiset_id, entry in verdicts.items()
+                     if entry['verdict'] != 'matches')
+
+
+def has_fabricated_paper_link(described: dict) -> bool:
+    """
+    The dandiset's paper link points at a different paper than it claims.
+
+    Every pair under such a dandiset was built from papers citing an unrelated
+    work, so the classifier was asked about a dataset those papers have no
+    connection to. NEITHER is the correct answer and the pair should not exist.
+
+    This is upstream of everything else here: re-fetching the text or numbering
+    its references cannot help a pair that was never real.
+    """
+    return described['dandiset_id'] in unusable_paper_links()
 
 
 # An article body cites as it goes, so it carries in-text citation markers in
@@ -163,6 +204,7 @@ PIPELINE = Pipeline(
     mode=MODE_CITING,
     cache_dir=CITING_CACHE,
     cause_tests=(
+        (CAUSE_FABRICATED_LINK, has_fabricated_paper_link),
         (CAUSE_NO_BODY, has_no_article_body),
         (CAUSE_STALE_REFS, has_stale_extraction),
         (CAUSE_CITATION, reports_citation_not_found),
@@ -170,6 +212,7 @@ PIPELINE = Pipeline(
     cause_notes={
         # One line each. The evidence, thresholds and caveats live in each
         # predicate's docstring, which is where a reader who needs them is.
+        CAUSE_FABRICATED_LINK: "the dandiset's LLM-supplied paper DOI is a different paper",
         CAUSE_NO_BODY: 'the fetch returned no article body',
         CAUSE_STALE_REFS: f'cached before {REFERENCE_FORMATTING_FIX}, when references were '
                           'unnumbered bare DOIs',
