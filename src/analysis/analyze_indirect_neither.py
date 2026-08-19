@@ -31,10 +31,11 @@ from functools import lru_cache
 from pathlib import Path
 
 from src.analysis.neither_common import (
-    CITING_CACHE, MODE_CITING, OTHER, Pipeline, run,
+    CITING_CACHE, MODE_CITING, OTHER, Pipeline, load_discovery, run,
 )
 
 CAUSE_FABRICATED_LINK = 'fabricated_paper_link'
+CAUSE_WRONG_PAPER_ASKED = 'asked_about_wrong_paper'
 CAUSE_NO_BODY = 'no_article_body'
 CAUSE_STALE_REFS = 'stale_extraction'
 CAUSE_CITATION = 'citation_not_found'
@@ -75,6 +76,33 @@ def has_fabricated_paper_link(described: dict) -> bool:
     its references cannot help a pair that was never real.
     """
     return described['dandiset_id'] in unusable_paper_links()
+
+
+def asked_about_wrong_paper(described: dict) -> bool:
+    """
+    The prompt named a different paper than the pair was built from.
+
+    `build_worklist` fills primary_paper_doi from `paper_relations[0]`, but a
+    dandiset can declare several papers and discovery records which one produced
+    each pair. For the 37 dandisets that declare more than one, every pair built
+    from a later relation was described to the model using the first.
+
+    10.1002/exp.20250452 x 000954 is the type specimen. The pair exists because
+    the paper cites "A brain-computer interface that evokes tactile sensations",
+    which is reference 72 of its bibliography, DOI and full title present. The
+    prompt instead named the dandiset's first relation, a 2012 Lancet paper that
+    appears nowhere in the text. The model answered NEITHER, correctly, to the
+    question it was asked.
+
+    So these rows are not classifier failures and re-fetching cannot help them.
+    The repair is to pass the pair's own cited_paper_doi and re-classify.
+    """
+    record = load_discovery()['dandisets'].get(described['dandiset_id']) or {}
+    relations = record.get('paper_relations') or []
+    if len(relations) < 2 or not described['cited_doi']:
+        return False
+    asked = ((relations[0] or {}).get('doi') or '').strip()
+    return bool(asked) and asked != described['cited_doi']
 
 
 # An article body cites as it goes, so it carries in-text citation markers in
@@ -205,6 +233,7 @@ PIPELINE = Pipeline(
     cache_dir=CITING_CACHE,
     cause_tests=(
         (CAUSE_FABRICATED_LINK, has_fabricated_paper_link),
+        (CAUSE_WRONG_PAPER_ASKED, asked_about_wrong_paper),
         (CAUSE_NO_BODY, has_no_article_body),
         (CAUSE_STALE_REFS, has_stale_extraction),
         (CAUSE_CITATION, reports_citation_not_found),
@@ -213,6 +242,8 @@ PIPELINE = Pipeline(
         # One line each. The evidence, thresholds and caveats live in each
         # predicate's docstring, which is where a reader who needs them is.
         CAUSE_FABRICATED_LINK: "the dandiset's LLM-supplied paper DOI is a different paper",
+        CAUSE_WRONG_PAPER_ASKED: 'the prompt named the dandiset\'s first paper, not the one '
+                                 'this pair was built from',
         CAUSE_NO_BODY: 'the fetch returned no article body',
         CAUSE_STALE_REFS: f'cached before {REFERENCE_FORMATTING_FIX}, when references were '
                           'unnumbered bare DOIs',
