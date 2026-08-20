@@ -22,13 +22,13 @@ import pandas as pd
 import requests
 from lifelines import CoxPHFitter
 
+from src.archives.dandi import ALLEN_DANDISET_IDS, DANDIAdapter, NLB_DANDISET_IDS
+
 ANALYSIS_CUTOFF = datetime(2025, 10, 7)
 
 
 def fetch_dandiset_metadata():
     """Fetch species, approach, size, subjects via DANDIAdapter."""
-    from archives.dandi import DANDIAdapter
-
     adapter = DANDIAdapter()
 
     with open("output/all_dandiset_papers.json") as f:
@@ -43,10 +43,6 @@ def fetch_dandiset_metadata():
             meta[did] = m
 
     return meta
-
-
-# Import DANDI-specific constants from adapter
-from archives.dandi import NLB_DANDISET_IDS, ALLEN_DANDISET_IDS
 
 
 def get_citation_counts():

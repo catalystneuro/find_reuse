@@ -433,7 +433,7 @@ def run_andersen_gill(classifications, created, datasets):
     import requests
     import pandas as pd
     from lifelines import CoxPHFitter
-    from archives.crcns import CRCNSAdapter
+    from src.archives.crcns import CRCNSAdapter
 
     adapter = CRCNSAdapter()
 
