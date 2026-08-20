@@ -29,6 +29,7 @@ from bs4 import BeautifulSoup
 from tqdm import tqdm
 
 from fetch_paper import PaperFetcher
+from src.archives import ADAPTERS
 
 
 # Project root: three levels up from src/direct_pipeline/find_reuse.py
@@ -75,12 +76,8 @@ def _build_archive_search_terms():
     terms = {}
 
     # Load from adapters
-    try:
-        from src.archives import ADAPTERS
-        for key, adapter_cls in ADAPTERS.items():
-            terms[adapter_cls.name] = dict(adapter_cls.search_terms)
-    except ImportError:
-        pass
+    for key, adapter_cls in ADAPTERS.items():
+        terms[adapter_cls.name] = dict(adapter_cls.search_terms)
 
     # Fallback for archives without adapters
     _fallback = {
@@ -122,13 +119,9 @@ def _build_archive_patterns():
     patterns = {}
 
     # Load from adapters
-    try:
-        from src.archives import ADAPTERS
-        for key, adapter_cls in ADAPTERS.items():
-            if adapter_cls.dataset_patterns:
-                patterns[adapter_cls.name] = list(adapter_cls.dataset_patterns)
-    except ImportError:
-        pass
+    for key, adapter_cls in ADAPTERS.items():
+        if adapter_cls.dataset_patterns:
+            patterns[adapter_cls.name] = list(adapter_cls.dataset_patterns)
 
     # Fallback for archives without adapters
     _fallback = {
