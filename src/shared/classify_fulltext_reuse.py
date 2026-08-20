@@ -66,7 +66,7 @@ LABELS_FOR_MODE = {
 # Bumped whenever the prompt or the output schema changes. Cached results carry
 # the version they were produced under so a batch run can tell which entries are
 # stale rather than silently mixing outputs from two different questions.
-PROMPT_VERSION = 4
+PROMPT_VERSION = 5
 
 # Which part of a multimodal dataset was actually reused.
 #
@@ -101,7 +101,7 @@ try:
 except ImportError:  # standalone use, e.g. the CLI from another directory
     CANONICAL_ARCHIVES = {
         "DANDI Archive", "CRCNS", "Figshare", "Allen Institute", "IBL",
-        "Zenodo", "Dryad", "OSF", "GIN", "OpenNeuro", "EBRAINS",
+        "Zenodo", "Dryad", "OSF", "GIN", "OpenNeuro", "EBRAINS", "SPARC",
         "Neural Latents Benchmark", "MICrONS Explorer", "Brain Image Library",
         "NeuroMorpho.org", "GitHub", "Buzsaki Lab", "Lab website",
         "MouseLight", "NEMO Archive", "AWS", "NIRD Research Data Archive",

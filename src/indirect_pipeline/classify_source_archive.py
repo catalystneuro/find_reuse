@@ -64,7 +64,7 @@ NORMALIZE_MAP = {
 # Known canonical archive names (for LLM validation)
 CANONICAL_ARCHIVES = {
     "DANDI Archive", "CRCNS", "Figshare", "Allen Institute", "IBL",
-    "Zenodo", "Dryad", "OSF", "GIN", "OpenNeuro", "EBRAINS",
+    "Zenodo", "Dryad", "OSF", "GIN", "OpenNeuro", "EBRAINS", "SPARC",
     "Neural Latents Benchmark", "MICrONS Explorer", "Brain Image Library",
     "NeuroMorpho.org", "GitHub", "Buzsaki Lab", "Lab website",
     "MouseLight", "NEMO Archive", "AWS", "NIRD Research Data Archive",
