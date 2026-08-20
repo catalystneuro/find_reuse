@@ -39,6 +39,7 @@ CAUSE_WRONG_PAPER_ASKED = 'asked_about_wrong_paper'
 CAUSE_NO_BODY = 'no_article_body'
 CAUSE_STALE_REFS = 'stale_extraction'
 CAUSE_CITATION = 'citation_not_found'
+CAUSE_UNSTABLE = 'unstable_classification'
 
 
 # 159 of the 365 dandisets declare no paper: no DataCite relation and no DOI in
@@ -226,6 +227,44 @@ def reports_citation_not_found(described: dict) -> bool:
     return bool(ABSENCE_CLAIM.search(described['reasoning'] or ''))
 
 
+# Re-running production's own prompt three times over the 130 rows that no other
+# cause explained: 37% reproduce NEITHER every time, 35% are mixed, and 28% never
+# return NEITHER at all. Of 171 flips, 170 went to MENTION and one to REUSE -- the
+# instability sits entirely on the MENTION/NEITHER boundary, and essentially no
+# reuse is hiding in these rows.
+#
+# Measured by measure_volatility.py in this directory, which costs money and needs
+# the network. Only the rows it has actually re-run carry a verdict; everything
+# else is unmeasured rather than stable, so this test is silent about them.
+VOLATILITY_VERDICTS = Path(__file__).resolve().parent / 'volatility_verdicts.json'
+
+
+@lru_cache(maxsize=1)
+def unstable_pairs() -> frozenset:
+    """Pairs that failed to reproduce NEITHER on at least one re-run."""
+    if not VOLATILITY_VERDICTS.exists():
+        return frozenset()
+    verdicts = json.loads(VOLATILITY_VERDICTS.read_text())
+    return frozenset((entry['citing_doi'], entry['dandiset_id'])
+                     for entry in verdicts.values()
+                     if entry['labels']
+                     and entry['labels'].count('NEITHER') < len(entry['labels']))
+
+
+def has_unstable_classification(described: dict) -> bool:
+    """
+    Re-running the same prompt does not reproduce NEITHER.
+
+    These rows are not a defect in any input. The pipeline asked a well-formed
+    question about an intact paper, and the answer simply is not stable -- the
+    cached NEITHER is one draw from a distribution that mostly says MENTION.
+
+    Only rows that have been re-run carry a verdict, so a False here can mean
+    "stable" or "never measured".
+    """
+    return (described['citing_doi'], described['dandiset_id']) in unstable_pairs()
+
+
 PIPELINE = Pipeline(
     name='indirect',
     module='analyze_indirect_neither',
@@ -237,6 +276,7 @@ PIPELINE = Pipeline(
         (CAUSE_NO_BODY, has_no_article_body),
         (CAUSE_STALE_REFS, has_stale_extraction),
         (CAUSE_CITATION, reports_citation_not_found),
+        (CAUSE_UNSTABLE, has_unstable_classification),
     ),
     cause_notes={
         # One line each. The evidence, thresholds and caveats live in each
@@ -248,6 +288,7 @@ PIPELINE = Pipeline(
         CAUSE_STALE_REFS: f'cached before {REFERENCE_FORMATTING_FIX}, when references were '
                           'unnumbered bare DOIs',
         CAUSE_CITATION: 'the model reports it could not find the citation',
+        CAUSE_UNSTABLE: 're-running the same prompt does not reproduce NEITHER',
         OTHER: 'none of the above',
     },
     description=__doc__,

@@ -1,0 +1,1427 @@
+{
+  "10.1002/jez.b.23278|000773": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1016/j.cub.2024.05.031",
+    "citing_doi": "10.1002/jez.b.23278",
+    "dandiset_id": "000773",
+    "labels": [
+      "NEITHER",
+      "MENTION",
+      "NEITHER"
+    ]
+  },
+  "10.1007/978-3-031-96089-5_2|001464": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41593-024-01774-5",
+    "citing_doi": "10.1007/978-3-031-96089-5_2",
+    "dandiset_id": "001464",
+    "labels": [
+      "NEITHER",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.1007/s10334-026-01362-7|001436": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1016/j.neuroimage.2016.02.004",
+    "citing_doi": "10.1007/s10334-026-01362-7",
+    "dandiset_id": "001436",
+    "labels": [
+      "MENTION",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.1007/s11071-026-12740-0|000447": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1016/j.celrep.2023.112246",
+    "citing_doi": "10.1007/s11071-026-12740-0",
+    "dandiset_id": "000447",
+    "labels": [
+      "NEITHER",
+      "MENTION",
+      "NEITHER"
+    ]
+  },
+  "10.1007/s11229-025-05169-2|000253": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1101/2024.10.02.616378",
+    "citing_doi": "10.1007/s11229-025-05169-2",
+    "dandiset_id": "000253",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.1007/s13235-023-00521-y|000351": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1126/science.abq6740",
+    "citing_doi": "10.1007/s13235-023-00521-y",
+    "dandiset_id": "000351",
+    "labels": [
+      "MENTION",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.1007/s13752-026-00536-9|000362": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41586-023-05828-9",
+    "citing_doi": "10.1007/s13752-026-00536-9",
+    "dandiset_id": "000362",
+    "labels": [
+      "NEITHER",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.1016/j.autneu.2025.103336|000362": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41586-023-05828-9",
+    "citing_doi": "10.1016/j.autneu.2025.103336",
+    "dandiset_id": "000362",
+    "labels": [
+      "MENTION",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.1016/j.celrep.2026.117345|000350": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1016/j.cell.2019.05.050",
+    "citing_doi": "10.1016/j.celrep.2026.117345",
+    "dandiset_id": "000350",
+    "labels": [
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.1016/j.chaos.2026.117949|000011": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/nature17643",
+    "citing_doi": "10.1016/j.chaos.2026.117949",
+    "dandiset_id": "000011",
+    "labels": [
+      "MENTION",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.1016/j.conb.2026.103246|000212": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1101/2021.09.23.461548",
+    "citing_doi": "10.1016/j.conb.2026.103246",
+    "dandiset_id": "000212",
+    "labels": [
+      "MENTION",
+      "MENTION",
+      "NEITHER"
+    ]
+  },
+  "10.1016/j.crmeth.2026.101512|000402": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1101/2021.07.28.454025",
+    "citing_doi": "10.1016/j.crmeth.2026.101512",
+    "dandiset_id": "000402",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.1016/j.cub.2026.05.054|000289": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1101/2021.12.17.473253",
+    "citing_doi": "10.1016/j.cub.2026.05.054",
+    "dandiset_id": "000289",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.1016/j.cub.2026.05.068|000447": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1016/j.celrep.2023.112246",
+    "citing_doi": "10.1016/j.cub.2026.05.068",
+    "dandiset_id": "000447",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.1016/j.cub.2026.06.011|000579": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1016/j.neuron.2022.05.012",
+    "citing_doi": "10.1016/j.cub.2026.06.011",
+    "dandiset_id": "000579",
+    "labels": [
+      "NEITHER",
+      "MENTION",
+      "NEITHER"
+    ]
+  },
+  "10.1016/j.isci.2026.116104|001771": {
+    "cached": "NEITHER",
+    "cited_doi": "10.7554/elife.62889",
+    "citing_doi": "10.1016/j.isci.2026.116104",
+    "dandiset_id": "001771",
+    "labels": [
+      "MENTION",
+      "NEITHER",
+      "MENTION"
+    ]
+  },
+  "10.1016/j.isci.2026.116117|001075": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41586-023-06683-4",
+    "citing_doi": "10.1016/j.isci.2026.116117",
+    "dandiset_id": "001075",
+    "labels": [
+      "MENTION",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.1016/j.isci.2026.116144|000402": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1101/2021.07.28.454025",
+    "citing_doi": "10.1016/j.isci.2026.116144",
+    "dandiset_id": "000402",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "MENTION"
+    ]
+  },
+  "10.1016/j.isci.2026.116337|000008": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41586-020-2907-3",
+    "citing_doi": "10.1016/j.isci.2026.116337",
+    "dandiset_id": "000008",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.1016/j.isci.2026.116498|000559": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41586-022-05611-2",
+    "citing_doi": "10.1016/j.isci.2026.116498",
+    "dandiset_id": "000559",
+    "labels": [
+      "MENTION",
+      "NEITHER",
+      "MENTION"
+    ]
+  },
+  "10.1016/j.jml.2024.104536|000061": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/nn.4637",
+    "citing_doi": "10.1016/j.jml.2024.104536",
+    "dandiset_id": "000061",
+    "labels": [
+      "MENTION",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.1016/j.neubiorev.2023.105312|000130": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1016/j.neuron.2019.06.012",
+    "citing_doi": "10.1016/j.neubiorev.2023.105312",
+    "dandiset_id": "000130",
+    "labels": [
+      "MENTION",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.1016/j.neucom.2024.127654|000070": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/nature11129",
+    "citing_doi": "10.1016/j.neucom.2024.127654",
+    "dandiset_id": "000070",
+    "labels": [
+      "MENTION",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.1016/j.neunet.2022.03.002|000016": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1101/354340",
+    "citing_doi": "10.1016/j.neunet.2022.03.002",
+    "dandiset_id": "000016",
+    "labels": [
+      "MENTION",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.1016/j.neures.2025.105002|000010": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/nature14178",
+    "citing_doi": "10.1016/j.neures.2025.105002",
+    "dandiset_id": "000010",
+    "labels": [
+      "MENTION",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.1016/j.neuroimage.2025.121203|000623": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41597-024-03029-1",
+    "citing_doi": "10.1016/j.neuroimage.2025.121203",
+    "dandiset_id": "000623",
+    "labels": [
+      "MENTION",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.1016/j.neuron.2023.11.006|000336": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1016/j.tins.2012.11.006",
+    "citing_doi": "10.1016/j.neuron.2023.11.006",
+    "dandiset_id": "000336",
+    "labels": [
+      "MENTION",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.1016/j.neuron.2026.04.045|000009": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/nature22324",
+    "citing_doi": "10.1016/j.neuron.2026.04.045",
+    "dandiset_id": "000009",
+    "labels": [
+      "MENTION",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.1016/j.neuron.2026.05.025|000458": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1101/2022.07.22.501195",
+    "citing_doi": "10.1016/j.neuron.2026.05.025",
+    "dandiset_id": "000458",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.1016/j.pneurobio.2026.102935|000011": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/nature17643",
+    "citing_doi": "10.1016/j.pneurobio.2026.102935",
+    "dandiset_id": "000011",
+    "labels": [
+      "MENTION",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.1016/j.pnpbp.2025.111332|000572": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41593-023-01453-x",
+    "citing_doi": "10.1016/j.pnpbp.2025.111332",
+    "dandiset_id": "000572",
+    "labels": [
+      "MENTION",
+      "NEITHER",
+      "MENTION"
+    ]
+  },
+  "10.1016/j.rbc.2026.100080|000362": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41586-023-05828-9",
+    "citing_doi": "10.1016/j.rbc.2026.100080",
+    "dandiset_id": "000362",
+    "labels": [
+      "NEITHER",
+      "MENTION",
+      "NEITHER"
+    ]
+  },
+  "10.1016/j.rio.2025.100901|000935": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s42003-021-02981-7",
+    "citing_doi": "10.1016/j.rio.2025.100901",
+    "dandiset_id": "000935",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.1016/j.tins.2024.12.002|000971": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1016/j.cub.2022.01.055",
+    "citing_doi": "10.1016/j.tins.2024.12.002",
+    "dandiset_id": "000971",
+    "labels": [
+      "MENTION",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.1021/acs.bioconjchem.6c00230|000402": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1101/2021.07.28.454025",
+    "citing_doi": "10.1021/acs.bioconjchem.6c00230",
+    "dandiset_id": "000402",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "MENTION"
+    ]
+  },
+  "10.1038/s41467-025-67545-3|000727": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1101/2022.03.20.485047",
+    "citing_doi": "10.1038/s41467-025-67545-3",
+    "dandiset_id": "000727",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.1038/s41467-026-71502-z|000166": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1016/j.neuron.2018.12.009",
+    "citing_doi": "10.1038/s41467-026-71502-z",
+    "dandiset_id": "000166",
+    "labels": [
+      "NEITHER",
+      "MENTION",
+      "NEITHER"
+    ]
+  },
+  "10.1038/s41467-026-71887-x|000469": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41597-024-02943-8",
+    "citing_doi": "10.1038/s41467-026-71887-x",
+    "dandiset_id": "000469",
+    "labels": [
+      "MENTION",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.1038/s41467-026-72057-9|000249": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41586-020-2807-6",
+    "citing_doi": "10.1038/s41467-026-72057-9",
+    "dandiset_id": "000249",
+    "labels": [
+      "MENTION",
+      "MENTION",
+      "NEITHER"
+    ]
+  },
+  "10.1038/s41467-026-73883-7|000008": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41586-020-2907-3",
+    "citing_doi": "10.1038/s41467-026-73883-7",
+    "dandiset_id": "000008",
+    "labels": [
+      "MENTION",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.1038/s41467-026-74553-4|000362": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41586-023-05828-9",
+    "citing_doi": "10.1038/s41467-026-74553-4",
+    "dandiset_id": "000362",
+    "labels": [
+      "MENTION",
+      "MENTION",
+      "NEITHER"
+    ]
+  },
+  "10.1038/s41467-026-75706-1|000971": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1016/j.cub.2022.01.055",
+    "citing_doi": "10.1038/s41467-026-75706-1",
+    "dandiset_id": "000971",
+    "labels": [
+      "NEITHER",
+      "MENTION",
+      "NEITHER"
+    ]
+  },
+  "10.1038/s41467-026-75945-2|000009": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/nature22324",
+    "citing_doi": "10.1038/s41467-026-75945-2",
+    "dandiset_id": "000009",
+    "labels": [
+      "MENTION",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.1038/s41467-026-76681-3|000559": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41586-022-05611-2",
+    "citing_doi": "10.1038/s41467-026-76681-3",
+    "dandiset_id": "000559",
+    "labels": [
+      "MENTION",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.1038/s41583-023-00768-9|000168": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1101/2021.11.08.467793",
+    "citing_doi": "10.1038/s41583-023-00768-9",
+    "dandiset_id": "000168",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.1038/s41586-026-10458-y|000402": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1101/2021.07.28.454025",
+    "citing_doi": "10.1038/s41586-026-10458-y",
+    "dandiset_id": "000402",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "MENTION"
+    ]
+  },
+  "10.1038/s41586-026-10509-4|000114": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41586-021-03814-7",
+    "citing_doi": "10.1038/s41586-026-10509-4",
+    "dandiset_id": "000114",
+    "labels": [
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.1038/s41586-026-10735-w|000017": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41586-019-1787-x",
+    "citing_doi": "10.1038/s41586-026-10735-w",
+    "dandiset_id": "000017",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.1038/s41592-026-03076-z|000006": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41586-018-0642-9",
+    "citing_doi": "10.1038/s41592-026-03076-z",
+    "dandiset_id": "000006",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.1038/s41593-026-02388-9|000552": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41593-022-01138-x",
+    "citing_doi": "10.1038/s41593-026-02388-9",
+    "dandiset_id": "000552",
+    "labels": [
+      "MENTION",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.1038/s41598-026-63080-3|000289": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1101/2021.12.17.473253",
+    "citing_doi": "10.1038/s41598-026-63080-3",
+    "dandiset_id": "000289",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.1038/s42003-026-10643-9|000362": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41586-023-05828-9",
+    "citing_doi": "10.1038/s42003-026-10643-9",
+    "dandiset_id": "000362",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.1038/s43856-026-01741-0|000166": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1016/j.neuron.2018.12.009",
+    "citing_doi": "10.1038/s43856-026-01741-0",
+    "dandiset_id": "000166",
+    "labels": [
+      "NEITHER",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.1038/s44320-026-00210-z|000362": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41586-023-05828-9",
+    "citing_doi": "10.1038/s44320-026-00210-z",
+    "dandiset_id": "000362",
+    "labels": [
+      "MENTION",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.1038/s44328-026-00109-7|000065": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1016/j.neuron.2018.11.002",
+    "citing_doi": "10.1038/s44328-026-00109-7",
+    "dandiset_id": "000065",
+    "labels": [
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.1073/pnas.2532072123|001172": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41593-022-01202-6",
+    "citing_doi": "10.1073/pnas.2532072123",
+    "dandiset_id": "001172",
+    "labels": [
+      "MENTION",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.1088/2634-4386/add36c|000129": {
+    "cached": "NEITHER",
+    "cited_doi": "10.5281/zenodo.3854034",
+    "citing_doi": "10.1088/2634-4386/add36c",
+    "dandiset_id": "000129",
+    "labels": [
+      "MENTION",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.1093/biomtc/ujag106|000351": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1126/science.abq6740",
+    "citing_doi": "10.1093/biomtc/ujag106",
+    "dandiset_id": "000351",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.1093/nc/niag025|000248": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1101/2023.06.05.543698",
+    "citing_doi": "10.1093/nc/niag025",
+    "dandiset_id": "000248",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.1101/2023.11.10.566490|000447": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1016/j.celrep.2023.112246",
+    "citing_doi": "10.1101/2023.11.10.566490",
+    "dandiset_id": "000447",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "MENTION"
+    ]
+  },
+  "10.1101/2024.09.05.24313041|000950": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41586-021-03506-2",
+    "citing_doi": "10.1101/2024.09.05.24313041",
+    "dandiset_id": "000950",
+    "labels": [
+      "NEITHER",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.1101/2024.10.11.24315027|000950": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41586-021-03506-2",
+    "citing_doi": "10.1101/2024.10.11.24315027",
+    "dandiset_id": "000950",
+    "labels": [
+      "NEITHER",
+      "MENTION",
+      "NEITHER"
+    ]
+  },
+  "10.1101/2024.12.22.24319047|000950": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41586-021-03506-2",
+    "citing_doi": "10.1101/2024.12.22.24319047",
+    "dandiset_id": "000950",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "MENTION"
+    ]
+  },
+  "10.1101/2025.07.31.25332114|001464": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41593-024-01774-5",
+    "citing_doi": "10.1101/2025.07.31.25332114",
+    "dandiset_id": "001464",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "MENTION"
+    ]
+  },
+  "10.1103/5ynb-7k4v|000289": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1101/2021.12.17.473253",
+    "citing_doi": "10.1103/5ynb-7k4v",
+    "dandiset_id": "000289",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.1103/gvl6-cvby|000289": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1101/2021.12.17.473253",
+    "citing_doi": "10.1103/gvl6-cvby",
+    "dandiset_id": "000289",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.1103/mjcl-lb4x|001097": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41586-024-07916-w",
+    "citing_doi": "10.1103/mjcl-lb4x",
+    "dandiset_id": "001097",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.1111/jnc.70526|001464": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41593-024-01774-5",
+    "citing_doi": "10.1111/jnc.70526",
+    "dandiset_id": "001464",
+    "labels": [
+      "MENTION",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.1113/jp286868|000483": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41467-023-37704-5",
+    "citing_doi": "10.1113/jp286868",
+    "dandiset_id": "000483",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.1113/jp290366|000362": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41586-023-05828-9",
+    "citing_doi": "10.1113/jp290366",
+    "dandiset_id": "000362",
+    "labels": [
+      "NEITHER",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.1126/sciadv.aed9004|000070": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/nature11129",
+    "citing_doi": "10.1126/sciadv.aed9004",
+    "dandiset_id": "000070",
+    "labels": [
+      "MENTION",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.1128/aem.00490-26|000362": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41586-023-05828-9",
+    "citing_doi": "10.1128/aem.00490-26",
+    "dandiset_id": "000362",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.1152/jn.00410.2023|000070": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/nature11129",
+    "citing_doi": "10.1152/jn.00410.2023",
+    "dandiset_id": "000070",
+    "labels": [
+      "MENTION",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.11606/t.55.2021.tde-11082021-112227|000070": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/nature11129",
+    "citing_doi": "10.11606/t.55.2021.tde-11082021-112227",
+    "dandiset_id": "000070",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "MENTION"
+    ]
+  },
+  "10.1161/atvbaha.126.322483|000402": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1101/2021.07.28.454025",
+    "citing_doi": "10.1161/atvbaha.126.322483",
+    "dandiset_id": "000402",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "MENTION"
+    ]
+  },
+  "10.1162/neco.a.18|000289": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1101/2021.12.17.473253",
+    "citing_doi": "10.1162/neco.a.18",
+    "dandiset_id": "000289",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.1186/s12984-026-02041-3|000954": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1016/S0140-6736(12)61816-9",
+    "citing_doi": "10.1186/s12984-026-02041-3",
+    "dandiset_id": "000954",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.1364/boe.604080|000149": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41586-025-09235-0",
+    "citing_doi": "10.1364/boe.604080",
+    "dandiset_id": "000149",
+    "labels": [
+      "NEITHER",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.1371/journal.pcbi.1014191|000678": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1101/2023.03.02.530651",
+    "citing_doi": "10.1371/journal.pcbi.1014191",
+    "dandiset_id": "000678",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.1523/eneuro.0413-24.2025|000020": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1016/j.cell.2020.09.057",
+    "citing_doi": "10.1523/eneuro.0413-24.2025",
+    "dandiset_id": "000020",
+    "labels": [
+      "MENTION",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.1523/jneurosci.0295-26.2026|000034": {
+    "cached": "NEITHER",
+    "cited_doi": "10.7554/eLife.61834",
+    "citing_doi": "10.1523/jneurosci.0295-26.2026",
+    "dandiset_id": "000034",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.1523/jneurosci.1332-25.2025|000462": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41467-022-34465-5",
+    "citing_doi": "10.1523/jneurosci.1332-25.2025",
+    "dandiset_id": "000462",
+    "labels": [
+      "MENTION",
+      "NEITHER"
+    ]
+  },
+  "10.21203/rs.3.rs-1107674/v1|000061": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/nn.4637",
+    "citing_doi": "10.21203/rs.3.rs-1107674/v1",
+    "dandiset_id": "000061",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.21203/rs.3.rs-128619/v1|000006": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41586-018-0642-9",
+    "citing_doi": "10.21203/rs.3.rs-128619/v1",
+    "dandiset_id": "000006",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.21203/rs.3.rs-1933514/v1|000006": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41586-018-0642-9",
+    "citing_doi": "10.21203/rs.3.rs-1933514/v1",
+    "dandiset_id": "000006",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.21203/rs.3.rs-2500547/v1|000006": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41586-018-0642-9",
+    "citing_doi": "10.21203/rs.3.rs-2500547/v1",
+    "dandiset_id": "000006",
+    "labels": [
+      "NEITHER",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.21203/rs.3.rs-3231892/v1|000582": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1126/science.1125572",
+    "citing_doi": "10.21203/rs.3.rs-3231892/v1",
+    "dandiset_id": "000582",
+    "labels": [
+      "MENTION",
+      "REUSE",
+      "MENTION"
+    ]
+  },
+  "10.21203/rs.3.rs-3668564/v1|000070": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/nature11129",
+    "citing_doi": "10.21203/rs.3.rs-3668564/v1",
+    "dandiset_id": "000070",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.21203/rs.3.rs-3756407/v1|000067": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/nn.2134",
+    "citing_doi": "10.21203/rs.3.rs-3756407/v1",
+    "dandiset_id": "000067",
+    "labels": [
+      "MENTION",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.21203/rs.3.rs-3889969/v1|000213": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1016/j.neuron.2018.04.028",
+    "citing_doi": "10.21203/rs.3.rs-3889969/v1",
+    "dandiset_id": "000213",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "MENTION"
+    ]
+  },
+  "10.21203/rs.3.rs-4176848/v1|000212": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1101/2021.09.23.461548",
+    "citing_doi": "10.21203/rs.3.rs-4176848/v1",
+    "dandiset_id": "000212",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.21203/rs.3.rs-4587150/v1|000950": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41586-021-03506-2",
+    "citing_doi": "10.21203/rs.3.rs-4587150/v1",
+    "dandiset_id": "000950",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.21203/rs.3.rs-5383698/v1|000011": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/nature17643",
+    "citing_doi": "10.21203/rs.3.rs-5383698/v1",
+    "dandiset_id": "000011",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "MENTION"
+    ]
+  },
+  "10.21203/rs.3.rs-800247/v1|000034": {
+    "cached": "NEITHER",
+    "cited_doi": "10.7554/eLife.61834",
+    "citing_doi": "10.21203/rs.3.rs-800247/v1",
+    "dandiset_id": "000034",
+    "labels": [
+      "MENTION",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.21203/rs.3.rs-9646086/v1|000127": {
+    "cached": "NEITHER",
+    "cited_doi": "10.7554/eLife.48198",
+    "citing_doi": "10.21203/rs.3.rs-9646086/v1",
+    "dandiset_id": "000127",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "MENTION"
+    ]
+  },
+  "10.2139/ssrn.5205591|000362": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41586-023-05828-9",
+    "citing_doi": "10.2139/ssrn.5205591",
+    "dandiset_id": "000362",
+    "labels": [
+      "MENTION",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.2174/011570159x349119250127104107|000458": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1101/2022.07.22.501195",
+    "citing_doi": "10.2174/011570159x349119250127104107",
+    "dandiset_id": "000458",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.21769/bioprotoc.4061|000020": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1016/j.cell.2020.09.057",
+    "citing_doi": "10.21769/bioprotoc.4061",
+    "dandiset_id": "000020",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.26481/dis.20211214sh|000006": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41586-018-0642-9",
+    "citing_doi": "10.26481/dis.20211214sh",
+    "dandiset_id": "000006",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.26481/dis.20240425ac|000130": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1016/j.neuron.2019.06.012",
+    "citing_doi": "10.26481/dis.20240425ac",
+    "dandiset_id": "000130",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "MENTION"
+    ]
+  },
+  "10.31083/j.fbl2704128|000020": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1016/j.cell.2020.09.057",
+    "citing_doi": "10.31083/j.fbl2704128",
+    "dandiset_id": "000020",
+    "labels": [
+      "NEITHER",
+      "MENTION",
+      "NEITHER"
+    ]
+  },
+  "10.3389/fcell.2026.1788958|000402": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1101/2021.07.28.454025",
+    "citing_doi": "10.3389/fcell.2026.1788958",
+    "dandiset_id": "000402",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.3389/fncel.2026.1797436|000008": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41586-020-2907-3",
+    "citing_doi": "10.3389/fncel.2026.1797436",
+    "dandiset_id": "000008",
+    "labels": [
+      "NEITHER",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.3389/fnins.2026.1774302|000065": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1016/j.neuron.2018.11.002",
+    "citing_doi": "10.3389/fnins.2026.1774302",
+    "dandiset_id": "000065",
+    "labels": [
+      "MENTION",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.3389/fnins.2026.1819200|000630": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1101/2022.10.24.511199",
+    "citing_doi": "10.3389/fnins.2026.1819200",
+    "dandiset_id": "000630",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.3389/fnins.2026.1848862|000954": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1016/S0140-6736(12)61816-9",
+    "citing_doi": "10.3389/fnins.2026.1848862",
+    "dandiset_id": "000954",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.3390/brainsci16070673|000939": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41593-024-01588-5",
+    "citing_doi": "10.3390/brainsci16070673",
+    "dandiset_id": "000939",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.3390/math14010031|000017": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41586-019-1787-x",
+    "citing_doi": "10.3390/math14010031",
+    "dandiset_id": "000017",
+    "labels": [
+      "MENTION",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.4103/nrr.nrr-d-25-00595|000950": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41586-021-03506-2",
+    "citing_doi": "10.4103/nrr.nrr-d-25-00595",
+    "dandiset_id": "000950",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.48550/arxiv.2301.00345|000008": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41586-020-2907-3",
+    "citing_doi": "10.48550/arxiv.2301.00345",
+    "dandiset_id": "000008",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.52202/085713-3949|000070": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/nature11129",
+    "citing_doi": "10.52202/085713-3949",
+    "dandiset_id": "000070",
+    "labels": [
+      "NEITHER",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.52547/shefa.10.4.44|000130": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1016/j.neuron.2019.06.012",
+    "citing_doi": "10.52547/shefa.10.4.44",
+    "dandiset_id": "000130",
+    "labels": [
+      "MENTION",
+      "NEITHER",
+      "MENTION"
+    ]
+  },
+  "10.64898/2026.01.30.702623|000402": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1101/2021.07.28.454025",
+    "citing_doi": "10.64898/2026.01.30.702623",
+    "dandiset_id": "000402",
+    "labels": [
+      "MENTION",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.64898/2026.02.16.706214|000630": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1101/2022.10.24.511199",
+    "citing_doi": "10.64898/2026.02.16.706214",
+    "dandiset_id": "000630",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.64898/2026.04.19.719460|000362": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41586-023-05828-9",
+    "citing_doi": "10.64898/2026.04.19.719460",
+    "dandiset_id": "000362",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "MENTION"
+    ]
+  },
+  "10.64898/2026.04.21.719951|000248": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1101/2023.06.05.543698",
+    "citing_doi": "10.64898/2026.04.21.719951",
+    "dandiset_id": "000248",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.64898/2026.04.24.720703|000070": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/nature11129",
+    "citing_doi": "10.64898/2026.04.24.720703",
+    "dandiset_id": "000070",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "MENTION"
+    ]
+  },
+  "10.64898/2026.06.02.729319|000289": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1101/2021.12.17.473253",
+    "citing_doi": "10.64898/2026.06.02.729319",
+    "dandiset_id": "000289",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.64898/2026.06.22.733785|000568": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1126/science.abm1891",
+    "citing_doi": "10.64898/2026.06.22.733785",
+    "dandiset_id": "000568",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.64898/2026.06.25.734556|000362": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41586-023-05828-9",
+    "citing_doi": "10.64898/2026.06.25.734556",
+    "dandiset_id": "000362",
+    "labels": [
+      "MENTION",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.64898/2026.06.26.734578|000233": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41586-021-03811-w",
+    "citing_doi": "10.64898/2026.06.26.734578",
+    "dandiset_id": "000233",
+    "labels": [
+      "MENTION",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.64898/2026.06.27.734988|000070": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/nature11129",
+    "citing_doi": "10.64898/2026.06.27.734988",
+    "dandiset_id": "000070",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.64898/2026.06.30.735414|000402": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1101/2021.07.28.454025",
+    "citing_doi": "10.64898/2026.06.30.735414",
+    "dandiset_id": "000402",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.64898/2026.06.30.735613|000070": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/nature11129",
+    "citing_doi": "10.64898/2026.06.30.735613",
+    "dandiset_id": "000070",
+    "labels": [
+      "NEITHER",
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.64898/2026.06.30.735699|000034": {
+    "cached": "NEITHER",
+    "cited_doi": "10.7554/eLife.61834",
+    "citing_doi": "10.64898/2026.06.30.735699",
+    "dandiset_id": "000034",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "MENTION"
+    ]
+  },
+  "10.64898/2026.07.03.736144|000362": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41586-023-05828-9",
+    "citing_doi": "10.64898/2026.07.03.736144",
+    "dandiset_id": "000362",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.7554/elife.109240.3|000006": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41586-018-0642-9",
+    "citing_doi": "10.7554/elife.109240.3",
+    "dandiset_id": "000006",
+    "labels": [
+      "MENTION",
+      "MENTION"
+    ]
+  },
+  "10.7554/elife.110277.3|001182": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41586-020-2728-4",
+    "citing_doi": "10.7554/elife.110277.3",
+    "dandiset_id": "001182",
+    "labels": [
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.7554/elife.110975.2|001038": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41593-023-01401-9",
+    "citing_doi": "10.7554/elife.110975.2",
+    "dandiset_id": "001038",
+    "labels": [
+      "MENTION",
+      "NEITHER",
+      "NEITHER"
+    ]
+  },
+  "10.7554/elife.92938.1|000017": {
+    "cached": "NEITHER",
+    "cited_doi": "10.1038/s41586-019-1787-x",
+    "citing_doi": "10.7554/elife.92938.1",
+    "dandiset_id": "000017",
+    "labels": [
+      "NEITHER",
+      "MENTION",
+      "MENTION"
+    ]
+  }
+}
