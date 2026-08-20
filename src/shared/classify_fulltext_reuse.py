@@ -39,14 +39,39 @@ DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions"
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 # A pinned snapshot, so a re-run months from now is comparable to this one.
-DEFAULT_MODEL = "deepseek/deepseek-v4-flash-0731"
+DEFAULT_MODEL = "openai/gpt-5.6-luna"
 
 # OpenRouter serves this snapshot from 28 providers at prices spanning 3.5x, and
 # picks one per request unless told otherwise. Left alone it routed consecutive
 # calls to StreamLake and then Morph, which cost more AND destroyed prefix
 # caching, since each provider keeps its own cache. Pinning one provider fixes
 # both: it is cheaper, it is reproducible, and the cache actually hits.
-DEFAULT_PROVIDER = "DeepInfra"
+# Which OpenRouter backend serves a model, where pinning one matters. Without a
+# pin OpenRouter picks per request, so consecutive calls land on different
+# backends, the prefix cache never hits, and the price swings. Pinning is only
+# meaningful when several providers serve the same weights: the GPT models are
+# served by OpenAI, Azure and Bedrock, and naming a backend that does not carry
+# the model is a 404 rather than a fallback.
+PROVIDER_PINS = {
+    'deepseek/deepseek-v4-flash-0731': 'DeepInfra',
+    'deepseek/deepseek-v4-flash': 'DeepInfra',
+}
+
+
+def provider_for(model: str) -> Optional[str]:
+    """The backend to pin for `model`, or None to let OpenRouter route."""
+    return PROVIDER_PINS.get(model)
+
+
+DEFAULT_PROVIDER = None
+
+# The model thinks before answering, and how long it thinks is a request
+# parameter. Left unset it runs at roughly the 'low' budget. Because the paper
+# itself is ~26k tokens and the thinking is a few hundred, raising this changes
+# the bill by about a tenth while giving the model materially more room on the
+# judgement calls that make up most of the disagreement between runs.
+VALID_REASONING_EFFORTS = frozenset({'low', 'medium', 'high', 'max'})
+DEFAULT_REASONING_EFFORT = 'max'
 
 # The indirect pathway asks how a citing paper relates to a dataset it cites.
 VALID_CLASSIFICATIONS = frozenset({'REUSE', 'MENTION', 'NEITHER'})
@@ -66,7 +91,24 @@ LABELS_FOR_MODE = {
 # Bumped whenever the prompt or the output schema changes. Cached results carry
 # the version they were produced under so a batch run can tell which entries are
 # stale rather than silently mixing outputs from two different questions.
-PROMPT_VERSION = 4
+PROMPT_VERSION = 5
+
+# How the data was used, once reuse is established. The eight named categories
+# are the ones the earlier pipeline used (src/shared/classify_reuse_type.py), kept
+# so results from the two remain comparable. OTHER exists because a fixed list
+# will meet a paper it does not fit, and forcing such a paper into the nearest
+# category loses the fact that it did not fit; the write-in preserves it.
+REUSE_TYPES = (
+    'TOOL_DEMO',
+    'BENCHMARK',
+    'AGGREGATION',
+    'CONFIRMATORY',
+    'NOVEL_ANALYSIS',
+    'ML_TRAINING',
+    'SIMULATION',
+    'TEACHING',
+    'OTHER',
+)
 
 # Which part of a multimodal dataset was actually reused.
 #
@@ -108,6 +150,15 @@ except ImportError:  # standalone use, e.g. the CLI from another directory
     }
     NORMALIZE_MAP = {}
 
+# Names the shared map does not cover. Kept here rather than edited into
+# classify_source_archive so the citation pipeline's own vocabulary is untouched.
+EXTRA_ALIASES = {
+    'neural latent benchmarks': 'DANDI Archive',
+    'neural latent benchmark': 'DANDI Archive',
+    'neural latents benchmarks': 'DANDI Archive',
+    'nlb': 'DANDI Archive',
+}
+
 ARCHIVE_UNCLEAR = 'unclear'
 
 
@@ -125,21 +176,30 @@ def normalize_archive(value: str | None) -> Optional[str]:
     cleaned = value.strip()
     if not cleaned or cleaned.lower() in {'null', 'none', 'n/a', ARCHIVE_UNCLEAR}:
         return None
-    if cleaned in CANONICAL_ARCHIVES:
-        return cleaned
+    # The alias map is consulted first, and deliberately so. Some names appear in
+    # both it and the canonical set, and when they do the map is the one that
+    # carries the correction: "Neural Latents Benchmark" is a canonical-looking
+    # name for datasets that are actually hosted on DANDI, and checking the
+    # canonical set first returned it unchanged and undercounted DANDI reuse.
+    if cleaned.lower() in EXTRA_ALIASES:
+        return EXTRA_ALIASES[cleaned.lower()]
     if cleaned in NORMALIZE_MAP:
         return NORMALIZE_MAP[cleaned]
     lowered = {k.lower(): v for k, v in NORMALIZE_MAP.items()}
     if cleaned.lower() in lowered:
         return lowered[cleaned.lower()]
+    if cleaned in CANONICAL_ARCHIVES:
+        return cleaned
     for canonical in CANONICAL_ARCHIVES:
         if cleaned.lower() == canonical.lower():
             return canonical
     return cleaned
 
 # The model is a reasoning model, so completion tokens cover thinking as well as
-# the answer. Too small a budget truncates mid-JSON and yields an ERROR.
-DEFAULT_MAX_TOKENS = 8192
+# the answer. Too small a budget truncates mid-JSON and yields an ERROR. At the
+# 'max' effort setting the thinking alone ran to 2,400 tokens on a sample paper,
+# so the budget is well clear of that rather than a few hundred tokens above it.
+DEFAULT_MAX_TOKENS = 16384
 
 # Verified against the live API at 800K characters (~136K tokens). Real papers
 # in this corpus top out near 140K characters, so truncation should not trigger;
@@ -250,6 +310,11 @@ def _collapse_space(text: str) -> str:
     return re.sub(r'\s+', ' ', text).strip()
 
 
+def _alnum(text: str) -> str:
+    """Letters and digits only, lowercased. Used by the last matching tier."""
+    return re.sub(r'[^a-z0-9]+', '', unicodedata.normalize('NFKC', text).lower())
+
+
 def _strip_space(text: str) -> str:
     return re.sub(r'\s+', '', text)
 
@@ -265,6 +330,7 @@ def verify_quote(quote: str, paper_text: str) -> dict:
       normalized           - present after folding quotes, dashes, and spaces
       case_insensitive     - present apart from capitalization
       spacing_insensitive  - present ignoring whitespace entirely
+      punctuation_insensitive - present ignoring punctuation too
       not_found            - absent, meaning the model fabricated it
 
     Every tier preserves the order of non-whitespace characters, so a quote that
@@ -309,6 +375,24 @@ def verify_quote(quote: str, paper_text: str) -> dict:
     if stripped_quote and stripped_quote in stripped_paper:
         result.update(match_type='spacing_insensitive',
                       offset=stripped_paper.find(stripped_quote))
+        return result
+
+    # Last tier: compare letters and digits only.
+    #
+    # Text extraction leaves punctuation artifacts that the model silently
+    # cleans up when transcribing: stripped superscript citation markers leave
+    # doubled commas, and spacing around brackets and periods varies by
+    # extractor. Measured over a sample of 446 quotes this matcher had called
+    # fabrications, 56% were in fact present once punctuation was ignored.
+    #
+    # This still requires every letter and digit of the quote in the original
+    # order, so it cannot match a paraphrase, an abridgement, or a reordering.
+    # What it forgives is punctuation the paper and the model disagree about.
+    alnum_paper = _alnum(paper_text)
+    alnum_quote = _alnum(quote)
+    if alnum_quote and alnum_quote in alnum_paper:
+        result.update(match_type='punctuation_insensitive',
+                      offset=alnum_paper.find(alnum_quote))
     return result
 
 
@@ -394,11 +478,13 @@ A paper can be PRIMARY for its own deposit while also reusing other datasets; ju
         )
         classifications = """CLASSIFICATIONS
 - REUSE: The authors obtained and analyzed the actual DATA (recordings, images, behavioral traces, scans, spike trains, etc.) that they did not collect themselves. Downloading, re-analyzing, re-processing, training on, or benchmarking against the data all count.
-- MENTION: The paper cites or discusses the work as background, prior findings, methodology, or comparison, but the authors did not obtain and analyze the data itself.
-- NEITHER: The paper has no meaningful relationship to it at all, or the apparent reference is a parsing artifact.
+- MENTION: The paper cites or references the work in any way without reusing its data. This covers discussion as background, prior findings, methodology or comparison, and it also covers a bare entry in the reference list that is never discussed in the body.
+- NEITHER: The paper does not cite or reference the work at all. Use this only when the citation link itself is wrong.
 
 HOW TO DECIDE
 Data reuse is the rare case. Most references to other work are background mentions. Default to MENTION and output REUSE only when the text shows the authors actually handled the data.
+
+MENTION and NEITHER are separated by whether the citation exists. How substantial it is does not matter, and neither does whether the two papers are on the same topic. Search the text for the work's DOI, its title, and its authors, including inside the reference list. If you find any of them anywhere, the answer is MENTION even when the surrounding subject matter looks unrelated, because papers routinely cite work outside their own topic. Answer NEITHER only when you have searched and found no trace of the work at all.
 
 Evidence of REUSE typically appears in Methods, Data Availability, Results, or Acknowledgements, and reads like: "data were downloaded from", "we analyzed the publicly available dataset", "obtained from the X archive", "we used the dataset of [author]", "accession number", or a description of re-processing someone else's recordings.
 
@@ -419,7 +505,7 @@ A review, perspective, commentary, or editorial article does NOT reuse data, eve
 {classifications}
 
 IF AND ONLY IF THE CLASSIFICATION IS REUSE, ALSO ANSWER THE FOLLOWING
-For every other classification, set same_lab, same_lab_confidence, source_archive and reused_modalities to null.
+For every other classification, set same_lab, same_lab_confidence, source_archive, reused_modalities, reuse_type and reuse_type_other to null.
 
 SAME LAB OR A DIFFERENT ONE?
 Compare the author list of this paper against the authors of the work whose data was reused. Set same_lab to true when the same group is reusing or extending its own data, and false when a different group is using someone else's. Judge this only from author overlap and statements like "our previously published dataset" or "data we collected in [citation]". Shared authorship is NOT itself evidence of reuse: decide the classification first, from the text, and answer this separately. Give same_lab_confidence from 1 to 10.
@@ -442,6 +528,20 @@ Identify which parts THIS paper actually obtained and analyzed, as a list from:
 
 Judge this from what the paper says it analyzed, NOT from what the cited dataset contains. This is the most common error to avoid: a paper that cites a Patch-seq study but analyzes only its gene expression or only its reconstructions has reused transcriptomics or morphology alone. Do not list neurophysiology merely because the original study also recorded it. List neurophysiology only when the text shows this paper handled the recordings themselves.
 
+HOW WAS THE DATA USED?
+Say what the authors did with it, choosing the ONE category that best describes their primary purpose:
+  - TOOL_DEMO: demonstrating a new analysis tool, software package, or processing pipeline, with the dataset serving as example data. The scientific question is secondary to showcasing the method.
+  - BENCHMARK: measuring the performance of an algorithm, decoder, or model against other methods on a shared dataset.
+  - AGGREGATION: combining this dataset with others for statistical power, cross-dataset comparison, or a pooled analysis.
+  - CONFIRMATORY: the authors have their own experiments and use this dataset to replicate, validate, or confirm their findings.
+  - NOVEL_ANALYSIS: asking a new scientific question of the existing data that the original authors did not address.
+  - ML_TRAINING: training a machine learning or deep learning model on the data.
+  - SIMULATION: validating, constraining, or parameterizing a computational model or simulation with real data.
+  - TEACHING: educational use, such as a tutorial, course, or textbook example.
+  - OTHER: none of the above genuinely fits.
+
+Choose OTHER only when the paper's use really falls outside all eight, and then put a short noun phrase naming the actual use in reuse_type_other, for example "quality control reference" or "stimulus set reuse". Leave reuse_type_other null for the eight named categories. If several categories apply, name the primary one, the main reason the authors went to this dataset.
+
 QUOTE THE PROVENANCE SEPARATELY
 Alongside the reuse evidence, quote the passage(s) that establish WHERE the data came from: the archive name, an accession or dataset identifier, a DOI, a URL, or a data availability statement. These go in source_quotes and are subject to the same character-for-character rule. If the paper never says where the data came from, return an empty list rather than inferring it.
 
@@ -462,6 +562,8 @@ Return ONLY a JSON object, no markdown fences and no commentary:
   "same_lab_confidence": <integer 1-10, or null>,
   "source_archive": "<archive name, \\"unclear\\", or null>",
   "reused_modalities": ["neurophysiology" | "behavior" | "morphology" | "transcriptomics" | "other" | "unclear", ...],
+  "reuse_type": "<TOOL_DEMO | BENCHMARK | AGGREGATION | CONFIRMATORY | NOVEL_ANALYSIS | ML_TRAINING | SIMULATION | TEACHING | OTHER, or null>",
+  "reuse_type_other": "<short phrase, only when reuse_type is OTHER; otherwise null>",
   "source_quotes": ["<exact quote establishing where the data came from>", ...],
   "reasoning": "<2-4 sentences explaining the judgement>"
 }}
@@ -493,6 +595,8 @@ def _error_result(kind: str, message: str, **extra) -> dict:
         'same_lab_confidence': None,
         'source_archive': None,
         'reused_modalities': [],
+        'reuse_type': None,
+        'reuse_type_other': None,
         'reused_neurophysiology': None,
         'reused_dandi_hosted': None,
         'source_quotes': [],
@@ -591,6 +695,39 @@ def _verify_quote_list(
     return records, hallucinated
 
 
+def _parse_reuse_type(raw: Any, other: Any, warnings: list[str]) -> tuple[Optional[str], Optional[str]]:
+    """
+    Validate the reuse type and its write-in.
+
+    An unrecognized category is recorded as OTHER with the model's own wording
+    carried over, since that wording is the answer to the question the fixed
+    list failed to cover. Dropping it would lose information that cannot be
+    recovered without paying for the call again.
+    """
+    if raw is None:
+        return None, None
+    if not isinstance(raw, str):
+        warnings.append(f'reuse_type was {type(raw).__name__}, not a string')
+        return None, None
+
+    value = raw.strip().upper().replace(' ', '_').replace('-', '_')
+    write_in = other.strip() if isinstance(other, str) and other.strip() else None
+
+    if value not in REUSE_TYPES:
+        warnings.append(f'unrecognized reuse_type {raw!r} recorded as OTHER')
+        return 'OTHER', write_in or raw.strip()[:120]
+
+    if value == 'OTHER':
+        if not write_in:
+            warnings.append('reuse_type OTHER with no write-in description')
+        return 'OTHER', write_in
+    if write_in:
+        # A write-in alongside a named category is a contradiction; the category
+        # is the answer we asked for, so keep it and note the extra text.
+        warnings.append(f'reuse_type {value} came with a write-in {write_in[:60]!r}; ignored')
+    return value, None
+
+
 def _parse_modalities(raw: Any, warnings: list[str]) -> list[str]:
     """Validate the modality list against the vocabulary, dropping anything unrecognized."""
     if isinstance(raw, str):
@@ -678,12 +815,13 @@ def classify_paper_reuse(
     model: str = DEFAULT_MODEL,
     max_input_chars: int = DEFAULT_MAX_INPUT_CHARS,
     max_tokens: int = DEFAULT_MAX_TOKENS,
-    temperature: float = 0.1,
+    temperature: float = 0.0,
     timeout: int = 300,
     max_retries: int = 3,
     mode: str = MODE_CITING,
     matched_patterns: Optional[list] = None,
     provider: Optional[str] = DEFAULT_PROVIDER,
+    reasoning_effort: Optional[str] = DEFAULT_REASONING_EFFORT,
 ) -> dict:
     """
     Classify data reuse by sending the whole paper to DeepSeek.
@@ -731,9 +869,19 @@ def classify_paper_reuse(
         'model': model,
         'messages': [{'role': 'user', 'content': prompt}],
         'max_tokens': max_tokens,
+        # Greedy decoding. At 0.1 a quarter of REUSE labels changed between two
+        # runs of the same prompt on the same text, which made the corpus
+        # unreproducible for no benefit: there is no creativity wanted here, only
+        # the model's best reading of a fixed document.
         'temperature': temperature,
         'response_format': {'type': 'json_object'},
     }
+    if reasoning_effort:
+        if reasoning_effort not in VALID_REASONING_EFFORTS:
+            raise ValueError(
+                f'reasoning_effort must be one of {sorted(VALID_REASONING_EFFORTS)}, '
+                f'got {reasoning_effort!r}')
+        payload['reasoning_effort'] = reasoning_effort
     headers = {
         'Authorization': f'Bearer {key}',
         'Content-Type': 'application/json',
@@ -742,6 +890,7 @@ def classify_paper_reuse(
     if uses_openrouter(model):
         api_url = OPENROUTER_API_URL
         headers['HTTP-Referer'] = 'https://github.com/catalystneuro/find_reuse'
+        provider = provider or provider_for(model)
         if provider:
             # Without this OpenRouter picks a provider per request. Consecutive
             # calls then land on different backends, so the prefix cache never
@@ -859,6 +1008,12 @@ def classify_paper_reuse(
 
     modalities = _parse_modalities(parsed.get('reused_modalities'), warnings) \
         if is_reuse else []
+
+    reuse_type, reuse_type_other = _parse_reuse_type(
+        parsed.get('reuse_type'), parsed.get('reuse_type_other'), warnings) \
+        if is_reuse else (None, None)
+    if is_reuse and reuse_type is None:
+        warnings.append('REUSE with no reuse_type')
     # Left as None rather than False for non-reuse rows, so "we did not ask" stays
     # distinguishable from "we asked and the answer was no".
     reused_neuro = ('neurophysiology' in modalities) if is_reuse else None
@@ -878,6 +1033,8 @@ def classify_paper_reuse(
         'same_lab_confidence': same_lab_confidence,
         'source_archive': archive,
         'reused_modalities': modalities,
+        'reuse_type': reuse_type,
+        'reuse_type_other': reuse_type_other,
         'reused_neurophysiology': reused_neuro,
         'reused_dandi_hosted': reused_dandi,
         'reasoning': parsed.get('reasoning'),
