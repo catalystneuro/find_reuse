@@ -76,7 +76,7 @@ def _build_archive_search_terms():
 
     # Load from adapters
     try:
-        from archives import ADAPTERS
+        from src.archives import ADAPTERS
         for key, adapter_cls in ADAPTERS.items():
             terms[adapter_cls.name] = dict(adapter_cls.search_terms)
     except ImportError:
@@ -123,7 +123,7 @@ def _build_archive_patterns():
 
     # Load from adapters
     try:
-        from archives import ADAPTERS
+        from src.archives import ADAPTERS
         for key, adapter_cls in ADAPTERS.items():
             if adapter_cls.dataset_patterns:
                 patterns[adapter_cls.name] = list(adapter_cls.dataset_patterns)

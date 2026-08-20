@@ -16,7 +16,7 @@ Additional archives supported for direct reference detection (no adapter): EBRAI
 ## Architecture
 
 ```
-archives/                    # Archive adapters (single source of truth)
+src/archives/                # Archive adapters (single source of truth)
     base.py                  # ArchiveAdapter base class
     dandi.py                 # DANDI Archive (REST API)
     crcns.py                 # CRCNS (DataCite + web scraping)
@@ -133,10 +133,10 @@ output/{archive}/
 
 ## Adding a New Archive
 
-1. Create `archives/{name}.py` with a class inheriting from `ArchiveAdapter`
+1. Create `src/archives/{name}.py` with a class inheriting from `ArchiveAdapter`
 2. Implement: `get_datasets()`, `get_primary_papers()`, `get_metadata()`
 3. Set class attributes: `name`, `short_name`, `search_terms`, `dataset_patterns`
-4. Register in `archives/__init__.py`
+4. Register in `src/archives/__init__.py`
 5. Run: `python run_archive_pipeline.py --archive {name}`
 
 ## Configuration
