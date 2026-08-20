@@ -434,6 +434,31 @@ class TestVerifyQuote:
         assert r['match_type'] == 'case_insensitive'
         assert r['verbatim'] is False
 
+    def test_extraction_punctuation_artifacts_still_match(self):
+        """
+        Extraction leaves punctuation the model cleans up when transcribing:
+        a stripped superscript citation marker leaves a doubled comma, and
+        spacing around brackets varies by extractor. Over a sample of 446
+        quotes this matcher had called fabrications, 56% were present once
+        punctuation was ignored.
+        """
+        paper = 'Replay adapts to task demand47 and reward context20 , , and matters.'
+        r = C.verify_quote('Replay adapts to task demand 47 and reward context 20, and matters.',
+                           paper)
+        assert r['match_type'] == 'punctuation_insensitive'
+        assert r['verbatim'] is False
+
+    def test_punctuation_tier_still_rejects_reordering(self):
+        paper = 'We downloaded the recordings from the archive.'
+        assert C.verify_quote('the archive downloaded we recordings',
+                              paper)['match_type'] == 'not_found'
+
+    def test_punctuation_tier_still_rejects_abridgement(self):
+        # Words spliced out must not match: the order survives but content does not.
+        paper = 'We used the utilization of PVALB and CALB2 to identify neurons.'
+        assert C.verify_quote('We used PVALB and CALB2 to identify neurons.',
+                              paper)['match_type'] == 'not_found'
+
     def test_fabricated_quote_is_not_found(self):
         r = C.verify_quote('We downloaded everything from DANDI.', PAPER)
         assert r['match_type'] == 'not_found'
@@ -722,6 +747,26 @@ class TestSourceQuotes:
 
 
 class TestNormalizeArchive:
+    def test_alias_map_wins_over_the_canonical_set(self):
+        """
+        Neural Latents Benchmark datasets are hosted on DANDI, so the name has
+        to resolve to DANDI Archive even though it also appears in the canonical
+        set. Checking the canonical set first returned it unchanged and
+        undercounted DANDI reuse.
+        """
+        assert C.normalize_archive('Neural Latents Benchmark') == 'DANDI Archive'
+        assert C.normalize_archive('Neural Latents Benchmark (NLB)') == 'DANDI Archive'
+
+    @pytest.mark.parametrize('raw', [
+        'Neural Latent Benchmarks', 'neural latents benchmarks', 'NLB', 'nlb',
+    ])
+    def test_nlb_spelling_variants_resolve_to_dandi(self, raw):
+        assert C.normalize_archive(raw) == 'DANDI Archive'
+
+    def test_genuinely_separate_archives_are_untouched(self):
+        for name in ('CRCNS', 'Allen Institute', 'OpenNeuro', 'Figshare'):
+            assert C.normalize_archive(name) == name
+
     @pytest.mark.parametrize('raw,expected', [
         ('DANDI', 'DANDI Archive'),
         ('dandi archive', 'DANDI Archive'),
@@ -751,3 +796,226 @@ class TestTruncation:
         # Data availability statements live at the end, so the tail must survive.
         assert trimmed.startswith('HEAD')
         assert trimmed.endswith('TAIL')
+
+
+class TestReuseType:
+    """The reuse type, and the write-in that catches what the list misses."""
+
+    def test_named_category_passes_through(self):
+        warnings = []
+        assert C._parse_reuse_type('NOVEL_ANALYSIS', None, warnings) == ('NOVEL_ANALYSIS', None)
+        assert warnings == []
+
+    def test_case_and_separator_variants_normalize(self):
+        for raw in ('tool_demo', 'Tool Demo', 'TOOL-DEMO', ' tool_demo '):
+            assert C._parse_reuse_type(raw, None, [])[0] == 'TOOL_DEMO'
+
+    def test_other_keeps_the_write_in(self):
+        assert C._parse_reuse_type('OTHER', '  stimulus set reuse ', []) == \
+            ('OTHER', 'stimulus set reuse')
+
+    def test_unrecognized_category_becomes_other_and_keeps_the_wording(self):
+        # The model's own words are the answer the fixed list failed to cover,
+        # so they must survive rather than be dropped as invalid.
+        warnings = []
+        assert C._parse_reuse_type('QUALITY_CONTROL', None, warnings) == \
+            ('OTHER', 'QUALITY_CONTROL')
+        assert any('recorded as OTHER' in w for w in warnings)
+
+    def test_other_without_a_description_is_flagged(self):
+        warnings = []
+        assert C._parse_reuse_type('OTHER', None, warnings) == ('OTHER', None)
+        assert any('no write-in' in w for w in warnings)
+
+    def test_named_category_with_a_write_in_keeps_the_category(self):
+        warnings = []
+        assert C._parse_reuse_type('BENCHMARK', 'something else', warnings) == \
+            ('BENCHMARK', None)
+        assert any('ignored' in w for w in warnings)
+
+    def test_missing_and_non_string_are_not_guesses(self):
+        assert C._parse_reuse_type(None, None, []) == (None, None)
+        warnings = []
+        assert C._parse_reuse_type(['TOOL_DEMO'], None, warnings) == (None, None)
+        assert warnings
+
+    def test_every_type_is_listed_in_the_prompt(self):
+        prompt = C.build_prompt('paper', dataset_id='000003', dataset_name='x')
+        for label in C.REUSE_TYPES:
+            assert label in prompt
+        prompt_direct = C.build_prompt('paper', dataset_id='000003', dataset_name='x',
+                                       mode=C.MODE_DIRECT)
+        for label in C.REUSE_TYPES:
+            assert label in prompt_direct
+
+    def payload(self, **over):
+        body = {'classification': 'REUSE', 'confidence': 9,
+                'evidence_quotes': ['publicly available on the CRCNS website'],
+                'same_lab': False, 'same_lab_confidence': 8,
+                'source_archive': 'CRCNS', 'reused_modalities': ['neurophysiology'],
+                'reuse_type': 'BENCHMARK', 'reasoning': 'r'}
+        body.update(over)
+        return envelope(json.dumps(body))
+
+    def test_reuse_row_carries_the_type(self, monkeypatch):
+        stub_post(monkeypatch, FakeResponse(200, payload=self.payload()))
+        r = C.classify_paper_reuse(PAPER, api_key='k')
+        assert r['reuse_type'] == 'BENCHMARK'
+        assert r['reuse_type_other'] is None
+
+    def test_write_in_survives_the_round_trip(self, monkeypatch):
+        stub_post(monkeypatch, FakeResponse(200, payload=self.payload(
+            reuse_type='OTHER', reuse_type_other='stimulus set reuse')))
+        r = C.classify_paper_reuse(PAPER, api_key='k')
+        assert (r['reuse_type'], r['reuse_type_other']) == ('OTHER', 'stimulus set reuse')
+
+    @pytest.mark.parametrize('label', ['MENTION', 'NEITHER'])
+    def test_non_reuse_rows_carry_no_reuse_type(self, monkeypatch, label):
+        # Asking "how was it used" of a paper that did not use it has no answer,
+        # and a default would be indistinguishable from a real one.
+        stub_post(monkeypatch, FakeResponse(200, payload=self.payload(
+            classification=label, reuse_type='TOOL_DEMO', reuse_type_other='x')))
+        r = C.classify_paper_reuse(PAPER, api_key='k')
+        assert r['classification'] == label
+        assert r['reuse_type'] is None
+        assert r['reuse_type_other'] is None
+
+    def test_reuse_without_a_type_is_flagged(self, monkeypatch):
+        stub_post(monkeypatch, FakeResponse(200, payload=self.payload(reuse_type=None)))
+        r = C.classify_paper_reuse(PAPER, api_key='k')
+        assert r['reuse_type'] is None
+        assert any('no reuse_type' in w for w in r['quote_warnings'])
+
+    def test_error_rows_have_the_same_shape(self):
+        err = C._error_result('http', 'boom')
+        assert 'reuse_type' in err and err['reuse_type'] is None
+        assert 'reuse_type_other' in err and err['reuse_type_other'] is None
+
+
+class TestDecoding:
+    """Sampling made the corpus unreproducible, so decoding is greedy by default."""
+
+    def test_default_is_greedy(self, monkeypatch):
+        captured = {}
+
+        class Recorder:
+            def post(self, url, **kw):
+                captured.update(kw.get('json') or {})
+                return FakeResponse(200, payload=envelope(json.dumps(
+                    {'classification': 'MENTION', 'confidence': 8,
+                     'evidence_quotes': [], 'reasoning': 'r'})))
+
+        monkeypatch.setattr(C, '_session', lambda: Recorder())
+        C.classify_paper_reuse(PAPER, api_key='k')
+        assert captured['temperature'] == 0.0
+
+    def test_temperature_is_still_overridable(self, monkeypatch):
+        captured = {}
+
+        class Recorder:
+            def post(self, url, **kw):
+                captured.update(kw.get('json') or {})
+                return FakeResponse(200, payload=envelope(json.dumps(
+                    {'classification': 'MENTION', 'confidence': 8,
+                     'evidence_quotes': [], 'reasoning': 'r'})))
+
+        monkeypatch.setattr(C, '_session', lambda: Recorder())
+        C.classify_paper_reuse(PAPER, api_key='k', temperature=0.7)
+        assert captured['temperature'] == 0.7
+
+
+class TestReasoningEffort:
+    """Thinking budget is a request parameter, and the paper dominates the bill."""
+
+    def recorder(self, monkeypatch, captured):
+        class Recorder:
+            def post(self, url, **kw):
+                captured.update(kw.get('json') or {})
+                return FakeResponse(200, payload=envelope(json.dumps(
+                    {'classification': 'MENTION', 'confidence': 8,
+                     'evidence_quotes': [], 'reasoning': 'r'})))
+        monkeypatch.setattr(C, '_session', lambda: Recorder())
+
+    def test_default_asks_for_high_effort(self, monkeypatch):
+        captured = {}
+        self.recorder(monkeypatch, captured)
+        C.classify_paper_reuse(PAPER, api_key='k')
+        assert captured['reasoning_effort'] == C.DEFAULT_REASONING_EFFORT
+
+    @pytest.mark.parametrize('effort', ['low', 'medium', 'high', 'max'])
+    def test_each_valid_effort_is_sent(self, monkeypatch, effort):
+        captured = {}
+        self.recorder(monkeypatch, captured)
+        C.classify_paper_reuse(PAPER, api_key='k', reasoning_effort=effort)
+        assert captured['reasoning_effort'] == effort
+
+    def test_none_omits_the_field(self, monkeypatch):
+        # Omitted and 'low' are not the same request; leave the choice to the
+        # provider when the caller declines to make one.
+        captured = {}
+        self.recorder(monkeypatch, captured)
+        C.classify_paper_reuse(PAPER, api_key='k', reasoning_effort=None)
+        assert 'reasoning_effort' not in captured
+
+    def test_unknown_effort_is_refused_before_the_call(self, monkeypatch):
+        # A typo must not silently become the provider's default.
+        captured = {}
+        self.recorder(monkeypatch, captured)
+        with pytest.raises(ValueError, match='reasoning_effort'):
+            C.classify_paper_reuse(PAPER, api_key='k', reasoning_effort='maximum')
+        assert captured == {}
+
+
+class TestModelRouting:
+    """A provider pin is per model; naming one that lacks the model is a 404."""
+
+    def test_deepseek_models_are_pinned(self):
+        assert C.provider_for('deepseek/deepseek-v4-flash-0731') == 'DeepInfra'
+
+    def test_the_default_model_is_left_to_openrouter(self):
+        # GPT models are served by OpenAI, Azure and Bedrock; pinning DeepInfra
+        # returned "No endpoints found" rather than falling back.
+        assert C.provider_for(C.DEFAULT_MODEL) is None
+
+    def test_no_provider_block_is_sent_for_unpinned_models(self, monkeypatch):
+        captured = {}
+
+        class Recorder:
+            def post(self, url, **kw):
+                captured.update(kw.get('json') or {})
+                return FakeResponse(200, payload=envelope(json.dumps(
+                    {'classification': 'MENTION', 'confidence': 8,
+                     'evidence_quotes': [], 'reasoning': 'r'})))
+
+        monkeypatch.setattr(C, '_session', lambda: Recorder())
+        C.classify_paper_reuse(PAPER, api_key='k', model='openai/gpt-5.6-luna')
+        assert 'provider' not in captured
+
+    def test_pinned_model_still_sends_the_block(self, monkeypatch):
+        captured = {}
+
+        class Recorder:
+            def post(self, url, **kw):
+                captured.update(kw.get('json') or {})
+                return FakeResponse(200, payload=envelope(json.dumps(
+                    {'classification': 'MENTION', 'confidence': 8,
+                     'evidence_quotes': [], 'reasoning': 'r'})))
+
+        monkeypatch.setattr(C, '_session', lambda: Recorder())
+        C.classify_paper_reuse(PAPER, api_key='k',
+                               model='deepseek/deepseek-v4-flash-0731')
+        assert captured['provider'] == {'order': ['DeepInfra'], 'allow_fallbacks': False}
+
+    def test_max_effort_is_accepted(self, monkeypatch):
+        captured = {}
+
+        class Recorder:
+            def post(self, url, **kw):
+                captured.update(kw.get('json') or {})
+                return FakeResponse(200, payload=envelope(json.dumps(
+                    {'classification': 'MENTION', 'confidence': 8,
+                     'evidence_quotes': [], 'reasoning': 'r'})))
+
+        monkeypatch.setattr(C, '_session', lambda: Recorder())
+        C.classify_paper_reuse(PAPER, api_key='k')
+        assert captured['reasoning_effort'] == 'max'

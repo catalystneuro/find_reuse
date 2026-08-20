@@ -33,6 +33,7 @@ from tqdm import tqdm
 from fetch_paper import PaperFetcher
 from src.shared.classify_fulltext_reuse import (
     classify_paper_reuse, DEFAULT_MODEL, PROMPT_VERSION, MODE_CITING, MODE_DIRECT,
+    VALID_REASONING_EFFORTS, DEFAULT_REASONING_EFFORT, DEFAULT_MAX_TOKENS,
 )
 
 REPO = Path(__file__).resolve().parents[2]
@@ -202,8 +203,9 @@ def openrouter_credit_remaining(model: str) -> Optional[float]:
         return None
 
 
-def load_cached_results(cache_dir: Path, skip_errors: bool = False) -> list[dict]:
-    """Read every cached result, optionally excluding the errors."""
+def load_cached_results(cache_dir: Path, skip_errors: bool = False,
+                        skip_label: str = '') -> list[dict]:
+    """Read every cached result, optionally excluding one label."""
     out = []
     for path in sorted(cache_dir.glob('*.json')):
         try:
@@ -212,16 +214,20 @@ def load_cached_results(cache_dir: Path, skip_errors: bool = False) -> list[dict
             continue
         if skip_errors and prior.get('classification') == 'ERROR':
             continue
+        if skip_label and prior.get('classification') == skip_label:
+            continue
         out.append(prior)
     return out
 
 
-def build_retry_worklist(cache_dir: Path) -> list[dict]:
+def build_retry_worklist(cache_dir: Path, label: str = 'ERROR') -> list[dict]:
     """
-    Rebuild work items straight from cached ERROR results.
+    Rebuild work items straight from cached results carrying `label`.
 
     Every cached result carries the DOI and dandiset it was asked about, so a
-    retry can be reconstructed without touching the corpus or the network.
+    rerun can be reconstructed without touching the corpus or the network.
+    Defaults to ERROR, which is the retry case; passing another label reruns
+    just those, which is what a prompt change affecting one boundary needs.
     """
     work = []
     for path in sorted(cache_dir.glob('*.json')):
@@ -229,7 +235,7 @@ def build_retry_worklist(cache_dir: Path) -> list[dict]:
             prior = json.loads(path.read_text())
         except Exception:
             continue
-        if prior.get('classification') != 'ERROR' or not prior.get('citing_doi'):
+        if prior.get('classification') != label or not prior.get('citing_doi'):
             continue
         work.append({
             'doi': prior['citing_doi'],
@@ -253,6 +259,11 @@ def main():
     parser.add_argument('--limit', type=int, default=500)
     parser.add_argument('--workers', type=int, default=8)
     parser.add_argument('--model', default=DEFAULT_MODEL)
+    parser.add_argument('--reasoning-effort', choices=sorted(VALID_REASONING_EFFORTS),
+                        default=DEFAULT_REASONING_EFFORT,
+                        help='how long the model thinks before answering. The paper '
+                             'dominates the token bill, so raising this costs about a '
+                             'tenth more per call.')
     parser.add_argument('--results-file',
                         default=str(REPO / 'output/all_dandiset_papers.json'))
     parser.add_argument('--paper-cache', default=str(REPO / '.paper_cache'))
@@ -263,9 +274,14 @@ def main():
     parser.add_argument('--min-credit', type=float, default=5.0,
                         help='Refuse to start if the OpenRouter key has less '
                              'than this much credit left (default 5.0).')
+    parser.add_argument('--reclassify', metavar='LABEL',
+                        help='rerun only cached results carrying this label, '
+                             'carrying the rest forward unchanged. Use when a '
+                             'prompt change moves one boundary and cannot change '
+                             'the other labels.')
     parser.add_argument('--retry-errors', action='store_true',
                         help='Re-run pairs whose cached result was an ERROR')
-    parser.add_argument('--max-tokens', type=int, default=8192,
+    parser.add_argument('--max-tokens', type=int, default=DEFAULT_MAX_TOKENS,
                         help='Completion budget. This is a reasoning model, so '
                              'the budget covers thinking as well as the answer; '
                              'papers with ambiguous evidence can exhaust 8192 '
@@ -293,7 +309,17 @@ def main():
     # The cache is the source of truth; the output file is a view of it.
     carried: list[dict] = []
 
-    if args.retry_errors:
+    if args.reclassify:
+        # A reworded prompt that only moves one boundary does not need the whole
+        # corpus re-run. Rerunning just the affected label and carrying the rest
+        # forward is only sound when the change cannot move the other labels;
+        # the caller is asserting that by naming one.
+        work = build_retry_worklist(cache_dir, label=args.reclassify)
+        carried = load_cached_results(cache_dir, skip_label=args.reclassify)
+        print(f"{len(work)} cached {args.reclassify} results to reclassify, "
+              f"{len(carried)} carried forward ({args.mode} mode)",
+              file=sys.stderr, flush=True)
+    elif args.retry_errors:
         # Retrying failures does not need the corpus rescanned. Selection calls
         # the fetcher for every paper, and metadata-only cache entries now
         # expire, so a rescan refetches roughly 1,400 papers over the network to
@@ -322,7 +348,11 @@ def main():
             # A cached answer to a different question is not an answer to this
             # one. Mixing prompt versions would silently produce a corpus where
             # some rows have same_lab and archive and others cannot.
-            if prior.get('prompt_version') != PROMPT_VERSION:
+            if (prior.get('prompt_version') != PROMPT_VERSION
+                    or prior.get('model') != args.model):
+                # A different model answering the same prompt is a different
+                # answer, and the corpus must not mix them any more than it
+                # mixes prompt versions.
                 stale += 1
                 todo.append(item)
             elif prior.get('classification') == 'ERROR' and args.retry_errors:
@@ -376,6 +406,7 @@ def main():
                 max_tokens=args.max_tokens,
                 mode=args.mode,
                 matched_patterns=item.get('matched_patterns'),
+                reasoning_effort=args.reasoning_effort,
             )
         result['citing_doi'] = item['doi']
         result['dandiset_id'] = item['dandiset_id']
