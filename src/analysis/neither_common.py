@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import re
 import sys
 import textwrap
@@ -42,25 +43,64 @@ MODE_DIRECT = 'direct'
 
 
 class Pipeline:
-    """What differs between the two pathways."""
+    """
+    What differs between the two pathways.
 
-    def __init__(self, name, module, mode, cache_dir, cause_tests, cause_notes, description):
+    Causes are attributed in three tiers, because they are not all the same kind
+    of thing and flattening them makes a saturated symptom look like an
+    explanation:
+
+      gate_tests      Disjoint, tried first, a match terminates. The top-level
+                      split of the bucket into kinds of row.
+      cause_tests     Mechanisms, tried only on rows past the gate. These
+                      overlap -- a row can carry several -- so their shares are
+                      taken against the gated bin and sum past it.
+      residual_tests  Disjoint, tried only on rows past the gate that carry no
+                      mechanism. What is left after that is OTHER: genuinely
+                      unexplained rather than merely unnamed.
+
+    A pipeline can leave gate_tests and residual_tests empty, which collapses
+    this to a single flat tier of overlapping causes.
+    """
+
+    def __init__(self, name, module, mode, cache_dir, cause_tests, cause_notes, description,
+                 gate_tests=(), gated_label=None, residual_tests=()):
         self.name = name                  # 'indirect' / 'direct', for messages
         self.module = module              # module name, for the hint printed by `list`
         self.mode = mode                  # MODE_CITING / MODE_DIRECT, for prompts and display
         self.cache_dir = cache_dir
-        self.cause_tests = cause_tests    # ordered ((cause, predicate), ...)
+        self.gate_tests = gate_tests      # ordered ((cause, predicate), ...), disjoint
+        self.gated_label = gated_label    # name for the rows no gate test matched
+        self.cause_tests = cause_tests    # ordered ((cause, predicate), ...), overlapping
+        self.residual_tests = residual_tests   # ordered ((cause, predicate), ...), disjoint
         self.cause_notes = cause_notes
         self.description = description    # the script's module docstring
 
     @property
     def causes(self):
-        return tuple(cause for cause, _ in self.cause_tests) + (OTHER,)
+        """Every bucket a row can land in, in display order."""
+        return (tuple(cause for cause, _ in self.gate_tests)
+                + ((self.gated_label,) if self.gated_label else ())
+                + tuple(cause for cause, _ in self.cause_tests)
+                + tuple(cause for cause, _ in self.residual_tests)
+                + (OTHER,))
+
+    def is_gated(self, described):
+        """True if no gate test matched, so the mechanisms below were evaluated."""
+        return not any(test(described) for _, test in self.gate_tests)
 
     def assign_causes(self, described):
-        """Every cause matching this row, in display order; (OTHER,) if none do."""
+        """The buckets this row lands in, in display order."""
+        for cause, test in self.gate_tests:
+            if test(described):
+                return (cause,)
         matched = tuple(cause for cause, test in self.cause_tests if test(described))
-        return matched or (OTHER,)
+        if matched:
+            return matched
+        for cause, test in self.residual_tests:
+            if test(described):
+                return (cause,)
+        return (OTHER,)
 
 
 OTHER = 'other'
@@ -407,17 +447,12 @@ def describe_pair(pipeline, citing_doi: str, dandiset_id: str) -> dict:
 # Cause attribution
 # --------------------------------------------------------------------------- #
 
-# One cause per row, first match wins, so the histogram sums to the NEITHER
-# count with nothing left over. The order puts upstream faults ahead of the
-# symptoms they produce: a paper cited under a wrong primary paper is explained
-# by that link regardless of what its text looks like, so asking whether the
-# model found the citation would only describe the consequence.
-#
-# The two pipelines get different ladders because they ask different questions.
-# Citing mode reaches a paper through a dandiset's primary publication, so its
-# faults are about that link and about whether the model found the citation.
-# Direct mode reaches a paper because the dandiset identifier is already in its
-# text, so the only live question is where in the text the identifier sits.
+# The tiers are Pipeline.assign_causes; the two pipelines fill them differently
+# because they ask different questions. Citing mode reaches a paper through a
+# dandiset's primary publication, so it gates on whether the model found the
+# citation and then asks what stopped it. Direct mode reaches a paper because
+# the dandiset identifier is already in its text, so there is nothing to gate on
+# and one cause covers the bucket.
 def described_rows(pipeline, label: Optional[str] = 'NEITHER') -> Iterator[dict]:
     """Describe every cached pair, optionally restricted to one label."""
     for record in load_classifications(pipeline.cache_dir):
@@ -497,27 +532,61 @@ def command_summary(pipeline, args) -> int:
     neither = list(described_rows(pipeline))
     if not neither:
         return 0
-
-    print(f'\n--- cause of {len(neither)} NEITHER')
     causes = Counter(c for r in neither for c in r['causes'])
-    print(_table(['cause', 'n', 'share', 'note'],
-                 [[c, causes[c], f'{causes[c]/len(neither):.1%}', pipeline.cause_notes[c]]
-                  for c in pipeline.causes if causes[c]], 'lrrl'))
+
+    def tier(heading, names, denominator):
+        shown = [c for c in names if causes[c]]
+        if not shown:
+            return
+        print(f'\n{heading}')
+        print(_table(['cause', 'n', 'share', 'note'],
+                     [[c, f'{causes[c]:,}', f'{causes[c]/denominator:.1%}',
+                       pipeline.cause_notes[c]] for c in shown], 'lrrl'))
+
+    print(f'\n--- {len(neither):,} NEITHER rows')
+    gate_names = tuple(c for c, _ in pipeline.gate_tests)
+    gated = len(neither) - sum(causes[c] for c in gate_names)
+
+    # Every share is taken against the tier's own denominator, which is the
+    # point of the split: a mechanism's reach is its reach within the rows it
+    # could possibly explain, not within the whole bucket.
+    if gate_names:
+        print('\ndisjoint at the top level:')
+        rows = [[c, f'{causes[c]:,}', f'{causes[c]/len(neither):.1%}', pipeline.cause_notes[c]]
+                for c in gate_names if causes[c]]
+        rows.append([pipeline.gated_label, f'{gated:,}', f'{gated/len(neither):.1%}',
+                     pipeline.cause_notes[pipeline.gated_label]])
+        print(_table(['cause', 'n', 'share', 'note'], rows, 'lrrl'))
+
+    mechanisms = tuple(c for c, _ in pipeline.cause_tests)
+    explained = sum(1 for r in neither if set(r['causes']) & set(mechanisms))
+    within = f'within those {gated:,}' if gate_names else f'of {len(neither):,}'
+    tier(f'mechanisms, {within} -- these overlap:', mechanisms, gated)
     multiple = sum(1 for r in neither if len(r['causes']) > 1)
-    print(f'shares overlap and do not sum to 100%: {multiple} rows '
-          f'({multiple/len(neither):.0%}) match more than one cause')
+    print(f'{explained:,} rows ({explained/gated:.1%}) carry at least one; {multiple:,} carry '
+          f'more than one, so the shares above sum past that.')
+
+    residual_names = tuple(c for c, _ in pipeline.residual_tests) + (OTHER,)
+    residual = gated - explained
+    if residual:
+        tier(f'the {residual:,} carrying no mechanism -- disjoint:', residual_names, residual)
     return 0
 
 
 def command_list(pipeline, args) -> int:
     rows = []
     for described in described_rows(pipeline, label=args.label):
-        if args.cause and args.cause not in described['causes']:
+        if args.cause == pipeline.gated_label:
+            # The gated label names a bin rather than a cause, so no row carries
+            # it and matching on `causes` would return nothing. Every row the
+            # gate let through is in it.
+            if not pipeline.is_gated(described):
+                continue
+        elif args.cause and args.cause not in described['causes']:
             continue
-        # --only isolates the rows a cause does not share with any other, which
-        # is where an unexplained residual lives: in the indirect pipeline 396
-        # rows carry citation_not_found while the paper is intact and its
-        # references are numbered, so no known defect accounts for them.
+        # --only isolates the rows a mechanism does not share with any other,
+        # which is where its independent reach shows: 1,588 of the 2,788
+        # stale_extraction rows have nothing else wrong with them.
         if args.only and len(described['causes']) > 1:
             continue
         if args.dandiset and described['dandiset_id'] != args.dandiset:
@@ -646,38 +715,178 @@ def _render_pair(pipeline, d: dict) -> None:
 # Plot
 # --------------------------------------------------------------------------- #
 
-# Causes overlap, so a pie or a stacked bar of them would double-count. They also
-# nest rather than cross -- in the indirect pipeline citation_not_found covers
-# 99.4% of rows and 301 of the 306 no_article_body rows sit inside
-# stale_extraction -- so a Venn would draw seven regions when only four exist and
-# imply a symmetry that is not there. An Euler diagram draws the regions that
-# exist and sizes them to the data.
+# A hierarchical Euler diagram, because the bucket is a hierarchy whose levels
+# are disjoint except for one, and the two need different treatment. The
+# disjoint levels are drawn as nested frames: containment is the only claim they
+# make, and their size is whatever it takes to hold their contents. Inside the
+# one overlapping level the mechanisms are drawn as circles, area proportional
+# to row count and positions fitted to the observed intersections, because the
+# overlap is the thing worth seeing there -- fabricated_paper_link and
+# asked_about_wrong_paper never co-occur, and no_article_body sits almost
+# entirely inside stale_extraction.
 #
-# The figure has two panels because the causes alone do not convey scope. The bar
-# puts NEITHER back in the context of every pair the pipeline classified, and the
-# circles below break that slice open.
+# Every circle in the panel is on one area scale, so the small disjoint buckets
+# in the frames can be compared with the mechanisms directly.
 #
-# Distinct hues rather than shades of one colour: the circles are nested, so
-# neighbouring areas touch along a shared edge and a sequential ramp makes the
-# boundaries hard to see.
-CAUSE_COLOURS = ('#264653', '#E76F51', '#E9C46A', '#8AB17D')
-OTHER_COLOUR = '#B0BEC5'
-# Where the OTHER blob sits: outside every cause circle, because that is what
-# matching no cause means. Far enough from the outer circle's centre to stay
-# disjoint from it at any plausible size.
-OTHER_CENTRE = (-1.12, -0.82)
-# Below this the blob is invisible at print size, so it is floored. The floor
-# breaks area-proportionality for that one shape, which the caption states.
-MIN_VISIBLE_RADIUS = 0.035
+# Two panels because the hierarchy alone does not convey scope. The bar puts
+# NEITHER back among every pair the pipeline classified; the Euler below opens
+# that slice up.
+
+# Distinct hues rather than shades of one colour: the circles overlap and a
+# sequential ramp makes the boundaries hard to see. One hue per mechanism, in
+# the order the pipeline declares them.
+CAUSE_COLOURS = ('#5E35B1', '#E76F51', '#E9C46A', '#2A9D8F')
+CIRCLE_ALPHA = 0.55
+
+FRAME_COLOUR = '#90A4AE'
+RESIDUAL_COLOURS = {'unstable_classification': '#B4838D'}
+OTHER_COLOUR = '#90A4AE'
+GATE_COLOUR = '#CFD8DC'
+
+NEITHER_COLOUR = '#264653'
+OTHER_LABEL_COLOUR = '#CFD8DC'
+
+# The largest circle is one unit across; everything else follows from its count.
+BASE_RADIUS = 1.0
+FRAME_PAD = 0.18
+FRAME_CORNER = 0.10
+CAPTION_ROOM = 0.34     # headroom inside a frame for its caption
+COLUMN_GAP = 0.16
+LABEL_CHAR_WIDTH = 0.075
 
 
 def _share(count: int, total: int) -> str:
     """A share that never rounds a real category down to 0%."""
     fraction = count / total
     return '<1%' if 0 < fraction < 0.005 else f'{fraction:.0%}'
-NEITHER_COLOUR = '#264653'
-OTHER_LABEL_COLOUR = '#CFD8DC'
-NESTING_OFFSET = 0.10   # fraction of the outer radius, per level
+
+
+def _lens_area(first_radius: float, second_radius: float, distance: float) -> float:
+    """Area shared by two circles whose centres are `distance` apart."""
+    if distance >= first_radius + second_radius:
+        return 0.0
+    if distance <= abs(first_radius - second_radius):
+        return math.pi * min(first_radius, second_radius) ** 2
+    first_angle = math.acos((distance ** 2 + first_radius ** 2 - second_radius ** 2)
+                            / (2 * distance * first_radius))
+    second_angle = math.acos((distance ** 2 + second_radius ** 2 - first_radius ** 2)
+                             / (2 * distance * second_radius))
+    return (first_radius ** 2 * (first_angle - math.sin(2 * first_angle) / 2)
+            + second_radius ** 2 * (second_angle - math.sin(2 * second_angle) / 2))
+
+
+def solve_euler_layout(counts: list, pair_counts: dict, scale: float) -> list:
+    """
+    Centres whose pairwise overlaps best reproduce the observed ones.
+
+    Radii are exact: area is proportional to count by construction. Only the
+    centres are fitted, by least squares against the pairwise intersections.
+    Four circles in a plane cannot in general realise an arbitrary set of
+    intersections, so this is the closest arrangement rather than an exact one,
+    which is why the counts are also written on the figure.
+
+    Deterministic: the starting arrangement is the largest circle at the origin
+    with the rest evenly spaced around it, so the same data always draws the
+    same picture.
+    """
+    from scipy.optimize import minimize
+
+    radii = [math.sqrt(count) * scale for count in counts]
+    if len(counts) < 2:
+        return [(0.0, 0.0)]
+
+    # Area per row is pi * scale**2, so a lens covering `shared` rows should
+    # have that much area.
+    targets = {pair: math.pi * shared * scale ** 2 for pair, shared in pair_counts.items()}
+
+    def unpack(parameters):
+        return [(0.0, 0.0)] + list(zip(parameters[0::2], parameters[1::2]))
+
+    def cost(parameters):
+        centres = unpack(parameters)
+        total = 0.0
+        for (first, second), target in targets.items():
+            (x1, y1), (x2, y2) = centres[first], centres[second]
+            distance = math.hypot(x2 - x1, y2 - y1)
+            total += (_lens_area(radii[first], radii[second], distance) - target) ** 2
+        return total
+
+    # Nelder-Mead settles into whichever basin it starts in, and the basin that
+    # gets a small overlap right is not always the one nearest the ring. A short
+    # sweep of fixed starting rings and rotations covers them; fixed, so the same
+    # data always draws the same picture.
+    best = None
+    for spread in (0.55, 0.80, 1.05):
+        for turn in (0.0, 0.5):
+            start = []
+            for index in range(1, len(counts)):
+                angle = 2 * math.pi * (index - 1 + turn) / max(1, len(counts) - 1)
+                offset = radii[0] * spread
+                start += [offset * math.cos(angle), offset * math.sin(angle)]
+            fit = minimize(cost, start, method='Nelder-Mead',
+                           options={'maxiter': 40000, 'maxfev': 40000,
+                                    'xatol': 1e-5, 'fatol': 1e-10})
+            if best is None or fit.fun < best.fun:
+                best = fit
+    return unpack(best.x)
+
+
+def _mechanism_layout(pipeline, rows: list, scale: float) -> list:
+    """(cause, count, radius, centre, colour) per mechanism, largest first."""
+    mechanisms = [cause for cause, _ in pipeline.cause_tests]
+    members = {cause: {index for index, row in enumerate(rows) if cause in row['causes']}
+               for cause in mechanisms}
+    # Largest first so the fit anchors on the circle everything else sits inside.
+    ordered = sorted((c for c in mechanisms if members[c]), key=lambda c: -len(members[c]))
+    counts = [len(members[cause]) for cause in ordered]
+    pair_counts = {(i, j): len(members[ordered[i]] & members[ordered[j]])
+                   for i in range(len(ordered)) for j in range(i + 1, len(ordered))}
+    centres = solve_euler_layout(counts, pair_counts, scale)
+    circles = [(cause, counts[index], math.sqrt(counts[index]) * scale, centres[index],
+                CAUSE_COLOURS[mechanisms.index(cause) % len(CAUSE_COLOURS)])
+               for index, cause in enumerate(ordered)]
+    return circles, undrawn_overlaps(circles, ordered, pair_counts, scale)
+
+
+def undrawn_overlaps(circles: list, ordered: list, pair_counts: dict, scale: float) -> list:
+    """
+    Overlaps the fitted arrangement fails to show, as (first, second, rows).
+
+    Four circles in a plane cannot realise an arbitrary set of intersections,
+    so some are lost. Which ones is a property of the data, not a constant, so
+    it is measured here and named on the figure rather than assumed away.
+    """
+    rows_per_area = 1.0 / (math.pi * scale ** 2)
+    missed = []
+    for (first, second), shared in pair_counts.items():
+        if not shared:
+            continue
+        (_, _, first_radius, (x1, y1), _) = circles[first]
+        (_, _, second_radius, (x2, y2), _) = circles[second]
+        drawn = _lens_area(first_radius, second_radius, math.hypot(x2 - x1, y2 - y1))
+        if shared - drawn * rows_per_area >= shared / 2:
+            missed.append((ordered[first], ordered[second], shared))
+    return sorted(missed, key=lambda item: -item[2])
+
+
+def _bounds(circles: list) -> tuple:
+    left = min(x - r for _, _, r, (x, _), _ in circles)
+    right = max(x + r for _, _, r, (x, _), _ in circles)
+    bottom = min(y - r for _, _, r, (_, y), _ in circles)
+    top = max(y + r for _, _, r, (_, y), _ in circles)
+    return left, bottom, right, top
+
+
+def _frame(axes, box: tuple, caption: str, *, dashed: bool = False) -> None:
+    from matplotlib.patches import FancyBboxPatch
+    left, bottom, right, top = box
+    axes.add_patch(FancyBboxPatch(
+        (left, bottom), right - left, top - bottom,
+        boxstyle=f'round,pad=0,rounding_size={FRAME_CORNER}',
+        facecolor='none', edgecolor=FRAME_COLOUR, linewidth=1.3,
+        linestyle=(0, (5, 4)) if dashed else 'solid', zorder=0))
+    axes.text(left + 0.10, top - 0.13, caption, ha='left', va='top',
+              fontsize=9, color='#455A64', zorder=6)
 
 
 def command_plot(pipeline, args) -> int:
@@ -692,17 +901,14 @@ def command_plot(pipeline, args) -> int:
     classified = len(records)
 
     rows = list(described_rows(pipeline))
-    counts = Counter(c for r in rows for c in r['causes'])
     total = len(rows)
-
-    # OTHER is the absence of a cause, not one of them, so it gets no circle.
-    # Largest first, so each circle is drawn inside the one before it.
-    ordered = [(cause, counts[cause]) for cause in pipeline.causes
-               if counts[cause] and cause != OTHER]
-    ordered.sort(key=lambda pair: -pair[1])
+    counts = Counter(c for r in rows for c in r['causes'])
+    mechanisms = [cause for cause, _ in pipeline.cause_tests]
+    explained = sum(1 for r in rows if set(r['causes']) & set(mechanisms))
+    gated = total - sum(counts[c] for c, _ in pipeline.gate_tests)
 
     figure, (bar_axes, euler_axes) = plt.subplots(
-        2, 1, figsize=(7.6, 9.2), gridspec_kw={'height_ratios': [1, 6]})
+        2, 1, figsize=(8.6, 9.8), gridspec_kw={'height_ratios': [1, 6]})
 
     # ---- panel 1: every classified pair, by label -------------------------
     left = 0.0
@@ -734,74 +940,114 @@ def command_plot(pipeline, args) -> int:
     bar_axes.set_title(f'{pipeline.name} pipeline: {classified:,} classified pairs',
                        fontsize=13, pad=34)
 
-    # ---- panel 2: what is wrong with the NEITHER rows ---------------------
-    outer = 1.0
+    # ---- panel 2: the mechanisms, inside the frames they live in ----------
+    scale = BASE_RADIUS / math.sqrt(max(counts[c] for c in mechanisms))
+    circles, missed = _mechanism_layout(pipeline, rows, scale)
+
     handles, labels = [], []
-    for level, (cause, count) in enumerate(ordered):
-        radius = outer * (count / total) ** 0.5
-        # Walk each successive circle toward the same edge, so the crescent of
-        # "outer cause only" opens on one side instead of closing to a hairline.
-        centre_x = (outer - radius) * (1 - NESTING_OFFSET * level)
-        colour = CAUSE_COLOURS[level % len(CAUSE_COLOURS)]
-        euler_axes.add_patch(plt.Circle((centre_x, 0.0), radius, zorder=level + 1,
-                                        facecolor=colour, edgecolor='white',
-                                        linewidth=2.5))
-        handles.append(Line2D([], [], marker='o', linestyle='none', markersize=13,
-                              markerfacecolor=colour, markeredgecolor='white'))
-        labels.append(f'{cause}   {count:,}  ({_share(count, total)} of NEITHER)')
+    for cause, count, radius, (x, y), colour in circles:
+        euler_axes.add_patch(plt.Circle((x, y), radius, facecolor=colour, alpha=CIRCLE_ALPHA,
+                                        edgecolor=colour, linewidth=2.0, zorder=2))
+        alone = sum(1 for r in rows if r['causes'] == (cause,))
+        handles.append(Line2D([], [], marker='o', linestyle='none', markersize=12,
+                              markerfacecolor=colour, markeredgecolor='none', alpha=0.75))
+        labels.append(f'{cause}   {count:,}  ({_share(count, explained)} of explained, '
+                      f'{alone:,} alone)')
 
-    # OTHER is the absence of a cause, so it is drawn disjoint from the nest
-    # rather than left off. At 2 of 3,085 rows it is a speck, which is honest.
-    if counts[OTHER]:
-        radius = outer * (counts[OTHER] / total) ** 0.5
-        euler_axes.add_patch(plt.Circle(OTHER_CENTRE, max(radius, MIN_VISIBLE_RADIUS),
-                                        zorder=len(ordered) + 1,
-                                        facecolor=OTHER_COLOUR, edgecolor='white',
-                                        linewidth=1.5))
-        handles.append(Line2D([], [], marker='o', linestyle='none', markersize=13,
-                              markerfacecolor=OTHER_COLOUR, markeredgecolor='white'))
-        labels.append(f'{OTHER}   {counts[OTHER]:,}  '
-                      f'({_share(counts[OTHER], total)} of NEITHER)')
+    cluster = _bounds(circles)
+    explained_box = (cluster[0] - FRAME_PAD, cluster[1] - FRAME_PAD,
+                     cluster[2] + FRAME_PAD, cluster[3] + CAPTION_ROOM)
+    # With no gate and nothing unexplained this frame holds the whole bucket, so
+    # it would restate the outer one and claim a level that is not there.
+    if explained < total:
+        _frame(euler_axes, explained_box, f'explained   {explained:,}')
 
-    euler_axes.set_xlim(-1.30, 1.16)
-    euler_axes.set_ylim(-1.15, 1.15)
+    # The disjoint buckets get their own frames, on the same area scale as the
+    # mechanisms so a reader can compare them with the circles by eye. Each
+    # frame hugs its contents: only containment is being claimed, so a frame
+    # sized to anything else would invite the size to be read as a quantity.
+    def circle_column(names, left_x, top_y, colour_of):
+        """Lay a stack of labelled circles out downward, and draw it."""
+        widest_label = max((len(name) for name in names), default=0)
+        y = top_y
+        for name in names:
+            radius = math.sqrt(counts[name]) * scale
+            y -= radius
+            euler_axes.add_patch(plt.Circle((left_x + radius, y), radius,
+                                            facecolor=colour_of(name), edgecolor='white',
+                                            linewidth=1.4, zorder=3))
+            euler_axes.text(left_x + 2 * radius + 0.13, y, f'{name}   {counts[name]:,}',
+                            ha='left', va='center', fontsize=8.6, color='#37474F', zorder=6)
+            y -= radius + COLUMN_GAP
+        return y + COLUMN_GAP, left_x + LABEL_CHAR_WIDTH * (widest_label + 8)
+
+    residual_names = [c for c, _ in pipeline.residual_tests if counts[c]]
+    residual_names += [OTHER] if counts[OTHER] else []
+    residual = sum(counts[name] for name in residual_names)
+    right_edge, bottom_edge = explained_box[2], explained_box[1]
+    if residual_names:
+        # Centred against the explained frame rather than hung from its top, so
+        # the two read as siblings instead of one trailing off the other.
+        height = sum(2 * math.sqrt(counts[name]) * scale for name in residual_names)
+        height += COLUMN_GAP * (len(residual_names) - 1) + CAPTION_ROOM + FRAME_PAD
+        left_x = explained_box[2] + 0.55
+        top_y = (explained_box[1] + explained_box[3] + height) / 2
+        bottom_y, text_right = circle_column(
+            residual_names, left_x, top_y - CAPTION_ROOM,
+            lambda name: RESIDUAL_COLOURS.get(name, OTHER_COLOUR))
+        unexplained_box = (left_x - FRAME_PAD, bottom_y - FRAME_PAD, text_right, top_y)
+        _frame(euler_axes, unexplained_box, f'unexplained   {residual:,}')
+        right_edge = unexplained_box[2]
+
+    gate_names = [c for c, _ in pipeline.gate_tests if counts[c]]
+    if gate_names:
+        gated_box = (explained_box[0] - FRAME_PAD, bottom_edge - FRAME_PAD,
+                     right_edge + FRAME_PAD, explained_box[3] + CAPTION_ROOM)
+        _frame(euler_axes, gated_box, f'{pipeline.gated_label}   {gated:,}')
+        bottom_y, _ = circle_column(gate_names, gated_box[0] + 0.30, gated_box[1] - 0.30,
+                                    lambda name: GATE_COLOUR)
+        outer_box = (gated_box[0] - FRAME_PAD, bottom_y - FRAME_PAD,
+                     gated_box[2] + FRAME_PAD, gated_box[3] + CAPTION_ROOM)
+    else:
+        outer_box = (explained_box[0] - FRAME_PAD, bottom_edge - FRAME_PAD,
+                     right_edge + FRAME_PAD, explained_box[3] + CAPTION_ROOM)
+    _frame(euler_axes, outer_box, f'NEITHER   {total:,}', dashed=True)
+
+    euler_axes.set_xlim(outer_box[0] - 0.12, outer_box[2] + 0.12)
+    euler_axes.set_ylim(outer_box[1] - 0.12, outer_box[3] + 0.12)
     euler_axes.set_aspect('equal')
     euler_axes.axis('off')
 
-    # Tie the two panels together: the circles are the NEITHER bar segment,
-    # opened up. The lines land on the outer circle's upper shoulders rather
-    # than on the panel corners, which are empty space.
-    if ordered:
-        widest_radius = outer * (ordered[0][1] / total) ** 0.5
-        widest_centre = outer - widest_radius
-        shoulder = widest_radius * 0.7071
-        for fraction, side in zip(neither_span, (-1.0, 1.0)):
-            figure.add_artist(ConnectionPatch(
-                xyA=(fraction, -0.30), coordsA=bar_axes.transData,
-                xyB=(widest_centre + side * shoulder, shoulder),
-                coordsB=euler_axes.transData,
-                color='#B0BEC5', linewidth=1.0, linestyle=(0, (4, 3)), zorder=0))
+    # Tie the two panels together: the frames are the NEITHER bar segment,
+    # opened up.
+    for fraction, corner in zip(neither_span, (outer_box[0], outer_box[2])):
+        figure.add_artist(ConnectionPatch(
+            xyA=(fraction, -0.30), coordsA=bar_axes.transData,
+            xyB=(corner, outer_box[3]), coordsB=euler_axes.transData,
+            color='#B0BEC5', linewidth=1.0, linestyle=(0, (4, 3)), zorder=0))
 
     legend = euler_axes.legend(handles, labels, loc='upper center',
                                bbox_to_anchor=(0.5, -0.02), ncol=1, frameon=False,
-                               fontsize=10.5, handletextpad=0.9, labelspacing=0.8)
+                               fontsize=9.5, handletextpad=0.9, labelspacing=0.7)
     for text in legend.get_texts():
         text.set_va('center')
 
-    multiple = sum(1 for r in rows if len(r['causes']) > 1)
-    note = 'Circle area is proportional to row count.'
-    if multiple:
-        note += (f' {multiple:,} of {total:,} rows carry more than one cause, so the areas '
-                 'overlap and do not sum to the total.')
-    if counts[OTHER]:
-        note += (' Rows matching no cause are drawn outside the nest, at a minimum '
-                 'size so they stay visible.')
-    # Anchored to the axes, below the legend. Figure-level text would be placed
-    # before bbox_inches='tight' recomputes the bounding box, and would land on
-    # top of the legend.
-    euler_axes.text(0.5, -0.10 - 0.068 * len(handles), textwrap.fill(note, 80),
-                    transform=euler_axes.transAxes, ha='center', va='top',
-                    fontsize=8.5, color='#5C6F7C')
+    note = ('Circle area is proportional to row count throughout; the frames show containment '
+            'only, and hug their contents rather than carrying a size.')
+    if len(circles) > 1:
+        note += (' Positions are fitted to the observed overlaps, so read the counts rather '
+                 'than measuring the picture.')
+    if missed:
+        note += (' No arrangement of these circles can show '
+                 + ', and '.join(f'the {shared:,} rows {first} shares with {second}'
+                                 for first, second, shared in missed)
+                 + ', so those overlaps are drawn apart.')
+    # Placed under the legend's real extent: the legend is laid out at draw time
+    # and guessing its height from the entry count puts the caption on top of it.
+    figure.canvas.draw()
+    legend_box = legend.get_window_extent().transformed(figure.transFigure.inverted())
+    figure.text(0.5, legend_box.y0 - 0.012, textwrap.fill(note, 100), ha='center', va='top',
+                fontsize=8.4, color='#5C6F7C')
 
     out = Path(args.out)
     figure.savefig(out, dpi=200, bbox_inches='tight', facecolor='white',
@@ -843,7 +1089,7 @@ def run(pipeline) -> int:
                              'to --dandiset')
     p_show.set_defaults(func=command_show)
 
-    p_plot = sub.add_parser('plot', help='Euler diagram of the causes, as a PNG')
+    p_plot = sub.add_parser('plot', help='sunburst of the cause hierarchy, as a PNG')
     p_plot.add_argument('--out', default=None,
                         help=f'output path (default: {{pipeline.module}}.png)')
     p_plot.set_defaults(func=command_plot)

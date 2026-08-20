@@ -7,13 +7,19 @@ records the paper as citing it, and the classifier is then asked whether the
 authors reused the dataset. NEITHER is meant to be a rare residual there, and it
 is 22% of all pairs -- a symptom rather than an answer.
 
-`summary` counts how many rows carry each cause, `list` picks rows out of a
-bucket, and `show` renders one pair with every piece of evidence located in the
-text, so a row can be judged by reading rather than by grepping a
-90,000-character blob.
+`summary` counts how many rows land in each bucket, `list` picks rows out of
+one, and `show` renders a pair with every piece of evidence located in the text,
+so a row can be judged by reading rather than by grepping a 90,000-character
+blob.
 
-Causes are not mutually exclusive and the shares sum past 100%; see
-neither_common.Pipeline.
+The buckets are a hierarchy, not a flat list. The top split is whether the model
+found the citation at all: 18 rows did and are a judgement, and the other 3,067
+are a report of absence that contradicts the OpenAlex edge which created the
+pair. Only inside that bin does it make sense to ask what stopped the model, so
+the four mechanisms are evaluated there and nowhere else. They overlap, and
+their shares are taken against that bin rather than against the whole bucket.
+The 130 rows no mechanism reaches split disjointly again, into the ones that do
+not reproduce on a re-run and the ones that do. See neither_common.Pipeline.
 
 Usage:
     python -m src.analysis.analyze_indirect_neither summary
@@ -38,6 +44,7 @@ CAUSE_FABRICATED_LINK = 'fabricated_paper_link'
 CAUSE_WRONG_PAPER_ASKED = 'asked_about_wrong_paper'
 CAUSE_NO_BODY = 'no_article_body'
 CAUSE_STALE_REFS = 'stale_extraction'
+CAUSE_CITATION_FOUND = 'citation_found'
 CAUSE_CITATION = 'citation_not_found'
 CAUSE_UNSTABLE = 'unstable_classification'
 
@@ -227,6 +234,20 @@ def reports_citation_not_found(described: dict) -> bool:
     return bool(ABSENCE_CLAIM.search(described['reasoning'] or ''))
 
 
+def found_the_citation(described: dict) -> bool:
+    """
+    The model located the citation and judged the pair anyway.
+
+    The complement of `reports_citation_not_found`, and the top-level split of
+    the bucket. It is 18 rows, and they are a different kind of thing from the
+    rest: the pipeline worked, the model read the paper, and NEITHER is its
+    answer rather than the trace of something that went wrong. Nothing below the
+    gate is asked about them, because every mechanism there is an account of why
+    a citation went unfound.
+    """
+    return not reports_citation_not_found(described)
+
+
 # Re-running production's own prompt three times over the 130 rows that no other
 # cause explained: 37% reproduce NEITHER every time, 35% are mixed, and 28% never
 # return NEITHER at all. Of 171 flips, 170 went to MENTION and one to REUSE -- the
@@ -234,8 +255,9 @@ def reports_citation_not_found(described: dict) -> bool:
 # reuse is hiding in these rows.
 #
 # Measured by measure_volatility.py in this directory, which costs money and needs
-# the network. Only the rows it has actually re-run carry a verdict; everything
-# else is unmeasured rather than stable, so this test is silent about them.
+# the network. It covers exactly the rows that reach this test -- all 130 of them
+# -- so within the residual a False here means stable, not unmeasured. Re-run it
+# if a change upstream moves rows into or out of that bin.
 VOLATILITY_VERDICTS = Path(__file__).resolve().parent / 'volatility_verdicts.json'
 
 
@@ -259,8 +281,9 @@ def has_unstable_classification(described: dict) -> bool:
     question about an intact paper, and the answer simply is not stable -- the
     cached NEITHER is one draw from a distribution that mostly says MENTION.
 
-    Only rows that have been re-run carry a verdict, so a False here can mean
-    "stable" or "never measured".
+    That is why this sits below the mechanisms rather than beside them: it is a
+    property of the row, not an account of what went wrong with it, and it is
+    only worth asking once nothing else explains the row.
     """
     return (described['citing_doi'], described['dandiset_id']) in unstable_pairs()
 
@@ -270,14 +293,15 @@ PIPELINE = Pipeline(
     module='analyze_indirect_neither',
     mode=MODE_CITING,
     cache_dir=CITING_CACHE,
+    gate_tests=((CAUSE_CITATION_FOUND, found_the_citation),),
+    gated_label=CAUSE_CITATION,
     cause_tests=(
         (CAUSE_FABRICATED_LINK, has_fabricated_paper_link),
         (CAUSE_WRONG_PAPER_ASKED, asked_about_wrong_paper),
         (CAUSE_NO_BODY, has_no_article_body),
         (CAUSE_STALE_REFS, has_stale_extraction),
-        (CAUSE_CITATION, reports_citation_not_found),
-        (CAUSE_UNSTABLE, has_unstable_classification),
     ),
+    residual_tests=((CAUSE_UNSTABLE, has_unstable_classification),),
     cause_notes={
         # One line each. The evidence, thresholds and caveats live in each
         # predicate's docstring, which is where a reader who needs them is.
@@ -287,9 +311,10 @@ PIPELINE = Pipeline(
         CAUSE_NO_BODY: 'the fetch returned no article body',
         CAUSE_STALE_REFS: f'cached before {REFERENCE_FORMATTING_FIX}, when references were '
                           'unnumbered bare DOIs',
+        CAUSE_CITATION_FOUND: 'the model found the citation and judged the pair anyway',
         CAUSE_CITATION: 'the model reports it could not find the citation',
         CAUSE_UNSTABLE: 're-running the same prompt does not reproduce NEITHER',
-        OTHER: 'none of the above',
+        OTHER: 'reproducibly NEITHER, and none of the tests above fire',
     },
     description=__doc__,
 )
