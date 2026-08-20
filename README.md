@@ -136,8 +136,10 @@ output/{archive}/
 1. Create `src/archives/{name}.py` with a class inheriting from `ArchiveAdapter`
 2. Implement: `get_datasets()`, `get_primary_papers()`, `get_metadata()`
 3. Set class attributes: `name`, `short_name`, `search_terms`, `dataset_patterns`
-4. Register in `src/archives/__init__.py`
-5. Run: `python run_archive_pipeline.py --archive {name}`
+4. Register in `src/archives/__init__.py`: add the import, and an `ADAPTERS` entry keyed by `short_name`
+5. Add the adapter's `name` to `CANONICAL_ARCHIVES` in `src/indirect_pipeline/classify_source_archive.py` and to the fallback copy in `src/shared/classify_fulltext_reuse.py`, so the full-text classifier offers it as a source archive
+6. Bump `PROMPT_VERSION` in `src/shared/classify_fulltext_reuse.py`, since step 5 changes the prompt (this marks every cached classification stale)
+7. Run: `python run_archive_pipeline.py --archive {short_name}`
 
 ## Configuration
 
