@@ -149,10 +149,11 @@ try:
 except ImportError:  # standalone use, e.g. the CLI from another directory
     CANONICAL_ARCHIVES = {
         "DANDI Archive", "CRCNS", "Figshare", "Allen Institute", "IBL",
-        "Zenodo", "Dryad", "OSF", "GIN", "OpenNeuro", "EBRAINS",
+        "Zenodo", "Dryad", "OSF", "GIN", "OpenNeuro", "EBRAINS", "SPARC",
         "Neural Latents Benchmark", "MICrONS Explorer", "Brain Image Library",
         "NeuroMorpho.org", "GitHub", "Buzsaki Lab", "Lab website",
         "MouseLight", "NEMO Archive", "AWS", "NIRD Research Data Archive",
+        "GEO", "CELLxGENE", "Human Cell Atlas", "SEA-AD", "PhysioNet",
     }
     NORMALIZE_MAP = {}
 
