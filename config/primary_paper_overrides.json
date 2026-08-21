@@ -1,0 +1,90 @@
+{
+  "_comment": [
+    "Corrections to the primary paper we attribute to a dandiset.",
+    "",
+    "The pipeline derives primary papers from a dandiset's relatedResource",
+    "entries and, failing that, from DOIs mentioned in its description. Both",
+    "sources can be wrong in ways that matter, because every citation to a",
+    "dandiset's primary paper is treated as a candidate reuse of that dandiset.",
+    "A wrong primary paper therefore pulls in every paper citing an unrelated",
+    "work.",
+    "",
+    "Each entry gives the reason, so these can be re-examined when DANDI's own",
+    "metadata changes and the override becomes unnecessary.",
+    "",
+    "  replace: use these DOIs instead of whatever was derived",
+    "  remove:  drop these DOIs from whatever was derived",
+    "",
+    "Applied by apply_primary_paper_overrides() in dandi_primary_papers.py."
+  ],
+  "000253": {
+    "replace": [
+      "10.1101/2024.10.02.616378"
+    ],
+    "reason": [
+      "DANDI registers this as IsSupplementTo 10.1038/s41586-020-03171-x, the",
+      "Siegle et al. 2021 Visual Coding survey. That paper describes the Allen",
+      "Brain Observatory platform, not the Global/Local Oddball experiment held",
+      "in this dandiset, and it is very widely cited. Attributing its citations",
+      "to 000253 pulled in 54 papers of which 48 named the Allen Institute and",
+      "none mentioned OpenScope or the oddball paradigm at all; their own quotes",
+      "describe using Visual Coding data through the AllenSDK.",
+      "",
+      "The replacement is the paper that points at this dandiset rather than the",
+      "other way round: its data availability statement reads 'All mouse data",
+      "used in this work are openly available through the DANDI Archive",
+      "(dandiset id: 000253)'. It has appeared under several titles and is also",
+      "indexed as PMC11741236; revisit if it acquires a journal DOI."
+    ]
+  },
+  "000049": {
+    "remove": [
+      "10.1038/s41593-019-0550-9"
+    ],
+    "reason": [
+      "This dandiset registers no relatedResource at all, so the DOI was scraped",
+      "from its description, where it appears as background: the description",
+      "cites Andermann et al. 2011 to explain why speed tuning is interesting.",
+      "It is a citation to prior work, not a paper describing this data.",
+      "Inheriting its citations attributed 47 papers to this dandiset, 42 of",
+      "which named the Allen Institute.",
+      "",
+      "No replacement is given because this dataset appears to have no describing",
+      "publication. It is a standalone Allen Institute deposit contributed by",
+      "Millman and de Vries. With no primary paper, the indirect pathway simply",
+      "will not cover it, which is correct: there is nothing to cite."
+    ]
+  },
+  "000711": {
+    "remove": [
+      "10.1101/2023.02.14.528085",
+      "10.1101/2023.04.28.538575",
+      "10.1101/2023.08.16.553635"
+    ],
+    "reason": [
+      "No relatedResource is registered, so these were scraped from the",
+      "description, where they appear under the heading 'Publicly available",
+      "pre-prints using this dataset include:'. They are papers that USED the",
+      "dataset, which is the opposite of a describing paper: treating them as",
+      "primaries attributes every citation of a downstream user to this",
+      "dandiset. They accounted for 60 citing papers."
+    ]
+  },
+  "001201": {
+    "remove": [
+      "10.1016/j.neuron.2021.08.009"
+    ],
+    "reason": [
+      "Scraped from the description, which reads 'Further details on the",
+      "experimental setup can be found in Nason et al. 2021, Neuron'. A",
+      "methods reference for a different dataset, not a paper describing this",
+      "one. It accounted for 22 citing papers.",
+      "",
+      "Deliberately NOT overridden after review: 001275, where 'associated with",
+      "a previously published study' does describe this data; 001436, whose",
+      "'Reference for the origin of the data' is a defensible primary for a",
+      "re-annotated derivative; and 001051, whose single preprint appears to be",
+      "the first publication of the data."
+    ]
+  }
+}
