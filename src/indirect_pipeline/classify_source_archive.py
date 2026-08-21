@@ -59,15 +59,31 @@ NORMALIZE_MAP = {
     "GIN (gin.g-node.org)": "GIN",
     "GitHub (github.com - for data, not code)": "GitHub",
     "NCBI Gene Expression Omnibus": "GEO",
+    # CELLxGENE, whose spellings vary by case, by punctuation, and by how much
+    # of the Chan Zuckerberg branding the paper carries. The multiplication sign
+    # in CELL×GENE is U+00D7, which case folding does not reach.
+    "CZ CELLxGENE": "CELLxGENE",
+    "CZ CELLxGENE Discover Portal": "CELLxGENE",
+    "CZ CellxGene Discover": "CELLxGENE",
+    "CZI CELLxGENE Portal": "CELLxGENE",
+    "CELL×GENE": "CELLxGENE",
+    "cellxgene-census": "CELLxGENE",
+    "cellxgene.cziscience.com": "CELLxGENE",
+    "Human Cell Atlas portal": "Human Cell Atlas",
+    "Human Cell Atlas data portal": "Human Cell Atlas",
+    "sea-ad.org": "SEA-AD",
+    "Seattle Alzheimer’s Disease Brain Cell Atlas": "SEA-AD",
+    "Neural Latent Benchmarks": "DANDI Archive",
 }
 
 # Known canonical archive names (for LLM validation)
 CANONICAL_ARCHIVES = {
     "DANDI Archive", "CRCNS", "Figshare", "Allen Institute", "IBL",
-    "Zenodo", "Dryad", "OSF", "GIN", "OpenNeuro", "EBRAINS",
+    "Zenodo", "Dryad", "OSF", "GIN", "OpenNeuro", "EBRAINS", "SPARC",
     "Neural Latents Benchmark", "MICrONS Explorer", "Brain Image Library",
     "NeuroMorpho.org", "GitHub", "Buzsaki Lab", "Lab website",
     "MouseLight", "NEMO Archive", "AWS", "NIRD Research Data Archive",
+    "GEO", "CELLxGENE", "Human Cell Atlas", "SEA-AD", "PhysioNet",
 }
 
 
