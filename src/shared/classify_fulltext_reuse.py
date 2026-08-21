@@ -91,7 +91,7 @@ LABELS_FOR_MODE = {
 # Bumped whenever the prompt or the output schema changes. Cached results carry
 # the version they were produced under so a batch run can tell which entries are
 # stale rather than silently mixing outputs from two different questions.
-PROMPT_VERSION = 5
+PROMPT_VERSION = 6
 
 # How the data was used, once reuse is established. The eight named categories
 # are the ones the earlier pipeline used (src/shared/classify_reuse_type.py), kept
@@ -123,6 +123,7 @@ REUSE_TYPES = (
 MODALITIES = (
     'neurophysiology',   # recordings of neural activity
     'behavior',          # behavioral or task data recorded alongside
+    'imaging',           # structural images of tissue: MRI, EM volumes, histology
     'morphology',        # reconstructions, dendritic/axonal structure
     'transcriptomics',   # gene expression, RNA-seq, cell-type clustering
     'other',             # anything else the paper describes obtaining
@@ -552,6 +553,7 @@ Many neuroscience datasets are multimodal, and their components are hosted in di
 Identify which parts THIS paper actually obtained and analyzed, as a list from:
   - neurophysiology: recordings of neural activity. Intracellular or extracellular electrophysiology, patch-clamp traces, spike trains, firing rates, membrane or intrinsic properties, LFP, EEG, ECoG, or calcium/voltage imaging of activity.
   - behavior: behavioral, task, or positional data recorded alongside the neural data.
+  - imaging: structural images of tissue rather than recordings of activity. MRI of any kind, diffusion imaging, electron microscopy volumes, light-sheet or whole-brain volumes, histology, and the segmentations derived from them.
   - morphology: reconstructed cell shape, dendritic or axonal structure, anatomical reconstructions.
   - transcriptomics: gene expression, RNA-seq counts, transcriptomic cell-type labels or clusters.
   - other: anything else obtained that none of the above covers.
@@ -592,7 +594,7 @@ Return ONLY a JSON object, no markdown fences and no commentary:
   "same_lab": <true | false | null>,
   "same_lab_confidence": <integer 1-10, or null>,
   "source_archive": "<archive name, \\"unclear\\", or null>",
-  "reused_modalities": ["neurophysiology" | "behavior" | "morphology" | "transcriptomics" | "other" | "unclear", ...],
+  "reused_modalities": ["neurophysiology" | "behavior" | "imaging" | "morphology" | "transcriptomics" | "other" | "unclear", ...],
   "reuse_type": "<TOOL_DEMO | BENCHMARK | AGGREGATION | CONFIRMATORY | NOVEL_ANALYSIS | ML_TRAINING | SIMULATION | TEACHING | OTHER, or null>",
   "reuse_type_other": "<short phrase, only when reuse_type is OTHER; otherwise null>",
   "source_quotes": ["<exact quote establishing where the data came from>", ...],
@@ -777,7 +779,10 @@ def _parse_modalities(raw: Any, warnings: list[str]) -> list[str]:
         value = {'electrophysiology': 'neurophysiology', 'ephys': 'neurophysiology',
                  'physiology': 'neurophysiology', 'transcriptomic': 'transcriptomics',
                  'gene_expression': 'transcriptomics', 'genetics': 'transcriptomics',
-                 'behaviour': 'behavior', 'morphological': 'morphology'}.get(value, value)
+                 'behaviour': 'behavior', 'morphological': 'morphology',
+                 'mri': 'imaging', 'fmri': 'imaging', 'structural_imaging': 'imaging',
+                 'electron_microscopy': 'imaging', 'em': 'imaging', 'histology': 'imaging',
+                 'anatomy': 'imaging', 'anatomical': 'imaging'}.get(value, value)
         if value not in MODALITIES:
             warnings.append(f'unrecognized modality {item!r} dropped')
             continue
