@@ -1053,7 +1053,13 @@ class TestImagingModality:
             assert 'imaging' in prompt
             assert 'electron microscopy volumes' in prompt
 
-    def test_imaging_does_not_currently_count_as_dandi_hosted(self):
-        # DANDI does hold MRI and EM dandisets, so this may be wrong, but the
-        # hosted set decides the headline and is not changed as a side effect.
-        assert 'imaging' not in C.DANDI_HOSTED_MODALITIES
+    def test_imaging_counts_as_dandi_hosted(self):
+        # DANDI holds MRI and EM dandisets, 000026 and 000402 among them.
+        assert 'imaging' in C.DANDI_HOSTED_MODALITIES
+
+    def test_morphology_and_transcriptomics_still_do_not(self):
+        # A Patch-seq paper that reused only the reconstructions or only the
+        # expression data took them from NeuroMorpho, the Allen Cell Types
+        # Database, GEO or CELLxGENE, so it is not a DANDI reuse.
+        assert 'morphology' not in C.DANDI_HOSTED_MODALITIES
+        assert 'transcriptomics' not in C.DANDI_HOSTED_MODALITIES

@@ -132,7 +132,12 @@ MODALITIES = (
 
 # Modalities DANDI actually hosts. Reuse of anything outside this set is reuse of
 # some other repository's holdings, whatever study the data originated with.
-DANDI_HOSTED_MODALITIES = frozenset({'neurophysiology', 'behavior'})
+# Imaging belongs here: DANDI holds MRI and electron microscopy dandisets, among
+# them 000026 (ex vivo brain MRI) and 000402 (the MICrONS volume). Morphology and
+# transcriptomics stay out, since the reconstructions and expression data from
+# Patch-seq studies live in NeuroMorpho, the Allen Cell Types Database, GEO and
+# CELLxGENE even when the recordings from the same study are deposited here.
+DANDI_HOSTED_MODALITIES = frozenset({'neurophysiology', 'behavior', 'imaging'})
 
 # Reuse the archive vocabulary the citation pipeline already normalizes against,
 # so the two pathways produce comparable archive names rather than a second,
