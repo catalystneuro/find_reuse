@@ -161,6 +161,37 @@ EXTRA_ALIASES = {
 
 ARCHIVE_UNCLEAR = 'unclear'
 
+# The model sometimes names more than one source in a single string, as
+# "DANDI Archive and GitHub" or "DANDI Archive; GitHub", because a paper drew
+# on several. Splitting is only used to answer one question, whether DANDI is
+# among them, so it can be permissive: a stray fragment cannot be mistaken for
+# DANDI, and the alternative of matching the whole string exactly loses every
+# compound answer to the "other archive" bucket.
+ARCHIVE_SEPARATORS = re.compile(r'\s*(?:;|,|\+|/|&|\band\b|\bplus\b)\s*', re.I)
+
+
+def archive_parts(value: str | None) -> list[str]:
+    """Every archive named in `value`, normalized, in the order given."""
+    if not value or not isinstance(value, str):
+        return []
+    seen, out = set(), []
+    for part in ARCHIVE_SEPARATORS.split(value):
+        name = normalize_archive(part)
+        if name and name not in seen:
+            seen.add(name)
+            out.append(name)
+    return out or ([normalize_archive(value)] if normalize_archive(value) else [])
+
+
+def names_dandi(value: str | None) -> bool:
+    """
+    True when DANDI is one of the archives named, alone or among others.
+
+    A paper that says it took data from DANDI and GitHub took data from DANDI.
+    Anything naming an archive without DANDI is other, whether one or several.
+    """
+    return 'DANDI Archive' in archive_parts(value)
+
 
 def normalize_archive(value: str | None) -> Optional[str]:
     """

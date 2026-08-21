@@ -100,6 +100,11 @@ def build_worklist(results_path: Path, paper_cache: str, limit: int) -> list[dic
 
     A paper cited by several dandisets appears once, against the first dandiset
     that cites it, so `limit` counts papers rather than API calls.
+
+    A dandiset can declare several papers, and the pair records which one it was
+    built from, so that is the paper the prompt names. Naming the dandiset's
+    first paper instead asks the model about a paper the citing work may never
+    have cited, and it answers correctly to the wrong question.
     """
     data = json.loads(results_path.read_text())
     seen: set[str] = set()
@@ -116,7 +121,7 @@ def build_worklist(results_path: Path, paper_cache: str, limit: int) -> list[dic
                 'title': paper.get('title', ''),
                 'dandiset_id': ds.get('dandiset_id', ''),
                 'dandiset_name': ds.get('dandiset_name', ''),
-                'primary_paper_doi': (ds.get('paper_relations') or [{}])[0].get('doi', ''),
+                'primary_paper_doi': paper['cited_paper_doi'],
             })
 
     return select_with_full_text(work, limit, paper_cache)
