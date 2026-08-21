@@ -963,6 +963,49 @@ def fetch_citing_paper_texts(
     return results
 
 
+OVERRIDES_PATH = Path(__file__).resolve().parents[2] / 'config' / 'primary_paper_overrides.json'
+
+
+def load_primary_paper_overrides(path: Path = OVERRIDES_PATH) -> dict:
+    """Load the primary-paper corrections, or {} if the file is absent."""
+    try:
+        data = json.loads(path.read_text())
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return {k: v for k, v in data.items() if not k.startswith('_')}
+
+
+def apply_primary_paper_overrides(dandiset_id: str, resources: list[dict],
+                                  overrides: dict) -> list[dict]:
+    """
+    Correct the primary papers derived for a dandiset.
+
+    Every citation to a primary paper is treated as a candidate reuse of that
+    dandiset, so a wrong primary paper pulls in every paper citing an unrelated
+    work. Two failure modes have shown up in practice: a dandiset registered as
+    a supplement to a broad platform paper rather than to the study it holds,
+    and a dandiset with no registered relation whose description happens to
+    cite background literature. See config/primary_paper_overrides.json.
+    """
+    rule = overrides.get(dandiset_id)
+    if not rule:
+        return resources
+
+    if rule.get('replace'):
+        return [{
+            'relation': 'override',
+            'url': f"https://doi.org/{doi}",
+            'name': None,
+            'identifier': doi,
+            'resource_type': None,
+            'doi': doi,
+            'source': 'override',
+        } for doi in rule['replace']]
+
+    drop = {d.lower() for d in rule.get('remove', [])}
+    return [r for r in resources if (r.get('doi') or '').lower() not in drop]
+
+
 def extract_dois_from_description(description: str) -> list[str]:
     """
     Extract DOIs from a dandiset description text.
@@ -991,6 +1034,9 @@ def extract_dois_from_description(description: str) -> list[str]:
             cleaned_dois.append(doi)
 
     return cleaned_dois
+
+
+_primary_paper_overrides = load_primary_paper_overrides()
 
 
 def find_dandisets_with_primary_papers(
@@ -1113,6 +1159,9 @@ def find_dandisets_with_primary_papers(
                     'source': 'description',
                 })
                 seen_dois.add(doi)
+
+        paper_resources = apply_primary_paper_overrides(
+            ds_id, paper_resources, _primary_paper_overrides)
 
         if paper_resources:
             # Determine when data became publicly accessible:
