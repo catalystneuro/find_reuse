@@ -1019,3 +1019,47 @@ class TestModelRouting:
         monkeypatch.setattr(C, '_session', lambda: Recorder())
         C.classify_paper_reuse(PAPER, api_key='k')
         assert captured['reasoning_effort'] == 'max'
+
+
+class TestImagingModality:
+    """
+    Structural images are a modality of their own.
+
+    They were landing in 'other' alongside stimulus sets, metadata records and
+    teaching examples, which put real reuse of MRI and EM volumes in the same
+    bucket as things that are not data at all.
+    """
+
+    def test_imaging_is_in_the_vocabulary(self):
+        assert 'imaging' in C.MODALITIES
+
+    @pytest.mark.parametrize('raw', [
+        'MRI', 'fMRI', 'imaging', 'electron microscopy', 'Histology',
+        'anatomical', 'structural imaging',
+    ])
+    def test_synonyms_normalize_to_imaging(self, raw):
+        warnings = []
+        assert C._parse_modalities([raw], warnings) == ['imaging']
+        assert warnings == []
+
+    def test_imaging_is_distinct_from_morphology(self):
+        # A segmented EM volume is an image; a traced dendritic arbor is a
+        # reconstruction. Collapsing them would hide which one a paper used.
+        assert C._parse_modalities(['imaging', 'morphology'], []) == ['imaging', 'morphology']
+
+    def test_imaging_is_listed_in_both_prompts(self):
+        for mode in (C.MODE_CITING, C.MODE_DIRECT):
+            prompt = C.build_prompt('paper', dataset_id='000026', dataset_name='x', mode=mode)
+            assert 'imaging' in prompt
+            assert 'electron microscopy volumes' in prompt
+
+    def test_imaging_counts_as_dandi_hosted(self):
+        # DANDI holds MRI and EM dandisets, 000026 and 000402 among them.
+        assert 'imaging' in C.DANDI_HOSTED_MODALITIES
+
+    def test_morphology_and_transcriptomics_still_do_not(self):
+        # A Patch-seq paper that reused only the reconstructions or only the
+        # expression data took them from NeuroMorpho, the Allen Cell Types
+        # Database, GEO or CELLxGENE, so it is not a DANDI reuse.
+        assert 'morphology' not in C.DANDI_HOSTED_MODALITIES
+        assert 'transcriptomics' not in C.DANDI_HOSTED_MODALITIES
