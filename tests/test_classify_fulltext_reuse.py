@@ -1063,3 +1063,70 @@ class TestImagingModality:
         # Database, GEO or CELLxGENE, so it is not a DANDI reuse.
         assert 'morphology' not in C.DANDI_HOSTED_MODALITIES
         assert 'transcriptomics' not in C.DANDI_HOSTED_MODALITIES
+
+
+class TestRetryWorklistPrimaryPaper:
+    """
+    A rerun must ask the same question the original run asked.
+
+    The retry builder used to hardcode an empty primary paper, so anything
+    re-run through --retry-errors or --reclassify was asked about no paper at
+    all. That is a vaguer question than the original, and its answers would not
+    be comparable with the rows they replace.
+    """
+
+    def build(self, tmp_path, cached, primaries=None):
+        from src.shared import run_fulltext_classification as R
+        cache = tmp_path / 'cache'
+        cache.mkdir()
+        for i, row in enumerate(cached):
+            (cache / f'entry{i}.json').write_text(json.dumps(row))
+        return R.build_retry_worklist(cache, primaries=primaries)
+
+    def test_primary_paper_is_recovered_for_the_pair(self, tmp_path):
+        work = self.build(
+            tmp_path,
+            [{'classification': 'ERROR', 'citing_doi': '10.1/A', 'dandiset_id': '000003'}],
+            primaries={('10.1/a', '000003'): '10.1016/j.neuron.2016.12.011'})
+        assert work[0]['primary_paper_doi'] == '10.1016/j.neuron.2016.12.011'
+
+    def test_lookup_is_case_insensitive_on_the_doi(self, tmp_path):
+        work = self.build(
+            tmp_path,
+            [{'classification': 'ERROR', 'citing_doi': '10.1/MiXeD', 'dandiset_id': '000003'}],
+            primaries={('10.1/mixed', '000003'): '10.1/primary'})
+        assert work[0]['primary_paper_doi'] == '10.1/primary'
+
+    def test_same_paper_different_dandisets_get_different_primaries(self, tmp_path):
+        work = self.build(
+            tmp_path,
+            [{'classification': 'ERROR', 'citing_doi': '10.1/A', 'dandiset_id': '000003'},
+             {'classification': 'ERROR', 'citing_doi': '10.1/A', 'dandiset_id': '000004'}],
+            primaries={('10.1/a', '000003'): '10.1/first',
+                       ('10.1/a', '000004'): '10.1/second'})
+        got = {w['dandiset_id']: w['primary_paper_doi'] for w in work}
+        assert got == {'000003': '10.1/first', '000004': '10.1/second'}
+
+    def test_unknown_pair_warns_rather_than_silently_blanking(self, tmp_path, capsys):
+        work = self.build(
+            tmp_path,
+            [{'classification': 'ERROR', 'citing_doi': '10.1/A', 'dandiset_id': '000003'}],
+            primaries={})
+        assert work[0]['primary_paper_doi'] == ''
+        assert 'no primary paper' in capsys.readouterr().err
+
+    def test_primary_paper_index_reads_the_pairs_own_cited_paper(self, tmp_path):
+        from src.shared import run_fulltext_classification as R
+        corpus = tmp_path / 'corpus.json'
+        corpus.write_text(json.dumps({'results': [{
+            'dandiset_id': '000003',
+            'paper_relations': [{'doi': '10.1/declared-first'}],
+            'citing_papers': [{'doi': '10.1/CITER', 'cited_paper_doi': '10.1/declared-second'}],
+        }]}))
+        index = R.primary_paper_index(corpus)
+        # The dandiset's first declared paper is not the answer; the pair's is.
+        assert index[('10.1/citer', '000003')] == '10.1/declared-second'
+
+    def test_missing_corpus_is_empty_rather_than_an_exception(self, tmp_path):
+        from src.shared import run_fulltext_classification as R
+        assert R.primary_paper_index(tmp_path / 'nope.json') == {}

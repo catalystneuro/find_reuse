@@ -225,16 +225,42 @@ def load_cached_results(cache_dir: Path, skip_errors: bool = False,
     return out
 
 
-def build_retry_worklist(cache_dir: Path, label: str = 'ERROR') -> list[dict]:
+def primary_paper_index(results_path: Path) -> dict[tuple[str, str], str]:
+    """
+    Map (citing DOI, dandiset) to the paper that pair was built from.
+
+    A cached result records which pair it answered but not which paper it was
+    asked about, and a dandiset can declare several. Rebuilding a work item
+    therefore has to go back to discovery for the answer.
+    """
+    try:
+        data = json.loads(results_path.read_text())
+    except (OSError, json.JSONDecodeError):
+        return {}
+    index: dict[tuple[str, str], str] = {}
+    for ds in data.get('results', []):
+        for paper in ds.get('citing_papers') or []:
+            if paper.get('doi') and paper.get('cited_paper_doi'):
+                index[(paper['doi'].lower(), ds['dandiset_id'])] = paper['cited_paper_doi']
+    return index
+
+
+def build_retry_worklist(cache_dir: Path, label: str = 'ERROR',
+                         primaries: Optional[dict] = None) -> list[dict]:
     """
     Rebuild work items straight from cached results carrying `label`.
 
     Every cached result carries the DOI and dandiset it was asked about, so a
-    rerun can be reconstructed without touching the corpus or the network.
-    Defaults to ERROR, which is the retry case; passing another label reruns
-    just those, which is what a prompt change affecting one boundary needs.
+    rerun can be reconstructed without touching the network. Defaults to ERROR,
+    which is the retry case; passing another label reruns just those, which is
+    what a prompt change affecting one boundary needs.
+
+    `primaries` supplies the paper each pair was built from, from
+    primary_paper_index. Without it the prompt names no primary paper at all,
+    which asks a different and much vaguer question than the original run did,
+    and the answers would not be comparable with the rows they replace.
     """
-    work = []
+    work, missing = [], []
     for path in sorted(cache_dir.glob('*.json')):
         try:
             prior = json.loads(path.read_text())
@@ -242,15 +268,24 @@ def build_retry_worklist(cache_dir: Path, label: str = 'ERROR') -> list[dict]:
             continue
         if prior.get('classification') != label or not prior.get('citing_doi'):
             continue
+        dandiset_id = prior.get('dandiset_id', '')
+        primary = (primaries or {}).get(
+            (prior['citing_doi'].lower(), dandiset_id), '')
+        if primaries is not None and not primary:
+            missing.append(prior['citing_doi'])
         work.append({
             'doi': prior['citing_doi'],
             'title': prior.get('title', ''),
-            'dandiset_id': prior.get('dandiset_id', ''),
+            'dandiset_id': dandiset_id,
             'dandiset_name': '',
-            'primary_paper_doi': '',
+            'primary_paper_doi': primary,
             'matched_patterns': None,
             'prior_classification': prior.get('prior_classification'),
         })
+    if missing:
+        print(f"warning: {len(missing)} pairs have no primary paper in the corpus; "
+              f"they will be asked without one (e.g. {missing[0]})",
+              file=sys.stderr, flush=True)
     return work
 
 
@@ -319,7 +354,10 @@ def main():
         # corpus re-run. Rerunning just the affected label and carrying the rest
         # forward is only sound when the change cannot move the other labels;
         # the caller is asserting that by naming one.
-        work = build_retry_worklist(cache_dir, label=args.reclassify)
+        primaries = (primary_paper_index(Path(args.results_file))
+                     if args.mode == MODE_CITING else {})
+        work = build_retry_worklist(cache_dir, label=args.reclassify,
+                                    primaries=primaries)
         carried = load_cached_results(cache_dir, skip_label=args.reclassify)
         print(f"{len(work)} cached {args.reclassify} results to reclassify, "
               f"{len(carried)} carried forward ({args.mode} mode)",
@@ -329,7 +367,9 @@ def main():
         # the fetcher for every paper, and metadata-only cache entries now
         # expire, so a rescan refetches roughly 1,400 papers over the network to
         # find a hundred cached errors. The errors already record what they were.
-        work = build_retry_worklist(cache_dir)
+        primaries = (primary_paper_index(Path(args.results_file))
+                     if args.mode == MODE_CITING else {})
+        work = build_retry_worklist(cache_dir, primaries=primaries)
         carried = load_cached_results(cache_dir, skip_errors=True)
         print(f"{len(work)} cached errors to retry, {len(carried)} results carried "
               f"forward ({args.mode} mode)", file=sys.stderr, flush=True)
