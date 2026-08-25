@@ -16,6 +16,9 @@ venv/
 .reuse_type_cache/
 .source_archive_cache/
 .direct_ref_cache/
+.fulltext_classification_cache/
+.fulltext_direct_cache/
+.description_doi_cache/
 .doi_date_cache.json
 .doi_title_cache.json
 .doi_metadata_cache.json
@@ -31,6 +34,7 @@ venv/
 
 # Output results
 output/
+legacy_output/
 paper_cache.zip
 .review_author_cache.json
 
