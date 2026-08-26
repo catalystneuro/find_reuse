@@ -77,7 +77,8 @@ def select_with_full_text(work: list[dict], limit: int, paper_cache: str,
             return doi, 0
         return doi, len(fetched['text'])
 
-    # A paper cited by several dandisets appears in `work` once per pair;
+    # A paper citing several dandisets' primary papers appears in `work` once
+    # per pair;
     # resolve its text once and share the answer across its pairs, since a
     # non-full-text entry past its metadata TTL refetches over the network.
     dois = list(dict.fromkeys(item['doi'] for item in work))
@@ -104,10 +105,11 @@ def build_worklist(results_path: Path) -> list[dict]:
     """
     Build the worklist: one item per (citing paper, dandiset) pair.
 
-    A paper cited by several dandisets is a separate question for each, because
-    reusing one dandiset's data says nothing about its siblings'. Collapsing
-    such a paper to a single pair attributes the classification to whichever
-    dandiset happens to sort first and silently drops the rest.
+    A paper citing several dandisets' primary papers is a separate question
+    for each, because reusing one dandiset's data says nothing about its
+    siblings'. Collapsing such a paper to a single pair attributes the
+    classification to whichever dandiset happens to sort first and silently
+    drops the rest.
 
     A dandiset can declare several papers, and the pair records which one it was
     built from, so that is the paper the prompt names. Naming the dandiset's
