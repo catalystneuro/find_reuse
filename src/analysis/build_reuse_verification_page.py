@@ -6,8 +6,11 @@ Emits a self-contained HTML worksheet: every REUSE claim with the passage the
 model quoted, how well that quote matches the paper, and controls for recording
 a human judgement and the reasoning behind it.
 
-The reviewer's calls and notes live in the browser's localStorage keyed by DOI,
-so regenerating and republishing this page does not discard work already done.
+Reviewers work independently. Each sees only their own labels and notes, held in
+this browser's localStorage under their name, so that agreement between two
+reviewers measures two independent readings of the paper. Regenerating the page
+does not discard work already done, and Save writes one reviewer's answers to a
+file for combining with everyone else's once the round is finished.
 
 Usage:
     python -m src.analysis.build_reuse_verification_page \
@@ -117,8 +120,15 @@ CSS = """
            text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);
            font-weight:600}
   tbody td{padding:18px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+  /* The quote column takes whatever room is left once the others are laid out,
+     so it is capped to keep the table close to a laptop's width. */
+  tbody td.evidence-cell{max-width:620px}
   tbody tr:last-child td{border-bottom:none}
   tbody tr.flagged{background:var(--bad-soft)}
+  thead th:last-child,tbody td:last-child{position:sticky;right:0;
+      background:var(--surface);border-left:1px solid var(--line)}
+  thead th:last-child{background:var(--raise);z-index:11}
+  tbody tr.flagged td:last-child{background:var(--bad-soft)}
   tbody tr.done{opacity:.55}
   tbody tr.done:focus-within{opacity:1}
 
@@ -194,14 +204,22 @@ CSS = """
                border:1px solid var(--line-strong);background:var(--surface);
                color:var(--muted);text-align:left}
   .call button:hover{border-color:var(--accent);color:var(--ink)}
-  .call button[aria-pressed="true"][data-v="yes"]{background:var(--ok-soft);
+  .call button[aria-pressed="true"][data-v="reuse"]{background:var(--ok-soft);
       border-color:var(--ok);color:var(--ok);font-weight:600}
-  .call button[aria-pressed="true"][data-v="no"]{background:var(--bad-soft);
+  .call button[aria-pressed="true"][data-v="mention"],
+  .call button[aria-pressed="true"][data-v="neither"],
+  .call button[aria-pressed="true"][data-v="primary"]{background:var(--bad-soft);
       border-color:var(--bad);color:var(--bad);font-weight:600}
-  .call button[aria-pressed="true"][data-v="maybe"]{background:var(--warn-soft);
+  .call button[aria-pressed="true"][data-v="unsure"]{background:var(--warn-soft);
       border-color:var(--warn);color:var(--warn);font-weight:600}
   .call label{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
               color:var(--muted);margin-top:4px}
+  .who{display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.07em;
+       text-transform:uppercase;color:var(--muted);margin-top:4px}
+  .who input{font:inherit;font-family:var(--sans);font-size:12.5px;letter-spacing:0;
+             text-transform:none;padding:5px 9px;border-radius:7px;width:130px;
+             border:1px solid var(--line-strong);background:var(--surface);color:var(--ink)}
+  .who input:focus{outline:2px solid var(--accent);outline-offset:1px}
   .call textarea{font:inherit;font-size:12.5px;line-height:1.45;padding:7px 9px;
                  border-radius:7px;border:1px solid var(--line-strong);
                  background:var(--ground);color:var(--ink);resize:vertical;
@@ -222,11 +240,50 @@ CSS = """
 
 JS = """
 const LOOSE = new Set(['normalized','case_insensitive','spacing_insensitive']);
-const CALLS_KEY = 'dandi-reuse-calls-v1';
-const NOTES_KEY = 'dandi-reuse-notes-v1';
-let calls = {}, notes = {};
-try { calls = JSON.parse(localStorage.getItem(CALLS_KEY) || '{}'); } catch (e) { calls = {}; }
-try { notes = JSON.parse(localStorage.getItem(NOTES_KEY) || '{}'); } catch (e) { notes = {}; }
+const REVIEWS_KEY = 'dandi-reuse-reviews-v1';
+const REVIEWER_KEY = 'dandi-reuse-reviewer-v1';
+
+// The label a reviewer assigns, drawn from the same set the classifier chooses
+// from. Both sides naming a class is what a confusion matrix is built from: a
+// row where the classifier said REUSE and the reviewer said MENTION is a cell in
+// it, and precision and recall come from those cells.
+const LABELS = ['reuse','mention','neither','primary','unsure'];
+// Shape of the save file, so anything reading one knows which fields to expect.
+const SAVE_SCHEMA = 1;
+
+// Reviewers judge independently. A reviewer sees only their own answers, and
+// nothing another reviewer has recorded reaches this page, so that agreement
+// between two of them measures two independent readings of the paper. Answers
+// are held one bucket per reviewer so that a shared browser keeps them apart.
+// Work done before a name was given sits under UNATTRIBUTED and is adopted by
+// the first name entered.
+const UNATTRIBUTED = '';
+let reviews = {};
+let me = '';
+
+const readStore = key => {
+  try { return JSON.parse(localStorage.getItem(key) || '{}') || {}; }
+  catch (e) { return {}; }
+};
+const persist = () => {
+  // A bucket holding neither answers nor notes is dropped, so the store lists
+  // only names that have work behind them.
+  Object.keys(reviews).forEach(n => {
+    if (n !== me && !Object.keys(reviews[n].calls).length
+                 && !Object.keys(reviews[n].notes).length) delete reviews[n];
+  });
+  try {
+    localStorage.setItem(REVIEWS_KEY, JSON.stringify(reviews));
+    localStorage.setItem(REVIEWER_KEY, me);
+  } catch (e) { /* storage unavailable; the page still works in memory */ }
+};
+
+const bucket = name => (reviews[name] = reviews[name] || {calls: {}, notes: {}});
+const myCalls = () => bucket(me).calls;
+const myNotes = () => bucket(me).notes;
+reviews = readStore(REVIEWS_KEY);
+me = localStorage.getItem(REVIEWER_KEY) || '';
+bucket(me);
 let filter = 'all';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
@@ -249,7 +306,7 @@ function visible(){
     if (filter === 'loose')     return isLoose(r);
     if (filter === 'samelab')   return r.same_lab === true;
     if (filter === 'noarchive') return !r.archive;
-    if (filter === 'todo')      return !calls[r.doi];
+    if (filter === 'todo')      return !myCalls()[r.doi];
     return true;
   });
 }
@@ -287,8 +344,8 @@ function render(){
   const rows = visible();
   document.getElementById('body').innerHTML = rows.map(r => {
     const n = ROWS.indexOf(r) + 1;
-    const call = calls[r.doi] || '';
-    const note = notes[r.doi] || '';
+    const call = myCalls()[r.doi] || '';
+    const note = myNotes()[r.doi] || '';
     const quotes = r.quotes.length ? r.quotes.map(quoteBlock).join('') :
       `<figure class="q"><blockquote><em>No quote returned.</em></blockquote></figure>`;
     const provenance = `<div class="provenance">
@@ -318,7 +375,7 @@ function render(){
           <span class="conf">${esc(r.confidence)}<small>confidence</small></span>
         </div>
       </td>
-      <td>
+      <td class="evidence-cell">
         <div class="evidence">${quotes}
           ${provenance}
           <details class="why"><summary>Model's reasoning</summary>
@@ -328,9 +385,11 @@ function render(){
       <td>
         <div class="call" data-doi="${esc(r.doi)}">
           <div class="callrow">
-            <button data-v="yes"   aria-pressed="${call==='yes'}">&#10003; Real reuse</button>
-            <button data-v="no"    aria-pressed="${call==='no'}">&#10007; Not reuse</button>
-            <button data-v="maybe" aria-pressed="${call==='maybe'}">? Unsure</button>
+            <button data-v="reuse"   aria-pressed="${call==='reuse'}">&#10003; Reuse</button>
+            <button data-v="mention" aria-pressed="${call==='mention'}">Mention</button>
+            <button data-v="neither" aria-pressed="${call==='neither'}">Neither</button>
+            <button data-v="primary" aria-pressed="${call==='primary'}">Primary</button>
+            <button data-v="unsure"  aria-pressed="${call==='unsure'}">? Unsure</button>
           </div>
           <label for="note-${n}">Why</label>
           <textarea id="note-${n}" data-note="${esc(r.doi)}" rows="3"
@@ -341,8 +400,12 @@ function render(){
     </tr>`;
   }).join('');
   document.getElementById('empty').hidden = rows.length > 0;
-  const done = ROWS.filter(r => calls[r.doi]).length;
-  const noted = ROWS.filter(r => (notes[r.doi] || '').trim()).length;
+  updateProgress();
+}
+
+function updateProgress(){
+  const done = ROWS.filter(r => myCalls()[r.doi]).length;
+  const noted = ROWS.filter(r => (myNotes()[r.doi] || '').trim()).length;
   document.getElementById('prog').textContent =
     `${done} of ${ROWS.length} checked \\u00b7 ${noted} with notes`;
 }
@@ -351,9 +414,9 @@ document.getElementById('body').addEventListener('click', e => {
   const btn = e.target.closest('button[data-v]');
   if (!btn) return;
   const doi = btn.closest('.call').dataset.doi;
-  calls[doi] = (calls[doi] === btn.dataset.v) ? undefined : btn.dataset.v;
-  if (!calls[doi]) delete calls[doi];
-  localStorage.setItem(CALLS_KEY, JSON.stringify(calls));
+  const c = myCalls();
+  if (c[doi] === btn.dataset.v) delete c[doi]; else c[doi] = btn.dataset.v;
+  persist();
   render();
 });
 
@@ -364,17 +427,14 @@ document.getElementById('body').addEventListener('input', e => {
   const ta = e.target.closest('textarea[data-note]');
   if (!ta) return;
   const doi = ta.dataset.note;
-  notes[doi] = ta.value;
-  if (!ta.value.trim()) delete notes[doi];
+  const nts = myNotes();
+  if (ta.value.trim()) nts[doi] = ta.value; else delete nts[doi];
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    localStorage.setItem(NOTES_KEY, JSON.stringify(notes));
+    persist();
     const flag = document.querySelector(`[data-saved="${CSS.escape(doi)}"]`);
     if (flag){ flag.textContent = 'Saved'; setTimeout(() => { flag.textContent = ''; }, 1400); }
-    const done = ROWS.filter(r => calls[r.doi]).length;
-    const noted = ROWS.filter(r => (notes[r.doi] || '').trim()).length;
-    document.getElementById('prog').textContent =
-      `${done} of ${ROWS.length} checked \\u00b7 ${noted} with notes`;
+    updateProgress();
   }, 400);
 });
 
@@ -387,33 +447,139 @@ document.querySelectorAll('.filters .btn').forEach(b => {
   });
 });
 
+// The name identifies whose answers these are, in the file and to whoever
+// combines the files later. It sits in the toolbar so that a reviewer can see
+// whose session they are in at any point, which matters when two people share a
+// machine.
+const nameBox = document.getElementById('reviewer');
+nameBox.value = me;
+
+function setReviewer(next){
+  next = next.trim();
+  if (next === me) return;
+  // Work done before a name was given belongs to the first person to claim it.
+  const orphan = reviews[UNATTRIBUTED];
+  if (next && orphan && Object.keys(orphan.calls).length && !reviews[next]) {
+    reviews[next] = orphan;
+    delete reviews[UNATTRIBUTED];
+  }
+  me = next;
+  bucket(me);
+  persist();
+  render();
+}
+nameBox.addEventListener('change', () => setReviewer(nameBox.value));
+nameBox.addEventListener('blur', () => setReviewer(nameBox.value));
+
 document.getElementById('reset').addEventListener('click', () => {
-  if (!confirm('Clear every call and note? This cannot be undone.')) return;
-  calls = {}; notes = {};
-  localStorage.removeItem(CALLS_KEY); localStorage.removeItem(NOTES_KEY);
+  const label = me ? `every call and note by ${me}` : 'every call and note';
+  if (!confirm(`Clear ${label}? Save to a file first if you want to keep them.`)) return;
+  delete reviews[me];
+  bucket(me);
+  persist();
   render();
 });
 
-document.getElementById('export').addEventListener('click', async () => {
-  const cell = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
-  const lines = [['doi','dandiset','confidence','same_lab','archive',
-                  'quote_tiers','your_call','your_notes'].map(cell).join(',')];
-  ROWS.forEach(r => lines.push([r.doi, r.dandiset, r.confidence,
-    r.same_lab === null || r.same_lab === undefined ? '' : (r.same_lab ? 'same' : 'different'),
-    r.archive || '', r.quotes.map(q => q.tier).join('|'),
-    calls[r.doi] || 'unchecked', notes[r.doi] || ''].map(cell).join(',')));
-  const btn = document.getElementById('export');
-  try { await navigator.clipboard.writeText(lines.join('\\n')); btn.textContent = 'Copied CSV'; }
-  catch (err) { btn.textContent = 'Copy blocked'; }
-  setTimeout(() => { btn.textContent = 'Copy results'; }, 1600);
+// A reviewer's work lives in this browser's localStorage, which no other person
+// and no other machine can read. Saving writes it to a file that can be sent on,
+// and the files are combined once every reviewer has finished.
+document.getElementById('save').addEventListener('click', () => {
+  if (!me) {
+    alert('Enter your name first, so this file can be told from anyone else\\u2019s.');
+    nameBox.focus();
+    return;
+  }
+  const payload = {schema: SAVE_SCHEMA, reviewer: me,
+                   saved_at: new Date().toISOString(),
+                   corpus: CORPUS, labels: LABELS,
+                   calls: myCalls(), notes: myNotes()};
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type: 'application/json'});
+  const slug = me.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'reviewer';
+  const day = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `reuse-verification-${slug}-${day}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+document.getElementById('load').addEventListener('click', () =>
+  document.getElementById('loadFile').click());
+
+// Loading restores this reviewer's own answers, on a second machine or after
+// site data was cleared. A file belonging to someone else is refused, so no
+// other reviewer's judgement can reach this page.
+document.getElementById('loadFile').addEventListener('change', async e => {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  let data;
+  try { data = JSON.parse(await file.text()); }
+  catch (err) { alert('That file is not JSON.'); return; }
+  const incoming = data && typeof data === 'object' ? data.calls : null;
+  if (!incoming || typeof incoming !== 'object') {
+    alert('No calls found in that file.'); return;
+  }
+  const who = String(data.reviewer || '').trim();
+  if (who && me && who !== me) {
+    alert(`That file holds ${who}'s answers, and this page shows only your own.\\n` +
+          'Reviewers judge independently, so their answers are combined once ' +
+          'everyone has finished rather than here.');
+    return;
+  }
+  const existing = Object.keys(myCalls()).length;
+  if (existing && !confirm(
+      `You already have ${existing} call(s) here. Replace them with this file?`)) return;
+
+  const calls = {}, notes = {};
+  let skipped = 0;
+  Object.keys(incoming).forEach(k => {
+    if (LABELS.includes(incoming[k])) calls[k] = incoming[k]; else skipped++;
+  });
+  const incomingNotes = (data.notes && typeof data.notes === 'object') ? data.notes : {};
+  Object.keys(incomingNotes).forEach(k => {
+    const t = String(incomingNotes[k] || '').trim();
+    if (t) notes[k] = incomingNotes[k];
+  });
+  if (who && !me) { me = who; nameBox.value = who; }
+  reviews[me] = {calls, notes};
+  persist();
+  render();
+  alert(`Restored ${Object.keys(calls).length} call(s).` +
+        (skipped ? `\\n${skipped} entr(ies) skipped, label not recognised.` : ''));
 });
 
 render();
 """
 
 
-def build(rows: list[dict], heading: str = '') -> str:
+def corpus_stamp(inputs: list[str]) -> dict:
+    """
+    Identify the classifications these rows came from.
+
+    Labels are only comparable across reviewers when they were made against the
+    same classifications, and the prompt version and model say which those were.
+    A save file carries this so a later merge can tell two reviewers who read the
+    same corpus from two who read different ones.
+    """
+    versions, models = set(), set()
+    for path in inputs:
+        data = json.loads(Path(path).read_text())
+        for r in data.get('classifications', []):
+            if r.get('prompt_version') is not None:
+                versions.add(r['prompt_version'])
+            if r.get('model'):
+                models.add(r['model'])
+    return {
+        'inputs': [Path(p).name for p in inputs],
+        'prompt_versions': sorted(versions),
+        'models': sorted(models),
+    }
+
+
+def build(rows: list[dict], heading: str = '', corpus: dict | None = None) -> str:
     payload = json.dumps(rows, ensure_ascii=False).replace('</', r'<\/')
+    corpus_json = json.dumps(corpus or {}, ensure_ascii=False).replace('</', r'<\/')
     n = len(rows)
     located = sum(1 for r in rows
                   if any(q['tier'] != 'not_found' for q in r['quotes']))
@@ -450,6 +616,9 @@ def build(rows: list[dict], heading: str = '') -> str:
       <div class="stat"><b>{both}</b><span>found by both pathways</span></div>
       <div class="stat"><b>{unsupported}</b><span>quote not in the paper</span></div>
     </div>
+    <label class="who">Reviewing as
+      <input id="reviewer" type="text" autocomplete="off" spellcheck="false"
+             placeholder="your name"></label>
   </header>
 
   <div class="note">
@@ -487,7 +656,9 @@ def build(rows: list[dict], heading: str = '') -> str:
     </div>
     <div class="spacer"></div>
     <div class="progress" id="prog">0 of {n} checked</div>
-    <button class="btn" id="export">Copy results</button>
+    <button class="btn" id="save">Save file</button>
+    <button class="btn" id="load">Load file</button>
+    <input type="file" id="loadFile" accept="application/json,.json" hidden>
     <button class="btn" id="reset">Clear all</button>
   </div>
 
@@ -517,6 +688,7 @@ def build(rows: list[dict], heading: str = '') -> str:
 
 <script>
 const ROWS = {payload};
+const CORPUS = {corpus_json};
 {JS}
 </script>
 """
@@ -655,7 +827,8 @@ def main():
         rows = [r for r in rows if r['dandi_reason']]
 
     rows.sort(key=lambda r: (-(r['confidence'] or 0), r['doi']))
-    Path(args.output).write_text(build(rows, args.title))
+    Path(args.output).write_text(
+        build(rows, args.title, corpus_stamp(args.input)))
     print(f"{len(rows)} papers -> {args.output}")
 
 
