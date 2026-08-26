@@ -120,9 +120,10 @@ def gather() -> dict:
         'candidates': len({p['doi'] for r in corpus.get('results', [])
                            for p in (r.get('citing_papers') or []) if p.get('doi')}),
         'citing_classified': citing_all.get('summary', {}).get('papers'),
+        'citing_pairs': citing_all.get('summary', {}).get('pairs'),
         'citing_counts': citing_all.get('summary', {}).get('classification_counts', {}),
         'citing_cost': citing_all.get('summary', {}).get('estimated_cost_usd', 0),
-        'direct_pairs': direct_all.get('summary', {}).get('papers'),
+        'direct_pairs': direct_all.get('summary', {}).get('pairs'),
         'direct_counts': direct_all.get('summary', {}).get('classification_counts', {}),
         'direct_cost': direct_all.get('summary', {}).get('estimated_cost_usd', 0),
         'reuse_total': len(recs),
@@ -269,7 +270,7 @@ def build(d: dict, out: Path) -> None:
     dc = d['direct_counts']
     table(doc, ['Pathway', 'Classified', 'Reuse', 'Cost'], [
         ['Indirect: papers citing a dandiset primary paper',
-         f"{d['citing_classified']:,}", f"{cc.get('REUSE', 0):,}", f"${d['citing_cost']:,.2f}"],
+         f"{d['citing_pairs']:,}", f"{cc.get('REUSE', 0):,}", f"${d['citing_cost']:,.2f}"],
         ['Direct: papers naming a dandiset identifier',
          f"{d['direct_pairs']:,}", f"{dc.get('REUSE', 0):,}", f"${d['direct_cost']:,.2f}"],
     ], widths=[3.2, 1.1, 0.9, 0.9])

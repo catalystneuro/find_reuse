@@ -1065,6 +1065,49 @@ class TestImagingModality:
         assert 'transcriptomics' not in C.DANDI_HOSTED_MODALITIES
 
 
+class TestBuildWorklist:
+    """
+    The worklist has one item per (citing paper, dandiset) pair.
+
+    Dedup used to key on the citing DOI alone, so a paper citing the primary
+    papers of several dandisets was classified only against the first, and
+    reuse of the siblings' data was never asked about.
+    """
+
+    def build(self, tmp_path, results):
+        from src.shared import run_fulltext_classification as R
+        corpus = tmp_path / 'corpus.json'
+        corpus.write_text(json.dumps({'results': results}))
+        return R.build_worklist(corpus)
+
+    def test_paper_citing_two_dandisets_yields_a_pair_for_each(self, tmp_path):
+        work = self.build(tmp_path, [
+            {'dandiset_id': '000003', 'dandiset_name': 'first',
+             'citing_papers': [{'doi': '10.1/A', 'title': 'Paper A',
+                                'cited_paper_doi': '10.1/primary-three'}]},
+            {'dandiset_id': '000004', 'dandiset_name': 'second',
+             'citing_papers': [{'doi': '10.1/A', 'title': 'Paper A',
+                                'cited_paper_doi': '10.1/primary-four'}]},
+        ])
+        assert work == [
+            {'doi': '10.1/A', 'title': 'Paper A', 'dandiset_id': '000003',
+             'dandiset_name': 'first', 'primary_paper_doi': '10.1/primary-three'},
+            {'doi': '10.1/A', 'title': 'Paper A', 'dandiset_id': '000004',
+             'dandiset_name': 'second', 'primary_paper_doi': '10.1/primary-four'},
+        ]
+
+    def test_paper_citing_one_dandiset_yields_one_pair(self, tmp_path):
+        work = self.build(tmp_path, [
+            {'dandiset_id': '000003', 'dandiset_name': 'only',
+             'citing_papers': [{'doi': '10.1/A', 'title': 'Paper A',
+                                'cited_paper_doi': '10.1/primary'}]},
+        ])
+        assert work == [
+            {'doi': '10.1/A', 'title': 'Paper A', 'dandiset_id': '000003',
+             'dandiset_name': 'only', 'primary_paper_doi': '10.1/primary'},
+        ]
+
+
 class TestRetryWorklistPrimaryPaper:
     """
     A rerun must ask the same question the original run asked.
