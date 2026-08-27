@@ -145,7 +145,7 @@ CSS = """
                text-transform:uppercase;color:var(--muted);font-weight:600}
   .legend{display:flex;flex-wrap:wrap;gap:5px 20px;margin:0 0 14px;font-size:12px;
           color:var(--muted)}
-  .key{display:inline-flex;align-items:center;gap:7px}
+  .key{display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
   figure.q{margin:0;padding:9px 0 9px 14px;border-left:3px solid var(--line-strong)}
   figure.q.exact{border-left-color:var(--ok)}
   figure.q.normalized,figure.q.case_insensitive,figure.q.spacing_insensitive,
@@ -165,21 +165,29 @@ CSS = """
   .calls{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
   .calls button{font:inherit;font-size:15px;font-weight:560;padding:13px 30px;
                 border-radius:11px;cursor:pointer;min-width:132px;
-                border:1px solid var(--line-strong);background:var(--surface);
-                color:var(--muted);white-space:nowrap}
-  .calls button:hover{border-color:var(--accent);color:var(--ink)}
+                border:1px solid;background:var(--surface);white-space:nowrap}
+  .calls button:hover{border-color:currentColor}
+  /* An answer that is already recorded is filled and bold; the ring is drawn
+     inside so that selecting one does not shift the row. */
+  .calls button[aria-pressed="true"]{font-weight:760;
+                                     box-shadow:inset 0 0 0 1px currentColor}
   .decide textarea{width:min(100%,880px);font:inherit;font-size:13px;line-height:1.45;
                    padding:9px 12px;border-radius:9px;border:1px solid var(--line-strong);
                    background:var(--surface);color:var(--ink);resize:none;min-height:54px}
   .decide textarea::placeholder{color:var(--muted);opacity:.75}
   /* Colour is relative to what the classifier said, not fixed per label: green
-     means you agreed with it, red that you contradicted it. */
-  .calls button[aria-pressed="true"].agree{background:var(--ok-soft);border-color:var(--ok);
-      color:var(--ok);font-weight:600}
-  .calls button[aria-pressed="true"].contradict{background:var(--bad-soft);
-      border-color:var(--bad);color:var(--bad);font-weight:600}
-  .calls button[aria-pressed="true"].hedge{background:var(--warn-soft);border-color:var(--warn);
-      color:var(--warn);font-weight:600}
+     means you agreed with it, red that you contradicted it, amber that you could
+     not tell. It is on the buttons from the start, so the weight of an answer is
+     visible before it is given. */
+  .calls button.agree{color:var(--ok);
+      border-color:color-mix(in srgb,var(--ok) 40%,transparent)}
+  .calls button.contradict{color:var(--bad);
+      border-color:color-mix(in srgb,var(--bad) 40%,transparent)}
+  .calls button.hedge{color:var(--warn);
+      border-color:color-mix(in srgb,var(--warn) 40%,transparent)}
+  .calls button[aria-pressed="true"].agree{background:var(--ok-soft)}
+  .calls button[aria-pressed="true"].contradict{background:var(--bad-soft)}
+  .calls button[aria-pressed="true"].hedge{background:var(--warn-soft)}
   .empty{margin:auto;color:var(--muted);font-size:14px}
   @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 """
@@ -192,8 +200,8 @@ let calls = {};
 let notes = {};
 let index = 0;
 // Two ways of working: take the pairs still owed an answer, or look back over
-// the ones already given one.
-let filter = 'all';
+// the ones already given one. A session opens on the work still to do.
+let filter = 'todo';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
   ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -204,10 +212,10 @@ const tierLabel = t => ({exact:'exact', normalized:'normalized',
 
 const TIER_KEY = `<div class="legend">
     <span class="key"><span class="tier exact">exact</span>character for character</span>
-    <span class="key"><span class="tier normalized">normalized</span>matches once case,
-      punctuation or spacing is folded</span>
-    <span class="key"><span class="tier not_found">not in paper</span>does not appear at
-      all, so a claim resting only on these is unsupported</span>
+    <span class="key"><span class="tier normalized">normalized</span>case, punctuation or
+      spacing folded</span>
+    <span class="key"><span class="tier not_found">not in paper</span>does not appear in
+      the paper</span>
   </div>`;
 
 function setSaveState(text, cls){
@@ -315,9 +323,9 @@ function render(){
 
     <div class="evidence">
       <div class="inner">
-        <h4>What the classifier said</h4>
+        <h4>Model Reasoning</h4>
         <p class="reasoning">${esc(r.reasoning)}</p>
-        <h4>Evidence it quoted</h4>
+        <h4>Quoted Evidence</h4>
         ${TIER_KEY}
         ${quotes}
       </div>
@@ -411,8 +419,8 @@ def build(rows: list[dict], reviewer: str, mode: str) -> str:
   <button class="btn" id="next">Next &rarr;</button>
   <button class="btn" id="unreviewed">Next unreviewed</button>
   <div class="filters" role="group" aria-label="Show">
-    <button class="btn" data-f="all" aria-pressed="true">All</button>
-    <button class="btn" data-f="todo" aria-pressed="false">Unreviewed</button>
+    <button class="btn" data-f="all" aria-pressed="false">All</button>
+    <button class="btn" data-f="todo" aria-pressed="true">Unreviewed</button>
     <button class="btn" data-f="done" aria-pressed="false">Reviewed</button>
   </div>
   <div class="spacer"></div>
