@@ -91,6 +91,7 @@ CSS = PALETTE + """
   .btn:hover{border-color:var(--accent);color:var(--ink)}
   .btn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);
                             color:var(--on-accent)}
+  .axes{display:flex;flex-direction:column;gap:5px}
   .filters{display:flex;gap:6px}
   .btn:focus-visible,a:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);
                                                             outline-offset:2px}
@@ -340,11 +341,18 @@ function callButtons(r){
 function render(){
   const rows = visible();
   index = Math.min(index, Math.max(rows.length - 1, 0));
-  const done = ROWS.filter(callFor).length;
+  // Progress is measured over whose pairs you are looking at, not over the
+  // review state you have filtered to: switching to Reviewed should not read as
+  // having finished. Narrowing to your assignment does move it, because then
+  // your assignment is the work.
+  const scoped = scope === 'mine' ? ROWS.filter(isMine) : ROWS;
+  const done = scoped.filter(callFor).length;
   document.getElementById('position').textContent =
     rows.length ? `Pair ${index + 1} of ${rows.length}` : 'No pairs';
-  document.getElementById('progress').textContent = `${done} of ${ROWS.length} reviewed`;
-  document.getElementById('bar').style.width = (100 * done / ROWS.length) + '%';
+  document.getElementById('progress').textContent =
+    `${done} of ${scoped.length} reviewed`;
+  document.getElementById('bar').style.width =
+    (scoped.length ? 100 * done / scoped.length : 0) + '%';
 
   const r = rows[index];
   if (!r){
@@ -459,10 +467,10 @@ def build(rows: list[dict], reviewer: str, mode: str,
     payload = json.dumps(rows, ensure_ascii=False).replace('</', r'<\/')
     n = len(rows)
     scope_buttons = '' if mine is None else """
-  <div class="filters" role="group" aria-label="Whose">
-    <button class="btn" data-s="mine" aria-pressed="true">Mine</button>
-    <button class="btn" data-s="everyone" aria-pressed="false">Everyone</button>
-  </div>"""
+    <div class="filters" role="group" aria-label="Whose">
+      <button class="btn" data-s="mine" aria-pressed="true">Assigned Only</button>
+      <button class="btn" data-s="everyone" aria-pressed="false">All</button>
+    </div>"""
     mine_js = ('null' if mine is None else
                'new Set(%s)' % json.dumps([f'{doi}\t{dandiset}'
                                            for doi, dandiset in mine]))
@@ -474,11 +482,13 @@ def build(rows: list[dict], reviewer: str, mode: str,
   <span class="mode">{mode}</span>
   <button class="btn" id="prev">&larr; Prev</button>
   <button class="btn" id="next">Next &rarr;</button>
-  <div class="filters" role="group" aria-label="Show">
-    <button class="btn" data-f="all" aria-pressed="false">All</button>
-    <button class="btn" data-f="todo" aria-pressed="true">Unreviewed</button>
-    <button class="btn" data-f="done" aria-pressed="false">Reviewed</button>
-  </div>{scope_buttons}
+  <div class="axes">
+    <div class="filters" role="group" aria-label="Review state">
+      <button class="btn" data-f="all" aria-pressed="false">All</button>
+      <button class="btn" data-f="todo" aria-pressed="true">Unreviewed</button>
+      <button class="btn" data-f="done" aria-pressed="false">Reviewed</button>
+    </div>{scope_buttons}
+  </div>
   <span class="readout" id="position">Pair 1 of {n}</span>
   <div class="spacer"></div>
   <div class="bar"><i id="bar"></i></div>

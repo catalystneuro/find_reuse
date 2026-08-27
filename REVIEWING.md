@@ -142,8 +142,8 @@ python -m src.review.run_review --reviewer rly --pathway indirect \
 ```
 
 A session always holds every candidate in its queue. An assignment narrows what
-is shown to your share of it — **Mine** and **Everyone** switch between the two
-without restarting, because the pairs were loaded either way.
+is shown to your share of it — **Assigned Only** and **All** switch between the
+two without restarting, because the pairs were loaded either way.
 
 Drop `--assignment` to open on all of it instead:
 
@@ -200,15 +200,17 @@ queue as you answer it and the next one takes its place, so the queue empties as
 you go. **Reviewed** is the looking-back pass over answers already given, where
 changing one is a matter of clicking a different label.
 
-**Mine / Everyone** appears when you opened on an assignment, and is a separate
-question from the one above: whose the pair is, rather than whether it has been
-reviewed. The two compose, so **Mine · Unreviewed** is your work still to do and
-**Everyone · Reviewed** is every call made on the queue so far.
+**Assigned Only / All** appears when you opened on an assignment, and asks a
+separate question from the row above it: whose the pair is, rather than whether
+it has been reviewed. The two stack because they are independent — any answer to
+one goes with any answer to the other — so **Assigned Only · Unreviewed** is
+your work still to do, and **All · Reviewed** is every call made on the queue.
 
-The toolbar counts two different things, and keeps them apart: **Pair 3 of 871**
+The toolbar counts two different things and keeps them apart. **Pair 3 of 871**
 sits beside the filter buttons because it is where you are inside whatever they
-select, while the bar and **142 of 875 reviewed** sit off by Save because they
-are the queue as a whole.
+select. The bar and **142 of 437 reviewed** sit off by Save because they measure
+the work, which is why they follow **Assigned Only / All** but not the review
+state: switching to **Reviewed** should not read as having finished.
 
 ## Where the answers go
 
