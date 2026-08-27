@@ -44,7 +44,14 @@ def matches(pair: dict, args: argparse.Namespace) -> bool:
             return False
     if args.modality and not set(args.modality) & set(pair['reused_modalities']):
         return False
-    if args.archive and not set(args.archive) & set(pair['archives']):
+    # Matched loosely, because the archive is the one field the classifier does
+    # not reliably normalize: what normalize_archive does not recognise it keeps
+    # verbatim, so CELLxGENE arrives under seventeen spellings and some records
+    # name two archives in one string. An exact match would quietly find a
+    # fraction of a round.
+    if args.archive and not any(
+            wanted.lower() in recorded.lower()
+            for wanted in args.archive for recorded in pair['archives']):
         return False
     if args.reuse_type and not set(args.reuse_type) & set(pair['reuse_types']):
         return False
@@ -197,9 +204,10 @@ def main():
                              'and a pair matches if it reused any named one. '
                              f'One of: {", ".join(MODALITIES)}.')
     parser.add_argument('--archive', action='append', metavar='NAME',
-                        help='Where the authors say they got the data, as it '
-                             'appears in the candidate list, e.g. "DANDI '
-                             'Archive", CRCNS, Zenodo. Repeatable.')
+                        help='Where the authors say they got the data, e.g. '
+                             '"DANDI Archive", CRCNS, CELLxGENE. Matched '
+                             'case-insensitively anywhere in the recorded name, '
+                             'since that name is not normalized. Repeatable.')
     parser.add_argument('--reuse-type', action='append', choices=list(REUSE_TYPES),
                         metavar='TYPE',
                         help='What the authors did with the data. Repeatable. '
