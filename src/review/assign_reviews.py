@@ -103,10 +103,10 @@ def answered_by(registry: list[dict], reviews_dir: Path) -> dict[tuple[str, str]
     """
     holders = {}
     for reviewer in registry:
-        path = answers_path(reviewer['name'], reviews_dir)
+        path = answers_path(reviewer['username'], reviews_dir)
         if path.exists():
             for pair in flatten(json.loads(path.read_text())['reviews']):
-                holders[pair] = reviewer['name']
+                holders[pair] = reviewer['username']
     return holders
 
 
@@ -127,7 +127,7 @@ def deal(pairs: list[dict], reviewers: list[dict], placed: dict[str, str],
     been given least. Counting per pathway keeps each queue split evenly, which
     splits the round evenly too.
     """
-    names = [r['name'] for r in reviewers]
+    names = [r['username'] for r in reviewers]
     assigned = {(name, pathway): [] for name in names for pathway in PATHWAYS}
     counts = {(name, pathway): 0 for name in names for pathway in PATHWAYS}
     by_pair = {(p['doi'], p['dandiset']): p for p in pairs}
@@ -197,8 +197,8 @@ def queue_after(reviewer: str, pathway: str, dealt: list[tuple[str, str]],
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--reviewers',
-                        help='Comma-separated subset of the registry; '
-                             'all registered reviewers by default.')
+                        help='Comma-separated usernames, a subset of the '
+                             'registry; all registered reviewers by default.')
     parser.add_argument('--pathway', choices=list(PATHWAYS),
                         help='Only this queue. Both by default, dealt separately.')
     parser.add_argument('--dandi-source', choices=['possible', 'evidenced'],

@@ -116,9 +116,10 @@ python -m src.review.assign_reviews --neuro --dandi-source evidenced \
 ```
 
 What survives is split among the reviewers in `reviews/reviewers.json`, one
-`reviews/assignments/<reviewer>.<pathway>.json` each. A name that is not in that
-file is refused rather than assigned to, so a typo cannot deal a round to
-somebody who does not exist; `--reviewers` narrows to a subset of those listed.
+`reviews/assignments/<username>.<pathway>.json` each. A username that is not in
+that file is refused rather than assigned to, so a typo cannot deal a round to
+somebody who does not exist; `--reviewers` narrows to a subset of those listed,
+by username.
 
 An assignment is a queue, not a history. It holds what you still have to read,
 so answering a pair takes it out, and `--limit` cuts a round down to something

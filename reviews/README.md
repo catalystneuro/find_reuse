@@ -5,16 +5,26 @@ Everything a round of manual review needs, and everything it produces. See
 
 ## `reviewers.json`
 
-Who reviews. `name` decides the filenames below, so it is the one field that
-must not change casually.
+Who reviews. Two names, because they do two different jobs.
 
 ```json
-[{"name": "rly", "github": "rly"}]
+[{"username": "rly", "name": "Ryan Ly"}]
 ```
 
-Assigning to a name that is not listed here is refused rather than obeyed — a
+`username` names every file below and joins them to each other, so it has to be
+stable and usable as a filename — a GitHub handle already is, which is why it is
+the obvious thing to use. Changing someone's username means renaming their files
+to match; nothing does that for you.
+
+`name` is who that is, for whoever opens this file to decide who should take a
+round. Nothing reads it. That is fine here in a way it would not be in a
+generated file: this one is kept by hand and meant to be read by a person.
+
+Assigning to a username that is not listed is refused rather than obeyed — a
 typo would otherwise deal pairs to somebody who does not exist, taking them out
-of circulation and giving them to nobody.
+of circulation and giving them to nobody. So is a username that could not name a
+file, since one quietly rewritten into a usable form would come back as somebody
+else, holding none of their own work.
 
 ## `reuse_candidates.json`
 

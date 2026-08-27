@@ -32,7 +32,7 @@ def filters(**overrides):
 
 @pytest.fixture
 def reviewers():
-    return [{'name': 'paul'}, {'name': 'rly'}]
+    return [{'username': 'paul'}, {'username': 'rly'}]
 
 
 @pytest.fixture
@@ -284,7 +284,7 @@ class TestReadingWhatIsHeld:
     def test_an_answer_belongs_to_whoever_gave_it(self, tmp_path):
         (tmp_path / 'rly.json').write_text(json.dumps(
             {'reviewer': 'rly', 'reviews': {'10.1/a': {'000541': {'call': 'reuse'}}}}))
-        assert A.answered_by([{'name': 'rly'}], tmp_path) == {('10.1/a', '000541'): 'rly'}
+        assert A.answered_by([{'username': 'rly'}], tmp_path) == {('10.1/a', '000541'): 'rly'}
 
     def test_a_reviewer_who_has_answered_nothing_holds_nothing(self, tmp_path):
-        assert A.answered_by([{'name': 'rly'}], tmp_path) == {}
+        assert A.answered_by([{'username': 'rly'}], tmp_path) == {}
