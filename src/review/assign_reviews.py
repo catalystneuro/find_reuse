@@ -15,6 +15,10 @@ Dealing is incremental: a pair somebody still owes stays theirs, and a pair
 somebody has answered is not dealt again, so a rerun of the pipeline hands out
 only what it added. Only queues that actually changed are rewritten.
 
+--reassign throws the existing queues away and deals the round from scratch,
+for when the last one was not the round you meant. Reviews already given are
+never discarded, and their pairs stay out of the deal either way.
+
 Usage:
     python -m src.review.assign_reviews --neuro --dandi-source evidenced
 """
@@ -224,6 +228,11 @@ def main():
     parser.add_argument('--lab', choices=['same', 'different', 'any'], default='any',
                         help='Whether the group that reused the data is the one '
                              'that produced it. Default any.')
+    parser.add_argument('--reassign', action='store_true',
+                        help='Discard the existing assignments and deal this '
+                             'round from scratch, instead of adding to them. '
+                             'Reviews already given are untouched, and their '
+                             'pairs are still not dealt again.')
     parser.add_argument('--limit', type=int, metavar='N',
                         help='Deal at most N new pairs, to size a round to what '
                              'somebody will finish. Work already owed is kept '
@@ -235,6 +244,16 @@ def main():
     reviewers = select_reviewers(registry, args.reviewers)
     pairs = [p for p in candidates['pairs'] if matches(p, args)]
     print(f'{len(pairs)} of {len(candidates["pairs"])} candidate pairs match')
+
+    if args.reassign:
+        discarded = assignment_paths(REUSE_CONFIRMATION_DIR)
+        held = sum(len(flatten(json.loads(path.read_text())['pairs']))
+                   for path in discarded)
+        for path in discarded:
+            path.unlink()
+        if discarded:
+            print(f'Discarded {len(discarded)} assignment'
+                  f'{"" if len(discarded) == 1 else "s"} holding {held} pairs')
 
     answered = answered_by(registry, REUSE_CONFIRMATION_DIR)
     dealt = deal(pairs, reviewers, assigned_to(REUSE_CONFIRMATION_DIR),

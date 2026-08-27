@@ -262,6 +262,48 @@ class TestQueueAfter:
         assert (queue, done) == ([('10.1/a', '000541')], 0)
 
 
+class TestReassign:
+    """--reassign is main()'s, so these drive the pieces it composes."""
+
+    def existing(self, tmp_path, pairs):
+        A.write_assignment('rly', 'indirect', pairs, 'S', tmp_path)
+        return A.assignment_paths(tmp_path)
+
+    def test_the_files_it_discards_are_every_assignment(self, tmp_path):
+        A.write_assignment('rly', 'indirect', [('10.1/a', '000541')], 'S', tmp_path)
+        A.write_assignment('paul', 'direct', [('10.1/b', '000714')], 'S', tmp_path)
+        assert len(A.assignment_paths(tmp_path)) == 2
+
+    def test_a_discarded_queue_is_not_carried_into_the_new_one(self, tmp_path):
+        self.existing(tmp_path, [('10.1/old', '000541')])
+        for path in A.assignment_paths(tmp_path):
+            path.unlink()
+        queue, done = A.queue_after('rly', 'indirect', [('10.1/new', '000541')],
+                                    {}, tmp_path)
+        assert queue == [('10.1/new', '000541')]
+        assert done == 0
+
+    def test_without_discarding_the_old_queue_is_carried(self, tmp_path):
+        self.existing(tmp_path, [('10.1/old', '000541')])
+        queue, _ = A.queue_after('rly', 'indirect', [('10.1/new', '000541')],
+                                 {}, tmp_path)
+        assert queue == [('10.1/new', '000541'), ('10.1/old', '000541')]
+
+    def test_a_reviewed_pair_stays_out_of_a_fresh_deal(self, tmp_path, pairs,
+                                                       reviewers):
+        # Discarding assignments must not put reviewed work back in circulation.
+        reviews = A.reviews_path('rly', tmp_path)
+        reviews.parent.mkdir(parents=True, exist_ok=True)
+        reviews.write_text(json.dumps({'reviewer': 'rly', 'reviews': {
+            '10.1/p0': {'000541': {'call': 'reuse'}}}}))
+        answered = A.answered_by(reviewers, tmp_path)
+
+        assigned = A.deal(pairs, reviewers, {}, answered, None)
+
+        dealt = [k for keys in assigned.values() for k in keys]
+        assert ('10.1/p0', '000541') not in dealt
+
+
 class TestReadingWhatIsHeld:
     def test_an_assignment_on_disk_holds_its_keys(self, tmp_path):
         A.write_assignment('rly', 'indirect', [('10.1/a', '000541')], 'S', tmp_path)

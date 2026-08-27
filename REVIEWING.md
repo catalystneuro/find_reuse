@@ -134,6 +134,18 @@ pair somebody has answered is not dealt again, so rerunning the pipeline hands
 out only what it added and nobody reviews the same pair twice. A run that
 changes nothing rewrites nothing.
 
+Which means a narrower filter on its own deals nothing once a wider round is
+out: every pair it selects is already in somebody's queue. `--reassign` throws
+those queues away and deals from scratch, for when the last round was not the
+one you meant. Reviews already given are never discarded, and their pairs stay
+out of the deal either way — so this cannot put work somebody has done back into
+circulation.
+
+```bash
+python -m src.review.assign_reviews --reassign \
+    --neuro --dandi-source evidenced --lab different
+```
+
 ## Running a session
 
 ```bash
