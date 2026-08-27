@@ -192,7 +192,7 @@ class TestDeal:
 class TestWriteAssignment:
     def test_writes_the_reviewer_the_pathway_and_the_keys(self, tmp_path):
         A.write_assignment('rly', 'indirect', [('10.1/a', '000541')], 'STAMP', tmp_path)
-        written = json.loads((tmp_path / 'rly.indirect.json').read_text())
+        written = json.loads(A.assignment_path('rly', 'indirect', tmp_path).read_text())
         assert written['reviewer'] == 'rly'
         assert written['pathway'] == 'indirect'
         assert written['pairs'] == {'10.1/a': ['000541']}
@@ -200,31 +200,32 @@ class TestWriteAssignment:
 
     def test_holds_no_pair_records_only_their_keys(self, tmp_path):
         A.write_assignment('rly', 'indirect', [('10.1/a', '000541')], 'STAMP', tmp_path)
-        written = json.loads((tmp_path / 'rly.indirect.json').read_text())
+        written = json.loads(A.assignment_path('rly', 'indirect', tmp_path).read_text())
         assert set(written) == {'reviewer', 'pathway', 'assigned_at',
                                 'candidates_generated_at', 'pairs'}
 
     def test_replaces_the_queue_rather_than_adding_to_it(self, tmp_path):
         A.write_assignment('rly', 'indirect', [('10.1/b', '000541')], 'STAMP', tmp_path)
         A.write_assignment('rly', 'indirect', [('10.1/a', '000541')], 'STAMP', tmp_path)
-        written = json.loads((tmp_path / 'rly.indirect.json').read_text())
+        written = json.loads(A.assignment_path('rly', 'indirect', tmp_path).read_text())
         assert written['pairs'] == {'10.1/a': ['000541']}
 
     def test_a_round_that_changes_nothing_leaves_the_file_untouched(self, tmp_path):
         A.write_assignment('rly', 'indirect', [('10.1/a', '000541')], 'STAMP', tmp_path)
-        before = (tmp_path / 'rly.indirect.json').read_bytes()
+        before = A.assignment_path('rly', 'indirect', tmp_path).read_bytes()
         assert A.write_assignment(
             'rly', 'indirect', [('10.1/a', '000541')], 'LATER', tmp_path) is False
-        assert (tmp_path / 'rly.indirect.json').read_bytes() == before
+        assert A.assignment_path('rly', 'indirect', tmp_path).read_bytes() == before
 
     def test_a_reviewer_with_nothing_to_read_gets_no_file(self, tmp_path):
         assert A.write_assignment('rly', 'direct', [], 'STAMP', tmp_path) is False
-        assert not (tmp_path / 'rly.direct.json').exists()
+        assert not A.assignment_path('rly', 'direct', tmp_path).exists()
 
     def test_a_finished_queue_is_emptied_rather_than_left_stale(self, tmp_path):
         A.write_assignment('rly', 'indirect', [('10.1/a', '000541')], 'STAMP', tmp_path)
         assert A.write_assignment('rly', 'indirect', [], 'STAMP', tmp_path) is True
-        assert json.loads((tmp_path / 'rly.indirect.json').read_text())['pairs'] == {}
+        assert json.loads(
+            A.assignment_path('rly', 'indirect', tmp_path).read_text())['pairs'] == {}
 
 
 class TestQueueAfter:
@@ -282,7 +283,9 @@ class TestReadingWhatIsHeld:
                                            ('10.1/b', '000714'): 'paul'}
 
     def test_an_answer_belongs_to_whoever_gave_it(self, tmp_path):
-        (tmp_path / 'rly.json').write_text(json.dumps(
+        reviews = A.reviews_path('rly', tmp_path)
+        reviews.parent.mkdir(parents=True, exist_ok=True)
+        reviews.write_text(json.dumps(
             {'reviewer': 'rly', 'reviews': {'10.1/a': {'000541': {'call': 'reuse'}}}}))
         assert A.answered_by([{'username': 'rly'}], tmp_path) == {('10.1/a', '000541'): 'rly'}
 

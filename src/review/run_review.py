@@ -37,7 +37,7 @@ from urllib.parse import parse_qs, urlparse
 from fetch_paper import TextCache
 
 from src.review.build_candidates import CANDIDATES_FILE
-from src.review.reviewers import REVIEWS_DIR, answers_path
+from src.review.reviewers import REUSE_CONFIRMATION_DIR, reviews_path
 
 REPO = Path(__file__).resolve().parents[2]
 PAPER_CACHE = REPO / '.paper_cache'
@@ -646,11 +646,11 @@ def make_handler(page: str, reviewer: str, save_path: Path,
 
 
 def serve(rows: list[dict], reviewer: str, mode: str, port: int,
-          reviews_dir: Path = REVIEWS_DIR, paper_cache: Path = PAPER_CACHE,
+          base: Path = REUSE_CONFIRMATION_DIR, paper_cache: Path = PAPER_CACHE,
           open_browser: bool = True) -> None:
     if not rows:
         raise SystemExit('That assignment holds no pairs; nothing to review.')
-    save_path = answers_path(reviewer, reviews_dir)
+    save_path = reviews_path(reviewer, base)
     handler = make_handler(build(rows, reviewer, mode), reviewer, save_path,
                            paper_cache, quotes_by_pair(rows))
     server = ThreadingHTTPServer(('127.0.0.1', port), handler)
@@ -671,7 +671,7 @@ def serve(rows: list[dict], reviewer: str, mode: str, port: int,
 
 def load_assignment(assignment_path: Path,
                     candidates_path: Path = CANDIDATES_FILE,
-                    reviews_dir: Path = REVIEWS_DIR
+                    base: Path = REUSE_CONFIRMATION_DIR
                     ) -> tuple[list[dict], str, str]:
     """
     The pairs a session covers: the ones assigned, and the ones already answered.
@@ -700,11 +700,11 @@ def load_assignment(assignment_path: Path,
             f'starting with {missing[0][0]} / {missing[0][1]}. Rebuild the '
             f'candidate list, or reassign against the one you have.')
 
-    answers = answers_path(assignment['reviewer'], reviews_dir)
-    if answers.exists():
-        reviews = json.loads(answers.read_text())['reviews']
+    reviews = reviews_path(assignment['reviewer'], base)
+    if reviews.exists():
+        given = json.loads(reviews.read_text())['reviews']
         wanted |= {(doi, dandiset)
-                   for doi, dandisets in reviews.items()
+                   for doi, dandisets in given.items()
                    for dandiset in dandisets
                    if (doi, dandiset) in by_pair
                    and by_pair[(doi, dandiset)]['pathway'] == assignment['pathway']}

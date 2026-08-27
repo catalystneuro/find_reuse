@@ -37,7 +37,7 @@ from src.shared.run_fulltext_classification import primary_paper_index
 DANDI_MARKER = re.compile(r'dandiarchive\.org|10\.48324|\bDANDI\b|dandiset', re.I)
 
 REPO = Path(__file__).resolve().parents[2]
-CANDIDATES_FILE = REPO / 'reviews/reuse_candidates.json'
+CANDIDATES_FILE = REPO / 'reuse_confirmation/reuse_candidates.json'
 RESULTS_FILE = REPO / 'output/all_dandiset_papers_refreshed.json'
 DIRECT_RESULTS_FILE = REPO / 'output/results_dandi_openalex.json'
 

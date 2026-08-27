@@ -42,9 +42,9 @@ def paper_cache(tmp_path):
 @pytest.fixture
 def session(tmp_path, paper_cache):
     """A running review server, with the directory its answers land in."""
-    reviews_dir = tmp_path / 'reviews'
+    reviews_dir = tmp_path / 'reuse_confirmation'
     handler = R.make_handler('<title>page</title>', 'Ada Lovelace',
-                             reviews_dir / 'ada-lovelace.json', paper_cache,
+                             reviews_dir / 'ada' / 'reviews.json', paper_cache,
                              {('10.1/citer', '000541'): ['reanalysed the recordings']})
     server = ThreadingHTTPServer(('127.0.0.1', 0), handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
@@ -71,7 +71,7 @@ class TestReviewServer:
                         'corpus': {'models': ['openai/gpt-5.6-luna']},
                         'labels': ['reuse', 'mention']})
 
-        written = json.loads((reviews_dir / 'ada-lovelace.json').read_text())
+        written = json.loads((reviews_dir / 'ada' / 'reviews.json').read_text())
         assert written == {
             'reviewer': 'Ada Lovelace',
             'reviews': {'10.1002/acn3.70285': {'000768': {'call': 'reuse'}}}}
@@ -85,7 +85,7 @@ class TestReviewServer:
             '000714': {'call': 'mention', 'note': 'Cited for the method.'},
         }}})
 
-        written = json.loads((reviews_dir / 'ada-lovelace.json').read_text())
+        written = json.loads((reviews_dir / 'ada' / 'reviews.json').read_text())
         assert written['reviews']['10.1/citer'] == {
             '000541': {'call': 'reuse'},
             '000714': {'call': 'mention', 'note': 'Cited for the method.'}}
@@ -218,8 +218,9 @@ class TestLoadAssignment:
         return path
 
     def answered(self, tmp_path, reviews):
-        (tmp_path / 'rly.json').write_text(
-            json.dumps({'reviewer': 'rly', 'reviews': reviews}))
+        path = tmp_path / 'rly' / 'reviews.json'
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({'reviewer': 'rly', 'reviews': reviews}))
 
     def test_reads_the_reviewer_and_the_pathway_off_the_assignment(
             self, assignment, candidates):

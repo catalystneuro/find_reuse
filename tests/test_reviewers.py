@@ -73,13 +73,31 @@ class TestSelectReviewers:
 
 
 class TestPaths:
-    def test_an_assignment_is_named_for_its_reviewer_and_pathway(self, tmp_path):
-        path = V.assignment_path('pauladkisson', 'indirect', tmp_path)
-        assert path == tmp_path / 'pauladkisson.indirect.json'
+    def test_a_reviewer_gets_a_directory_named_for_them(self, tmp_path):
+        assert V.reviewer_dir('rly', tmp_path) == tmp_path / 'rly'
 
-    def test_answers_are_named_for_the_reviewer_alone(self, tmp_path):
-        assert V.answers_path('rly', tmp_path) == tmp_path / 'rly.json'
+    def test_an_assignment_sits_under_its_reviewer_and_names_its_pathway(
+            self, tmp_path):
+        assert V.assignment_path('pauladkisson', 'indirect', tmp_path) == (
+            tmp_path / 'pauladkisson' / 'assignment-indirect.json')
+
+    def test_reviews_sit_under_their_reviewer(self, tmp_path):
+        assert V.reviews_path('rly', tmp_path) == tmp_path / 'rly' / 'reviews.json'
 
     def test_the_username_is_used_as_written(self, tmp_path):
-        assert V.answers_path('Paul-Adkisson', tmp_path) == (
-            tmp_path / 'Paul-Adkisson.json')
+        assert V.reviews_path('Paul-Adkisson', tmp_path) == (
+            tmp_path / 'Paul-Adkisson' / 'reviews.json')
+
+    def test_every_assignment_is_found_whosever_it_is(self, tmp_path):
+        for username, pathway in (('rly', 'indirect'), ('rly', 'direct'),
+                                  ('pauladkisson', 'indirect')):
+            path = V.assignment_path(username, pathway, tmp_path)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text('{}')
+        V.reviews_path('rly', tmp_path).write_text('{}')
+        assert [p.relative_to(tmp_path).as_posix()
+                for p in V.assignment_paths(tmp_path)] == [
+            'pauladkisson/assignment-indirect.json',
+            'rly/assignment-direct.json',
+            'rly/assignment-indirect.json',
+        ]

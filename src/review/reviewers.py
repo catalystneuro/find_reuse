@@ -6,7 +6,7 @@ a username that is not in it is a typo, and a typo that silently creates a
 reviewer takes pairs out of circulation and gives them to nobody.
 
 A reviewer has two names because they do two different jobs. The `username`
-names their files and joins the registry to their assignments and their answers,
+names their files and joins the registry to their assignments and their reviews,
 so it has to be stable and usable as a filename; a GitHub handle is the obvious
 choice and needs no thought. The `name` is who that is, for whoever opens this
 file to decide who should take a round. Nothing reads it, which is the point of
@@ -20,9 +20,9 @@ import re
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
-REVIEWS_DIR = REPO / 'reviews'
-REVIEWERS_FILE = REVIEWS_DIR / 'reviewers.json'
-ASSIGNMENTS_DIR = REVIEWS_DIR / 'assignments'
+# Candidates in, confirmed reuse out; everything the checking needs lives here.
+REUSE_CONFIRMATION_DIR = REPO / 'reuse_confirmation'
+REVIEWERS_FILE = REUSE_CONFIRMATION_DIR / 'reviewers.json'
 
 # What a username may be, which is what a filename may be: a GitHub handle
 # already qualifies, so registering one takes no thought.
@@ -69,10 +69,26 @@ def select_reviewers(registry: list[dict], usernames: str | None) -> list[dict]:
     return [r for r in registry if r['username'] in wanted]
 
 
+def reviewer_dir(username: str, base: Path = REUSE_CONFIRMATION_DIR) -> Path:
+    """
+    One reviewer's own corner of the tree.
+
+    The top of the tree is what everybody shares -- the registry, the candidate
+    list -- and a directory below it is one person's. Their username names it,
+    which is why a username has to be able to name a file.
+    """
+    return base / username
+
+
 def assignment_path(username: str, pathway: str,
-                    assignments_dir: Path = ASSIGNMENTS_DIR) -> Path:
-    return assignments_dir / f'{username}.{pathway}.json'
+                    base: Path = REUSE_CONFIRMATION_DIR) -> Path:
+    return reviewer_dir(username, base) / f'assignment-{pathway}.json'
 
 
-def answers_path(username: str, reviews_dir: Path = REVIEWS_DIR) -> Path:
-    return reviews_dir / f'{username}.json'
+def reviews_path(username: str, base: Path = REUSE_CONFIRMATION_DIR) -> Path:
+    return reviewer_dir(username, base) / 'reviews.json'
+
+
+def assignment_paths(base: Path = REUSE_CONFIRMATION_DIR) -> list[Path]:
+    """Every assignment on disk, whosever it is."""
+    return sorted(base.glob('*/assignment-*.json'))

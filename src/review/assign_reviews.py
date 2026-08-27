@@ -28,8 +28,9 @@ from pathlib import Path
 
 from src.review.build_candidates import CANDIDATES_FILE
 from src.shared.classify_fulltext_reuse import MODALITIES, REUSE_TYPES
-from src.review.reviewers import (ASSIGNMENTS_DIR, REVIEWERS_FILE, REVIEWS_DIR,
-                                  answers_path, assignment_path, load_reviewers,
+from src.review.reviewers import (REUSE_CONFIRMATION_DIR, REVIEWERS_FILE,
+                                  assignment_path, assignment_paths,
+                                  load_reviewers, reviews_path,
                                   select_reviewers)
 
 PATHWAYS = ('indirect', 'direct')
@@ -79,7 +80,7 @@ def nest(pairs: list[tuple[str, str]]) -> dict:
     return {doi: sorted(dandisets) for doi, dandisets in nested.items()}
 
 
-def assigned_to(assignments_dir: Path) -> dict[tuple[str, str], str]:
+def assigned_to(base: Path) -> dict[tuple[str, str], str]:
     """
     Every pair already sitting in an assignment, and whose it is.
 
@@ -87,14 +88,14 @@ def assigned_to(assignments_dir: Path) -> dict[tuple[str, str], str]:
     round: a pair someone else holds is spoken for either way.
     """
     holders = {}
-    for path in sorted(assignments_dir.glob('*.json')):
+    for path in assignment_paths(base):
         assignment = json.loads(path.read_text())
         for pair in flatten(assignment['pairs']):
             holders[pair] = assignment['reviewer']
     return holders
 
 
-def answered_by(registry: list[dict], reviews_dir: Path) -> dict[tuple[str, str], str]:
+def answered_by(registry: list[dict], base: Path) -> dict[tuple[str, str], str]:
     """
     Every pair somebody has already judged, and who judged it.
 
@@ -103,7 +104,7 @@ def answered_by(registry: list[dict], reviews_dir: Path) -> dict[tuple[str, str]
     """
     holders = {}
     for reviewer in registry:
-        path = answers_path(reviewer['username'], reviews_dir)
+        path = reviews_path(reviewer['username'], base)
         if path.exists():
             for pair in flatten(json.loads(path.read_text())['reviews']):
                 holders[pair] = reviewer['username']
@@ -153,7 +154,7 @@ def deal(pairs: list[dict], reviewers: list[dict], placed: dict[str, str],
 
 
 def write_assignment(reviewer: str, pathway: str, pairs: list[tuple[str, str]],
-                     generated_at: str, assignments_dir: Path) -> bool:
+                     generated_at: str, base: Path) -> bool:
     """
     Replace a reviewer's queue with what they now have to read.
 
@@ -161,7 +162,7 @@ def write_assignment(reviewer: str, pathway: str, pairs: list[tuple[str, str]],
     diff. A reviewer with nothing to read gets no file rather than an empty one,
     unless they had a queue that is now finished.
     """
-    path = assignment_path(reviewer, pathway, assignments_dir)
+    path = assignment_path(reviewer, pathway, base)
     existing = json.loads(path.read_text())['pairs'] if path.exists() else None
     nested = nest(pairs)
     if existing == nested or (existing is None and not pairs):
@@ -179,7 +180,7 @@ def write_assignment(reviewer: str, pathway: str, pairs: list[tuple[str, str]],
 
 
 def queue_after(reviewer: str, pathway: str, dealt: list[tuple[str, str]],
-                answered: dict[tuple[str, str], str], assignments_dir: Path
+                answered: dict[tuple[str, str], str], base: Path
                 ) -> tuple[list[tuple[str, str]], int]:
     """
     What a reviewer has to read next, and how much of their last round they did.
@@ -188,7 +189,7 @@ def queue_after(reviewer: str, pathway: str, dealt: list[tuple[str, str]],
     they never got to stays, so an unfinished round is carried rather than
     forgotten.
     """
-    path = assignment_path(reviewer, pathway, assignments_dir)
+    path = assignment_path(reviewer, pathway, base)
     before = flatten(json.loads(path.read_text())['pairs']) if path.exists() else []
     kept = [p for p in before if p not in answered]
     return sorted(set(kept) | set(dealt)), len(before) - len(kept)
@@ -235,17 +236,19 @@ def main():
     pairs = [p for p in candidates['pairs'] if matches(p, args)]
     print(f'{len(pairs)} of {len(candidates["pairs"])} candidate pairs match')
 
-    answered = answered_by(registry, REVIEWS_DIR)
-    dealt = deal(pairs, reviewers, assigned_to(ASSIGNMENTS_DIR), answered, args.limit)
+    answered = answered_by(registry, REUSE_CONFIRMATION_DIR)
+    dealt = deal(pairs, reviewers, assigned_to(REUSE_CONFIRMATION_DIR),
+                 answered, args.limit)
 
     for (reviewer, pathway), new in sorted(dealt.items()):
-        queue, done = queue_after(reviewer, pathway, new, answered, ASSIGNMENTS_DIR)
+        queue, done = queue_after(reviewer, pathway, new, answered,
+                                  REUSE_CONFIRMATION_DIR)
         write_assignment(reviewer, pathway, queue,
-                         candidates['generated_at'], ASSIGNMENTS_DIR)
+                         candidates['generated_at'], REUSE_CONFIRMATION_DIR)
         if queue or new or done:
             print(f'  {reviewer:<20} {pathway:<9} '
                   f'+{len(new)} new, {done} finished, {len(queue)} to read')
-    print(f'Assignments in {ASSIGNMENTS_DIR}')
+    print(f'Assignments in {REUSE_CONFIRMATION_DIR}')
 
 
 if __name__ == '__main__':
