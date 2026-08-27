@@ -80,15 +80,19 @@ def reviewer_dir(username: str, base: Path = REUSE_CONFIRMATION_DIR) -> Path:
     return base / username
 
 
+# Every filename below repeats the username the directory already carries, so
+# that a file says whose it is with no path attached. These get sent to people
+# one at a time, and two of them side by side in a chat window should not be
+# distinguishable only by which folder they came out of.
 def assignment_path(username: str, pathway: str,
                     base: Path = REUSE_CONFIRMATION_DIR) -> Path:
-    return reviewer_dir(username, base) / f'assignment-{pathway}.json'
+    return reviewer_dir(username, base) / f'{username}-assignment-{pathway}.json'
 
 
 def reviews_path(username: str, base: Path = REUSE_CONFIRMATION_DIR) -> Path:
-    return reviewer_dir(username, base) / 'reviews.json'
+    return reviewer_dir(username, base) / f'{username}-reviews.json'
 
 
 def assignment_paths(base: Path = REUSE_CONFIRMATION_DIR) -> list[Path]:
     """Every assignment on disk, whosever it is."""
-    return sorted(base.glob('*/assignment-*.json'))
+    return sorted(base.glob('*/*-assignment-*.json'))

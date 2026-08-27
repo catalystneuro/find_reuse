@@ -79,14 +79,23 @@ class TestPaths:
     def test_an_assignment_sits_under_its_reviewer_and_names_its_pathway(
             self, tmp_path):
         assert V.assignment_path('pauladkisson', 'indirect', tmp_path) == (
-            tmp_path / 'pauladkisson' / 'assignment-indirect.json')
+            tmp_path / 'pauladkisson' / 'pauladkisson-assignment-indirect.json')
 
     def test_reviews_sit_under_their_reviewer(self, tmp_path):
-        assert V.reviews_path('rly', tmp_path) == tmp_path / 'rly' / 'reviews.json'
+        assert V.reviews_path('rly', tmp_path) == (
+            tmp_path / 'rly' / 'rly-reviews.json')
+
+    def test_a_filename_says_whose_it_is_without_its_path(self, tmp_path):
+        # Two of these land side by side in a chat window often enough that
+        # telling them apart must not depend on the folder they came from.
+        assert V.reviews_path('rly', tmp_path).name != (
+            V.reviews_path('pauladkisson', tmp_path).name)
+        assert V.assignment_path('rly', 'indirect', tmp_path).name != (
+            V.assignment_path('pauladkisson', 'indirect', tmp_path).name)
 
     def test_the_username_is_used_as_written(self, tmp_path):
         assert V.reviews_path('Paul-Adkisson', tmp_path) == (
-            tmp_path / 'Paul-Adkisson' / 'reviews.json')
+            tmp_path / 'Paul-Adkisson' / 'Paul-Adkisson-reviews.json')
 
     def test_every_assignment_is_found_whosever_it_is(self, tmp_path):
         for username, pathway in (('rly', 'indirect'), ('rly', 'direct'),
@@ -97,7 +106,7 @@ class TestPaths:
         V.reviews_path('rly', tmp_path).write_text('{}')
         assert [p.relative_to(tmp_path).as_posix()
                 for p in V.assignment_paths(tmp_path)] == [
-            'pauladkisson/assignment-indirect.json',
-            'rly/assignment-direct.json',
-            'rly/assignment-indirect.json',
+            'pauladkisson/pauladkisson-assignment-indirect.json',
+            'rly/rly-assignment-direct.json',
+            'rly/rly-assignment-indirect.json',
         ]

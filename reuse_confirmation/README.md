@@ -7,16 +7,21 @@ for how the three steps fit together.
 
 ```
 reuse_confirmation/
-  reviewers.json                     who reviews
-  reuse_candidates.json              every pair still to be checked
+  reviewers.json                              who reviews
+  reuse_candidates.json                       every pair still to be checked
   pauladkisson/
-    assignment-indirect.json         what they still have to read
-    assignment-direct.json
-    reviews.json                     what they decided
+    pauladkisson-assignment-indirect.json     what they still have to read
+    pauladkisson-assignment-direct.json
+    pauladkisson-reviews.json                 what they decided
 ```
 
 The top of the tree is what everybody shares; a directory below it is one
 person's.
+
+Every filename repeats the username its directory already carries. These files
+get sent to people one at a time, and two of them side by side in a chat window
+should not be distinguishable only by which folder they came out of. The
+redundancy is the point: which directory a file sits in stops mattering.
 
 ## `reviewers.json`
 
@@ -29,7 +34,7 @@ Who reviews. Two names, because they do two different jobs.
 `username` names the directory below and every file in it, so it has to be
 stable and usable as a filename — a GitHub handle already is, which is why it is
 the obvious thing to use. Changing someone's username means renaming their
-directory to match; nothing does that for you.
+directory and its files to match; nothing does that for you.
 
 `name` is who that is, for whoever opens this file to decide who should take a
 round. Nothing reads it. That is fine here in a way it would not be in a
@@ -63,7 +68,7 @@ version, and the labels that run reached, per input:
 That is the version of a candidate list. Two of them are comparable only if this
 matches, and it is what identifies the run a set of reviews was checking.
 
-## `<username>/assignment-<pathway>.json`
+## `<username>/<username>-assignment-<pathway>.json`
 
 Which pairs are whose, nested paper to dataset the way the reviews are. Pairs
 only — the records are in the candidate list, and storing them twice would only
@@ -82,7 +87,7 @@ Regenerable in principle, but not in practice: who was asked to read what is a
 decision, and dealing again from scratch would not necessarily reach the same
 one. Written by `src.review.assign_reviews`.
 
-## `<username>/reviews.json`
+## `<username>/<username>-reviews.json`
 
 One person's reviews, written by the dashboard as they work, nested paper to
 dataset to what was decided about that pair.

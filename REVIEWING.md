@@ -60,11 +60,11 @@ python -m src.review.build_candidates \
     -i output/fulltext_direct_openalex.json
 ```
 
-Writes `reuse_confirmation/reuse_candidates.json`: every REUSE pair, with everything needed
-to judge it already looked up — the paper, the dataset, the paper it cited, the
-model's reasoning and the passages it quoted. Both `-i` files are named either
-way, since the queues are cut from the two together and leaving one out would
-put pairs in the wrong one.
+Writes `reuse_confirmation/reuse_candidates.json`: every REUSE pair, with
+everything needed to judge it already looked up — the paper, the dataset, the
+paper it cited, the model's reasoning and the passages it quoted. Both `-i`
+files are named either way, since the queues are cut from the two together and
+leaving one out would put pairs in the wrong one.
 
 `--results-file` is the discovery corpus the cited paper is looked up in,
 `output/all_dandiset_papers_refreshed.json` by default. `--direct-results-file`
@@ -116,9 +116,10 @@ python -m src.review.assign_reviews --neuro --dandi-source evidenced \
 ```
 
 What survives is split among the reviewers in
-`reuse_confirmation/reviewers.json`, one
-`reuse_confirmation/<username>/assignment-<pathway>.json` each. A username that
-is not in that file is refused rather than assigned to, so a typo cannot deal a
+`reuse_confirmation/reviewers.json`, one assignment each at
+`<username>/<username>-assignment-<pathway>.json`. Every filename repeats the
+username, so a file sent on its own still says whose it is. A username that is
+not in the registry is refused rather than assigned to, so a typo cannot deal a
 round to somebody who does not exist; `--reviewers` narrows to a subset of those
 listed, by username.
 
@@ -137,7 +138,7 @@ changes nothing rewrites nothing.
 
 ```bash
 python -m src.review.run_review \
-    --assignment reuse_confirmation/rly/assignment-indirect.json
+    --assignment reuse_confirmation/rly/rly-assignment-indirect.json
 ```
 
 The assignment says whose session it is and which queue it covers, so there is
@@ -193,7 +194,7 @@ because they are the round as a whole.
 
 ## Where the answers go
 
-`reuse_confirmation/<your-username>/reviews.json`, written as you work:
+`reuse_confirmation/<you>/<you>-reviews.json`, written as you work:
 
 ```json
 {
