@@ -125,12 +125,17 @@ python -m src.shared.run_batch_classification submit \
     --results-file output/all_dandiset_papers_refreshed.json
 python -m src.shared.run_batch_classification status
 python -m src.shared.run_batch_classification collect   # repeat until done
+python -m src.shared.run_batch_classification pump      # refill the queue
 ```
 
 `submit` chunks the worklist into JSONL files under `.batch_chunks/` and
 records every upload and batch id in a manifest, so it can be rerun after a
 crash or after OpenAI defers batches on the enqueued-token quota; only the
-missing pieces are retried. `collect` downloads finished batches and replays
+missing pieces are retried. The enqueued-token quota (40M tokens per model)
+holds only a few chunks at a time, and batches beyond it fail validation
+rather than queueing, so alternate `collect` and `pump` until every chunk is
+ingested: `pump` recreates quota-failed batches from their uploaded files as
+the queue drains. `collect` downloads finished batches and replays
 each response through classify_paper_reuse, so batch rows get the same
 parsing, quote verification, and cache format as interactive ones.
 

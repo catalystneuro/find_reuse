@@ -318,6 +318,60 @@ def collect(args):
               file=sys.stderr, flush=True)
 
 
+def pump(args):
+    """
+    Keep the enqueued-token quota full: recreate quota-failed batches.
+
+    A batch can be accepted at creation and still fail validation later with
+    token_limit_exceeded once the enqueued-token quota is counted (40M tokens
+    per model for this org, roughly three chunks). Clear those entries so
+    their already-uploaded files get a fresh batch, and submit only a few per
+    pass, since creations beyond the quota would just fail again.
+    """
+    headers = openai_headers()
+    manifest_path = Path(args.manifest)
+    manifest = load_manifest(manifest_path)
+    for name, entry in sorted(manifest['chunks'].items()):
+        bid = entry.get('batch_id')
+        if not bid or entry.get('ingested'):
+            continue
+        b = requests.get(f'https://api.openai.com/v1/batches/{bid}',
+                         headers=headers, timeout=120).json()
+        if b.get('status') == 'failed':
+            errs = json.dumps(b.get('errors') or {})
+            if 'token_limit_exceeded' in errs:
+                entry['batch_id'] = None
+                save_manifest(manifest_path, manifest)
+            else:
+                print(f'{name}: failed for another reason: {errs[:200]}',
+                      file=sys.stderr, flush=True)
+    submitted = 0
+    for name, entry in sorted(manifest['chunks'].items()):
+        if entry.get('batch_id') or not entry.get('file_id'):
+            continue
+        if submitted >= args.pump_size:
+            break
+        submitted += 1
+        b = post_with_retries(
+            f'create batch for {name}',
+            url='https://api.openai.com/v1/batches', headers=headers,
+            json={'input_file_id': entry['file_id'],
+                  'endpoint': '/v1/chat/completions',
+                  'completion_window': '24h'},
+            timeout=300)
+        bj = b.json()
+        if b.status_code != 200 or bj.get('error'):
+            if 'token_limit' in json.dumps(bj):
+                break
+            print(f'{name}: refused: {json.dumps(bj)[:200]}',
+                  file=sys.stderr, flush=True)
+        else:
+            entry['batch_id'] = bj['id']
+            print(f"{name}: resubmitted as {bj['id']}",
+                  file=sys.stderr, flush=True)
+        save_manifest(manifest_path, manifest)
+
+
 def status(args):
     headers = openai_headers()
     manifest = load_manifest(Path(args.manifest))
@@ -339,7 +393,8 @@ def status(args):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command', choices=['build', 'submit', 'collect', 'status'])
+    parser.add_argument('command',
+                        choices=['build', 'submit', 'collect', 'pump', 'status'])
     parser.add_argument('--results-file',
                         default=str(REPO / 'output/all_dandiset_papers.json'))
     parser.add_argument('--paper-cache', default=str(REPO / '.paper_cache'))
@@ -352,9 +407,12 @@ def main():
                         choices=sorted(C.VALID_REASONING_EFFORTS),
                         default=C.DEFAULT_REASONING_EFFORT)
     parser.add_argument('--max-tokens', type=int, default=C.DEFAULT_MAX_TOKENS)
+    parser.add_argument('--pump-size', type=int, default=4,
+                        help='batches to (re)create per pump pass; keep near '
+                             'what the enqueued-token quota holds at once.')
     args = parser.parse_args()
     {'build': build, 'submit': submit, 'collect': collect,
-     'status': status}[args.command](args)
+     'pump': pump, 'status': status}[args.command](args)
 
 
 if __name__ == '__main__':
