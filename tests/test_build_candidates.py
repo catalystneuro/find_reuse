@@ -224,6 +224,58 @@ class TestFinalize:
         assert row['unverifiable_quotes'] is False
 
 
+class TestDandiReason:
+    def test_a_paper_naming_the_dandiset_says_so_outright(self, both_pathway_input):
+        merged = B.merge_by_pair([both_pathway_input])
+        row = B.finalize(merged[('10.1/citer', '000714')])
+        assert row['dandi_reason'] == 'names a DANDI identifier in its text'
+
+    def test_the_archive_the_classifier_read_off_the_text_counts(self, tmp_path):
+        path = tmp_path / 'c.json'
+        path.write_text(json.dumps({'classifications': [
+            classification('10.1/a', '000541', 'x', source_archive='DANDI Archive'),
+        ]}))
+        row = B.finalize(B.merge_by_pair([str(path)])[('10.1/a', '000541')])
+        assert row['dandi_reason'] == 'names DANDI Archive as the source'
+
+    def test_a_passage_mentioning_dandi_counts(self, tmp_path):
+        path = tmp_path / 'c.json'
+        path.write_text(json.dumps({'classifications': [
+            classification('10.1/a', '000541', 'x', source_quotes=[
+                {'quote': 'downloaded from the DANDI Archive',
+                 'match_type': 'exact'}]),
+        ]}))
+        row = B.finalize(B.merge_by_pair([str(path)])[('10.1/a', '000541')])
+        assert row['dandi_reason'] == 'quotes DANDI in the text'
+
+    def test_a_passage_that_is_not_in_the_paper_does_not_count(self, tmp_path):
+        path = tmp_path / 'c.json'
+        path.write_text(json.dumps({'classifications': [
+            classification('10.1/a', '000541', 'x', source_quotes=[
+                {'quote': 'downloaded from the DANDI Archive',
+                 'match_type': 'not_found'}]),
+        ]}))
+        row = B.finalize(B.merge_by_pair([str(path)])[('10.1/a', '000541')])
+        assert row['dandi_reason'] is None
+
+    def test_a_pair_with_nothing_pointing_at_dandi_has_no_reason(self, tmp_path):
+        path = tmp_path / 'c.json'
+        path.write_text(json.dumps({'classifications': [
+            classification('10.1/a', '000541', 'x', source_archive='CRCNS'),
+        ]}))
+        row = B.finalize(B.merge_by_pair([str(path)])[('10.1/a', '000541')])
+        assert row['dandi_reason'] is None
+
+    def test_the_passages_behind_it_are_not_carried_into_the_pair(self, tmp_path):
+        path = tmp_path / 'c.json'
+        path.write_text(json.dumps({'classifications': [
+            classification('10.1/a', '000541', 'x', source_quotes=[
+                {'quote': 'from DANDI', 'match_type': 'exact'}]),
+        ]}))
+        row = B.finalize(B.merge_by_pair([str(path)])[('10.1/a', '000541')])
+        assert 'source_quotes' not in row
+
+
 class TestAttachCitedPapers:
     def test_names_the_paper_the_pair_was_built_from(self, corpus):
         rows = [{'doi': '10.1/citer', 'dandiset': '000541'}]

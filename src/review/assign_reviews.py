@@ -16,7 +16,7 @@ somebody has answered is not dealt again, so a rerun of the pipeline hands out
 only what it added. Only queues that actually changed are rewritten.
 
 Usage:
-    python -m src.review.assign_reviews --dandi-hosted --lab different
+    python -m src.review.assign_reviews --neuro --dandi-source evidenced
 """
 
 from __future__ import annotations
@@ -39,7 +39,7 @@ def matches(pair: dict, args: argparse.Namespace) -> bool:
     """Whether a pair belongs to the round these flags describe."""
     if args.pathway and pair['pathway'] != args.pathway:
         return False
-    for value, field in ((args.dandi_hosted, 'reused_dandi_hosted'),
+    for value, field in ((args.dandi_modality, 'reused_dandi_hosted'),
                          (args.neuro, 'reused_neurophysiology')):
         if value is not None and pair[field] is not value:
             return False
@@ -61,6 +61,15 @@ def matches(pair: dict, args: argparse.Namespace) -> bool:
     if args.lab == 'same' and pair['same_lab'] not in (True, 'mixed'):
         return False
     if args.lab == 'different' and pair['same_lab'] not in (False, 'mixed'):
+        return False
+    # Two strengths of the same question, from the funnel: a pair not ruled out
+    # as DANDI data, and one with something positively saying so. Naming another
+    # archive rules a pair out; naming none does not, since a paper that never
+    # says where the data came from may still have got it here.
+    if args.dandi_source == 'possible' and pair['archives'] and not any(
+            'dandi archive' in recorded.lower() for recorded in pair['archives']):
+        return False
+    if args.dandi_source == 'evidenced' and not pair['dandi_reason']:
         return False
     if args.min_confidence is not None and pair['confidence'] < args.min_confidence:
         return False
@@ -205,9 +214,19 @@ def main():
                              'all registered reviewers by default.')
     parser.add_argument('--pathway', choices=list(PATHWAYS),
                         help='Only this queue. Both by default, dealt separately.')
-    parser.add_argument('--dandi-hosted', action=argparse.BooleanOptionalAction,
-                        help='Whether DANDI held the part of the dataset that '
-                             'was reused, rather than another archive.')
+    parser.add_argument('--dandi-modality', action=argparse.BooleanOptionalAction,
+                        help='Whether what was reused is a modality DANDI hosts '
+                             '(neurophysiology, behavior or imaging), as against '
+                             'morphology or transcriptomics. Says nothing about '
+                             'where the data actually came from -- see '
+                             '--dandi-source for that.')
+    parser.add_argument('--dandi-source', choices=['possible', 'evidenced'],
+                        help='Where the data came from. "possible" keeps pairs '
+                             'not ruled out: the paper named DANDI, or named no '
+                             'archive at all. "evidenced" keeps only those with '
+                             'something saying so -- a dandiset identifier in '
+                             'the text, DANDI named as the source, or DANDI in '
+                             'a passage that is really in the paper.')
     parser.add_argument('--neuro', action=argparse.BooleanOptionalAction,
                         help='Whether neurophysiology was among what was reused, '
                              'as against morphology or transcriptomics alone.')

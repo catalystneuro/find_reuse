@@ -33,6 +33,9 @@ from pathlib import Path
 
 from src.shared.run_fulltext_classification import primary_paper_index
 
+# What it takes for a passage to be talking about DANDI at all.
+DANDI_MARKER = re.compile(r'dandiarchive\.org|10\.48324|\bDANDI\b|dandiset', re.I)
+
 REPO = Path(__file__).resolve().parents[2]
 CANDIDATES_FILE = REPO / 'reviews/reuse_candidates.json'
 RESULTS_FILE = REPO / 'output/all_dandiset_papers_refreshed.json'
@@ -114,7 +117,7 @@ def merge_by_pair(inputs: list[str]) -> dict:
             dandiset = r.get('dandiset_id') or ''
             row = merged.setdefault((doi, dandiset), {
                 'doi': doi, 'dandiset': dandiset,
-                'title': '', 'reasoning': '', 'quotes': [],
+                'title': '', 'reasoning': '', 'quotes': [], 'source_quotes': [],
                 'pathways': set(), 'confidence': 0, 'same_lab_values': set(),
                 'reused_neurophysiology': False, 'reused_dandi_hosted': False,
                 'reused_modalities': [], 'archives': [], 'reuse_types': [],
@@ -124,10 +127,12 @@ def merge_by_pair(inputs: list[str]) -> dict:
                 row['title'] = r['title'].strip()
             if len(r.get('reasoning') or '') > len(row['reasoning']):
                 row['reasoning'] = r.get('reasoning') or ''
-            for q in r.get('evidence_quotes', []):
-                rec = {'q': q['quote'], 'tier': q['match_type']}
-                if rec not in row['quotes']:
-                    row['quotes'].append(rec)
+            for field, into in (('evidence_quotes', 'quotes'),
+                                ('source_quotes', 'source_quotes')):
+                for q in r.get(field) or []:
+                    rec = {'q': q['quote'], 'tier': q['match_type']}
+                    if rec not in row[into]:
+                        row[into].append(rec)
 
             row['confidence'] = max(row['confidence'], r.get('confidence') or 0)
             if r.get('same_lab') is not None:
@@ -166,6 +171,23 @@ def finalize(row: dict) -> dict:
     row['unverifiable_quotes'] = (bool(row['quotes'])
                                   and all(q['tier'] == 'not_found'
                                           for q in row['quotes']))
+
+    # Why this pair counts as DANDI data, which is a different question from
+    # whether DANDI hosts the modality it reused. A paper naming the dandiset
+    # says so outright; otherwise it is the archive the classifier read off the
+    # text, or failing that a passage that mentions DANDI and is really in the
+    # paper. The passages themselves are not carried further: they answer where
+    # the data came from, which review does not ask.
+    source_quotes = row.pop('source_quotes')
+    if row['pathway'] == 'direct':
+        row['dandi_reason'] = 'names a DANDI identifier in its text'
+    elif 'DANDI Archive' in row['archives']:
+        row['dandi_reason'] = 'names DANDI Archive as the source'
+    elif any(q['tier'] != 'not_found' and DANDI_MARKER.search(q['q'])
+             for q in source_quotes + row['quotes']):
+        row['dandi_reason'] = 'quotes DANDI in the text'
+    else:
+        row['dandi_reason'] = None
     return row
 
 

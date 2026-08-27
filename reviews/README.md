@@ -20,7 +20,9 @@ of circulation and giving them to nobody.
 
 Every (paper, dandiset) pair the classifier called REUSE, with everything needed
 to judge it: the paper, the dataset, the paper it cited, the model's reasoning
-and the passages it quoted. Written by `src.review.build_candidates`, sorted by
+and the passages it quoted. Alongside those, the fields a round is cut on,
+including `dandi_reason` — why this pair counts as DANDI data, which is a
+different question from whether DANDI hosts the modality it reused. Written by `src.review.build_candidates`, sorted by
 pair, so rerunning the pipeline shows up as the pairs it added.
 
 Its header says which run of the pipeline produced it — the model, the prompt

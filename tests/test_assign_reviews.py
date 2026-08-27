@@ -16,6 +16,7 @@ def pair(doi, dandiset='000541', pathway='indirect', **overrides):
         'reused_modalities': ['neurophysiology'],
         'archives': ['DANDI Archive'], 'reuse_types': ['NOVEL_ANALYSIS'],
         'unverifiable_quotes': False,
+        'dandi_reason': 'names DANDI Archive as the source',
     }
     record.update(overrides)
     return record
@@ -24,7 +25,8 @@ def pair(doi, dandiset='000541', pathway='indirect', **overrides):
 def filters(**overrides):
     """The flags with nothing selected, which is what keeps every pair."""
     defaults = {
-        'pathway': None, 'dandi_hosted': None, 'neuro': None, 'modality': None,
+        'pathway': None, 'dandi_modality': None, 'dandi_source': None,
+        'neuro': None, 'modality': None,
         'archive': None, 'reuse_type': None, 'lab': 'any',
         'min_confidence': None, 'exclude_unverifiable_quotes': False,
     }
@@ -53,12 +55,42 @@ class TestMatches:
         assert A.matches(pair('10.1/a', '000541', pathway='direct'),
                          filters(pathway='direct')) is True
 
-    def test_dandi_hosted_selects_on_where_the_data_lived(self):
+    def test_dandi_modality_selects_on_what_kind_of_data_was_reused(self):
         hosted = pair('10.1/a', '000541', reused_dandi_hosted=True)
         elsewhere = pair('10.1/b', '000541', reused_dandi_hosted=False)
-        assert A.matches(hosted, filters(dandi_hosted=True)) is True
-        assert A.matches(elsewhere, filters(dandi_hosted=True)) is False
-        assert A.matches(elsewhere, filters(dandi_hosted=False)) is True
+        assert A.matches(hosted, filters(dandi_modality=True)) is True
+        assert A.matches(elsewhere, filters(dandi_modality=True)) is False
+        assert A.matches(elsewhere, filters(dandi_modality=False)) is True
+
+    def test_dandi_source_possible_keeps_a_pair_naming_no_archive(self):
+        p = pair('10.1/a', '000541', archives=[], dandi_reason=None)
+        assert A.matches(p, filters(dandi_source='possible')) is True
+
+    def test_dandi_source_possible_keeps_a_pair_naming_dandi(self):
+        p = pair('10.1/a', '000541', archives=['DANDI Archive'])
+        assert A.matches(p, filters(dandi_source='possible')) is True
+
+    def test_dandi_source_possible_drops_a_pair_naming_another_archive(self):
+        p = pair('10.1/a', '000541', archives=['CRCNS'])
+        assert A.matches(p, filters(dandi_source='possible')) is False
+
+    def test_dandi_source_possible_keeps_a_pair_naming_dandi_among_others(self):
+        # The classifier keeps an archive it does not recognise verbatim, so a
+        # record can name two archives in one string.
+        p = pair('10.1/a', '000541', archives=['DANDI Archive and GitHub'])
+        assert A.matches(p, filters(dandi_source='possible')) is True
+
+    def test_dandi_source_evidenced_keeps_only_what_says_so(self):
+        said = pair('10.1/a', '000541',
+                    dandi_reason='names DANDI Archive as the source')
+        silent = pair('10.1/b', '000541', archives=[], dandi_reason=None)
+        assert A.matches(said, filters(dandi_source='evidenced')) is True
+        assert A.matches(silent, filters(dandi_source='evidenced')) is False
+
+    def test_a_pair_naming_no_archive_is_possible_but_not_evidenced(self):
+        p = pair('10.1/a', '000541', archives=[], dandi_reason=None)
+        assert A.matches(p, filters(dandi_source='possible')) is True
+        assert A.matches(p, filters(dandi_source='evidenced')) is False
 
     def test_neuro_selects_on_the_modality_that_was_reused(self):
         neuro = pair('10.1/a', '000541', reused_neurophysiology=True)

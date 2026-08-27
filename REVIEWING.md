@@ -89,10 +89,28 @@ noise: which model judged a pair does not change what the right answer is.
 python -m src.review.assign_reviews --dandi-hosted --lab different
 ```
 
-The flags cut the round: `--pathway`, `--dandi-hosted`, `--neuro`, `--modality`,
-`--archive`, `--reuse-type`, `--lab`, `--min-confidence`,
-`--exclude-unverifiable-quotes`, and `--limit` to cap its size. Each has a
-`--no-` form where it makes sense, and naming none of them takes everything.
+The flags cut the round: `--pathway`, `--dandi-source`, `--dandi-modality`,
+`--neuro`, `--modality`, `--archive`, `--reuse-type`, `--lab`,
+`--min-confidence`, `--exclude-unverifiable-quotes`, and `--limit` to cap its
+size. Each has a `--no-` form where it makes sense, and naming none of them
+takes everything.
+
+Two of those sound alike and are not. `--dandi-modality` asks what kind of data
+was reused — neurophysiology, behavior or imaging, the modalities DANDI holds,
+as against the morphology and transcriptomics from the same studies that live in
+NeuroMorpho and CELLxGENE. `--dandi-source` asks where the data came from:
+`possible` keeps pairs not ruled out, meaning the paper named DANDI or named no
+archive at all, and `evidenced` keeps only those with something saying so.
+
+Together they walk the funnel the project reports on:
+
+```bash
+python -m src.review.assign_reviews --neuro                          #  482 papers
+python -m src.review.assign_reviews --neuro --dandi-source possible  #  245
+python -m src.review.assign_reviews --neuro --dandi-source evidenced #  112
+python -m src.review.assign_reviews --neuro --dandi-source evidenced \
+                                    --lab different                  #   73
+```
 
 What survives is split among the reviewers in `reviews/reviewers.json`, one
 `reviews/assignments/<reviewer>.<pathway>.json` each. A name that is not in that
