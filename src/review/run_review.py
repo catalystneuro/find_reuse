@@ -728,12 +728,12 @@ def main():
     parser.add_argument('--reviewer', required=True,
                         help='Whose session this is; must be a registered '
                              'username, and names the file the reviews go to.')
-    parser.add_argument('--pathway', choices=list(LABELS),
-                        help='Which queue to review. Taken from --assignment '
-                             'when there is one, required when there is not.')
+    parser.add_argument('--pathway', choices=list(LABELS), required=True,
+                        help='Which queue to review. The two ask different '
+                             'questions, so they offer different labels.')
     parser.add_argument('--assignment',
-                        help='A queue to open on. Without it the session shows '
-                             'every candidate in the pathway.')
+                        help='Your share of that queue, to open on. Without it '
+                             'the session opens on all of it.')
     parser.add_argument('--paper-cache', default=str(PAPER_CACHE),
                         help='Fetched paper text, served for papers behind a paywall.')
     parser.add_argument('--port', type=int, default=8000)
@@ -741,24 +741,20 @@ def main():
 
     select_reviewers(load_reviewers(REVIEWERS_FILE), args.reviewer)
 
-    mine, pathway = None, args.pathway
+    mine = None
     if args.assignment:
         mine, assigned_to, pathway = read_assignment(Path(args.assignment))
         if assigned_to != args.reviewer:
             raise SystemExit(
                 f'{args.assignment} is {assigned_to}\'s, not {args.reviewer}\'s. '
                 f'Open your own, or drop --assignment to review the whole queue.')
-        if args.pathway and args.pathway != pathway:
+        if pathway != args.pathway:
             raise SystemExit(
                 f'That assignment is {pathway}, not {args.pathway}.')
-    if not pathway:
-        raise SystemExit(
-            'Say which queue to review: --pathway '
-            f'{{{",".join(LABELS)}}}, or --assignment to take it from a queue.')
 
-    rows = pairs_in(pathway)
+    rows = pairs_in(args.pathway)
     attach_paper_texts(rows, Path(args.paper_cache))
-    serve(rows, args.reviewer, pathway, args.port,
+    serve(rows, args.reviewer, args.pathway, args.port,
           paper_cache=Path(args.paper_cache), mine=mine)
 
 

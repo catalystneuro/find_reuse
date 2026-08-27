@@ -137,24 +137,25 @@ changes nothing rewrites nothing.
 ## Running a session
 
 ```bash
-python -m src.review.run_review --reviewer rly \
+python -m src.review.run_review --reviewer rly --pathway indirect \
     --assignment reuse_confirmation/rly/rly-assignment-indirect.json
 ```
 
-A session always holds every candidate in its queue. The assignment says which
-queue that is and narrows what is shown to your share of it — **Mine** and
-**Everyone** switch between the two without restarting, because the pairs were
-loaded either way.
+A session always holds every candidate in its queue. An assignment narrows what
+is shown to your share of it — **Mine** and **Everyone** switch between the two
+without restarting, because the pairs were loaded either way.
 
-Without an assignment, say which queue yourself and get all of it:
+Drop `--assignment` to open on all of it instead:
 
 ```bash
 python -m src.review.run_review --reviewer rly --pathway indirect
 ```
 
-`--reviewer` is a registered username and decides where the reviews are written,
-so it is asked for either way rather than being inferred from a filename. An
-assignment belonging to somebody else is refused.
+`--reviewer` and `--pathway` are always asked for. The reviewer is a registered
+username and decides where the reviews are written; the pathway decides which
+labels the buttons offer. Neither is inferred from a filename, and an assignment
+that disagrees with either — somebody else's, or the other queue's — is refused
+rather than quietly overriding what you asked for.
 
 This serves the worksheet on `http://127.0.0.1:8000/` and opens it; `--port`
 moves it, which is what a second reviewer on the same machine needs.
