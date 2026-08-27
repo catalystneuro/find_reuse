@@ -144,6 +144,3 @@ git commit -m "Review the DANDI-evidenced round"
 git push -u origin review_rly
 gh pr create
 ```
-
-Commit as you go rather than at the end. Reviews are the one thing here that
-cannot be regenerated.
