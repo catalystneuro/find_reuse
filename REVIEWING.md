@@ -89,18 +89,21 @@ noise: which model judged a pair does not change what the right answer is.
 python -m src.review.assign_reviews --dandi-hosted --lab different
 ```
 
-The flags cut the round: `--pathway`, `--dandi-source`, `--dandi-modality`,
-`--neuro`, `--modality`, `--archive`, `--reuse-type`, `--lab`,
-`--min-confidence`, `--exclude-unverifiable-quotes`, and `--limit` to cap its
-size. Each has a `--no-` form where it makes sense, and naming none of them
-takes everything.
+Six flags cut the round, one per question worth asking of a pair:
 
-Two of those sound alike and are not. `--dandi-modality` asks what kind of data
-was reused — neurophysiology, behavior or imaging, the modalities DANDI holds,
-as against the morphology and transcriptomics from the same studies that live in
-NeuroMorpho and CELLxGENE. `--dandi-source` asks where the data came from:
-`possible` keeps pairs not ruled out, meaning the paper named DANDI or named no
-archive at all, and `evidenced` keeps only those with something saying so.
+| Flag | Asks |
+|---|---|
+| `--pathway` | which route found it, indirect or direct |
+| `--dandi-source` | where the data came from: `possible`, or `evidenced` |
+| `--neuro` | whether neurophysiology was among what was reused |
+| `--modality` | which part of the dataset was reused, for the other six modalities |
+| `--reuse-type` | what the authors did with it, from `NOVEL_ANALYSIS` to `TEACHING` |
+| `--lab` | whether the group that reused the data is the one that produced it |
+
+Naming none of them takes everything, and `--limit` caps how many new pairs a
+round deals. `--dandi-source possible` keeps pairs not ruled out — the paper
+named DANDI, or named no archive at all — while `evidenced` keeps only those
+with something saying so.
 
 Together they walk the funnel the project reports on:
 

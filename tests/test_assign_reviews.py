@@ -25,10 +25,8 @@ def pair(doi, dandiset='000541', pathway='indirect', **overrides):
 def filters(**overrides):
     """The flags with nothing selected, which is what keeps every pair."""
     defaults = {
-        'pathway': None, 'dandi_modality': None, 'dandi_source': None,
-        'neuro': None, 'modality': None,
-        'archive': None, 'reuse_type': None, 'lab': 'any',
-        'min_confidence': None, 'exclude_unverifiable_quotes': False,
+        'pathway': None, 'dandi_source': None, 'neuro': None,
+        'modality': None, 'reuse_type': None, 'lab': 'any',
     }
     defaults.update(overrides)
     return argparse.Namespace(**defaults)
@@ -55,12 +53,6 @@ class TestMatches:
         assert A.matches(pair('10.1/a', '000541', pathway='direct'),
                          filters(pathway='direct')) is True
 
-    def test_dandi_modality_selects_on_what_kind_of_data_was_reused(self):
-        hosted = pair('10.1/a', '000541', reused_dandi_hosted=True)
-        elsewhere = pair('10.1/b', '000541', reused_dandi_hosted=False)
-        assert A.matches(hosted, filters(dandi_modality=True)) is True
-        assert A.matches(elsewhere, filters(dandi_modality=True)) is False
-        assert A.matches(elsewhere, filters(dandi_modality=False)) is True
 
     def test_dandi_source_possible_keeps_a_pair_naming_no_archive(self):
         p = pair('10.1/a', '000541', archives=[], dandi_reason=None)
@@ -103,27 +95,9 @@ class TestMatches:
         assert A.matches(p, filters(modality=['transcriptomics'])) is True
         assert A.matches(p, filters(modality=['morphology'])) is False
 
-    def test_archive_keeps_a_pair_sourced_from_any_of_the_named_ones(self):
-        p = pair('10.1/a', '000541', archives=['CRCNS'])
-        assert A.matches(p, filters(archive=['CRCNS', 'Zenodo'])) is True
-        assert A.matches(p, filters(archive=['Zenodo'])) is False
 
-    def test_an_archive_matches_however_it_was_spelled(self):
-        # The classifier keeps an archive it does not recognise verbatim, so
-        # CELLxGENE arrives under a dozen spellings.
-        for recorded in ('CELLxGENE', 'cellxgene', 'CZ CELLxGENE Discover',
-                         'Chan Zuckerberg CELLxGENE'):
-            p = pair('10.1/a', '000541', archives=[recorded])
-            assert A.matches(p, filters(archive=['CELLxGENE'])) is True
 
-    def test_an_archive_matches_when_the_record_names_two(self):
-        p = pair('10.1/a', '000541', archives=['DANDI Archive and GitHub'])
-        assert A.matches(p, filters(archive=['DANDI Archive'])) is True
-        assert A.matches(p, filters(archive=['GitHub'])) is True
 
-    def test_a_loose_match_still_excludes_an_unrelated_archive(self):
-        p = pair('10.1/a', '000541', archives=['CZ CELLxGENE Discover'])
-        assert A.matches(p, filters(archive=['CRCNS'])) is False
 
     def test_reuse_type_keeps_a_pair_of_any_of_the_named_kinds(self):
         p = pair('10.1/a', '000541', reuse_types=['BENCHMARK'])
@@ -152,16 +126,7 @@ class TestMatches:
         assert A.matches(unknown, filters(lab='same')) is False
         assert A.matches(unknown, filters(lab='different')) is False
 
-    def test_min_confidence_drops_the_less_certain(self):
-        assert A.matches(pair('10.1/a', '000541', confidence=5),
-                         filters(min_confidence=6)) is False
-        assert A.matches(pair('10.1/a', '000541', confidence=6),
-                         filters(min_confidence=6)) is True
 
-    def test_unverifiable_pairs_can_be_left_out(self):
-        p = pair('10.1/a', '000541', unverifiable_quotes=True)
-        assert A.matches(p, filters()) is True
-        assert A.matches(p, filters(exclude_unverifiable_quotes=True)) is False
 
 
 class TestDeal:

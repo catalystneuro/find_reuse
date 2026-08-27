@@ -39,20 +39,9 @@ def matches(pair: dict, args: argparse.Namespace) -> bool:
     """Whether a pair belongs to the round these flags describe."""
     if args.pathway and pair['pathway'] != args.pathway:
         return False
-    for value, field in ((args.dandi_modality, 'reused_dandi_hosted'),
-                         (args.neuro, 'reused_neurophysiology')):
-        if value is not None and pair[field] is not value:
-            return False
-    if args.modality and not set(args.modality) & set(pair['reused_modalities']):
+    if args.neuro is not None and pair['reused_neurophysiology'] is not args.neuro:
         return False
-    # Matched loosely, because the archive is the one field the classifier does
-    # not reliably normalize: what normalize_archive does not recognise it keeps
-    # verbatim, so CELLxGENE arrives under seventeen spellings and some records
-    # name two archives in one string. An exact match would quietly find a
-    # fraction of a round.
-    if args.archive and not any(
-            wanted.lower() in recorded.lower()
-            for wanted in args.archive for recorded in pair['archives']):
+    if args.modality and not set(args.modality) & set(pair['reused_modalities']):
         return False
     if args.reuse_type and not set(args.reuse_type) & set(pair['reuse_types']):
         return False
@@ -65,15 +54,13 @@ def matches(pair: dict, args: argparse.Namespace) -> bool:
     # Two strengths of the same question, from the funnel: a pair not ruled out
     # as DANDI data, and one with something positively saying so. Naming another
     # archive rules a pair out; naming none does not, since a paper that never
-    # says where the data came from may still have got it here.
+    # says where the data came from may still have got it here. Matched loosely,
+    # because the classifier keeps an archive it does not recognise verbatim and
+    # some records name two in one string.
     if args.dandi_source == 'possible' and pair['archives'] and not any(
             'dandi archive' in recorded.lower() for recorded in pair['archives']):
         return False
     if args.dandi_source == 'evidenced' and not pair['dandi_reason']:
-        return False
-    if args.min_confidence is not None and pair['confidence'] < args.min_confidence:
-        return False
-    if args.exclude_unverifiable_quotes and pair['unverifiable_quotes']:
         return False
     return True
 
@@ -214,12 +201,6 @@ def main():
                              'all registered reviewers by default.')
     parser.add_argument('--pathway', choices=list(PATHWAYS),
                         help='Only this queue. Both by default, dealt separately.')
-    parser.add_argument('--dandi-modality', action=argparse.BooleanOptionalAction,
-                        help='Whether what was reused is a modality DANDI hosts '
-                             '(neurophysiology, behavior or imaging), as against '
-                             'morphology or transcriptomics. Says nothing about '
-                             'where the data actually came from -- see '
-                             '--dandi-source for that.')
     parser.add_argument('--dandi-source', choices=['possible', 'evidenced'],
                         help='Where the data came from. "possible" keeps pairs '
                              'not ruled out: the paper named DANDI, or named no '
@@ -235,11 +216,6 @@ def main():
                         help='Which part of the dataset was reused. Repeatable, '
                              'and a pair matches if it reused any named one. '
                              f'One of: {", ".join(MODALITIES)}.')
-    parser.add_argument('--archive', action='append', metavar='NAME',
-                        help='Where the authors say they got the data, e.g. '
-                             '"DANDI Archive", CRCNS, CELLxGENE. Matched '
-                             'case-insensitively anywhere in the recorded name, '
-                             'since that name is not normalized. Repeatable.')
     parser.add_argument('--reuse-type', action='append', choices=list(REUSE_TYPES),
                         metavar='TYPE',
                         help='What the authors did with the data. Repeatable. '
@@ -247,11 +223,6 @@ def main():
     parser.add_argument('--lab', choices=['same', 'different', 'any'], default='any',
                         help='Whether the group that reused the data is the one '
                              'that produced it. Default any.')
-    parser.add_argument('--min-confidence', type=int, metavar='N',
-                        help='Drop pairs the classifier scored below N out of 10.')
-    parser.add_argument('--exclude-unverifiable-quotes', action='store_true',
-                        help='Drop pairs where no quoted passage could be found '
-                             'in the paper, so nothing supports the call.')
     parser.add_argument('--limit', type=int, metavar='N',
                         help='Deal at most N new pairs, to size a round to what '
                              'somebody will finish. Work already owed is kept '
