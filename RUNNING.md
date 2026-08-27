@@ -97,7 +97,7 @@ Classification, indirect then direct:
 ```bash
 python -m src.shared.run_fulltext_classification \
     --results-file output/all_dandiset_papers_refreshed.json \
-    --limit 20000 --workers 96
+    --limit 40000 --workers 96
 
 python -m src.shared.run_fulltext_classification --mode direct \
     --results-file output/results_dandi_openalex.json \
@@ -105,10 +105,12 @@ python -m src.shared.run_fulltext_classification --mode direct \
     -o output/fulltext_direct_openalex.json --limit 2000 --workers 24
 ```
 
-A full indirect pass over roughly 14,000 papers costs about $55 and takes a
-couple of hours at 96 workers. The work is network-bound, so worker counts far
-above the core count are appropriate. Add `--retry-errors` to re-run only the
-failures.
+`--limit` counts (paper, dandiset) pairs, and the corpus currently holds about
+28,000 of them, so keep the limit above that: the output file is written from
+the selected worklist, and a limit below the pair count silently drops cached
+rows from it. A full indirect pass costs about $110 and takes a few hours at
+96 workers. The work is network-bound, so worker counts far above the core
+count are appropriate. Add `--retry-errors` to re-run only the failures.
 
 Reports:
 

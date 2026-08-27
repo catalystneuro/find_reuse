@@ -2,8 +2,9 @@
 """
 Batch-run full-text reuse classification over citing papers.
 
-One API call per paper, asking about the dandiset that paper is linked to, so
-the output lines up with the existing (paper, dataset) classifications.
+One API call per (paper, dandiset) pair, so a paper linked to several dandisets
+is asked about each of them and the output lines up with the existing
+(paper, dataset) classifications.
 
 Results are cached one JSON file per (paper, dataset) pair, so an interrupted
 run resumes without paying for the work already done. ERROR results are cached
@@ -67,25 +68,31 @@ def select_with_full_text(work: list[dict], limit: int, paper_cache: str,
             local.fetcher = PaperFetcher(use_cache=True, cache_dir=paper_cache)
         return local.fetcher
 
-    def status_of(index_item):
-        index, item = index_item
+    def chars_of(doi):
         try:
-            fetched = fetcher_for_thread().get_paper_text_detailed(item['doi'])
+            fetched = fetcher_for_thread().get_paper_text_detailed(doi)
         except Exception:
-            return index, item, 0
+            return doi, 0
         if fetched['status'] != 'full_text':
-            return index, item, 0
-        return index, item, len(fetched['text'])
+            return doi, 0
+        return doi, len(fetched['text'])
 
-    resolved: list[tuple[int, dict, int]] = []
+    # A paper citing several dandisets' primary papers appears in `work` once
+    # per pair;
+    # resolve its text once and share the answer across its pairs, since a
+    # non-full-text entry past its metadata TTL refetches over the network.
+    dois = list(dict.fromkeys(item['doi'] for item in work))
+    chars_by_doi: dict[str, int] = {}
     with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as ex:
-        futures = [ex.submit(status_of, pair) for pair in enumerate(work)]
+        futures = [ex.submit(chars_of, doi) for doi in dois]
         for fut in tqdm(concurrent.futures.as_completed(futures), total=len(futures),
                         desc='Selecting papers with full text', file=sys.stderr):
-            resolved.append(fut.result())
+            doi, chars = fut.result()
+            chars_by_doi[doi] = chars
 
     keep = []
-    for _, item, chars in sorted(resolved, key=lambda r: r[0]):
+    for item in work:
+        chars = chars_by_doi[item['doi']]
         if chars:
             item['text_chars'] = chars
             keep.append(item)
@@ -94,12 +101,15 @@ def select_with_full_text(work: list[dict], limit: int, paper_cache: str,
     return keep
 
 
-def build_worklist(results_path: Path, paper_cache: str, limit: int) -> list[dict]:
+def build_worklist(results_path: Path) -> list[dict]:
     """
-    Pick the papers to classify: those whose text we actually have.
+    Build the worklist: one item per (citing paper, dandiset) pair.
 
-    A paper cited by several dandisets appears once, against the first dandiset
-    that cites it, so `limit` counts papers rather than API calls.
+    A paper citing several dandisets' primary papers is a separate question
+    for each, because reusing one dandiset's data says nothing about its
+    siblings'. Collapsing such a paper to a single pair attributes the
+    classification to whichever dandiset happens to sort first and silently
+    drops the rest.
 
     A dandiset can declare several papers, and the pair records which one it was
     built from, so that is the paper the prompt names. Naming the dandiset's
@@ -107,34 +117,34 @@ def build_worklist(results_path: Path, paper_cache: str, limit: int) -> list[dic
     have cited, and it answers correctly to the wrong question.
     """
     data = json.loads(results_path.read_text())
-    seen: set[str] = set()
+    seen: set[tuple[str, str]] = set()
     work: list[dict] = []
 
     for ds in data['results']:
+        dandiset_id = ds.get('dandiset_id', '')
         for paper in ds.get('citing_papers', []):
             doi = paper.get('doi')
-            if not doi or doi in seen:
+            if not doi or (doi, dandiset_id) in seen:
                 continue
-            seen.add(doi)
+            seen.add((doi, dandiset_id))
             work.append({
                 'doi': doi,
                 'title': paper.get('title', ''),
-                'dandiset_id': ds.get('dandiset_id', ''),
+                'dandiset_id': dandiset_id,
                 'dandiset_name': ds.get('dandiset_name', ''),
                 'primary_paper_doi': paper['cited_paper_doi'],
             })
 
-    return select_with_full_text(work, limit, paper_cache)
+    return work
 
 
-def build_direct_worklist(path: Path, paper_cache: str, limit: int) -> list[dict]:
+def build_direct_worklist(path: Path) -> list[dict]:
     """
     Worklist for the direct pathway, taken from the existing classifications.
 
     Each (paper, dataset) pair is its own question, because one paper can name
     several dataset identifiers and stand in a different relationship to each:
-    primary for its own deposit, reuser of another. `limit` therefore counts
-    pairs here, not papers.
+    primary for its own deposit, reuser of another.
     """
     data = json.loads(path.read_text())
     work = []
@@ -180,7 +190,7 @@ def build_direct_worklist(path: Path, paper_cache: str, limit: int) -> list[dict
                         'prior_classification': None,
                     })
 
-    return select_with_full_text(work, limit, paper_cache)
+    return work
 
 
 def openrouter_credit_remaining(model: str) -> Optional[float]:
@@ -375,7 +385,8 @@ def main():
               f"forward ({args.mode} mode)", file=sys.stderr, flush=True)
     else:
         builder = build_direct_worklist if args.mode == MODE_DIRECT else build_worklist
-        work = builder(Path(args.results_file), args.paper_cache, args.limit)
+        work = select_with_full_text(builder(Path(args.results_file)),
+                                     args.limit, args.paper_cache)
         print(f"{len(work)} items with full text selected ({args.mode} mode)",
               file=sys.stderr, flush=True)
 
@@ -521,7 +532,8 @@ def main():
     cost = tokens_in * 0.14 / 1e6 + tokens_out * 0.28 / 1e6
 
     summary = {
-        'papers': len(all_results),
+        'pairs': len(all_results),
+        'papers': len({r['citing_doi'] for r in all_results}),
         'newly_classified': len(fresh),
         'classification_counts': dict(counts),
         'papers_with_quotes': with_quotes,
