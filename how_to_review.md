@@ -51,13 +51,7 @@ A pair already assigned or already reviewed is never dealt again, so a narrower
 filter deals nothing once a wider round is out. `--reassign` discards the
 existing queues and deals from scratch.
 
-## 4. Push the round
-
-```bash
-git add reuse_confirmation/
-git commit -m "Assign the DANDI-evidenced round"
-git push
-```
+## 4. Open a PR with the round
 
 ## 5. Set up
 
@@ -132,15 +126,4 @@ paper, then dataset, then the call and any note:
 Both pathways write to this one file, and it is the only file your session
 touches. A paper reviewed against four dandisets holds four entries.
 
-## 8. Open a PR
-
-Work on a branch and open a pull request when the round is done, so each round
-of review has a paper trail.
-
-```bash
-git switch -c review_rly
-git add reuse_confirmation/rly/
-git commit -m "Review the DANDI-evidenced round"
-git push -u origin review_rly
-gh pr create
-```
+## 8. Open a PR with your reviews
