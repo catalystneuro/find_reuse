@@ -13,6 +13,7 @@ import src.analysis.build_reuse_verification_page as B
 def classification(citing_doi, dandiset_id, quote, **overrides):
     record = {
         'classification': 'REUSE',
+        'mode': 'citing',
         'confidence': 8,
         'citing_doi': citing_doi,
         'dandiset_id': dandiset_id,
@@ -31,6 +32,19 @@ def four_dataset_input(tmp_path):
     path.write_text(json.dumps({'classifications': [
         classification('10.1/citer', dandiset, f'passage about {dandiset}')
         for dandiset in ('000541', '000714', '000953', '000970')
+    ]}))
+    return str(path)
+
+
+@pytest.fixture
+def both_pathway_input(tmp_path):
+    """One pair found only by citing, one only by direct, one by both."""
+    path = tmp_path / 'classifications.json'
+    path.write_text(json.dumps({'classifications': [
+        classification('10.1/citer', '000541', 'the citing passage'),
+        classification('10.1/citer', '000714', 'the direct passage', mode='direct'),
+        classification('10.1/citer', '000953', 'the citing passage'),
+        classification('10.1/citer', '000953', 'the direct passage', mode='direct'),
     ]}))
     return str(path)
 
@@ -105,7 +119,6 @@ class TestAttachCitedPapers:
         assert rows[0]['cited_doi'] == '10.1/described-by'
         assert rows[0]['cited_title'] == 'The paper the data came from'
         assert rows[0]['cited_role'] == 'Cited'
-        assert rows[0]['dandiset_name'] == 'Mouse motor cortex recordings'
 
     def test_offers_the_declared_paper_when_the_pair_cited_none(self, corpus):
         rows = [{'doi': '10.1/citer', 'dandiset': '000714'}]
@@ -115,7 +128,6 @@ class TestAttachCitedPapers:
         assert rows[0]['cited_doi'] == '10.1/declared'
         assert rows[0]['cited_title'] == 'The paper describing 000714'
         assert rows[0]['cited_role'] == 'Dataset paper'
-        assert rows[0]['dandiset_name'] == 'Human intracortical dataset'
 
     def test_leaves_the_paper_empty_when_the_dataset_declares_none(self, corpus):
         rows = [{'doi': '10.1/citer', 'dandiset': '000953'}]
@@ -124,18 +136,94 @@ class TestAttachCitedPapers:
 
         assert rows[0]['cited_doi'] == ''
         assert rows[0]['cited_title'] == ''
-        assert rows[0]['dandiset_name'] == 'Dataset that declares nothing'
+
+
+class TestAttachDandisetNames:
+    def test_names_the_dataset(self, corpus):
+        rows = [{'dandiset': '000541'}, {'dandiset': '000714'}]
+
+        B.attach_dandiset_names(rows, corpus)
+
+        assert [r['dandiset_name'] for r in rows] == [
+            'Mouse motor cortex recordings', 'Human intracortical dataset']
+
+    def test_leaves_the_name_empty_for_a_dataset_the_corpus_lacks(self, corpus):
+        rows = [{'dandiset': '999999'}]
+
+        B.attach_dandiset_names(rows, corpus)
+
+        assert rows[0]['dandiset_name'] == ''
 
 
 class TestRowContents:
-    def test_a_row_carries_what_the_page_asks_about_and_nothing_else(
-            self, four_dataset_input, corpus):
-        rows = list(B.merge_by_pair([four_dataset_input]).values())
+    def test_an_indirect_row_carries_the_cited_paper(self, four_dataset_input, corpus):
+        rows = B.queue_for(B.merge_by_pair([four_dataset_input]), 'indirect')
+        B.attach_dandiset_names(rows, corpus)
         B.attach_cited_papers(rows, corpus)
 
         assert set(rows[0]) == {'key', 'doi', 'title', 'cited_doi', 'cited_title',
                                 'cited_role', 'dandiset', 'dandiset_name',
                                 'confidence', 'reasoning', 'quotes'}
+
+    def test_a_direct_row_carries_no_cited_paper(self, both_pathway_input, corpus):
+        rows = B.queue_for(B.merge_by_pair([both_pathway_input]), 'direct')
+        B.attach_dandiset_names(rows, corpus)
+
+        assert set(rows[0]) == {'key', 'doi', 'title', 'dandiset', 'dandiset_name',
+                                'confidence', 'reasoning', 'quotes'}
+
+
+class TestQueueFor:
+    def test_a_pair_only_the_citing_pathway_found_goes_to_indirect(
+            self, both_pathway_input):
+        merged = B.merge_by_pair([both_pathway_input])
+
+        assert [r['dandiset'] for r in B.queue_for(merged, 'indirect')] == ['000541']
+
+    def test_a_pair_only_the_direct_pathway_found_goes_to_direct(
+            self, both_pathway_input):
+        merged = B.merge_by_pair([both_pathway_input])
+
+        assert '000714' in [r['dandiset'] for r in B.queue_for(merged, 'direct')]
+
+    def test_a_pair_both_pathways_found_is_reviewed_once_in_direct(
+            self, both_pathway_input):
+        merged = B.merge_by_pair([both_pathway_input])
+
+        assert '000953' in [r['dandiset'] for r in B.queue_for(merged, 'direct')]
+        assert '000953' not in [r['dandiset'] for r in B.queue_for(merged, 'indirect')]
+
+    def test_the_two_queues_partition_the_pairs(self, both_pathway_input):
+        merged = B.merge_by_pair([both_pathway_input])
+        direct = {r['key'] for r in B.queue_for(merged, 'direct')}
+        indirect = {r['key'] for r in B.queue_for(merged, 'indirect')}
+
+        assert not direct & indirect
+        assert len(direct | indirect) == len(merged)
+
+    def test_a_pair_both_pathways_found_keeps_both_their_quotes(self, both_pathway_input):
+        merged = B.merge_by_pair([both_pathway_input])
+
+        both = next(r for r in B.queue_for(merged, 'direct') if r['dandiset'] == '000953')
+        assert both['quotes'] == [{'q': 'the citing passage', 'tier': 'exact'},
+                                  {'q': 'the direct passage', 'tier': 'exact'}]
+
+
+class TestLabels:
+    def test_only_the_direct_queue_can_answer_primary(self):
+        assert 'primary' in B.LABELS['direct']
+        assert 'primary' not in B.LABELS['indirect']
+
+    def test_only_the_indirect_queue_can_answer_mention(self):
+        assert 'mention' in B.LABELS['indirect']
+        assert 'mention' not in B.LABELS['direct']
+
+    def test_the_page_offers_the_labels_of_its_own_mode(self):
+        row = {'key': 'k', 'doi': 'd', 'title': 't', 'dandiset': '000001',
+               'dandiset_name': 'n', 'confidence': 9, 'reasoning': 'r', 'quotes': []}
+
+        assert '"primary"' in B.build([row], 'Ada', 'direct')
+        assert '"mention"' not in B.build([row], 'Ada', 'direct')
 
 
 @pytest.fixture

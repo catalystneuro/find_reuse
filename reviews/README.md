@@ -3,11 +3,13 @@
 One file per reviewer, `<reviewer>.json`, written by
 
 ```bash
-python -m src.analysis.build_reuse_verification_page ... --reviewer "your name"
+python -m src.analysis.build_reuse_verification_page ... \
+    --mode indirect --reviewer "your name"
 ```
 
-Each records that person's answers for (citing paper, dandiset) pairs, keyed by
-DOI and dandiset id joined with a tab:
+Each records that person's answers for (paper, dandiset) pairs, keyed by DOI and
+dandiset id joined with a tab. Both review modes write to the same file, since a
+pair belongs to one queue only:
 
 ```json
 {

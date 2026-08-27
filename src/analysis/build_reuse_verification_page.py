@@ -3,8 +3,15 @@
 Run a review session over the full-text REUSE classifications.
 
 Serves a worksheet that asks one question about one (paper, dataset) pair at a
-time: given this citing paper, the paper it cited, and the dataset behind that
-paper, what is the relationship? Answer, and the next pair comes up.
+time. Answer, and the next pair comes up.
+
+The two discovery pathways ask different questions, so each has its own queue,
+chosen with --mode. A paper found by naming the dandiset in its own text might
+have deposited that dataset, so the direct queue offers PRIMARY and shows no
+cited paper; a paper found by citing the dandiset's publication might only be
+mentioning that work, so the indirect queue offers MENTION and leads with the
+paper it cited. Both inputs are read either way, because a pair reached by both
+pathways is one pair and is reviewed once, in the direct queue.
 
 Answers are written to reviews/<reviewer>.json as they are made. That file is
 the durable artifact of a review round and belongs in version control; nothing
@@ -15,7 +22,7 @@ Usage:
     python -m src.analysis.build_reuse_verification_page \
         -i output/fulltext_classifications.json \
         -i output/fulltext_direct_openalex.json \
-        --reviewer <your name>
+        --mode indirect --reviewer <your name>
 """
 
 from __future__ import annotations
@@ -25,6 +32,7 @@ import json
 import re
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from functools import lru_cache
 from pathlib import Path
 
 from src.shared.run_fulltext_classification import primary_paper_index
@@ -79,6 +87,10 @@ CSS = """
            font-variant-numeric:tabular-nums;white-space:nowrap}
   .who{font-size:12.5px;color:var(--muted);white-space:nowrap}
   .who b{color:var(--ink);font-weight:600}
+  .mode{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;
+        text-transform:uppercase;font-weight:600;padding:3px 9px;border-radius:6px;
+        background:var(--accent-soft);color:var(--accent);white-space:nowrap}
+  .question{font-size:12px;color:var(--muted);max-width:52ch}
   .savestate{font-size:11.5px;min-width:9ch;color:var(--muted)}
   .savestate.ok{color:var(--ok)}
   .savestate.bad{color:var(--bad);font-weight:600}
@@ -153,9 +165,6 @@ CSS = """
 """
 
 JS = """
-// The reviewer picks from the same labels the classifier chooses between, so a
-// round produces a confusion matrix rather than a yes/no tally.
-const LABELS = ['reuse','mention','neither','primary','unsure'];
 // Every row here was labelled REUSE, so agreeing means saying reuse.
 const AGREE = 'reuse';
 
@@ -240,7 +249,7 @@ function render(){
 
     <div class="papers">
       ${paperRow('Citing', r.doi, r.title)}
-      ${paperRow(r.cited_role, r.cited_doi, r.cited_title)}
+      ${MODE === 'indirect' ? paperRow(r.cited_role, r.cited_doi, r.cited_title) : ''}
     </div>
 
     <p class="reasoning"><b>Classifier's reasoning.</b> ${esc(r.reasoning)}</p>
@@ -319,19 +328,40 @@ fetch('/load')
 """
 
 
-def build(rows: list[dict], reviewer: str) -> str:
-    """Render the worksheet around one reviewer's session."""
+# The labels a reviewer picks from, which are the ones the classifier chose
+# between in that pathway. Both sides naming a class is what a confusion matrix
+# is built from, so offering a label the classifier could not have produced puts
+# the answer off the matrix: only the direct pathway can say a paper is the one
+# that deposited the dataset, and only the indirect pathway distinguishes a
+# mention from a bare citation. 'unsure' is the reviewer's alone.
+LABELS = {
+    'direct': ['reuse', 'primary', 'neither', 'unsure'],
+    'indirect': ['reuse', 'mention', 'neither', 'unsure'],
+}
+
+QUESTION = {
+    'direct': 'This paper names the dandiset in its own text. Did it reuse the '
+              'data, deposit it, or neither?',
+    'indirect': 'This paper cited the dandiset&rsquo;s paper. Did it reuse the '
+                'data, only mention the work, or neither?',
+}
+
+
+def build(rows: list[dict], reviewer: str, mode: str) -> str:
+    """Render the worksheet around one reviewer's session in one pathway."""
     payload = json.dumps(rows, ensure_ascii=False).replace('</', r'<\/')
     n = len(rows)
-    return f"""<title>DANDI reuse review &mdash; {n} pairs</title>
+    return f"""<title>DANDI {mode} reuse review &mdash; {n} pairs</title>
 <style>{CSS}</style>
 
 <div class="toolbar">
   <span class="who">Reviewing as <b>{reviewer}</b></span>
+  <span class="mode">{mode}</span>
   <button class="btn" id="prev">&larr; Prev</button>
   <button class="btn" id="next">Next &rarr;</button>
   <button class="btn" id="unreviewed">Next unreviewed</button>
   <div class="spacer"></div>
+  <span class="question">{QUESTION[mode]}</span>
   <span class="readout" id="progress">0 of {n} reviewed</span>
   <span class="savestate" id="savestate"></span>
 </div>
@@ -341,6 +371,8 @@ def build(rows: list[dict], reviewer: str) -> str:
 <script>
 const ROWS = {payload};
 const REVIEWER = {json.dumps(reviewer)};
+const MODE = {json.dumps(mode)};
+const LABELS = {json.dumps(LABELS[mode])};
 {JS}
 </script>
 """
@@ -374,6 +406,7 @@ def canonical_doi(doi: str, known: set) -> str:
     return doi
 
 
+@lru_cache(maxsize=1)
 def corpus_papers(results_path: Path) -> tuple[dict, dict, dict]:
     """
     Paper titles, dataset names, and the paper each dataset declares.
@@ -405,7 +438,8 @@ def merge_by_pair(inputs: list[str]) -> dict:
 
     A paper reusing several datasets stands in a separate relationship to each,
     supported by its own passage, so each is judged on its own. The direct and
-    citing pathways can both reach the same pair, so their quotes are unioned.
+    citing pathways can both reach the same pair, so their quotes are unioned
+    and `pathways` records which of them got there.
     """
     loaded = [json.loads(Path(p).read_text()) for p in inputs]
     known = {r['citing_doi'] for d in loaded for r in d['classifications']}
@@ -420,7 +454,9 @@ def merge_by_pair(inputs: list[str]) -> dict:
             row = merged.setdefault((doi, dandiset), {
                 'key': f'{doi}\t{dandiset}', 'doi': doi, 'dandiset': dandiset,
                 'title': '', 'confidence': 0, 'reasoning': '', 'quotes': [],
+                'pathways': set(),
             })
+            row['pathways'].add(r['mode'])
             if r.get('title') and len(r['title']) > len(row['title']):
                 row['title'] = r['title'].strip()
             row['confidence'] = max(row['confidence'], r.get('confidence') or 0)
@@ -433,28 +469,50 @@ def merge_by_pair(inputs: list[str]) -> dict:
     return merged
 
 
+def queue_for(merged: dict, mode: str) -> list[dict]:
+    """
+    The pairs one pathway's queue is responsible for.
+
+    A pair both pathways reached is still one pair asking one question, so it is
+    reviewed once. It goes to the direct queue, the only one that can answer
+    that these authors deposited the dataset rather than reusing it.
+    """
+    rows = []
+    for row in merged.values():
+        owner = 'direct' if 'direct' in row['pathways'] else 'indirect'
+        if owner == mode:
+            rows.append({k: v for k, v in row.items() if k != 'pathways'})
+    return rows
+
+
+def attach_dandiset_names(rows: list[dict], results_path: Path) -> None:
+    """Name the dataset, which both queues show beside its identifier."""
+    _, dandiset_names, _ = corpus_papers(results_path)
+    for row in rows:
+        row['dandiset_name'] = dandiset_names.get(row['dandiset'], '')
+
+
 def attach_cited_papers(rows: list[dict], results_path: Path) -> None:
     """
-    Name the paper each pair was built from, and the dataset behind it.
+    Name the paper each pair was built from, which the indirect queue asks about.
 
     A classification record says which pair it answered but not which paper the
     classifier was asked about, so the pairing has to come back from discovery.
     A dandiset can declare several papers, and the one this citing work actually
     cited is the one a reviewer has to read.
 
-    A pair found by the direct pathway cited no paper at all: it named the
-    dandiset in its own text. There the dataset's declared paper is what a
-    reviewer opens instead, so `cited_role` says which of the two is on offer.
+    Discovery does not always hold the pairing. Where it does not, the dataset's
+    own declared paper is what a reviewer opens instead, and `cited_role` says
+    which of the two is on offer.
     """
     primaries = primary_paper_index(results_path)
-    paper_titles, dandiset_names, declared = corpus_papers(results_path)
+    paper_titles, _, declared = corpus_papers(results_path)
     for row in rows:
         cited = primaries.get((row['doi'].lower(), row['dandiset']), '')
         row['cited_role'] = 'Cited' if cited else 'Dataset paper'
         cited = cited or declared.get(row['dandiset'], '')
         row['cited_doi'] = cited
         row['cited_title'] = paper_titles.get(cited, '')
-        row['dandiset_name'] = dandiset_names.get(row['dandiset'], '')
 
 
 def reviewer_slug(reviewer: str) -> str:
@@ -505,16 +563,16 @@ def make_handler(page: str, reviewer: str, save_path: Path):
     return ReviewHandler
 
 
-def serve(rows: list[dict], reviewer: str, port: int,
+def serve(rows: list[dict], reviewer: str, mode: str, port: int,
           reviews_dir: Path = REVIEWS_DIR, open_browser: bool = True) -> None:
     if not rows:
-        raise SystemExit('No REUSE pairs in those inputs; nothing to review.')
+        raise SystemExit(f'No {mode} REUSE pairs in those inputs; nothing to review.')
     save_path = reviews_dir / f'{reviewer_slug(reviewer)}.json'
-    handler = make_handler(build(rows, reviewer), reviewer, save_path)
+    handler = make_handler(build(rows, reviewer, mode), reviewer, save_path)
     server = ThreadingHTTPServer(('127.0.0.1', port), handler)
     url = f'http://127.0.0.1:{server.server_address[1]}/'
     papers = len({r['doi'] for r in rows})
-    print(f'{len(rows)} pairs across {papers} papers')
+    print(f'{len(rows)} {mode} pairs across {papers} papers')
     print(f'Reviewing as {reviewer}; answers go to {save_path}')
     print(f'Serving {url} — Ctrl-C to stop')
     if open_browser:
@@ -531,6 +589,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('-i', '--input', action='append', required=True,
                         help='Classification JSON; repeat to merge both pathways.')
+    parser.add_argument('--mode', choices=['direct', 'indirect'], required=True,
+                        help='Which pathway to review. The two ask different '
+                             'questions, so they offer different labels.')
     parser.add_argument('--reviewer', required=True,
                         help='Whose answers these are; names reviews/<reviewer>.json.')
     parser.add_argument('--results-file', default=str(RESULTS_FILE),
@@ -538,10 +599,12 @@ def main():
     parser.add_argument('--port', type=int, default=8000)
     args = parser.parse_args()
 
-    rows = list(merge_by_pair(args.input).values())
+    rows = queue_for(merge_by_pair(args.input), args.mode)
     rows.sort(key=lambda r: (-(r['confidence'] or 0), r['doi'], r['dandiset']))
-    attach_cited_papers(rows, Path(args.results_file))
-    serve(rows, args.reviewer, args.port)
+    attach_dandiset_names(rows, Path(args.results_file))
+    if args.mode == 'indirect':
+        attach_cited_papers(rows, Path(args.results_file))
+    serve(rows, args.reviewer, args.mode, args.port)
 
 
 if __name__ == '__main__':
