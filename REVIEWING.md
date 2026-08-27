@@ -85,10 +85,16 @@ What survives is split among the reviewers in `reviews/reviewers.json`, one
 file is refused rather than assigned to, so a typo cannot deal a round to
 somebody who does not exist; `--reviewers` narrows to a subset of those listed.
 
-Dealing never takes work back. A pair somebody already holds stays with them,
-and a pair somebody has already answered goes to them, so rerunning the pipeline
-assigns only what it added and nobody reviews the same pair twice. A run that
-deals nothing rewrites nothing.
+An assignment is a queue, not a history. It holds what you still have to read,
+so answering a pair takes it out, and `--limit` cuts a round down to something
+you will actually finish. What you did not get to carries into the next round
+rather than being forgotten, and what you answered stays on record in your
+answer file.
+
+Dealing never takes work back. A pair somebody still owes stays theirs, and a
+pair somebody has answered is not dealt again, so rerunning the pipeline hands
+out only what it added and nobody reviews the same pair twice. A run that
+changes nothing rewrites nothing.
 
 ## Running a session
 
@@ -101,6 +107,12 @@ The assignment says whose session it is and which queue it covers, so there is
 nothing else to get right. This serves the worksheet on `http://127.0.0.1:8000/`
 and opens it; `--port` moves it, which is what a second reviewer on the same
 machine needs.
+
+A session covers your queue plus everything you have already answered, read
+from the two files together. **Unreviewed** is the queue, and it empties as you
+work; **Reviewed** is the history, and it grows across rounds. An answer
+outlives the round that prompted it, so looking back over a call never depends
+on the pair still being assigned to you.
 
 ## Working through it
 

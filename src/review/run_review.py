@@ -496,14 +496,21 @@ def serve(rows: list[dict], reviewer: str, mode: str, port: int,
 
 
 def load_assignment(assignment_path: Path,
-                    candidates_path: Path = CANDIDATES_FILE) -> tuple[list[dict], str, str]:
+                    candidates_path: Path = CANDIDATES_FILE,
+                    reviews_dir: Path = REVIEWS_DIR
+                    ) -> tuple[list[dict], str, str]:
     """
-    The pairs one assignment covers, with everything needed to judge them.
+    The pairs a session covers: the ones assigned, and the ones already answered.
 
     An assignment names its pairs and leaves the records in the candidate list,
     so the two have to be read together. A key the candidate list does not hold
     means the assignment was dealt from a list that has since been rebuilt
     without it, which is a mismatch to fix rather than to review around.
+
+    The reviewer's own answers come in alongside, because looking back over a
+    call is part of reviewing and an answer outlives the assignment that
+    prompted it. Only this queue's share of them, and only pairs the candidate
+    list still describes: one it has dropped has nothing left to show.
     """
     assignment = json.loads(assignment_path.read_text())
     by_key = {p['key']: p for p in json.loads(candidates_path.read_text())['pairs']}
@@ -513,7 +520,15 @@ def load_assignment(assignment_path: Path,
             f'{len(missing)} assigned pair(s) are not in {candidates_path}, '
             f'starting with {missing[0]!r}. Rebuild the candidate list, or '
             f'reassign against the one you have.')
-    rows = [by_key[k] for k in assignment['keys']]
+
+    keys = dict.fromkeys(assignment['keys'])
+    answers = answers_path(assignment['reviewer'], reviews_dir)
+    if answers.exists():
+        for key in json.loads(answers.read_text())['calls']:
+            if key in by_key and by_key[key]['pathway'] == assignment['pathway']:
+                keys.setdefault(key)
+
+    rows = [by_key[k] for k in keys]
     rows.sort(key=lambda r: (r['doi'], r['dandiset']))
     return rows, assignment['reviewer'], assignment['pathway']
 

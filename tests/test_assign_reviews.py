@@ -155,29 +155,27 @@ class TestDeal:
             '10.1/p4\t000541', '10.1/p5\t000541']
         assert assigned[('rly', 'indirect')] == []
 
-    def test_a_pair_someone_answered_goes_back_to_them(self, pairs, reviewers):
+    def test_a_pair_someone_answered_is_not_dealt_to_anybody(self, pairs, reviewers):
         assigned = A.deal(pairs, reviewers, {}, {'10.1/p5\t000541': 'rly'}, None)
-        assert '10.1/p5\t000541' in assigned[('rly', 'indirect')]
-        assert '10.1/p5\t000541' not in assigned[('paul', 'indirect')]
-
-    def test_a_pair_answered_by_someone_sitting_out_is_left_alone(self, pairs):
-        assigned = A.deal(pairs, [{'name': 'paul'}], {},
-                          {'10.1/p5\t000541': 'rly'}, None)
         dealt = [k for keys in assigned.values() for k in keys]
         assert '10.1/p5\t000541' not in dealt
+
+    def test_an_answered_pair_does_not_land_in_the_answerers_assignment(
+            self, pairs, reviewers):
+        assigned = A.deal(pairs, reviewers, {}, {'10.1/p5\t000541': 'rly'}, None)
+        assert '10.1/p5\t000541' not in assigned[('rly', 'indirect')]
 
     def test_limit_caps_how_many_new_pairs_are_dealt(self, pairs, reviewers):
         assigned = A.deal(pairs, reviewers, {}, {}, 3)
         dealt = [k for keys in assigned.values() for k in keys]
         assert len(dealt) == 3
 
-    def test_limit_does_not_cap_pairs_their_answer_already_places(
+    def test_limit_counts_only_pairs_that_were_actually_dealt(
             self, pairs, reviewers):
-        answered = {'10.1/p5\t000541': 'rly', '10.1/d1\t000714': 'paul'}
+        answered = {'10.1/p0\t000541': 'rly'}
         assigned = A.deal(pairs, reviewers, {}, answered, 1)
         dealt = [k for keys in assigned.values() for k in keys]
-        assert sorted(dealt) == ['10.1/d1\t000714', '10.1/p0\t000541',
-                                 '10.1/p5\t000541']
+        assert dealt == ['10.1/p1\t000541']
 
 
 class TestWriteAssignment:
@@ -195,33 +193,76 @@ class TestWriteAssignment:
         assert set(written) == {'reviewer', 'pathway', 'assigned_at',
                                 'candidates_generated_at', 'keys'}
 
-    def test_new_keys_are_added_to_what_is_already_there(self, tmp_path):
+    def test_replaces_the_queue_rather_than_adding_to_it(self, tmp_path):
         A.write_assignment('rly', 'indirect', ['10.1/b\t000541'], 'STAMP', tmp_path)
         A.write_assignment('rly', 'indirect', ['10.1/a\t000541'], 'STAMP', tmp_path)
         written = json.loads((tmp_path / 'rly.indirect.json').read_text())
-        assert written['keys'] == ['10.1/a\t000541', '10.1/b\t000541']
+        assert written['keys'] == ['10.1/a\t000541']
 
-    def test_a_round_that_deals_nothing_leaves_the_file_untouched(self, tmp_path):
+    def test_a_round_that_changes_nothing_leaves_the_file_untouched(self, tmp_path):
         A.write_assignment('rly', 'indirect', ['10.1/a\t000541'], 'STAMP', tmp_path)
         before = (tmp_path / 'rly.indirect.json').read_bytes()
-        A.write_assignment('rly', 'indirect', [], 'LATER', tmp_path)
+        assert A.write_assignment(
+            'rly', 'indirect', ['10.1/a\t000541'], 'LATER', tmp_path) is False
         assert (tmp_path / 'rly.indirect.json').read_bytes() == before
 
-    def test_reports_what_was_added_and_what_is_held(self, tmp_path):
-        assert A.write_assignment(
-            'rly', 'indirect', ['10.1/a\t000541'], 'STAMP', tmp_path) == (1, 1)
-        assert A.write_assignment(
-            'rly', 'indirect', ['10.1/b\t000541'], 'STAMP', tmp_path) == (1, 2)
-
-    def test_a_reviewer_with_nothing_gets_no_file(self, tmp_path):
-        A.write_assignment('rly', 'direct', [], 'STAMP', tmp_path)
+    def test_a_reviewer_with_nothing_to_read_gets_no_file(self, tmp_path):
+        assert A.write_assignment('rly', 'direct', [], 'STAMP', tmp_path) is False
         assert not (tmp_path / 'rly.direct.json').exists()
+
+    def test_a_finished_queue_is_emptied_rather_than_left_stale(self, tmp_path):
+        A.write_assignment('rly', 'indirect', ['10.1/a\t000541'], 'STAMP', tmp_path)
+        assert A.write_assignment('rly', 'indirect', [], 'STAMP', tmp_path) is True
+        assert json.loads((tmp_path / 'rly.indirect.json').read_text())['keys'] == []
+
+
+class TestQueueAfter:
+    def test_a_pair_that_was_answered_leaves_the_queue(self, tmp_path):
+        A.write_assignment('rly', 'indirect',
+                           ['10.1/a\t000541', '10.1/b\t000541'], 'S', tmp_path)
+        queue, done = A.queue_after('rly', 'indirect', [],
+                                    {'10.1/a\t000541': 'rly'}, tmp_path)
+        assert queue == ['10.1/b\t000541']
+        assert done == 1
+
+    def test_a_pair_that_was_never_read_stays_in_the_queue(self, tmp_path):
+        A.write_assignment('rly', 'indirect', ['10.1/b\t000541'], 'S', tmp_path)
+        queue, done = A.queue_after('rly', 'indirect', [], {}, tmp_path)
+        assert queue == ['10.1/b\t000541']
+        assert done == 0
+
+    def test_a_new_round_joins_what_was_left_over(self, tmp_path):
+        A.write_assignment('rly', 'indirect',
+                           ['10.1/a\t000541', '10.1/b\t000541'], 'S', tmp_path)
+        queue, _ = A.queue_after('rly', 'indirect', ['10.1/c\t000541'],
+                                 {'10.1/a\t000541': 'rly'}, tmp_path)
+        assert queue == ['10.1/b\t000541', '10.1/c\t000541']
+
+    def test_a_finished_round_leaves_an_empty_queue(self, tmp_path):
+        A.write_assignment('rly', 'indirect', ['10.1/a\t000541'], 'S', tmp_path)
+        queue, done = A.queue_after('rly', 'indirect', [],
+                                    {'10.1/a\t000541': 'rly'}, tmp_path)
+        assert (queue, done) == ([], 1)
+
+    def test_a_reviewer_with_no_queue_yet_just_takes_what_was_dealt(self, tmp_path):
+        queue, done = A.queue_after('rly', 'indirect', ['10.1/a\t000541'],
+                                    {}, tmp_path)
+        assert (queue, done) == (['10.1/a\t000541'], 0)
 
 
 class TestReadingWhatIsHeld:
     def test_an_assignment_on_disk_holds_its_keys(self, tmp_path):
         A.write_assignment('rly', 'indirect', ['10.1/a\t000541'], 'S', tmp_path)
         assert A.assigned_to(tmp_path) == {'10.1/a\t000541': 'rly'}
+
+    def test_what_someone_has_answered_counts_towards_their_share(
+            self, pairs, reviewers):
+        answered = {f'10.1/p{i}\t000541': 'rly' for i in range(4)}
+        assigned = A.deal(pairs, reviewers, {}, answered, None)
+        # rly has already read four of the six, so the other two go to paul.
+        assert sorted(assigned[('paul', 'indirect')]) == [
+            '10.1/p4\t000541', '10.1/p5\t000541']
+        assert assigned[('rly', 'indirect')] == []
 
     def test_every_reviewers_assignment_counts_not_just_this_rounds(self, tmp_path):
         A.write_assignment('rly', 'indirect', ['10.1/a\t000541'], 'S', tmp_path)

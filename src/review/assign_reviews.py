@@ -5,10 +5,14 @@ Deal candidate pairs out to reviewers.
 Narrows the candidate list to the round you want reviewed, then splits it among
 the registered reviewers so each pair belongs to exactly one person.
 
-Dealing is incremental: a pair somebody already holds stays with them, so a
-rerun of the pipeline reassigns only what it added and nobody re-reviews work
-they have already done. Only assignments that actually changed are rewritten,
-so a run that adds nothing leaves the tree untouched.
+An assignment is a queue, not a history: it holds what a reviewer still has to
+read. Answering a pair takes it out, and the answer file is what accumulates. So
+a round is what you were dealt plus whatever you had left over, and it stays
+short enough to work through.
+
+Dealing is incremental: a pair somebody still owes stays theirs, and a pair
+somebody has answered is not dealt again, so a rerun of the pipeline hands out
+only what it added. Only queues that actually changed are rewritten.
 
 Usage:
     python -m src.review.assign_reviews --dandi-hosted --lab different
@@ -93,13 +97,16 @@ def deal(pairs: list[dict], reviewers: list[dict], placed: dict[str, str],
     """
     Give each unplaced pair to whoever holds the fewest of its pathway.
 
-    A pair someone has already answered goes to them instead of into the deal,
-    so their own work stays in their queue for them to look back over. A pair
-    answered by someone sitting this round out is left alone entirely.
+    A pair someone has already answered is spoken for and is not dealt at all:
+    asking a second person to read it would buy nothing. It does not go into an
+    assignment either, since it is not work anybody is being asked to do — the
+    answer is already recorded, and the session picks it up from there.
 
     Ties go to the reviewer the registry lists first, so the same inputs deal
-    the same way every time. Counting per pathway keeps each queue split evenly,
-    which splits the round evenly too.
+    the same way every time. What someone still owes and what they have already
+    answered both count as their share, so a round goes to whoever has done and
+    been given least. Counting per pathway keeps each queue split evenly, which
+    splits the round evenly too.
     """
     names = [r['name'] for r in reviewers]
     assigned = {(name, pathway): [] for name in names for pathway in PATHWAYS}
@@ -110,17 +117,14 @@ def deal(pairs: list[dict], reviewers: list[dict], placed: dict[str, str],
         if pair and (holder, pair['pathway']) in counts:
             counts[(holder, pair['pathway'])] += 1
 
-    unplaced, dealt = [], 0
-    for pair in pairs:
-        if pair['key'] in placed:
-            continue
-        owner = answered.get(pair['key'])
-        if owner is None:
-            unplaced.append(pair)
-        elif owner in names:
-            assigned[(owner, pair['pathway'])].append(pair['key'])
-            counts[(owner, pair['pathway'])] += 1
+    for key, holder in answered.items():
+        pair = by_key.get(key)
+        if pair and (holder, pair['pathway']) in counts:
+            counts[(holder, pair['pathway'])] += 1
 
+    unplaced = [p for p in pairs
+                if p['key'] not in placed and p['key'] not in answered]
+    dealt = 0
     for pair in unplaced:
         if limit is not None and dealt >= limit:
             break
@@ -132,20 +136,20 @@ def deal(pairs: list[dict], reviewers: list[dict], placed: dict[str, str],
     return assigned
 
 
-def write_assignment(reviewer: str, pathway: str, new_keys: list[str],
-                     generated_at: str, assignments_dir: Path) -> tuple[int, int]:
+def write_assignment(reviewer: str, pathway: str, keys: list[str],
+                     generated_at: str, assignments_dir: Path) -> bool:
     """
-    Add a reviewer's new keys to their assignment, if there are any.
+    Replace a reviewer's queue with what they now have to read.
 
-    Returns (newly assigned, total held). The file is left alone when nothing
-    changed, so a run that deals nothing produces no diff.
+    Returns whether the file changed, so a run that deals nothing produces no
+    diff. A reviewer with nothing to read gets no file rather than an empty one,
+    unless they had a queue that is now finished.
     """
     path = assignment_path(reviewer, pathway, assignments_dir)
-    existing = json.loads(path.read_text())['keys'] if path.exists() else []
-    if not new_keys:
-        return 0, len(existing)
+    existing = json.loads(path.read_text())['keys'] if path.exists() else None
+    if existing == keys or (existing is None and not keys):
+        return False
 
-    keys = sorted(set(existing) | set(new_keys))
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps({
         'reviewer': reviewer,
@@ -154,7 +158,23 @@ def write_assignment(reviewer: str, pathway: str, new_keys: list[str],
         'candidates_generated_at': generated_at,
         'keys': keys,
     }, indent=2, ensure_ascii=False) + '\n')
-    return len(new_keys), len(keys)
+    return True
+
+
+def queue_after(reviewer: str, pathway: str, dealt: list[str],
+                answered: dict[str, str], assignments_dir: Path
+                ) -> tuple[list[str], int]:
+    """
+    What a reviewer has to read next, and how much of their last round they did.
+
+    Whatever they were holding and have since answered leaves the queue; what
+    they never got to stays, so an unfinished round is carried rather than
+    forgotten.
+    """
+    path = assignment_path(reviewer, pathway, assignments_dir)
+    before = json.loads(path.read_text())['keys'] if path.exists() else []
+    kept = [k for k in before if k not in answered]
+    return sorted(set(kept) | set(dealt)), len(before) - len(kept)
 
 
 def main():
@@ -190,15 +210,16 @@ def main():
     pairs = [p for p in candidates['pairs'] if matches(p, args)]
     print(f'{len(pairs)} of {len(candidates["pairs"])} candidate pairs match')
 
-    assigned = deal(pairs, reviewers, assigned_to(ASSIGNMENTS_DIR),
-                    answered_by(registry, REVIEWS_DIR), args.limit)
+    answered = answered_by(registry, REVIEWS_DIR)
+    dealt = deal(pairs, reviewers, assigned_to(ASSIGNMENTS_DIR), answered, args.limit)
 
-    for (reviewer, pathway), keys in sorted(assigned.items()):
-        new, total = write_assignment(reviewer, pathway, keys,
-                                      candidates['generated_at'], ASSIGNMENTS_DIR)
-        if total:
+    for (reviewer, pathway), keys in sorted(dealt.items()):
+        queue, done = queue_after(reviewer, pathway, keys, answered, ASSIGNMENTS_DIR)
+        write_assignment(reviewer, pathway, queue,
+                         candidates['generated_at'], ASSIGNMENTS_DIR)
+        if queue or keys or done:
             print(f'  {reviewer:<20} {pathway:<9} '
-                  f'+{new} new, {total} assigned in total')
+                  f'+{len(keys)} new, {done} finished, {len(queue)} to read')
     print(f'Assignments in {ASSIGNMENTS_DIR}')
 
 

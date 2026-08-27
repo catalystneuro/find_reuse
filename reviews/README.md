@@ -33,9 +33,13 @@ storing them twice would only let the two disagree.
  "keys": ["10.1002/acn3.70285\t000768"]}
 ```
 
+A queue, not a history: only what that person still has to read. Answering a
+pair takes it out, so these files stay short and a finished round leaves an
+empty one. What a round did not get through carries into the next.
+
 Regenerable in principle, but not in practice: who was asked to read what is a
 decision, and dealing again from scratch would not necessarily reach the same
-one. Written by `src.review.assign_reviews`, which only ever adds.
+one. Written by `src.review.assign_reviews`.
 
 ## `<reviewer>.json`
 
@@ -50,7 +54,9 @@ One person's answers, written by the dashboard as they work.
 ```
 
 Keyed by DOI and dandiset id joined with a tab. Both queues write to the same
-file, since a pair belongs to one queue only.
+file, since a pair belongs to one queue only. This is the file that accumulates
+across rounds, and a session reads it alongside the assignment so that past
+calls stay on screen under **Reviewed**.
 
 **This is the one file here that cannot be regenerated.** The classifications it
 checks can be re-run at any time; a person's reading of a paper cannot. It
