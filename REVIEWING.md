@@ -83,17 +83,19 @@ answering. Pressing the label already recorded takes it back. Notes are free
 text and optional; write one whenever the answer is not obvious from the paper,
 and always when you answer Unsure.
 
-Buttons are coloured against the classifier's label from the start, so you can
-see what an answer costs before giving it: green means agreeing with it, red
-contradicting it, amber that you could not tell. The one you pick fills in and
-turns bold.
+Each label carries its own colour from the start — Reuse green, Mention blue,
+Primary purple, Neither red, Unsure amber — so an answer is recognised by colour
+rather than read off its text. The one you pick fills in and turns bold.
 
 **All / Unreviewed / Reviewed** picks what the queue holds, for the two ways of
 working. A session opens on **Unreviewed**, the working pass: a pair leaves the
 queue as you answer it and the next one takes its place, so the queue empties as
 you go. **Reviewed** is the looking-back pass over answers already given, where
-changing one is a matter of clicking a different label. The bar in the toolbar
-is the whole queue's progress either way.
+changing one is a matter of clicking a different label.
+
+The toolbar counts two different things: **Pair 3 of 871** is where you are in
+the queue you are looking at, and **142 of 1017 reviewed**, with the bar, is the
+round as a whole.
 
 ## Where the answers go
 

@@ -51,6 +51,8 @@ CSS = """
     --ok:#2C7358; --ok-soft:#E0F0E8;
     --warn:#8A5E0C; --warn-soft:#F6EBD5;
     --bad:#A22F3D; --bad-soft:#F7E2E4;
+    --mention:#1C5D9B; --mention-soft:#E1ECF7;
+    --primary:#6D3D9B; --primary-soft:#EEE6F7;
     --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
     --serif:ui-serif,"Iowan Old Style",Georgia,"Times New Roman",serif;
     --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
@@ -64,6 +66,8 @@ CSS = """
       --ok:#5FC095; --ok-soft:#133026;
       --warn:#D9A63C; --warn-soft:#33280F;
       --bad:#EF8390; --bad-soft:#3A1B1F;
+      --mention:#6DB3F2; --mention-soft:#10263A;
+      --primary:#BE96E8; --primary-soft:#251B36;
     }
   }
 
@@ -94,7 +98,6 @@ CSS = """
   .mode{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;
         text-transform:uppercase;font-weight:600;padding:3px 9px;border-radius:6px;
         background:var(--accent-soft);color:var(--accent);white-space:nowrap}
-  .readout.sep{opacity:.45}
   .bar{flex:0 0 auto;width:150px;height:7px;border-radius:999px;overflow:hidden;
        background:var(--raise);border:1px solid var(--line)}
   .bar i{display:block;height:100%;width:0;border-radius:999px;
@@ -175,27 +178,28 @@ CSS = """
                    padding:9px 12px;border-radius:9px;border:1px solid var(--line-strong);
                    background:var(--surface);color:var(--ink);resize:none;min-height:54px}
   .decide textarea::placeholder{color:var(--muted);opacity:.75}
-  /* Colour is relative to what the classifier said, not fixed per label: green
-     means you agreed with it, red that you contradicted it, amber that you could
-     not tell. It is on the buttons from the start, so the weight of an answer is
-     visible before it is given. */
-  .calls button.agree{color:var(--ok);
+  /* One colour per label, carried from the start so an answer is recognised by
+     its colour rather than read off its text. */
+  .calls button.reuse{color:var(--ok);
       border-color:color-mix(in srgb,var(--ok) 40%,transparent)}
-  .calls button.contradict{color:var(--bad);
+  .calls button.mention{color:var(--mention);
+      border-color:color-mix(in srgb,var(--mention) 40%,transparent)}
+  .calls button.primary{color:var(--primary);
+      border-color:color-mix(in srgb,var(--primary) 40%,transparent)}
+  .calls button.neither{color:var(--bad);
       border-color:color-mix(in srgb,var(--bad) 40%,transparent)}
-  .calls button.hedge{color:var(--warn);
+  .calls button.unsure{color:var(--warn);
       border-color:color-mix(in srgb,var(--warn) 40%,transparent)}
-  .calls button[aria-pressed="true"].agree{background:var(--ok-soft)}
-  .calls button[aria-pressed="true"].contradict{background:var(--bad-soft)}
-  .calls button[aria-pressed="true"].hedge{background:var(--warn-soft)}
+  .calls button[aria-pressed="true"].reuse{background:var(--ok-soft)}
+  .calls button[aria-pressed="true"].mention{background:var(--mention-soft)}
+  .calls button[aria-pressed="true"].primary{background:var(--primary-soft)}
+  .calls button[aria-pressed="true"].neither{background:var(--bad-soft)}
+  .calls button[aria-pressed="true"].unsure{background:var(--warn-soft)}
   .empty{margin:auto;color:var(--muted);font-size:14px}
   @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 """
 
 JS = """
-// Every row here was labelled REUSE, so agreeing means saying reuse.
-const AGREE = 'reuse';
-
 let calls = {};
 let notes = {};
 let index = 0;
@@ -278,9 +282,8 @@ function quoteBlock(q){
 
 function callButtons(key){
   return LABELS.map(label => {
-    const tone = label === AGREE ? 'agree' : label === 'unsure' ? 'hedge' : 'contradict';
     const name = label[0].toUpperCase() + label.slice(1);
-    return `<button class="${tone}" data-v="${label}"
+    return `<button class="${label}" data-v="${label}"
               aria-pressed="${calls[key] === label}">${name}</button>`;
   }).join('');
 }
@@ -290,7 +293,7 @@ function render(){
   index = Math.min(index, Math.max(rows.length - 1, 0));
   const done = ROWS.filter(x => calls[x.key]).length;
   document.getElementById('position').textContent =
-    rows.length ? `${index + 1} of ${rows.length}` : '0 of 0';
+    rows.length ? `Pair ${index + 1} of ${rows.length}` : 'No pairs';
   document.getElementById('progress').textContent = `${done} of ${ROWS.length} reviewed`;
   document.getElementById('bar').style.width = (100 * done / ROWS.length) + '%';
 
@@ -337,16 +340,6 @@ function go(next){
   render();
 }
 
-function nextUnreviewed(){
-  const rows = visible();
-  if (!rows.length) return;
-  for (let i = 1; i <= rows.length; i++){
-    const j = (index + i) % rows.length;
-    if (!calls[rows[j].key]){ go(j); return; }
-  }
-  setSaveState('All reviewed', 'ok');
-}
-
 // Answering advances. Under a filter the answered pair drops out of the list and
 // the next one slides into its place, so holding position is the advance.
 function mark(value){
@@ -375,7 +368,6 @@ document.getElementById('card').addEventListener('input', e => {
 document.getElementById('save').addEventListener('click', saveNow);
 document.getElementById('prev').addEventListener('click', () => go(index - 1));
 document.getElementById('next').addEventListener('click', () => go(index + 1));
-document.getElementById('unreviewed').addEventListener('click', nextUnreviewed);
 
 document.querySelectorAll('.filters .btn').forEach(b => {
   b.addEventListener('click', () => {
@@ -417,15 +409,13 @@ def build(rows: list[dict], reviewer: str, mode: str) -> str:
   <span class="mode">{mode}</span>
   <button class="btn" id="prev">&larr; Prev</button>
   <button class="btn" id="next">Next &rarr;</button>
-  <button class="btn" id="unreviewed">Next unreviewed</button>
   <div class="filters" role="group" aria-label="Show">
     <button class="btn" data-f="all" aria-pressed="false">All</button>
     <button class="btn" data-f="todo" aria-pressed="true">Unreviewed</button>
     <button class="btn" data-f="done" aria-pressed="false">Reviewed</button>
   </div>
   <div class="spacer"></div>
-  <span class="readout" id="position">1 of {n}</span>
-  <span class="readout sep">&middot;</span>
+  <span class="readout" id="position">Pair 1 of {n}</span>
   <div class="bar"><i id="bar"></i></div>
   <span class="readout" id="progress">0 of {n} reviewed</span>
   <button class="btn" id="save">Save</button>
