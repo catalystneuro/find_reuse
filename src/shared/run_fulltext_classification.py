@@ -193,6 +193,25 @@ def build_direct_worklist(path: Path) -> list[dict]:
     return work
 
 
+def group_by_paper(items: list[dict]) -> list[list[dict]]:
+    """
+    Group worklist items by citing DOI, in order of first appearance.
+
+    Each group runs on a single worker, its pairs one after another. The prompt
+    opens with the paper's full text, and providers cache prompts by prefix, so
+    the second and later questions about a paper bill that text at the cached
+    rate, about a tenth of the input price. That only happens when the repeat
+    arrives after the first request has finished (a concurrent duplicate misses
+    the cache, which is written on completion) and before the entry expires a
+    few minutes later, which is what running the group sequentially on one
+    worker guarantees.
+    """
+    groups: dict[str, list[dict]] = {}
+    for item in items:
+        groups.setdefault(item['doi'], []).append(item)
+    return list(groups.values())
+
+
 def openrouter_credit_remaining(model: str) -> Optional[float]:
     """
     Remaining credit on the OpenRouter key, or None if not applicable/unknown.
@@ -486,37 +505,51 @@ def main():
         path.write_text(json.dumps(result, indent=2))
         return result
 
+    def run_paper(items):
+        results = []
+        for item in items:
+            result = run_one(item)
+            results.append(result)
+            if result.get('fatal'):
+                break
+        return results
+
     fresh = []
     aborted = None
     t0 = time.time()
     if todo:
+        # One future per paper, pairs within it sequential, so repeat questions
+        # about a paper hit the provider's prompt cache (see group_by_paper).
         with concurrent.futures.ThreadPoolExecutor(max_workers=args.workers) as ex:
-            futures = [ex.submit(run_one, i) for i in todo]
-            pbar = tqdm(concurrent.futures.as_completed(futures),
-                        total=len(futures), desc='Classifying', file=sys.stderr)
+            futures = [ex.submit(run_paper, group) for group in group_by_paper(todo)]
+            pbar = tqdm(total=len(todo), desc='Classifying', file=sys.stderr)
             counts = Counter()
-            for fut in pbar:
+            for fut in concurrent.futures.as_completed(futures):
                 try:
-                    result = fut.result()
+                    results = fut.result()
                 except concurrent.futures.CancelledError:
                     continue
                 except Exception as e:
                     print(f"  worker crashed: {type(e).__name__}: {e}",
                           file=sys.stderr, flush=True)
                     continue
-                fresh.append(result)
-                counts[result['classification']] += 1
+                fresh.extend(results)
+                pbar.update(len(results))
+                for result in results:
+                    counts[result['classification']] += 1
                 pbar.set_postfix({k: v for k, v in counts.most_common(4)})
 
-                if result.get('fatal'):
+                fatal = next((r for r in results if r.get('fatal')), None)
+                if fatal:
                     # Nothing after this can succeed: the credential is spent or
                     # rejected, so every remaining paper would fail identically.
-                    aborted = result.get('error')
-                    print(f"\n  FATAL: {aborted}\n  Stopping; {len(futures) - len(fresh)} "
+                    aborted = fatal.get('error')
+                    print(f"\n  FATAL: {aborted}\n  Stopping; {len(todo) - len(fresh)} "
                           "items were not attempted.", file=sys.stderr, flush=True)
                     for pending in futures:
                         pending.cancel()
                     break
+            pbar.close()
     elapsed = time.time() - t0
 
     # `carried` is empty outside retry mode, where `cached_results` already
@@ -529,7 +562,22 @@ def main():
                     for q in r.get('evidence_quotes', []))
     tokens_in = sum((r.get('usage') or {}).get('prompt_tokens', 0) for r in all_results)
     tokens_out = sum((r.get('usage') or {}).get('completion_tokens', 0) for r in all_results)
-    cost = tokens_in * 0.14 / 1e6 + tokens_out * 0.28 / 1e6
+    tokens_cached = sum(
+        (((r.get('usage') or {}).get('prompt_tokens_details') or {})
+         .get('cached_tokens') or 0)
+        for r in all_results)
+
+    def result_cost(r):
+        # OpenRouter reports what each request actually billed, cache reads and
+        # writes included; flat per-token rates are the fallback for results
+        # that predate this field or came from another provider.
+        usage = r.get('usage') or {}
+        if usage.get('cost') is not None:
+            return usage['cost']
+        return (usage.get('prompt_tokens', 0) * 0.14 / 1e6
+                + usage.get('completion_tokens', 0) * 0.28 / 1e6)
+
+    cost = sum(result_cost(r) for r in all_results)
 
     summary = {
         'pairs': len(all_results),
@@ -540,6 +588,7 @@ def main():
         'quote_match_tiers': dict(tiers),
         'hallucinated_quotes': halluc,
         'prompt_tokens': tokens_in,
+        'cached_prompt_tokens': tokens_cached,
         'completion_tokens': tokens_out,
         'estimated_cost_usd': round(cost, 2),
         'seconds': round(elapsed, 1),

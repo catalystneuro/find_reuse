@@ -109,7 +109,10 @@ python -m src.shared.run_fulltext_classification --mode direct \
 28,000 of them, so keep the limit above that: the output file is written from
 the selected worklist, and a limit below the pair count silently drops cached
 rows from it. A full indirect pass costs about $110 and takes a few hours at
-96 workers. The work is network-bound, so worker counts far above the core
+96 workers. Pairs that share a citing paper run back to back on one worker, so
+their repeated full text bills at the provider's cached-input rate, about a
+tenth of the normal one; the summary reports the cached tokens and the actual
+billed cost. The work is network-bound, so worker counts far above the core
 count are appropriate. Add `--retry-errors` to re-run only the failures.
 
 Reports:
