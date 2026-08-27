@@ -93,9 +93,10 @@ queue as you answer it and the next one takes its place, so the queue empties as
 you go. **Reviewed** is the looking-back pass over answers already given, where
 changing one is a matter of clicking a different label.
 
-The toolbar counts two different things: **Pair 3 of 871** is where you are in
-the queue you are looking at, and **142 of 1017 reviewed**, with the bar, is the
-round as a whole.
+The toolbar counts two different things, and keeps them apart: **Pair 3 of 871**
+sits beside the filter buttons because it is where you are inside whichever
+queue they select, while the bar and **142 of 1017 reviewed** sit off by Save
+because they are the round as a whole.
 
 ## Where the answers go
 

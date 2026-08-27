@@ -414,8 +414,8 @@ def build(rows: list[dict], reviewer: str, mode: str) -> str:
     <button class="btn" data-f="todo" aria-pressed="true">Unreviewed</button>
     <button class="btn" data-f="done" aria-pressed="false">Reviewed</button>
   </div>
-  <div class="spacer"></div>
   <span class="readout" id="position">Pair 1 of {n}</span>
+  <div class="spacer"></div>
   <div class="bar"><i id="bar"></i></div>
   <span class="readout" id="progress">0 of {n} reviewed</span>
   <button class="btn" id="save">Save</button>
