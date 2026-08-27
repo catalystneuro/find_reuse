@@ -113,29 +113,18 @@ class TestMergeByPair:
     def test_the_fields_assignment_filters_on_survive_the_merge(self, tmp_path):
         path = tmp_path / 'c.json'
         path.write_text(json.dumps({'classifications': [
-            classification('10.1/a', '000541', 'kept', confidence=7,
+            classification('10.1/a', '000541', 'kept',
                            same_lab=False, reused_neurophysiology=True,
-                           reused_dandi_hosted=True, source_archive='CRCNS',
-                           reuse_type='BENCHMARK',
+                           source_archive='CRCNS', reuse_type='BENCHMARK',
                            reused_modalities=['neurophysiology', 'behavior']),
         ]}))
         row = B.finalize(B.merge_by_pair([str(path)])[('10.1/a', '000541')])
-        assert row['confidence'] == 7
         assert row['same_lab'] is False
         assert row['reused_neurophysiology'] is True
-        assert row['reused_dandi_hosted'] is True
         assert row['archives'] == ['CRCNS']
         assert row['reuse_types'] == ['BENCHMARK']
         assert row['reused_modalities'] == ['neurophysiology', 'behavior']
 
-    def test_a_pair_takes_the_highest_confidence_of_its_records(self, tmp_path):
-        path = tmp_path / 'c.json'
-        path.write_text(json.dumps({'classifications': [
-            classification('10.1/a', '000541', 'one', confidence=4),
-            classification('10.1/a', '000541', 'two', confidence=9, mode='direct'),
-        ]}))
-        row = B.merge_by_pair([str(path)])[('10.1/a', '000541')]
-        assert row['confidence'] == 9
 
     def test_a_pair_collects_every_archive_its_records_named(self, tmp_path):
         path = tmp_path / 'c.json'
@@ -193,35 +182,8 @@ class TestFinalize:
         row = B.finalize(merged[('10.1/citer', '000541')])
         assert row['same_lab'] is None
 
-    def test_a_pair_whose_every_quote_is_missing_is_unverifiable(self, tmp_path):
-        path = tmp_path / 'c.json'
-        path.write_text(json.dumps({'classifications': [
-            classification('10.1/a', '000541', 'nowhere', evidence_quotes=[
-                {'quote': 'nowhere', 'match_type': 'not_found'},
-                {'quote': 'also nowhere', 'match_type': 'not_found'},
-            ]),
-        ]}))
-        row = B.finalize(B.merge_by_pair([str(path)])[('10.1/a', '000541')])
-        assert row['unverifiable_quotes'] is True
 
-    def test_one_quote_found_in_the_paper_is_enough_to_verify_a_pair(self, tmp_path):
-        path = tmp_path / 'c.json'
-        path.write_text(json.dumps({'classifications': [
-            classification('10.1/a', '000541', 'x', evidence_quotes=[
-                {'quote': 'nowhere', 'match_type': 'not_found'},
-                {'quote': 'right here', 'match_type': 'exact'},
-            ]),
-        ]}))
-        row = B.finalize(B.merge_by_pair([str(path)])[('10.1/a', '000541')])
-        assert row['unverifiable_quotes'] is False
 
-    def test_a_pair_with_no_quotes_at_all_is_not_called_unverifiable(self, tmp_path):
-        path = tmp_path / 'c.json'
-        path.write_text(json.dumps({'classifications': [
-            classification('10.1/a', '000541', 'x', evidence_quotes=[]),
-        ]}))
-        row = B.finalize(B.merge_by_pair([str(path)])[('10.1/a', '000541')])
-        assert row['unverifiable_quotes'] is False
 
 
 class TestDandiReason:
@@ -357,6 +319,16 @@ class TestBuildCandidates:
         pairs = B.build_candidates([four_dataset_input], corpus, direct_results)
         assert 'pathways' not in pairs[0]
         assert 'same_lab_values' not in pairs[0]
+
+    def test_a_pair_carries_only_what_something_downstream_reads(
+            self, four_dataset_input, corpus, direct_results):
+        pairs = B.build_candidates([four_dataset_input], corpus, direct_results)
+        assert set(pairs[0]) == {
+            'doi', 'dandiset', 'pathway', 'title', 'dandiset_name',
+            'cited_doi', 'cited_title', 'cited_role', 'reasoning', 'quotes',
+            'same_lab', 'reused_neurophysiology', 'reused_modalities',
+            'archives', 'reuse_types', 'dandi_reason',
+        }
 
 
 class TestWriteCandidates:

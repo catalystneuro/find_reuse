@@ -11,11 +11,9 @@ import src.review.assign_reviews as A
 def pair(doi, dandiset='000541', pathway='indirect', **overrides):
     record = {
         'doi': doi, 'dandiset': dandiset, 'pathway': pathway,
-        'confidence': 8, 'same_lab': False,
-        'reused_neurophysiology': True, 'reused_dandi_hosted': True,
+        'same_lab': False, 'reused_neurophysiology': True,
         'reused_modalities': ['neurophysiology'],
         'archives': ['DANDI Archive'], 'reuse_types': ['NOVEL_ANALYSIS'],
-        'unverifiable_quotes': False,
         'dandi_reason': 'names DANDI Archive as the source',
     }
     record.update(overrides)

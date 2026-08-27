@@ -104,6 +104,9 @@ def merge_by_pair(inputs: list[str]) -> dict:
     supported by its own passage, so each is judged on its own. The direct and
     citing pathways can both reach the same pair, so their quotes are unioned
     and the fields they each answered are reconciled.
+
+    Only the fields something downstream reads are kept: what review shows, and
+    what a round is cut on.
     """
     loaded = [json.loads(Path(p).read_text()) for p in inputs]
     known = {r['citing_doi'] for d in loaded for r in d['classifications']}
@@ -118,8 +121,8 @@ def merge_by_pair(inputs: list[str]) -> dict:
             row = merged.setdefault((doi, dandiset), {
                 'doi': doi, 'dandiset': dandiset,
                 'title': '', 'reasoning': '', 'quotes': [], 'source_quotes': [],
-                'pathways': set(), 'confidence': 0, 'same_lab_values': set(),
-                'reused_neurophysiology': False, 'reused_dandi_hosted': False,
+                'pathways': set(), 'same_lab_values': set(),
+                'reused_neurophysiology': False,
                 'reused_modalities': [], 'archives': [], 'reuse_types': [],
             })
             row['pathways'].add(r['mode'])
@@ -134,11 +137,10 @@ def merge_by_pair(inputs: list[str]) -> dict:
                     if rec not in row[into]:
                         row[into].append(rec)
 
-            row['confidence'] = max(row['confidence'], r.get('confidence') or 0)
             if r.get('same_lab') is not None:
                 row['same_lab_values'].add(bool(r['same_lab']))
-            for field in ('reused_neurophysiology', 'reused_dandi_hosted'):
-                row[field] = row[field] or bool(r.get(field))
+            row['reused_neurophysiology'] = (row['reused_neurophysiology']
+                                             or bool(r.get('reused_neurophysiology')))
             for value in r.get('reused_modalities') or []:
                 if value not in row['reused_modalities']:
                     row['reused_modalities'].append(value)
@@ -164,13 +166,6 @@ def finalize(row: dict) -> dict:
     row['same_lab'] = (True if values == {True} else
                        False if values == {False} else
                        'mixed' if values == {True, False} else None)
-
-    # A claim resting only on passages that are not in the paper is a claim with
-    # nothing behind it, which is a reason to put a round in front of a person
-    # sooner rather than later.
-    row['unverifiable_quotes'] = (bool(row['quotes'])
-                                  and all(q['tier'] == 'not_found'
-                                          for q in row['quotes']))
 
     # Why this pair counts as DANDI data, which is a different question from
     # whether DANDI hosts the modality it reused. A paper naming the dandiset
