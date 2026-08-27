@@ -26,6 +26,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from src.review.build_candidates import CANDIDATES_FILE
+from src.shared.classify_fulltext_reuse import MODALITIES, REUSE_TYPES
 from src.review.reviewers import (ASSIGNMENTS_DIR, REVIEWERS_FILE, REVIEWS_DIR,
                                   answers_path, assignment_path, load_reviewers,
                                   select_reviewers)
@@ -185,23 +186,36 @@ def main():
     parser.add_argument('--pathway', choices=list(PATHWAYS),
                         help='Only this queue. Both by default, dealt separately.')
     parser.add_argument('--dandi-hosted', action=argparse.BooleanOptionalAction,
-                        help='Whether the reused data was hosted on DANDI.')
+                        help='Whether DANDI held the part of the dataset that '
+                             'was reused, rather than another archive.')
     parser.add_argument('--neuro', action=argparse.BooleanOptionalAction,
-                        help='Whether neurophysiology was among what was reused.')
-    parser.add_argument('--modality', action='append',
-                        help='Keep pairs reusing this modality; repeatable.')
-    parser.add_argument('--archive', action='append',
-                        help='Keep pairs sourced from this archive; repeatable.')
-    parser.add_argument('--reuse-type', action='append',
-                        help='Keep pairs of this reuse type; repeatable.')
+                        help='Whether neurophysiology was among what was reused, '
+                             'as against morphology or transcriptomics alone.')
+    parser.add_argument('--modality', action='append', choices=list(MODALITIES),
+                        metavar='NAME',
+                        help='Which part of the dataset was reused. Repeatable, '
+                             'and a pair matches if it reused any named one. '
+                             f'One of: {", ".join(MODALITIES)}.')
+    parser.add_argument('--archive', action='append', metavar='NAME',
+                        help='Where the authors say they got the data, as it '
+                             'appears in the candidate list, e.g. "DANDI '
+                             'Archive", CRCNS, Zenodo. Repeatable.')
+    parser.add_argument('--reuse-type', action='append', choices=list(REUSE_TYPES),
+                        metavar='TYPE',
+                        help='What the authors did with the data. Repeatable. '
+                             f'One of: {", ".join(REUSE_TYPES)}.')
     parser.add_argument('--lab', choices=['same', 'different', 'any'], default='any',
-                        help='Whether the reusing group produced the data.')
-    parser.add_argument('--min-confidence', type=int,
-                        help="Drop pairs the classifier was less sure of.")
+                        help='Whether the group that reused the data is the one '
+                             'that produced it. Default any.')
+    parser.add_argument('--min-confidence', type=int, metavar='N',
+                        help='Drop pairs the classifier scored below N out of 10.')
     parser.add_argument('--exclude-unverifiable-quotes', action='store_true',
-                        help='Drop pairs whose every quote is missing from the paper.')
-    parser.add_argument('--limit', type=int,
-                        help='Assign at most this many new pairs.')
+                        help='Drop pairs where no quoted passage could be found '
+                             'in the paper, so nothing supports the call.')
+    parser.add_argument('--limit', type=int, metavar='N',
+                        help='Deal at most N new pairs, to size a round to what '
+                             'somebody will finish. Work already owed is kept '
+                             'either way.')
     args = parser.parse_args()
 
     candidates = json.loads(CANDIDATES_FILE.read_text())
