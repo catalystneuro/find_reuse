@@ -102,7 +102,7 @@ CSS = """
        background:var(--raise);border:1px solid var(--line)}
   .bar i{display:block;height:100%;width:0;border-radius:999px;
          background:var(--accent);transition:width .3s ease}
-  .savestate{font-size:11.5px;min-width:9ch;color:var(--muted)}
+  .savestate{font-size:11.5px;min-width:11ch;color:var(--muted)}
   .savestate.ok{color:var(--ok)}
   .savestate.bad{color:var(--bad);font-weight:600}
 
@@ -231,13 +231,16 @@ function setSaveState(text, cls){
 // Answers land in reviews/<reviewer>.json as they are made.
 let saveTimer = null;
 
-function saveNow(){
+// `manual` only changes what the indicator says afterwards: a write the
+// reviewer asked for reads back differently from one that happened on its own.
+function saveNow(manual){
   clearTimeout(saveTimer);
   setSaveState('Saving\\u2026', '');
   return fetch('/save', {method: 'POST', headers: {'Content-Type': 'application/json'},
                          body: JSON.stringify({reviewer: REVIEWER, calls, notes})})
-    .then(r => setSaveState(r.ok ? 'Saved' : 'Save failed \\u2014 ' + r.status,
-                            r.ok ? 'ok' : 'bad'))
+    .then(r => setSaveState(
+      r.ok ? (manual ? 'Saved' : 'Auto-saved') : 'Save failed \\u2014 ' + r.status,
+      r.ok ? 'ok' : 'bad'))
     .catch(e => setSaveState('Save failed \\u2014 ' + e.message, 'bad'));
 }
 
@@ -245,7 +248,7 @@ function saveNow(){
 function save(){
   clearTimeout(saveTimer);
   setSaveState('Saving\\u2026', '');
-  saveTimer = setTimeout(saveNow, 500);
+  saveTimer = setTimeout(() => saveNow(false), 500);
 }
 
 function visible(){
@@ -365,7 +368,7 @@ document.getElementById('card').addEventListener('input', e => {
   save();
 });
 
-document.getElementById('save').addEventListener('click', saveNow);
+document.getElementById('save').addEventListener('click', () => saveNow(true));
 document.getElementById('prev').addEventListener('click', () => go(index - 1));
 document.getElementById('next').addEventListener('click', () => go(index + 1));
 
