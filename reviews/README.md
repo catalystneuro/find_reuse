@@ -1,15 +1,45 @@
-# Review answers
+# Reviews
 
-One file per reviewer, `<reviewer>.json`, written by
+Everything a round of manual review needs, and everything it produces. See
+[REVIEWING.md](../REVIEWING.md) for how the three steps fit together.
 
-```bash
-python -m src.review.run_review ... \
-    --mode indirect --reviewer "your name"
+## `reviewers.json`
+
+Who reviews. `name` decides the filenames below, so it is the one field that
+must not change casually.
+
+```json
+[{"name": "rly", "github": "rly"}]
 ```
 
-Each records that person's answers for (paper, dandiset) pairs, keyed by DOI and
-dandiset id joined with a tab. Both review modes write to the same file, since a
-pair belongs to one queue only:
+Assigning to a name that is not listed here is refused rather than obeyed — a
+typo would otherwise deal pairs to somebody who does not exist, taking them out
+of circulation and giving them to nobody.
+
+## `reuse_candidates.json`
+
+Every (paper, dandiset) pair the classifier called REUSE, with everything needed
+to judge it: the paper, the dataset, the paper it cited, the model's reasoning
+and the passages it quoted. Written by `src.review.build_candidates`, sorted by
+pair, so rerunning the pipeline shows up as the pairs it added.
+
+## `assignments/<reviewer>.<pathway>.json`
+
+Which pairs are whose. Keys only — the records are in the candidate list, and
+storing them twice would only let the two disagree.
+
+```json
+{"reviewer": "rly", "pathway": "indirect",
+ "keys": ["10.1002/acn3.70285\t000768"]}
+```
+
+Regenerable in principle, but not in practice: who was asked to read what is a
+decision, and dealing again from scratch would not necessarily reach the same
+one. Written by `src.review.assign_reviews`, which only ever adds.
+
+## `<reviewer>.json`
+
+One person's answers, written by the dashboard as they work.
 
 ```json
 {
@@ -19,13 +49,19 @@ pair belongs to one queue only:
 }
 ```
 
-**These are committed.** They are the one part of the pipeline that cannot be
-regenerated — the classifications they check can be re-run at any time, a
-person's reading of a paper cannot. They carry nothing about the model or the
-prompt that produced the classification, so they stay valid across
-re-classification.
+Keyed by DOI and dandiset id joined with a tab. Both queues write to the same
+file, since a pair belongs to one queue only.
+
+**This is the one file here that cannot be regenerated.** The classifications it
+checks can be re-run at any time; a person's reading of a paper cannot. It
+carries nothing about the model or the prompt that produced the classification,
+so it stays valid across re-classification.
 
 Reviewers judge independently, so two people covering the same round leave two
 files here; they are compared afterwards, not merged as the work is done.
 
-See [REVIEWING.md](../REVIEWING.md).
+## All of it is committed
+
+The answers because they are irreplaceable, the assignments because they record
+a decision, and the candidate list because it is what the assignments point into
+— together they let somebody clone the repository and start reviewing.

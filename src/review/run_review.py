@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """
-Run a review session over the full-text REUSE classifications.
+Run a review session over an assigned list of reuse candidates.
 
 Serves a worksheet that asks one question about one (paper, dataset) pair at a
 time. Answer, and the next pair comes up.
 
-The two discovery pathways ask different questions, so each has its own queue,
-chosen with --mode. A paper found by naming the dandiset in its own text might
-have deposited that dataset, so the direct queue offers PRIMARY and shows no
-cited paper; a paper found by citing the dandiset's publication might only be
-mentioning that work, so the indirect queue offers MENTION and leads with the
-paper it cited. Both inputs are read either way, because a pair reached by both
-pathways is one pair and is reviewed once, in the direct queue.
+The assignment says whose session this is and which pathway it covers, so a
+session cannot be pointed at the wrong answer file or offered the wrong labels.
+The two pathways ask different questions: a paper found by naming the dandiset
+in its own text might have deposited that dataset, so the direct queue offers
+PRIMARY and shows no cited paper; a paper found by citing the dandiset's
+publication might only be mentioning that work, so the indirect queue offers
+MENTION and leads with the paper it cited.
 
 Answers are written to reviews/<reviewer>.json as they are made. That file is
 the durable artifact of a review round and belongs in version control; nothing
@@ -20,27 +20,19 @@ into it, because none of that changes what the right answer is.
 
 Usage:
     python -m src.review.run_review \
-        -i output/fulltext_classifications.json \
-        -i output/fulltext_direct_openalex.json \
-        --mode indirect --reviewer <your name>
+        --assignment reviews/assignments/rly.indirect.json
 """
 
 from __future__ import annotations
 
 import argparse
 import json
-import re
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from functools import lru_cache
 from pathlib import Path
 
-from src.shared.run_fulltext_classification import primary_paper_index
-
-REPO = Path(__file__).resolve().parents[2]
-REVIEWS_DIR = REPO / 'reviews'
-RESULTS_FILE = REPO / 'output/all_dandiset_papers_refreshed.json'
-DIRECT_RESULTS_FILE = REPO / 'output/results_dandi_openalex.json'
+from src.review.build_candidates import CANDIDATES_FILE
+from src.review.reviewers import REVIEWS_DIR, answers_path
 
 CSS = """
   :root{
@@ -437,162 +429,6 @@ const LABELS = {json.dumps(LABELS[mode])};
 """
 
 
-# Version suffixes. '/vN' is unambiguous. '.N' is not: 10.1002/brx2.47 and
-# brx2.65 are different articles, not versions of one, so it only counts as a
-# version when the unversioned DOI is also present or the base ends in a long
-# article number.
-_VERSION_SLASH = re.compile(r'^(?P<base>.+?)/v\d{1,2}$', re.I)
-_VERSION_DOT = re.compile(r'^(?P<base>.+?)\.\d{1,2}$')
-_ARTICLE_NUMBER = re.compile(r'\d{4,}$')
-
-
-def canonical_doi(doi: str, known: set) -> str:
-    """
-    Collapse a versioned DOI onto the work it is a version of.
-
-    eLife's reviewed-preprint model mints .1, .2 and .3 alongside the base DOI,
-    so one paper can appear five times and be counted five times. Research
-    Square, F1000Research, Authorea and Qeios do the same with other suffixes.
-    """
-    m = _VERSION_SLASH.match(doi)
-    if m:
-        return m.group('base')
-    m = _VERSION_DOT.match(doi)
-    if m:
-        base = m.group('base')
-        if base in known or _ARTICLE_NUMBER.search(base.split('/')[-1]):
-            return base
-    return doi
-
-
-@lru_cache(maxsize=1)
-def corpus_papers(results_path: Path) -> tuple[dict, dict, dict]:
-    """
-    Paper titles, dataset names, and the paper each dataset declares.
-
-    primary_paper_index says which paper a pair was built from but not what it
-    is called, and a reviewer choosing what to open needs the title as much as
-    the identifier. The declared paper stands in for pairs the citing pathway
-    never saw; a dandiset naming several, the one asserting it describes the
-    data is the one to read.
-    """
-    data = json.loads(results_path.read_text())
-    paper_titles, dandiset_names, declared = {}, {}, {}
-    for ds in data.get('results', []):
-        dandiset_names[ds['dandiset_id']] = ds.get('dandiset_name') or ''
-        relations = [r for r in ds.get('paper_relations') or [] if r.get('doi')]
-        for relation in relations:
-            if relation.get('name'):
-                paper_titles.setdefault(relation['doi'], relation['name'])
-        described = next((r for r in relations
-                          if r.get('relation') == 'dcite:IsDescribedBy'), None)
-        if described or relations:
-            declared[ds['dandiset_id']] = (described or relations[0])['doi']
-    return paper_titles, dandiset_names, declared
-
-
-def merge_by_pair(inputs: list[str]) -> dict:
-    """
-    One row per (paper, dataset), which is the unit the classifier answers about.
-
-    A paper reusing several datasets stands in a separate relationship to each,
-    supported by its own passage, so each is judged on its own. The direct and
-    citing pathways can both reach the same pair, so their quotes are unioned
-    and `pathways` records which of them got there.
-    """
-    loaded = [json.loads(Path(p).read_text()) for p in inputs]
-    known = {r['citing_doi'] for d in loaded for r in d['classifications']}
-
-    merged: dict = {}
-    for data in loaded:
-        for r in data['classifications']:
-            if r.get('classification') != 'REUSE':
-                continue
-            doi = canonical_doi(r['citing_doi'], known)
-            dandiset = r.get('dandiset_id') or ''
-            row = merged.setdefault((doi, dandiset), {
-                'key': f'{doi}\t{dandiset}', 'doi': doi, 'dandiset': dandiset,
-                'title': '', 'reasoning': '', 'quotes': [],
-                'pathways': set(),
-            })
-            row['pathways'].add(r['mode'])
-            if r.get('title') and len(r['title']) > len(row['title']):
-                row['title'] = r['title'].strip()
-            if len(r.get('reasoning') or '') > len(row['reasoning']):
-                row['reasoning'] = r.get('reasoning') or ''
-            for q in r.get('evidence_quotes', []):
-                rec = {'q': q['quote'], 'tier': q['match_type']}
-                if rec not in row['quotes']:
-                    row['quotes'].append(rec)
-    return merged
-
-
-def queue_for(merged: dict, mode: str) -> list[dict]:
-    """
-    The pairs one pathway's queue is responsible for.
-
-    A pair both pathways reached is still one pair asking one question, so it is
-    reviewed once. It goes to the direct queue, the only one that can answer
-    that these authors deposited the dataset rather than reusing it.
-    """
-    rows = []
-    for row in merged.values():
-        owner = 'direct' if 'direct' in row['pathways'] else 'indirect'
-        if owner == mode:
-            rows.append({k: v for k, v in row.items() if k != 'pathways'})
-    return rows
-
-
-def attach_missing_titles(rows: list[dict], direct_results_path: Path) -> None:
-    """
-    Title the papers the direct pathway found, which its classifications lack.
-
-    A direct pair is built by matching a dandiset identifier in a paper's text,
-    and the classification records only the DOI that was matched. Discovery kept
-    the title, and a DOI is not what a reviewer recognises a paper by.
-    """
-    data = json.loads(direct_results_path.read_text())
-    titles = {r['doi'].lower(): r['title'] for r in data.get('results', [])
-              if r.get('doi') and r.get('title')}
-    for row in rows:
-        if not row['title']:
-            row['title'] = titles.get(row['doi'].lower(), '')
-
-
-def attach_dandiset_names(rows: list[dict], results_path: Path) -> None:
-    """Name the dataset, which both queues show beside its identifier."""
-    _, dandiset_names, _ = corpus_papers(results_path)
-    for row in rows:
-        row['dandiset_name'] = dandiset_names.get(row['dandiset'], '')
-
-
-def attach_cited_papers(rows: list[dict], results_path: Path) -> None:
-    """
-    Name the paper each pair was built from, which the indirect queue asks about.
-
-    A classification record says which pair it answered but not which paper the
-    classifier was asked about, so the pairing has to come back from discovery.
-    A dandiset can declare several papers, and the one this citing work actually
-    cited is the one a reviewer has to read.
-
-    Discovery does not always hold the pairing. Where it does not, the dataset's
-    own declared paper is what a reviewer opens instead, and `cited_role` says
-    which of the two is on offer.
-    """
-    primaries = primary_paper_index(results_path)
-    paper_titles, _, declared = corpus_papers(results_path)
-    for row in rows:
-        cited = primaries.get((row['doi'].lower(), row['dandiset']), '')
-        row['cited_role'] = 'Cited' if cited else 'Dataset paper'
-        cited = cited or declared.get(row['dandiset'], '')
-        row['cited_doi'] = cited
-        row['cited_title'] = paper_titles.get(cited, '')
-
-
-def reviewer_slug(reviewer: str) -> str:
-    return re.sub(r'[^a-z0-9]+', '-', reviewer.lower()).strip('-')
-
-
 def make_handler(page: str, reviewer: str, save_path: Path):
     """A request handler bound to one reviewer's page and answer file."""
 
@@ -640,8 +476,8 @@ def make_handler(page: str, reviewer: str, save_path: Path):
 def serve(rows: list[dict], reviewer: str, mode: str, port: int,
           reviews_dir: Path = REVIEWS_DIR, open_browser: bool = True) -> None:
     if not rows:
-        raise SystemExit(f'No {mode} REUSE pairs in those inputs; nothing to review.')
-    save_path = reviews_dir / f'{reviewer_slug(reviewer)}.json'
+        raise SystemExit('That assignment holds no pairs; nothing to review.')
+    save_path = answers_path(reviewer, reviews_dir)
     handler = make_handler(build(rows, reviewer, mode), reviewer, save_path)
     server = ThreadingHTTPServer(('127.0.0.1', port), handler)
     url = f'http://127.0.0.1:{server.server_address[1]}/'
@@ -659,30 +495,39 @@ def serve(rows: list[dict], reviewer: str, mode: str, port: int,
         server.server_close()
 
 
+def load_assignment(assignment_path: Path,
+                    candidates_path: Path = CANDIDATES_FILE) -> tuple[list[dict], str, str]:
+    """
+    The pairs one assignment covers, with everything needed to judge them.
+
+    An assignment names its pairs and leaves the records in the candidate list,
+    so the two have to be read together. A key the candidate list does not hold
+    means the assignment was dealt from a list that has since been rebuilt
+    without it, which is a mismatch to fix rather than to review around.
+    """
+    assignment = json.loads(assignment_path.read_text())
+    by_key = {p['key']: p for p in json.loads(candidates_path.read_text())['pairs']}
+    missing = [k for k in assignment['keys'] if k not in by_key]
+    if missing:
+        raise SystemExit(
+            f'{len(missing)} assigned pair(s) are not in {candidates_path}, '
+            f'starting with {missing[0]!r}. Rebuild the candidate list, or '
+            f'reassign against the one you have.')
+    rows = [by_key[k] for k in assignment['keys']]
+    rows.sort(key=lambda r: (r['doi'], r['dandiset']))
+    return rows, assignment['reviewer'], assignment['pathway']
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('-i', '--input', action='append', required=True,
-                        help='Classification JSON; repeat to merge both pathways.')
-    parser.add_argument('--mode', choices=['direct', 'indirect'], required=True,
-                        help='Which pathway to review. The two ask different '
-                             'questions, so they offer different labels.')
-    parser.add_argument('--reviewer', required=True,
-                        help='Whose answers these are; names reviews/<reviewer>.json.')
-    parser.add_argument('--results-file', default=str(RESULTS_FILE),
-                        help='Discovery corpus, for the paper each pair was built from.')
-    parser.add_argument('--direct-results-file', default=str(DIRECT_RESULTS_FILE),
-                        help='Direct discovery output, for the titles it kept.')
+    parser.add_argument('--assignment', required=True,
+                        help='The assignment to work through; it names the '
+                             'reviewer and the pathway.')
     parser.add_argument('--port', type=int, default=8000)
     args = parser.parse_args()
 
-    rows = queue_for(merge_by_pair(args.input), args.mode)
-    rows.sort(key=lambda r: (r['doi'], r['dandiset']))
-    attach_dandiset_names(rows, Path(args.results_file))
-    if args.mode == 'direct':
-        attach_missing_titles(rows, Path(args.direct_results_file))
-    else:
-        attach_cited_papers(rows, Path(args.results_file))
-    serve(rows, args.reviewer, args.mode, args.port)
+    rows, reviewer, pathway = load_assignment(Path(args.assignment))
+    serve(rows, reviewer, pathway, args.port)
 
 
 if __name__ == '__main__':
