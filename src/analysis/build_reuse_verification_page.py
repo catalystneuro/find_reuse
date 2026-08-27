@@ -40,6 +40,7 @@ from src.shared.run_fulltext_classification import primary_paper_index
 REPO = Path(__file__).resolve().parents[2]
 REVIEWS_DIR = REPO / 'reviews'
 RESULTS_FILE = REPO / 'output/all_dandiset_papers_refreshed.json'
+DIRECT_RESULTS_FILE = REPO / 'output/results_dandi_openalex.json'
 
 CSS = """
   :root{
@@ -90,41 +91,54 @@ CSS = """
   .mode{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;
         text-transform:uppercase;font-weight:600;padding:3px 9px;border-radius:6px;
         background:var(--accent-soft);color:var(--accent);white-space:nowrap}
-  .question{font-size:12px;color:var(--muted);max-width:52ch}
+  .readout.sep{opacity:.45}
   .savestate{font-size:11.5px;min-width:9ch;color:var(--muted)}
   .savestate.ok{color:var(--ok)}
   .savestate.bad{color:var(--bad);font-weight:600}
 
-  .card{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:14px;
-        padding:18px clamp(12px,2vw,26px) 20px}
+  .card{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:16px;
+        padding:20px clamp(12px,2vw,26px) 20px}
 
-  .head{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px}
-  .pos{font-family:var(--mono);font-size:12px;color:var(--muted);
-       font-variant-numeric:tabular-nums}
-  a.ds{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--accent);
-       text-decoration:none;border-bottom:1px solid transparent}
-  a.ds:hover{border-bottom-color:var(--accent)}
-  .dsname{color:var(--muted);font-size:13.5px}
-  .verdict{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--muted);
-           white-space:nowrap}
-
-  .papers{display:flex;flex-direction:column;gap:10px}
-  .paper{display:grid;grid-template-columns:9ch 1fr;gap:12px;align-items:baseline}
-  .paper .role{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;
-               color:var(--muted);font-weight:600}
-  .paper .title{font-weight:560;line-height:1.35;text-wrap:pretty}
+  /* The papers and the dataset are what the answer is read off, so they get the
+     top of the screen at a size meant to be read rather than scanned. */
+  .subject{flex:0 0 auto;display:grid;gap:14px;align-items:stretch;
+           grid-template-columns:1fr 1fr minmax(210px,.6fr)}
+  .subject.direct{grid-template-columns:1fr minmax(240px,.5fr)}
+  @media (max-width:980px){
+    .subject,.subject.direct{grid-template-columns:1fr}
+  }
+  .party{min-width:0;display:flex;flex-direction:column;gap:11px;
+         background:var(--surface);border:1px solid var(--line);border-radius:14px;
+         padding:20px 22px 21px}
+  .party .role{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+               color:var(--muted);font-weight:660}
+  a.name{font-size:clamp(18px,1.75vw,26px);font-weight:640;line-height:1.26;
+         letter-spacing:-.015em;color:var(--ink);text-decoration:none;text-wrap:pretty}
+  a.name:hover{color:var(--accent)}
+  .party .absent{font-size:14px;color:var(--muted);font-style:italic}
   a.doi{font-family:var(--mono);font-size:11.5px;color:var(--accent);text-decoration:none;
-        border-bottom:1px solid transparent;word-break:break-all}
+        border-bottom:1px solid transparent;word-break:break-all;margin-top:auto}
   a.doi:hover{border-bottom-color:var(--accent)}
-  .paper .none{font-size:12.5px;color:var(--muted);font-style:italic}
 
-  .reasoning{font-size:13.5px;color:var(--muted);max-width:96ch}
+  .party.dataset{background:var(--accent-soft);
+                 border-color:color-mix(in srgb,var(--accent) 24%,transparent)}
+  .party.dataset .role{color:var(--accent);opacity:.85}
+  a.dsid{font-family:var(--mono);font-size:clamp(24px,2.5vw,35px);font-weight:700;
+         letter-spacing:-.015em;color:var(--accent);text-decoration:none;line-height:1.1}
+  a.dsid:hover{text-decoration:underline}
+  .dsname{font-size:14px;color:var(--ink);opacity:.82;line-height:1.35;text-wrap:pretty}
+
+  .reasoning{margin:0 0 14px;font-size:13.5px;color:var(--muted);max-width:96ch}
   .reasoning b{color:var(--ink);font-weight:600}
 
   .evidence{flex:1 1 auto;min-height:0;overflow-y:auto;background:var(--surface);
-            border:1px solid var(--line);border-radius:11px;padding:14px 18px}
+            border:1px solid var(--line);border-radius:14px;padding:16px 20px}
   .evidence h4{margin:0 0 4px;font-size:10.5px;letter-spacing:.09em;
                text-transform:uppercase;color:var(--muted);font-weight:600}
+  .ehead{display:flex;align-items:baseline;gap:12px;margin-bottom:7px}
+  .ehead h4{margin:0}
+  .verdict{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--muted);
+           white-space:nowrap}
   .legend{margin:0 0 12px;font-size:12px;color:var(--muted);max-width:96ch}
   figure.q{margin:0;padding:9px 0 9px 14px;border-left:3px solid var(--line-strong)}
   figure.q.exact{border-left-color:var(--ok)}
@@ -142,17 +156,18 @@ CSS = """
   .tier.punctuation_insensitive{background:var(--warn-soft);color:var(--warn)}
   .tier.not_found{background:var(--bad-soft);color:var(--bad)}
 
-  .decide{flex:0 0 auto;display:flex;gap:16px;align-items:stretch}
+  .decide{flex:0 0 auto;display:flex;gap:18px;align-items:flex-start}
   .decide textarea{flex:1 1 auto;font:inherit;font-size:13px;line-height:1.45;
                    padding:9px 11px;border-radius:9px;border:1px solid var(--line-strong);
-                   background:var(--surface);color:var(--ink);resize:none;min-height:76px}
+                   background:var(--surface);color:var(--ink);resize:none;min-height:82px}
   .decide textarea::placeholder{color:var(--muted);opacity:.75}
-  .calls{display:flex;flex-wrap:wrap;gap:7px;align-items:flex-start}
-  .calls button{font:inherit;font-size:12.5px;padding:9px 13px;border-radius:9px;
+  .ask{flex:0 0 auto;display:flex;flex-direction:column;gap:9px;max-width:62ch}
+  .question{margin:0;font-size:12.5px;color:var(--muted)}
+  .calls{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start}
+  .calls button{font:inherit;font-size:13px;padding:10px 16px;border-radius:9px;
                 cursor:pointer;border:1px solid var(--line-strong);background:var(--surface);
                 color:var(--muted);white-space:nowrap}
   .calls button:hover{border-color:var(--accent);color:var(--ink)}
-  .calls button kbd{font-family:var(--mono);font-size:10px;opacity:.6;margin-right:5px}
   /* Colour is relative to what the classifier said, not fixed per label: green
      means you agreed with it, red that you contradicted it. */
   .calls button[aria-pressed="true"].agree{background:var(--ok-soft);border-color:var(--ok);
@@ -200,16 +215,22 @@ function save(){
   }, 500);
 }
 
-function paperRow(role, doi, title){
-  if (!doi) return `<div class="paper"><span class="role">${esc(role)}</span>
-      <span class="none">Not recorded for this pair.</span></div>`;
-  return `<div class="paper">
-      <span class="role">${esc(role)}</span>
-      <span>
-        <span class="title">${esc(title || doi)}</span><br>
-        <a class="doi" href="https://doi.org/${encodeURI(doi)}"
-           target="_blank" rel="noopener">${esc(doi)}</a>
-      </span>
+function paperPanel(role, doi, title){
+  const body = doi
+    ? `<a class="name" href="https://doi.org/${encodeURI(doi)}"
+          target="_blank" rel="noopener">${esc(title || doi)}</a>
+       <a class="doi" href="https://doi.org/${encodeURI(doi)}"
+          target="_blank" rel="noopener">${esc(doi)}</a>`
+    : `<span class="absent">Not recorded for this pair.</span>`;
+  return `<div class="party"><span class="role">${esc(role)}</span>${body}</div>`;
+}
+
+function datasetPanel(r){
+  return `<div class="party dataset">
+      <span class="role">${MODE === 'direct' ? 'Dataset it names' : 'Dataset'}</span>
+      <a class="dsid" href="https://dandiarchive.org/dandiset/${esc(r.dandiset)}"
+         target="_blank" rel="noopener">${esc(r.dandiset)}</a>
+      <span class="dsname">${esc(r.dandiset_name)}</span>
     </div>`;
 }
 
@@ -221,41 +242,43 @@ function quoteBlock(q){
 }
 
 function callButtons(key){
-  return LABELS.map((label, i) => {
+  return LABELS.map(label => {
     const tone = label === AGREE ? 'agree' : label === 'unsure' ? 'hedge' : 'contradict';
     const name = label[0].toUpperCase() + label.slice(1);
     return `<button class="${tone}" data-v="${label}"
-              aria-pressed="${calls[key] === label}"><kbd>${i + 1}</kbd>${name}</button>`;
+              aria-pressed="${calls[key] === label}">${name}</button>`;
   }).join('');
 }
 
 function render(){
   const r = ROWS[index];
   const done = ROWS.filter(x => calls[x.key]).length;
+  document.getElementById('position').textContent = `${index + 1} of ${ROWS.length}`;
   document.getElementById('progress').textContent =
     `${done} of ${ROWS.length} reviewed`;
 
   const quotes = r.quotes.length ? r.quotes.map(quoteBlock).join('')
     : `<figure class="q"><blockquote><em>No quote returned.</em></blockquote></figure>`;
+  // Where discovery held no pairing, the panel shows the dataset's own declared
+  // paper, and says so rather than claiming this paper cited it.
+  const citedRole = r.cited_role === 'Cited' ? 'Paper it cited'
+                                             : 'Paper describing the dataset';
 
   document.getElementById('card').innerHTML = `
-    <div class="head">
-      <span class="pos">${index + 1} of ${ROWS.length}</span>
-      <a class="ds" href="https://dandiarchive.org/dandiset/${esc(r.dandiset)}"
-         target="_blank" rel="noopener">${esc(r.dandiset)}</a>
-      <span class="dsname">${esc(r.dandiset_name)}</span>
-      <span class="verdict">classifier: REUSE \\u00b7 confidence ${esc(r.confidence)}</span>
+    <div class="subject ${MODE}">
+      ${paperPanel('Paper under review', r.doi, r.title)}
+      ${MODE === 'indirect'
+        ? paperPanel(citedRole, r.cited_doi, r.cited_title) : ''}
+      ${datasetPanel(r)}
     </div>
-
-    <div class="papers">
-      ${paperRow('Citing', r.doi, r.title)}
-      ${MODE === 'indirect' ? paperRow(r.cited_role, r.cited_doi, r.cited_title) : ''}
-    </div>
-
-    <p class="reasoning"><b>Classifier's reasoning.</b> ${esc(r.reasoning)}</p>
 
     <div class="evidence">
-      <h4>Evidence quoted by the classifier</h4>
+      <div class="ehead">
+        <h4>What the classifier said</h4>
+        <span class="verdict">REUSE \u00b7 confidence ${esc(r.confidence)}</span>
+      </div>
+      <p class="reasoning">${esc(r.reasoning)}</p>
+      <h4>Evidence it quoted</h4>
       <p class="legend">A tier says how the quote matched the paper.
         <em>Exact</em> is character for character; <em>normalized</em>, <em>case</em>,
         <em>punctuation</em> and <em>spacing</em> mean it appears once those are folded;
@@ -265,9 +288,12 @@ function render(){
     </div>
 
     <div class="decide">
-      <textarea id="note" placeholder="Why \\u2014 optional"
+      <textarea id="note" placeholder="Why \u2014 optional"
         >${esc(notes[r.key] || '')}</textarea>
-      <div class="calls">${callButtons(r.key)}</div>
+      <div class="ask">
+        <p class="question">${QUESTION}</p>
+        <div class="calls">${callButtons(r.key)}</div>
+      </div>
     </div>`;
 }
 
@@ -312,15 +338,6 @@ document.getElementById('prev').addEventListener('click', () => go(index - 1));
 document.getElementById('next').addEventListener('click', () => go(index + 1));
 document.getElementById('unreviewed').addEventListener('click', nextUnreviewed);
 
-document.addEventListener('keydown', e => {
-  if (e.target.tagName === 'TEXTAREA' || e.metaKey || e.ctrlKey || e.altKey) return;
-  const n = LABELS[Number(e.key) - 1];
-  if (n){ mark(n); e.preventDefault(); return; }
-  if (e.key === 'ArrowLeft'){ go(index - 1); e.preventDefault(); }
-  if (e.key === 'ArrowRight'){ go(index + 1); e.preventDefault(); }
-  if (e.key === 'u'){ nextUnreviewed(); e.preventDefault(); }
-});
-
 fetch('/load')
   .then(r => r.json())
   .then(data => { calls = data.calls || {}; notes = data.notes || {}; render(); })
@@ -342,7 +359,7 @@ LABELS = {
 QUESTION = {
     'direct': 'This paper names the dandiset in its own text. Did it reuse the '
               'data, deposit it, or neither?',
-    'indirect': 'This paper cited the dandiset&rsquo;s paper. Did it reuse the '
+    'indirect': 'This paper cited the dandiset’s paper. Did it reuse the '
                 'data, only mention the work, or neither?',
 }
 
@@ -361,7 +378,8 @@ def build(rows: list[dict], reviewer: str, mode: str) -> str:
   <button class="btn" id="next">Next &rarr;</button>
   <button class="btn" id="unreviewed">Next unreviewed</button>
   <div class="spacer"></div>
-  <span class="question">{QUESTION[mode]}</span>
+  <span class="readout" id="position">1 of {n}</span>
+  <span class="readout sep">&middot;</span>
   <span class="readout" id="progress">0 of {n} reviewed</span>
   <span class="savestate" id="savestate"></span>
 </div>
@@ -373,6 +391,7 @@ const ROWS = {payload};
 const REVIEWER = {json.dumps(reviewer)};
 const MODE = {json.dumps(mode)};
 const LABELS = {json.dumps(LABELS[mode])};
+const QUESTION = {json.dumps(QUESTION[mode])};
 {JS}
 </script>
 """
@@ -483,6 +502,22 @@ def queue_for(merged: dict, mode: str) -> list[dict]:
         if owner == mode:
             rows.append({k: v for k, v in row.items() if k != 'pathways'})
     return rows
+
+
+def attach_missing_titles(rows: list[dict], direct_results_path: Path) -> None:
+    """
+    Title the papers the direct pathway found, which its classifications lack.
+
+    A direct pair is built by matching a dandiset identifier in a paper's text,
+    and the classification records only the DOI that was matched. Discovery kept
+    the title, and a DOI is not what a reviewer recognises a paper by.
+    """
+    data = json.loads(direct_results_path.read_text())
+    titles = {r['doi'].lower(): r['title'] for r in data.get('results', [])
+              if r.get('doi') and r.get('title')}
+    for row in rows:
+        if not row['title']:
+            row['title'] = titles.get(row['doi'].lower(), '')
 
 
 def attach_dandiset_names(rows: list[dict], results_path: Path) -> None:
@@ -596,13 +631,17 @@ def main():
                         help='Whose answers these are; names reviews/<reviewer>.json.')
     parser.add_argument('--results-file', default=str(RESULTS_FILE),
                         help='Discovery corpus, for the paper each pair was built from.')
+    parser.add_argument('--direct-results-file', default=str(DIRECT_RESULTS_FILE),
+                        help='Direct discovery output, for the titles it kept.')
     parser.add_argument('--port', type=int, default=8000)
     args = parser.parse_args()
 
     rows = queue_for(merge_by_pair(args.input), args.mode)
     rows.sort(key=lambda r: (-(r['confidence'] or 0), r['doi'], r['dandiset']))
     attach_dandiset_names(rows, Path(args.results_file))
-    if args.mode == 'indirect':
+    if args.mode == 'direct':
+        attach_missing_titles(rows, Path(args.direct_results_file))
+    else:
         attach_cited_papers(rows, Path(args.results_file))
     serve(rows, args.reviewer, args.mode, args.port)
 

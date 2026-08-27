@@ -209,6 +209,30 @@ class TestQueueFor:
                                   {'q': 'the direct passage', 'tier': 'exact'}]
 
 
+class TestAttachMissingTitles:
+    @pytest.fixture
+    def direct_results(self, tmp_path):
+        path = tmp_path / 'results_dandi_openalex.json'
+        path.write_text(json.dumps({'results': [
+            {'doi': '10.1/UNTITLED', 'title': 'The title discovery kept'},
+        ]}))
+        return path
+
+    def test_titles_a_paper_the_classification_left_bare(self, direct_results):
+        rows = [{'doi': '10.1/untitled', 'title': ''}]
+
+        B.attach_missing_titles(rows, direct_results)
+
+        assert rows[0]['title'] == 'The title discovery kept'
+
+    def test_leaves_a_title_the_classification_already_had(self, direct_results):
+        rows = [{'doi': '10.1/untitled', 'title': 'The title it came with'}]
+
+        B.attach_missing_titles(rows, direct_results)
+
+        assert rows[0]['title'] == 'The title it came with'
+
+
 class TestLabels:
     def test_only_the_direct_queue_can_answer_primary(self):
         assert 'primary' in B.LABELS['direct']

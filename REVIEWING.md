@@ -66,17 +66,17 @@ the wrong one.
 This serves the worksheet on `http://127.0.0.1:8000/` and opens it. `--port`
 moves it, which is what a second reviewer on the same machine needs.
 `--results-file` is the discovery corpus the cited paper is looked up in,
-`output/all_dandiset_papers_refreshed.json` by default.
+`output/all_dandiset_papers_refreshed.json` by default. `--direct-results-file`
+is the direct pathway's discovery output, `output/results_dandi_openalex.json`,
+which is where the titles of its papers come from — its classifications keep
+only the DOI that matched.
 
 ## Working through it
 
-One pair fills the screen. Answering advances to the next.
-
-| Key | Does |
-|---|---|
-| `1`–`4` | The four labels of your queue, in the order shown — and move on |
-| `←` `→` | Previous, next pair |
-| `u` | Jump to the next pair with no answer yet |
+One pair fills the screen: the paper under review, the paper it cited where
+there is one, and the dataset, each linked and sized to be read. The
+classifier's reasoning and quotes sit below them. Answering advances to the
+next pair; **Prev**, **Next** and **Next unreviewed** move without answering.
 
 Pressing the label already recorded takes it back. Notes are free text and
 optional; write one whenever the answer is not obvious from the paper, and
