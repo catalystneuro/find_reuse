@@ -269,13 +269,26 @@ def distinct(classifications: list[dict], field: str) -> list:
     return sorted({c[field] for c in classifications if c.get(field) is not None})
 
 
-def write_candidates(pairs: list[dict], inputs: list[str], path: Path) -> None:
+def write_candidates(pairs: list[dict], inputs: list[str], path: Path) -> bool:
+    """
+    Write the candidate list, unless it would say the same thing again.
+
+    Returns whether the file changed. Rebuilding is how you check whether the
+    pipeline moved, so it has to be cheap to do; stamping a new time on an
+    otherwise identical file would make every check look like a change.
+    """
+    body = {'inputs': input_stamps(inputs), 'pairs': pairs}
+    if path.exists():
+        current = json.loads(path.read_text())
+        if {k: v for k, v in current.items() if k != 'generated_at'} == body:
+            return False
+
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps({
         'generated_at': datetime.now(timezone.utc).isoformat(timespec='seconds'),
-        'inputs': input_stamps(inputs),
-        'pairs': pairs,
+        **body,
     }, indent=2, ensure_ascii=False) + '\n')
+    return True
 
 
 def main():
@@ -290,13 +303,13 @@ def main():
 
     pairs = build_candidates(args.input, Path(args.results_file),
                              Path(args.direct_results_file))
-    write_candidates(pairs, args.input, CANDIDATES_FILE)
+    changed = write_candidates(pairs, args.input, CANDIDATES_FILE)
 
     indirect = sum(1 for p in pairs if p['pathway'] == 'indirect')
     print(f'{len(pairs)} candidate pairs '
           f'({indirect} indirect, {len(pairs) - indirect} direct) '
           f'across {len({p["doi"] for p in pairs})} papers')
-    print(f'Wrote {CANDIDATES_FILE}')
+    print(f'{"Wrote" if changed else "Unchanged:"} {CANDIDATES_FILE}')
 
 
 if __name__ == '__main__':

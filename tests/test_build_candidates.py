@@ -303,6 +303,23 @@ class TestBuildCandidates:
 
 
 class TestWriteCandidates:
+    def test_a_rebuild_that_says_the_same_thing_leaves_the_file_alone(
+            self, tmp_path, four_dataset_input):
+        out = tmp_path / 'reuse_candidates.json'
+        assert B.write_candidates([], [four_dataset_input], out) is True
+        before = out.read_bytes()
+        assert B.write_candidates([], [four_dataset_input], out) is False
+        assert out.read_bytes() == before
+
+    def test_a_rebuild_that_found_new_pairs_rewrites(self, tmp_path,
+                                                     four_dataset_input):
+        out = tmp_path / 'reuse_candidates.json'
+        B.write_candidates([], [four_dataset_input], out)
+        assert B.write_candidates(
+            [{'key': '10.1/new\t000541'}], [four_dataset_input], out) is True
+        assert json.loads(out.read_text())['pairs'] == [{'key': '10.1/new\t000541'}]
+
+
     def test_records_what_each_input_held(self, tmp_path, four_dataset_input):
         out = tmp_path / 'reuse_candidates.json'
         B.write_candidates([], [four_dataset_input], out)
