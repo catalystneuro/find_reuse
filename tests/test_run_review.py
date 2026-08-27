@@ -88,7 +88,8 @@ class TestMergeByPair:
 
         assert sorted(merged) == [('10.1/citer', '000541'), ('10.1/citer', '000714'),
                                   ('10.1/citer', '000953'), ('10.1/citer', '000970')]
-        assert merged[('10.1/citer', '000714')]['key'] == '10.1/citer\t000714'
+        row = merged[('10.1/citer', '000714')]
+        assert (row['doi'], row['dandiset']) == ('10.1/citer', '000714')
 
     def test_each_pair_keeps_only_its_own_quote(self, four_dataset_input):
         merged = R.merge_by_pair([four_dataset_input])
@@ -160,7 +161,7 @@ class TestRowContents:
         R.attach_dandiset_names(rows, corpus)
         R.attach_cited_papers(rows, corpus)
 
-        assert set(rows[0]) == {'key', 'doi', 'title', 'cited_doi', 'cited_title',
+        assert set(rows[0]) == {'doi', 'title', 'cited_doi', 'cited_title',
                                 'cited_role', 'dandiset', 'dandiset_name',
                                 'reasoning', 'quotes'}
 
@@ -168,7 +169,7 @@ class TestRowContents:
         rows = R.queue_for(R.merge_by_pair([both_pathway_input]), 'direct')
         R.attach_dandiset_names(rows, corpus)
 
-        assert set(rows[0]) == {'key', 'doi', 'title', 'dandiset', 'dandiset_name',
+        assert set(rows[0]) == {'doi', 'title', 'dandiset', 'dandiset_name',
                                 'reasoning', 'quotes'}
 
 
@@ -194,8 +195,8 @@ class TestQueueFor:
 
     def test_the_two_queues_partition_the_pairs(self, both_pathway_input):
         merged = R.merge_by_pair([both_pathway_input])
-        direct = {r['key'] for r in R.queue_for(merged, 'direct')}
-        indirect = {r['key'] for r in R.queue_for(merged, 'indirect')}
+        direct = {(r['doi'], r['dandiset']) for r in R.queue_for(merged, 'direct')}
+        indirect = {(r['doi'], r['dandiset']) for r in R.queue_for(merged, 'indirect')}
 
         assert not direct & indirect
         assert len(direct | indirect) == len(merged)
@@ -242,19 +243,32 @@ class TestLabels:
         assert 'mention' not in R.LABELS['direct']
 
     def test_the_page_offers_the_labels_of_its_own_mode(self):
-        row = {'key': 'k', 'doi': 'd', 'title': 't', 'dandiset': '000001',
+        row = {'doi': 'd', 'title': 't', 'dandiset': '000001',
                'dandiset_name': 'n', 'reasoning': 'r', 'quotes': []}
 
         assert '"primary"' in R.build([row], 'Ada', 'direct')
         assert '"mention"' not in R.build([row], 'Ada', 'direct')
 
 
+PAPER_TEXT = ('Methods\n\nWe reanalysed the recordings of <i>Mus musculus</i> '
+              'deposited by the original authors.\n')
+
+
 @pytest.fixture
-def session(tmp_path):
+def paper_cache(tmp_path):
+    """A text cache holding the paper as the classification run fetched it."""
+    cache_dir = tmp_path / 'paper_cache'
+    R.TextCache(cache_dir).put('10.1/citer', PAPER_TEXT, 'europe_pmc', True)
+    return cache_dir
+
+
+@pytest.fixture
+def session(tmp_path, paper_cache):
     """A running review server, with the directory its answers land in."""
     reviews_dir = tmp_path / 'reviews'
     handler = R.make_handler('<title>page</title>', 'Ada Lovelace',
-                             reviews_dir / 'ada-lovelace.json')
+                             reviews_dir / 'ada-lovelace.json', paper_cache,
+                             {('10.1/citer', '000541'): ['reanalysed the recordings']})
     server = ThreadingHTTPServer(('127.0.0.1', 0), handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     yield f'http://127.0.0.1:{server.server_address[1]}', reviews_dir
@@ -271,44 +285,136 @@ def post_save(url, payload):
 
 
 class TestReviewServer:
-    def test_save_writes_only_the_reviewer_the_calls_and_the_notes(self, session):
+    def test_save_writes_only_the_reviewer_and_the_answers(self, session):
         url, reviews_dir = session
 
         post_save(url, {'reviewer': 'Ada Lovelace',
-                        'calls': {'10.1002/acn3.70285\t000768': 'reuse'},
-                        'notes': {},
+                        'reviews': {'10.1002/acn3.70285': {'000768': {'call': 'reuse'}}},
                         'schema': 3, 'saved_at': '2026-08-26T23:43:00.442Z',
                         'corpus': {'models': ['openai/gpt-5.6-luna']},
                         'labels': ['reuse', 'mention']})
 
         written = json.loads((reviews_dir / 'ada-lovelace.json').read_text())
-        assert written == {'reviewer': 'Ada Lovelace',
-                           'calls': {'10.1002/acn3.70285\t000768': 'reuse'},
-                           'notes': {}}
+        assert written == {
+            'reviewer': 'Ada Lovelace',
+            'reviews': {'10.1002/acn3.70285': {'000768': {'call': 'reuse'}}}}
+
+    def test_a_paper_holds_one_record_per_dataset_it_was_reviewed_against(
+            self, session):
+        url, reviews_dir = session
+
+        post_save(url, {'reviewer': 'Ada Lovelace', 'reviews': {'10.1/citer': {
+            '000541': {'call': 'reuse'},
+            '000714': {'call': 'mention', 'note': 'Cited for the method.'},
+        }}})
+
+        written = json.loads((reviews_dir / 'ada-lovelace.json').read_text())
+        assert written['reviews']['10.1/citer'] == {
+            '000541': {'call': 'reuse'},
+            '000714': {'call': 'mention', 'note': 'Cited for the method.'}}
 
     def test_load_returns_an_empty_session_before_anything_is_answered(self, session):
         url, _ = session
 
         with urllib.request.urlopen(f'{url}/load') as response:
             assert json.loads(response.read()) == {
-                'reviewer': 'Ada Lovelace', 'calls': {}, 'notes': {}}
+                'reviewer': 'Ada Lovelace', 'reviews': {}}
 
     def test_load_returns_what_save_wrote(self, session):
         url, _ = session
-        calls = {'10.1/citer\t000541': 'mention'}
-        notes = {'10.1/citer\t000541': 'Cited for the method, not the data.'}
+        reviews = {'10.1/citer': {'000541': {
+            'call': 'mention', 'note': 'Cited for the method, not the data.'}}}
 
-        post_save(url, {'reviewer': 'Ada Lovelace', 'calls': calls, 'notes': notes})
+        post_save(url, {'reviewer': 'Ada Lovelace', 'reviews': reviews})
 
         with urllib.request.urlopen(f'{url}/load') as response:
             assert json.loads(response.read()) == {
-                'reviewer': 'Ada Lovelace', 'calls': calls, 'notes': notes}
+                'reviewer': 'Ada Lovelace', 'reviews': reviews}
 
     def test_serves_the_page_at_the_root(self, session):
         url, _ = session
 
         with urllib.request.urlopen(f'{url}/') as response:
             assert response.read() == b'<title>page</title>'
+
+
+class TestMarkQuotes:
+    def test_marks_the_passage_where_it_stands_in_the_text(self):
+        marked = R.mark_quotes('The paper says we reused it, plainly.',
+                               ['we reused it'])
+
+        assert marked == 'The paper says <mark>we reused it</mark>, plainly.'
+
+    def test_leaves_a_quote_that_is_not_there_verbatim_unmarked(self):
+        marked = R.mark_quotes('The paper says we reused it.', ['We  reused it'])
+
+        assert marked == 'The paper says we reused it.'
+
+    def test_marks_every_quoted_passage(self):
+        marked = R.mark_quotes('first here, second there', ['first', 'second'])
+
+        assert marked == '<mark>first</mark> here, <mark>second</mark> there'
+
+    def test_escapes_the_paper_around_the_marks(self):
+        marked = R.mark_quotes('in <i>Mus musculus</i> we reused it', ['we reused it'])
+
+        assert marked == ('in &lt;i&gt;Mus musculus&lt;/i&gt; '
+                          '<mark>we reused it</mark>')
+
+
+class TestAttachPaperTexts:
+    def test_says_which_papers_the_fetched_text_is_on_hand_for(self, paper_cache):
+        rows = [{'doi': '10.1/citer', 'cited_doi': '10.1/never-fetched'},
+                {'doi': '10.1/never-fetched', 'cited_doi': '10.1/citer'}]
+
+        R.attach_paper_texts(rows, paper_cache)
+
+        assert [(r['has_text'], r['cited_has_text']) for r in rows] == [
+            (True, False), (False, True)]
+
+    def test_a_direct_row_is_asked_only_about_its_own_paper(self, paper_cache):
+        rows = [{'doi': '10.1/citer'}]
+
+        R.attach_paper_texts(rows, paper_cache)
+
+        assert rows[0] == {'doi': '10.1/citer', 'has_text': True}
+
+
+class TestServedFullText:
+    def test_serves_the_text_the_classification_was_made_from(self, session):
+        url, _ = session
+
+        with urllib.request.urlopen(f'{url}/text?doi=10.1%2Fciter') as response:
+            page = response.read().decode()
+
+        assert 'We reanalysed the recordings' in page
+        assert 'europe_pmc' in page
+
+    def test_marks_the_passage_this_pair_was_quoted_on(self, session):
+        url, _ = session
+
+        with urllib.request.urlopen(
+                f'{url}/text?doi=10.1%2Fciter&dandiset=000541') as response:
+            page = response.read().decode()
+
+        assert '<mark>reanalysed the recordings</mark>' in page
+
+    def test_marks_nothing_for_a_pair_with_no_quote_of_its_own(self, session):
+        url, _ = session
+
+        with urllib.request.urlopen(
+                f'{url}/text?doi=10.1%2Fciter&dandiset=000714') as response:
+            page = response.read().decode()
+
+        assert '<mark>' not in page
+
+    def test_says_so_for_a_paper_the_cache_never_held(self, session):
+        url, _ = session
+
+        with urllib.request.urlopen(f'{url}/text?doi=10.1%2Funfetched') as response:
+            page = response.read().decode()
+
+        assert 'No text for this paper is in the cache.' in page
 
 
 class TestReviewerSlug:

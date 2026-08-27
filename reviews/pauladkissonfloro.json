@@ -1,8 +1,15 @@
 {
   "reviewer": "pauladkissonfloro",
-  "calls": {
-    "10.1002/acn3.70285\t000768": "reuse",
-    "10.1002/hbm.70303\t000026": "reuse"
-  },
-  "notes": {}
+  "reviews": {
+    "10.1002/acn3.70285": {
+      "000768": {
+        "call": "reuse"
+      }
+    },
+    "10.1002/hbm.70303": {
+      "000026": {
+        "call": "reuse"
+      }
+    }
+  }
 }

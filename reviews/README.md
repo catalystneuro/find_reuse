@@ -7,17 +7,24 @@ python -m src.review.run_review ... \
     --mode indirect --reviewer "your name"
 ```
 
-Each records that person's answers for (paper, dandiset) pairs, keyed by DOI and
-dandiset id joined with a tab. Both review modes write to the same file, since a
-pair belongs to one queue only:
+Each records that person's answers, nested paper to dataset to what was decided
+about that pair. Both review modes write to the same file, since a pair belongs
+to one queue only:
 
 ```json
 {
   "reviewer": "your name",
-  "calls": {"10.1002/acn3.70285\t000768": "reuse"},
-  "notes": {}
+  "reviews": {
+    "10.1002/acn3.70285": {
+      "000768": {"call": "reuse"},
+      "000026": {"call": "mention", "note": "Cited for the method."}
+    }
+  }
 }
 ```
+
+A paper reusing four datasets stands in four separate relationships, so it holds
+four records under its DOI, each with its own call and its own optional note.
 
 **These are committed.** They are the one part of the pipeline that cannot be
 regenerated — the classifications they check can be re-run at any time, a
