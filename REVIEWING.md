@@ -5,10 +5,10 @@ what is that paper's relationship to that dataset? Review checks its answers by
 asking a person the same question about the same pair, so the two can be put in
 a confusion matrix and the classifier's precision measured against a human read.
 
-Review is separate from assignment. Deciding *which* pairs a round covers, and
-who reviews them, happens before this page: the pairs it shows are whatever the
-command was told to emit. The page itself has no filters, because narrowing the
-pile is not the reviewer's job.
+Review is separate from assignment. Deciding *which* pairs to prioritise, and
+who takes them, is its own problem and is not solved here: this page hands you
+every REUSE pair and asks about them one at a time. It has no filters, because
+narrowing the pile is not the reviewer's job.
 
 ## The question
 
@@ -34,20 +34,16 @@ does not appear there at all, so a claim resting only on those is unsupported.
 python -m src.analysis.build_reuse_verification_page \
     -i output/fulltext_classifications.json \
     -i output/fulltext_direct_openalex.json \
-    --neuro-only --lab different --dandi-evidenced \
     --reviewer "your name"
 ```
 
 This serves the worksheet on `http://127.0.0.1:8000/` and opens it. `--port`
 moves it, which is what a second reviewer on the same machine needs.
 
-The flags choose the round's pairs, not the page's behaviour:
-
-- `--neuro-only` — only pairs that reused neurophysiology
-- `--lab different` — only reuse by a lab other than the one that produced the data
-- `--dandi-evidenced` — only pairs whose text points at DANDI rather than another repository
-- `--results-file` — the discovery corpus the cited paper is looked up in,
-  `output/all_dandiset_papers_refreshed.json` by default
+Every pair the classifier called REUSE is in the round. `-i` is repeatable, and
+naming both pathways merges them, so a pair reached by each is one pair with
+both its quotes. `--results-file` is the discovery corpus the cited paper is
+looked up in, `output/all_dandiset_papers_refreshed.json` by default.
 
 ## Working through it
 

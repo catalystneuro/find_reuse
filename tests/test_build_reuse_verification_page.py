@@ -19,11 +19,6 @@ def classification(citing_doi, dandiset_id, quote, **overrides):
         'title': 'One paper, several datasets',
         'reasoning': 'Reanalysed the deposited recordings.',
         'evidence_quotes': [{'quote': quote, 'match_type': 'exact'}],
-        'source_quotes': [],
-        'reused_neurophysiology': True,
-        'reused_modalities': ['neurophysiology'],
-        'same_lab': False,
-        'source_archive': 'DANDI Archive',
     }
     record.update(overrides)
     return record
@@ -132,16 +127,15 @@ class TestAttachCitedPapers:
         assert rows[0]['dandiset_name'] == 'Dataset that declares nothing'
 
 
-class TestDisplayRows:
-    def test_carries_only_what_the_page_asks_about(self, four_dataset_input, corpus):
-        rows = [B.finalize(r) for r in B.merge_by_pair([four_dataset_input]).values()]
+class TestRowContents:
+    def test_a_row_carries_what_the_page_asks_about_and_nothing_else(
+            self, four_dataset_input, corpus):
+        rows = list(B.merge_by_pair([four_dataset_input]).values())
         B.attach_cited_papers(rows, corpus)
 
-        shown = B.display_rows(rows)[0]
-
-        assert set(shown) == {'key', 'doi', 'title', 'cited_doi', 'cited_title',
-                              'cited_role', 'dandiset', 'dandiset_name',
-                              'confidence', 'reasoning', 'quotes'}
+        assert set(rows[0]) == {'key', 'doi', 'title', 'cited_doi', 'cited_title',
+                                'cited_role', 'dandiset', 'dandiset_name',
+                                'confidence', 'reasoning', 'quotes'}
 
 
 @pytest.fixture

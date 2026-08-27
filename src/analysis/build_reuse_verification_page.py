@@ -15,7 +15,6 @@ Usage:
     python -m src.analysis.build_reuse_verification_page \
         -i output/fulltext_classifications.json \
         -i output/fulltext_direct_openalex.json \
-        --neuro-only --lab different --dandi-evidenced \
         --reviewer <your name>
 """
 
@@ -347,8 +346,6 @@ const REVIEWER = {json.dumps(reviewer)};
 """
 
 
-DANDI_MARKER = re.compile(r'dandiarchive\.org|10\.48324|\bDANDI\b|dandiset', re.I)
-
 # Version suffixes. '/vN' is unambiguous. '.N' is not: 10.1002/brx2.47 and
 # brx2.65 are different articles, not versions of one, so it only counts as a
 # version when the unversioned DOI is also present or the base ends in a long
@@ -408,15 +405,13 @@ def merge_by_pair(inputs: list[str]) -> dict:
 
     A paper reusing several datasets stands in a separate relationship to each,
     supported by its own passage, so each is judged on its own. The direct and
-    citing pathways can both reach the same pair, so their fields are unioned:
-    every archive named, every modality, every quote.
+    citing pathways can both reach the same pair, so their quotes are unioned.
     """
-    loaded = [(Path(p), json.loads(Path(p).read_text())) for p in inputs]
-    known = {r['citing_doi'] for _, d in loaded for r in d['classifications']}
+    loaded = [json.loads(Path(p).read_text()) for p in inputs]
+    known = {r['citing_doi'] for d in loaded for r in d['classifications']}
 
     merged: dict = {}
-    for path, data in loaded:
-        pathway = 'direct' if 'direct' in path.name else 'citing'
+    for data in loaded:
         for r in data['classifications']:
             if r.get('classification') != 'REUSE':
                 continue
@@ -424,29 +419,17 @@ def merge_by_pair(inputs: list[str]) -> dict:
             dandiset = r.get('dandiset_id') or ''
             row = merged.setdefault((doi, dandiset), {
                 'key': f'{doi}\t{dandiset}', 'doi': doi, 'dandiset': dandiset,
-                'title': '', 'confidence': 0,
-                'archives': [], 'same_lab_vals': set(),
-                'neurophys': False, 'pathways': set(),
-                'reasoning': '', 'quotes': [], 'source_quotes': [],
+                'title': '', 'confidence': 0, 'reasoning': '', 'quotes': [],
             })
-            row['pathways'].add(pathway)
             if r.get('title') and len(r['title']) > len(row['title']):
                 row['title'] = r['title'].strip()
-            if r.get('source_archive') and r['source_archive'] not in row['archives']:
-                row['archives'].append(r['source_archive'])
-            if r.get('same_lab') is not None:
-                row['same_lab_vals'].add(bool(r['same_lab']))
-            if r.get('reused_neurophysiology'):
-                row['neurophys'] = True
             row['confidence'] = max(row['confidence'], r.get('confidence') or 0)
             if len(r.get('reasoning') or '') > len(row['reasoning']):
                 row['reasoning'] = r.get('reasoning') or ''
-            for key, field in (('quotes', 'evidence_quotes'),
-                               ('source_quotes', 'source_quotes')):
-                for q in r.get(field, []):
-                    rec = {'q': q['quote'], 'tier': q['match_type']}
-                    if rec not in row[key]:
-                        row[key].append(rec)
+            for q in r.get('evidence_quotes', []):
+                rec = {'q': q['quote'], 'tier': q['match_type']}
+                if rec not in row['quotes']:
+                    row['quotes'].append(rec)
     return merged
 
 
@@ -472,37 +455,6 @@ def attach_cited_papers(rows: list[dict], results_path: Path) -> None:
         row['cited_doi'] = cited
         row['cited_title'] = paper_titles.get(cited, '')
         row['dandiset_name'] = dandiset_names.get(row['dandiset'], '')
-
-
-def finalize(row: dict) -> dict:
-    """Derive the fields the filters select on from a merged row."""
-    vals = row.pop('same_lab_vals')
-    row['same_lab'] = (True if vals == {True} else
-                       False if vals == {False} else
-                       'mixed' if vals == {True, False} else None)
-    row['pathways'] = sorted(row.pop('pathways'))
-
-    # Why this pair counts as DANDI-sourced, which is what --dandi-evidenced
-    # selects on.
-    if 'direct' in row['pathways']:
-        row['dandi_reason'] = 'names a DANDI identifier in its text'
-    elif 'DANDI Archive' in row['archives']:
-        row['dandi_reason'] = 'names DANDI Archive as the source'
-    else:
-        hit = next((q for q in row['source_quotes'] + row['quotes']
-                    if q['tier'] != 'not_found' and DANDI_MARKER.search(q['q'])), None)
-        row['dandi_reason'] = ('quotes DANDI in the text' if hit else None)
-    return row
-
-
-# What the page itself needs. The rest of a row decides which pairs are in the
-# round, and answering the question does not depend on it.
-DISPLAY_FIELDS = ('key', 'doi', 'title', 'cited_doi', 'cited_title', 'cited_role',
-                  'dandiset', 'dandiset_name', 'confidence', 'reasoning', 'quotes')
-
-
-def display_rows(rows: list[dict]) -> list[dict]:
-    return [{f: row[f] for f in DISPLAY_FIELDS} for row in rows]
 
 
 def reviewer_slug(reviewer: str) -> str:
@@ -556,9 +508,9 @@ def make_handler(page: str, reviewer: str, save_path: Path):
 def serve(rows: list[dict], reviewer: str, port: int,
           reviews_dir: Path = REVIEWS_DIR, open_browser: bool = True) -> None:
     if not rows:
-        raise SystemExit('No pairs match those filters; nothing to review.')
+        raise SystemExit('No REUSE pairs in those inputs; nothing to review.')
     save_path = reviews_dir / f'{reviewer_slug(reviewer)}.json'
-    handler = make_handler(build(display_rows(rows), reviewer), reviewer, save_path)
+    handler = make_handler(build(rows, reviewer), reviewer, save_path)
     server = ThreadingHTTPServer(('127.0.0.1', port), handler)
     url = f'http://127.0.0.1:{server.server_address[1]}/'
     papers = len({r['doi'] for r in rows})
@@ -584,25 +536,9 @@ def main():
     parser.add_argument('--results-file', default=str(RESULTS_FILE),
                         help='Discovery corpus, for the paper each pair was built from.')
     parser.add_argument('--port', type=int, default=8000)
-    parser.add_argument('--neuro-only', action='store_true',
-                        help='Keep only papers that reused neurophysiology.')
-    parser.add_argument('--lab', choices=['different', 'same', 'any'], default='any',
-                        help="'different' keeps outside reuse, and mixed cases with it.")
-    parser.add_argument('--dandi-evidenced', action='store_true',
-                        help='Keep only papers with textual evidence of DANDI as source.')
     args = parser.parse_args()
 
-    rows = [finalize(r) for r in merge_by_pair(args.input).values()]
-
-    if args.neuro_only:
-        rows = [r for r in rows if r['neurophys']]
-    if args.lab == 'different':
-        rows = [r for r in rows if r['same_lab'] in (False, 'mixed')]
-    elif args.lab == 'same':
-        rows = [r for r in rows if r['same_lab'] in (True, 'mixed')]
-    if args.dandi_evidenced:
-        rows = [r for r in rows if r['dandi_reason']]
-
+    rows = list(merge_by_pair(args.input).values())
     rows.sort(key=lambda r: (-(r['confidence'] or 0), r['doi'], r['dandiset']))
     attach_cited_papers(rows, Path(args.results_file))
     serve(rows, args.reviewer, args.port)
