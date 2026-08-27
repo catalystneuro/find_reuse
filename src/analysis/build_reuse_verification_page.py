@@ -306,7 +306,7 @@ function visible(){
     if (filter === 'loose')     return isLoose(r);
     if (filter === 'samelab')   return r.same_lab === true;
     if (filter === 'noarchive') return !r.archive;
-    if (filter === 'todo')      return !myCalls()[r.doi];
+    if (filter === 'todo')      return !myCalls()[r.key];
     return true;
   });
 }
@@ -344,8 +344,8 @@ function render(){
   const rows = visible();
   document.getElementById('body').innerHTML = rows.map(r => {
     const n = ROWS.indexOf(r) + 1;
-    const call = myCalls()[r.doi] || '';
-    const note = myNotes()[r.doi] || '';
+    const call = myCalls()[r.key] || '';
+    const note = myNotes()[r.key] || '';
     const quotes = r.quotes.length ? r.quotes.map(quoteBlock).join('') :
       `<figure class="q"><blockquote><em>No quote returned.</em></blockquote></figure>`;
     const provenance = `<div class="provenance">
@@ -383,7 +383,7 @@ function render(){
         </div>
       </td>
       <td>
-        <div class="call" data-doi="${esc(r.doi)}">
+        <div class="call" data-key="${esc(r.key)}">
           <div class="callrow">
             <button data-v="reuse"   aria-pressed="${call==='reuse'}">&#10003; Reuse</button>
             <button data-v="mention" aria-pressed="${call==='mention'}">Mention</button>
@@ -392,9 +392,9 @@ function render(){
             <button data-v="unsure"  aria-pressed="${call==='unsure'}">? Unsure</button>
           </div>
           <label for="note-${n}">Why</label>
-          <textarea id="note-${n}" data-note="${esc(r.doi)}" rows="3"
+          <textarea id="note-${n}" data-note="${esc(r.key)}" rows="3"
             placeholder="Your reasoning\\u2026">${esc(note)}</textarea>
-          <div class="saved" data-saved="${esc(r.doi)}"></div>
+          <div class="saved" data-saved="${esc(r.key)}"></div>
         </div>
       </td>
     </tr>`;
@@ -404,8 +404,8 @@ function render(){
 }
 
 function updateProgress(){
-  const done = ROWS.filter(r => myCalls()[r.doi]).length;
-  const noted = ROWS.filter(r => (myNotes()[r.doi] || '').trim()).length;
+  const done = ROWS.filter(r => myCalls()[r.key]).length;
+  const noted = ROWS.filter(r => (myNotes()[r.key] || '').trim()).length;
   document.getElementById('prog').textContent =
     `${done} of ${ROWS.length} checked \\u00b7 ${noted} with notes`;
 }
@@ -413,9 +413,9 @@ function updateProgress(){
 document.getElementById('body').addEventListener('click', e => {
   const btn = e.target.closest('button[data-v]');
   if (!btn) return;
-  const doi = btn.closest('.call').dataset.doi;
+  const key = btn.closest('.call').dataset.key;
   const c = myCalls();
-  if (c[doi] === btn.dataset.v) delete c[doi]; else c[doi] = btn.dataset.v;
+  if (c[key] === btn.dataset.v) delete c[key]; else c[key] = btn.dataset.v;
   persist();
   render();
 });
@@ -426,13 +426,13 @@ let saveTimer = null;
 document.getElementById('body').addEventListener('input', e => {
   const ta = e.target.closest('textarea[data-note]');
   if (!ta) return;
-  const doi = ta.dataset.note;
+  const key = ta.dataset.note;
   const nts = myNotes();
-  if (ta.value.trim()) nts[doi] = ta.value; else delete nts[doi];
+  if (ta.value.trim()) nts[key] = ta.value; else delete nts[key];
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     persist();
-    const flag = document.querySelector(`[data-saved="${CSS.escape(doi)}"]`);
+    const flag = document.querySelector(`[data-saved="${CSS.escape(key)}"]`);
     if (flag){ flag.textContent = 'Saved'; setTimeout(() => { flag.textContent = ''; }, 1400); }
     updateProgress();
   }, 400);
@@ -724,15 +724,14 @@ def canonical_doi(doi: str, known: set) -> str:
     return doi
 
 
-def merge_by_paper(inputs: list[str]) -> dict:
+def merge_by_pair(inputs: list[str]) -> dict:
     """
-    Collapse per-(paper, dataset) records into one row per paper.
+    One row per (paper, dataset), which is the unit the classifier answers about.
 
-    A paper can appear several times, once per dataset it reuses and once per
-    pathway that found it, so the fields are unioned rather than overwritten:
-    all dandisets, all archives named, all modalities, all quotes. same_lab
-    becomes 'mixed' when the answer differs across that paper's datasets, which
-    is a real answer rather than a contradiction.
+    A paper reusing several datasets stands in a separate relationship to each,
+    supported by its own passage, so each is judged on its own. The direct and
+    citing pathways can both reach the same pair, so their fields are unioned:
+    every archive named, every modality, every quote.
     """
     loaded = [(Path(p), json.loads(Path(p).read_text())) for p in inputs]
     known = {r['citing_doi'] for _, d in loaded for r in d['classifications']}
@@ -744,8 +743,10 @@ def merge_by_paper(inputs: list[str]) -> dict:
             if r.get('classification') != 'REUSE':
                 continue
             doi = canonical_doi(r['citing_doi'], known)
-            row = merged.setdefault(doi, {
-                'doi': doi, 'title': '', 'dandisets': [], 'confidence': 0,
+            dandiset = r.get('dandiset_id') or ''
+            row = merged.setdefault((doi, dandiset), {
+                'key': f'{doi}\t{dandiset}', 'doi': doi, 'dandiset': dandiset,
+                'title': '', 'confidence': 0,
                 'archives': [], 'same_lab_vals': set(), 'same_lab_confidence': None,
                 'modalities': [], 'neurophys': False, 'pathways': set(),
                 'reasoning': '', 'quotes': [], 'source_quotes': [],
@@ -753,8 +754,6 @@ def merge_by_paper(inputs: list[str]) -> dict:
             row['pathways'].add(pathway)
             if r.get('title') and len(r['title']) > len(row['title']):
                 row['title'] = r['title'].strip()
-            if r.get('dandiset_id') and r['dandiset_id'] not in row['dandisets']:
-                row['dandisets'].append(r['dandiset_id'])
             if r.get('source_archive') and r['source_archive'] not in row['archives']:
                 row['archives'].append(r['source_archive'])
             if r.get('same_lab') is not None:
@@ -796,8 +795,6 @@ def finalize(row: dict) -> dict:
                     if q['tier'] != 'not_found' and DANDI_MARKER.search(q['q'])), None)
         row['dandi_reason'] = ('quotes DANDI in the text' if hit else None)
     row['archive'] = ', '.join(row['archives']) or None
-    row['dandiset'] = ', '.join(row['dandisets'][:4]) + (
-        f" +{len(row['dandisets']) - 4}" if len(row['dandisets']) > 4 else '')
     return row
 
 
@@ -815,7 +812,7 @@ def main():
     parser.add_argument('--title', default='')
     args = parser.parse_args()
 
-    rows = [finalize(r) for r in merge_by_paper(args.input).values()]
+    rows = [finalize(r) for r in merge_by_pair(args.input).values()]
 
     if args.neuro_only:
         rows = [r for r in rows if r['neurophys']]
@@ -826,10 +823,11 @@ def main():
     if args.dandi_evidenced:
         rows = [r for r in rows if r['dandi_reason']]
 
-    rows.sort(key=lambda r: (-(r['confidence'] or 0), r['doi']))
+    rows.sort(key=lambda r: (-(r['confidence'] or 0), r['doi'], r['dandiset']))
     Path(args.output).write_text(
         build(rows, args.title, corpus_stamp(args.input)))
-    print(f"{len(rows)} papers -> {args.output}")
+    papers = len({r['doi'] for r in rows})
+    print(f"{len(rows)} pairs across {papers} papers -> {args.output}")
 
 
 if __name__ == '__main__':
