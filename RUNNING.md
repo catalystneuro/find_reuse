@@ -125,7 +125,7 @@ It recomputes its figures from the classification outputs, so it cannot drift
 from the data.
 
 Checking those classifications by hand is its own job, with its own page and its
-own answer files: see [REVIEWING.md](REVIEWING.md).
+own answer files: see [how_to_review.md](how_to_review.md).
 
 ## Corrections you should know about
 

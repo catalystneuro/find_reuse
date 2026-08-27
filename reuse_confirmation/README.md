@@ -2,7 +2,7 @@
 
 Everything the manual check of the classifier's REUSE calls takes and produces.
 Candidates go in at the top, one reviewer's work sits in the directory named
-after them, and confirmed reuse comes out. See [REVIEWING.md](../REVIEWING.md)
+after them, and confirmed reuse comes out. See [how_to_review.md](../how_to_review.md)
 for how the three steps fit together.
 
 ```
