@@ -53,7 +53,7 @@ does not appear there at all, so a claim resting only on those is unsupported.
 ## Running a session
 
 ```bash
-python -m src.analysis.build_reuse_verification_page \
+python -m src.review.run_review \
     -i output/fulltext_classifications.json \
     -i output/fulltext_direct_openalex.json \
     --mode indirect --reviewer "your name"

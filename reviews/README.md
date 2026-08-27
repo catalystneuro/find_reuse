@@ -3,7 +3,7 @@
 One file per reviewer, `<reviewer>.json`, written by
 
 ```bash
-python -m src.analysis.build_reuse_verification_page ... \
+python -m src.review.run_review ... \
     --mode indirect --reviewer "your name"
 ```
 

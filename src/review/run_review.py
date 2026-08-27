@@ -19,7 +19,7 @@ about the model, the prompt or the run that produced the classification goes
 into it, because none of that changes what the right answer is.
 
 Usage:
-    python -m src.analysis.build_reuse_verification_page \
+    python -m src.review.run_review \
         -i output/fulltext_classifications.json \
         -i output/fulltext_direct_openalex.json \
         --mode indirect --reviewer <your name>

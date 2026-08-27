@@ -7,7 +7,7 @@ from http.server import ThreadingHTTPServer
 
 import pytest
 
-import src.analysis.build_reuse_verification_page as B
+import src.review.run_review as R
 
 
 def classification(citing_doi, dandiset_id, quote, **overrides):
@@ -84,14 +84,14 @@ def corpus(tmp_path):
 
 class TestMergeByPair:
     def test_one_row_per_pair_keyed_on_doi_and_dandiset(self, four_dataset_input):
-        merged = B.merge_by_pair([four_dataset_input])
+        merged = R.merge_by_pair([four_dataset_input])
 
         assert sorted(merged) == [('10.1/citer', '000541'), ('10.1/citer', '000714'),
                                   ('10.1/citer', '000953'), ('10.1/citer', '000970')]
         assert merged[('10.1/citer', '000714')]['key'] == '10.1/citer\t000714'
 
     def test_each_pair_keeps_only_its_own_quote(self, four_dataset_input):
-        merged = B.merge_by_pair([four_dataset_input])
+        merged = R.merge_by_pair([four_dataset_input])
 
         assert merged[('10.1/citer', '000541')]['quotes'] == [
             {'q': 'passage about 000541', 'tier': 'exact'}]
@@ -106,14 +106,14 @@ class TestMergeByPair:
                            classification='MENTION'),
         ]}))
 
-        assert sorted(B.merge_by_pair([str(path)])) == [('10.1/citer', '000541')]
+        assert sorted(R.merge_by_pair([str(path)])) == [('10.1/citer', '000541')]
 
 
 class TestAttachCitedPapers:
     def test_names_the_paper_the_pair_was_built_from(self, corpus):
         rows = [{'doi': '10.1/citer', 'dandiset': '000541'}]
 
-        B.attach_cited_papers(rows, corpus)
+        R.attach_cited_papers(rows, corpus)
 
         assert rows[0]['cited_doi'] == '10.1/described-by'
         assert rows[0]['cited_title'] == 'The paper the data came from'
@@ -122,7 +122,7 @@ class TestAttachCitedPapers:
     def test_offers_the_declared_paper_when_the_pair_cited_none(self, corpus):
         rows = [{'doi': '10.1/citer', 'dandiset': '000714'}]
 
-        B.attach_cited_papers(rows, corpus)
+        R.attach_cited_papers(rows, corpus)
 
         assert rows[0]['cited_doi'] == '10.1/declared'
         assert rows[0]['cited_title'] == 'The paper describing 000714'
@@ -131,7 +131,7 @@ class TestAttachCitedPapers:
     def test_leaves_the_paper_empty_when_the_dataset_declares_none(self, corpus):
         rows = [{'doi': '10.1/citer', 'dandiset': '000953'}]
 
-        B.attach_cited_papers(rows, corpus)
+        R.attach_cited_papers(rows, corpus)
 
         assert rows[0]['cited_doi'] == ''
         assert rows[0]['cited_title'] == ''
@@ -141,7 +141,7 @@ class TestAttachDandisetNames:
     def test_names_the_dataset(self, corpus):
         rows = [{'dandiset': '000541'}, {'dandiset': '000714'}]
 
-        B.attach_dandiset_names(rows, corpus)
+        R.attach_dandiset_names(rows, corpus)
 
         assert [r['dandiset_name'] for r in rows] == [
             'Mouse motor cortex recordings', 'Human intracortical dataset']
@@ -149,24 +149,24 @@ class TestAttachDandisetNames:
     def test_leaves_the_name_empty_for_a_dataset_the_corpus_lacks(self, corpus):
         rows = [{'dandiset': '999999'}]
 
-        B.attach_dandiset_names(rows, corpus)
+        R.attach_dandiset_names(rows, corpus)
 
         assert rows[0]['dandiset_name'] == ''
 
 
 class TestRowContents:
     def test_an_indirect_row_carries_the_cited_paper(self, four_dataset_input, corpus):
-        rows = B.queue_for(B.merge_by_pair([four_dataset_input]), 'indirect')
-        B.attach_dandiset_names(rows, corpus)
-        B.attach_cited_papers(rows, corpus)
+        rows = R.queue_for(R.merge_by_pair([four_dataset_input]), 'indirect')
+        R.attach_dandiset_names(rows, corpus)
+        R.attach_cited_papers(rows, corpus)
 
         assert set(rows[0]) == {'key', 'doi', 'title', 'cited_doi', 'cited_title',
                                 'cited_role', 'dandiset', 'dandiset_name',
                                 'reasoning', 'quotes'}
 
     def test_a_direct_row_carries_no_cited_paper(self, both_pathway_input, corpus):
-        rows = B.queue_for(B.merge_by_pair([both_pathway_input]), 'direct')
-        B.attach_dandiset_names(rows, corpus)
+        rows = R.queue_for(R.merge_by_pair([both_pathway_input]), 'direct')
+        R.attach_dandiset_names(rows, corpus)
 
         assert set(rows[0]) == {'key', 'doi', 'title', 'dandiset', 'dandiset_name',
                                 'reasoning', 'quotes'}
@@ -175,35 +175,35 @@ class TestRowContents:
 class TestQueueFor:
     def test_a_pair_only_the_citing_pathway_found_goes_to_indirect(
             self, both_pathway_input):
-        merged = B.merge_by_pair([both_pathway_input])
+        merged = R.merge_by_pair([both_pathway_input])
 
-        assert [r['dandiset'] for r in B.queue_for(merged, 'indirect')] == ['000541']
+        assert [r['dandiset'] for r in R.queue_for(merged, 'indirect')] == ['000541']
 
     def test_a_pair_only_the_direct_pathway_found_goes_to_direct(
             self, both_pathway_input):
-        merged = B.merge_by_pair([both_pathway_input])
+        merged = R.merge_by_pair([both_pathway_input])
 
-        assert '000714' in [r['dandiset'] for r in B.queue_for(merged, 'direct')]
+        assert '000714' in [r['dandiset'] for r in R.queue_for(merged, 'direct')]
 
     def test_a_pair_both_pathways_found_is_reviewed_once_in_direct(
             self, both_pathway_input):
-        merged = B.merge_by_pair([both_pathway_input])
+        merged = R.merge_by_pair([both_pathway_input])
 
-        assert '000953' in [r['dandiset'] for r in B.queue_for(merged, 'direct')]
-        assert '000953' not in [r['dandiset'] for r in B.queue_for(merged, 'indirect')]
+        assert '000953' in [r['dandiset'] for r in R.queue_for(merged, 'direct')]
+        assert '000953' not in [r['dandiset'] for r in R.queue_for(merged, 'indirect')]
 
     def test_the_two_queues_partition_the_pairs(self, both_pathway_input):
-        merged = B.merge_by_pair([both_pathway_input])
-        direct = {r['key'] for r in B.queue_for(merged, 'direct')}
-        indirect = {r['key'] for r in B.queue_for(merged, 'indirect')}
+        merged = R.merge_by_pair([both_pathway_input])
+        direct = {r['key'] for r in R.queue_for(merged, 'direct')}
+        indirect = {r['key'] for r in R.queue_for(merged, 'indirect')}
 
         assert not direct & indirect
         assert len(direct | indirect) == len(merged)
 
     def test_a_pair_both_pathways_found_keeps_both_their_quotes(self, both_pathway_input):
-        merged = B.merge_by_pair([both_pathway_input])
+        merged = R.merge_by_pair([both_pathway_input])
 
-        both = next(r for r in B.queue_for(merged, 'direct') if r['dandiset'] == '000953')
+        both = next(r for r in R.queue_for(merged, 'direct') if r['dandiset'] == '000953')
         assert both['quotes'] == [{'q': 'the citing passage', 'tier': 'exact'},
                                   {'q': 'the direct passage', 'tier': 'exact'}]
 
@@ -220,40 +220,40 @@ class TestAttachMissingTitles:
     def test_titles_a_paper_the_classification_left_bare(self, direct_results):
         rows = [{'doi': '10.1/untitled', 'title': ''}]
 
-        B.attach_missing_titles(rows, direct_results)
+        R.attach_missing_titles(rows, direct_results)
 
         assert rows[0]['title'] == 'The title discovery kept'
 
     def test_leaves_a_title_the_classification_already_had(self, direct_results):
         rows = [{'doi': '10.1/untitled', 'title': 'The title it came with'}]
 
-        B.attach_missing_titles(rows, direct_results)
+        R.attach_missing_titles(rows, direct_results)
 
         assert rows[0]['title'] == 'The title it came with'
 
 
 class TestLabels:
     def test_only_the_direct_queue_can_answer_primary(self):
-        assert 'primary' in B.LABELS['direct']
-        assert 'primary' not in B.LABELS['indirect']
+        assert 'primary' in R.LABELS['direct']
+        assert 'primary' not in R.LABELS['indirect']
 
     def test_only_the_indirect_queue_can_answer_mention(self):
-        assert 'mention' in B.LABELS['indirect']
-        assert 'mention' not in B.LABELS['direct']
+        assert 'mention' in R.LABELS['indirect']
+        assert 'mention' not in R.LABELS['direct']
 
     def test_the_page_offers_the_labels_of_its_own_mode(self):
         row = {'key': 'k', 'doi': 'd', 'title': 't', 'dandiset': '000001',
                'dandiset_name': 'n', 'reasoning': 'r', 'quotes': []}
 
-        assert '"primary"' in B.build([row], 'Ada', 'direct')
-        assert '"mention"' not in B.build([row], 'Ada', 'direct')
+        assert '"primary"' in R.build([row], 'Ada', 'direct')
+        assert '"mention"' not in R.build([row], 'Ada', 'direct')
 
 
 @pytest.fixture
 def session(tmp_path):
     """A running review server, with the directory its answers land in."""
     reviews_dir = tmp_path / 'reviews'
-    handler = B.make_handler('<title>page</title>', 'Ada Lovelace',
+    handler = R.make_handler('<title>page</title>', 'Ada Lovelace',
                              reviews_dir / 'ada-lovelace.json')
     server = ThreadingHTTPServer(('127.0.0.1', 0), handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
@@ -313,4 +313,4 @@ class TestReviewServer:
 
 class TestReviewerSlug:
     def test_names_a_file_that_survives_punctuation_and_case(self):
-        assert B.reviewer_slug('Paul Adkisson-Floro') == 'paul-adkisson-floro'
+        assert R.reviewer_slug('Paul Adkisson-Floro') == 'paul-adkisson-floro'
