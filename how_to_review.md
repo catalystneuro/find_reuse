@@ -1,12 +1,27 @@
 # How to review
 
-Steps 1–3 are done once, by whoever cuts the round. **If you have been assigned
-one, start at [step 4](#4-set-up).**
+Everyone does step 1. **Steps 2–4 are done once, by whoever cuts the round — if
+you have been assigned one, go from step 1 to [step 5](#5-set-up).**
 
-## 1. Build the candidate list
+## 1. Get the archives
 
-Only when the pipeline has been re-run; otherwise it is already committed. Needs
-`results.tar.gz` from Google Drive unpacked into the repository root.
+Both come from the Google Drive folder Ben shares. Unpack them into the
+repository root.
+
+```bash
+tar xzf paper_cache.tar.gz    # 6 GB, the fetched text of every paper
+tar xzf results.tar.gz        # the latest classification results
+```
+
+Get the paper cache before you start reviewing. Many of these papers are
+paywalled, and the **Raw Text** link on each card is the copy we already
+fetched — without it every link says the text is not cached.
+
+`results.tar.gz` is only needed to rebuild the candidate list in step 2.
+
+## 2. Build the candidate list
+
+Only when the pipeline has been re-run; otherwise it is already committed.
 
 ```bash
 python -m src.review.build_candidates \
@@ -14,7 +29,7 @@ python -m src.review.build_candidates \
     -i output/fulltext_direct_openalex.json
 ```
 
-## 2. Assign a round
+## 3. Assign a round
 
 A new reviewer goes into `reuse_confirmation/reviewers.json` first, or they
 cannot be dealt to. `username` is their GitHub handle and names their files.
@@ -24,16 +39,19 @@ cannot be dealt to. `username` is their GitHub handle and names their files.
 ```
 
 ```bash
-python -m src.review.assign_reviews --neuro --dandi-source evidenced --limit 100
+python -m src.review.assign_reviews --neuro --dandi-source evidenced --lab different
 ```
 
-Filters narrow the round; see `--help`.
+That is the bottom row of Ben's funnel: pairs where neurophysiology was reused,
+where something in the paper says the data came from DANDI, and where the
+reusing group is not the one that produced it — 73 papers, 97 pairs. Drop
+filters to widen it; see `--help` for the rest.
 
 A pair already assigned or already reviewed is never dealt again, so a narrower
 filter deals nothing once a wider round is out. `--reassign` discards the
 existing queues and deals from scratch.
 
-## 3. Push the round
+## 4. Push the round
 
 ```bash
 git add reuse_confirmation/
@@ -41,7 +59,7 @@ git commit -m "Assign the DANDI-evidenced round"
 git push
 ```
 
-## 4. Set up
+## 5. Set up
 
 ```bash
 git clone https://github.com/catalystneuro/find_reuse.git
@@ -50,14 +68,9 @@ git clone https://github.com/catalystneuro/paper-text-fetcher.git
 cd find_reuse
 pip install -e ../paper-text-fetcher[all]
 pip install -r requirements.txt
-tar xzf paper_cache.tar.gz    # 6 GB, from Google Drive
 ```
 
-Get the cache. Many of these papers are paywalled, and the **Raw Text** link on
-each card is the copy we already fetched — without it every link says the text
-is not cached.
-
-## 5. Open your assignment
+## 6. Open your assignment
 
 ```bash
 git pull
@@ -69,11 +82,17 @@ python -m src.review.run_review --reviewer rly --pathway indirect \
 Serves the worksheet on `http://127.0.0.1:8000/`. One session per pathway, so
 run it again with `--pathway direct` and that assignment.
 
-## 6. Review
+## 7. Review
 
 One pair per screen. Answering advances to the next; **Prev** and **Next** move
 without answering. Notes are optional — write one when the call is not obvious,
 always on **Unsure**. Your work saves itself.
+
+Start from the model's reasoning and the passages it quoted. **If a quote is
+exact and shows the authors obtained and analysed the data, that is enough —
+mark it and move on.** When it is not enough, open the citing paper, the cited
+paper or the dataset from the links on the card. If a paper is paywalled, **Raw
+Text** is the copy we fetched.
 
 **Indirect** — the paper cited a dandiset's publication.
 
@@ -93,12 +112,38 @@ always on **Unsure**. Your work saves itself.
 | **Neither** | Neither holds — the identifier is there for another reason. |
 | **Unsure** | You cannot tell from the text. Say why in the note. |
 
-## 7. Push your reviews
+### Where your reviews go
 
-```bash
-git add reuse_confirmation/<your-username>/
-git commit -m "Review the DANDI-evidenced round"
-git push
+`reuse_confirmation/<username>/<username>-reviews.json`, written as you work —
+paper, then dataset, then the call and any note:
+
+```json
+{
+  "reviewer": "rly",
+  "reviews": {
+    "10.1002/acn3.70285": {
+      "000768": {"call": "reuse"},
+      "000026": {"call": "mention", "note": "Cited for the method."}
+    }
+  }
+}
 ```
 
-Commit as you go. Reviews are the one thing here that cannot be regenerated.
+Both pathways write to this one file, and it is the only file your session
+touches. A paper reviewed against four dandisets holds four entries.
+
+## 8. Open a PR
+
+Work on a branch and open a pull request when the round is done, so each round
+of review has a paper trail.
+
+```bash
+git switch -c review_rly
+git add reuse_confirmation/rly/
+git commit -m "Review the DANDI-evidenced round"
+git push -u origin review_rly
+gh pr create
+```
+
+Commit as you go rather than at the end. Reviews are the one thing here that
+cannot be regenerated.
