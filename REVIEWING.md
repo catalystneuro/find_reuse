@@ -201,16 +201,18 @@ you go. **Reviewed** is the looking-back pass over answers already given, where
 changing one is a matter of clicking a different label.
 
 **Assigned Only / All** appears when you opened on an assignment, and asks a
-separate question from the row above it: whose the pair is, rather than whether
-it has been reviewed. The two stack because they are independent — any answer to
-one goes with any answer to the other — so **Assigned Only · Unreviewed** is
-your work still to do, and **All · Reviewed** is every call made on the queue.
+separate question: whose the pair is, rather than whether it has been reviewed.
+The two are independent — any answer to one goes with any answer to the other —
+so **Assigned Only · Unreviewed** is your work still to do, and **All ·
+Reviewed** is every call made on the queue. They sit at opposite ends of the
+toolbar because they belong to the two readouts they move.
 
 The toolbar counts two different things and keeps them apart. **Pair 3 of 871**
-sits beside the filter buttons because it is where you are inside whatever they
-select. The bar and **142 of 437 reviewed** sit off by Save because they measure
-the work, which is why they follow **Assigned Only / All** but not the review
-state: switching to **Reviewed** should not read as having finished.
+sits beside the review-state buttons, because it is where you are inside
+whatever they select. The bar and **142 of 437 reviewed** sit beside **Assigned
+Only / All**, because that is what decides how much work there is to be done —
+and they deliberately ignore the review state, since switching to **Reviewed**
+should not read as having finished.
 
 ## Where the answers go
 
