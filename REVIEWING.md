@@ -137,25 +137,37 @@ changes nothing rewrites nothing.
 ## Running a session
 
 ```bash
-python -m src.review.run_review \
+python -m src.review.run_review --reviewer rly \
     --assignment reuse_confirmation/rly/rly-assignment-indirect.json
 ```
 
-The assignment says whose session it is and which queue it covers, so there is
-nothing else to get right. This serves the worksheet on `http://127.0.0.1:8000/`
-and opens it; `--port` moves it, which is what a second reviewer on the same
-machine needs.
+A session always holds every candidate in its queue. The assignment says which
+queue that is and narrows what is shown to your share of it — **Mine** and
+**Everyone** switch between the two without restarting, because the pairs were
+loaded either way.
+
+Without an assignment, say which queue yourself and get all of it:
+
+```bash
+python -m src.review.run_review --reviewer rly --pathway indirect
+```
+
+`--reviewer` is a registered username and decides where the reviews are written,
+so it is asked for either way rather than being inferred from a filename. An
+assignment belonging to somebody else is refused.
+
+This serves the worksheet on `http://127.0.0.1:8000/` and opens it; `--port`
+moves it, which is what a second reviewer on the same machine needs.
 
 `--paper-cache` is the fetched paper text served behind the **Raw Text** links,
 `.paper_cache` by default: the same cache the classification run read, so what
 you see is what the classifier saw. It is not in the candidate list, because
 what a machine has fetched is a fact about that machine.
 
-A session covers your queue plus everything you have already answered, read
-from the two files together. **Unreviewed** is the queue, and it empties as you
-work; **Reviewed** is the history, and it grows across rounds. An answer
-outlives the round that prompted it, so looking back over a call never depends
-on the pair still being assigned to you.
+Because the whole queue is loaded, a pair you reviewed before it was ever
+assigned — or that was never assigned to you at all — is still there under
+**Everyone**. Nothing about looking back at a call depends on the pair being in
+your assignment.
 
 ## Working through it
 
@@ -187,10 +199,15 @@ queue as you answer it and the next one takes its place, so the queue empties as
 you go. **Reviewed** is the looking-back pass over answers already given, where
 changing one is a matter of clicking a different label.
 
+**Mine / Everyone** appears when you opened on an assignment, and is a separate
+question from the one above: whose the pair is, rather than whether it has been
+reviewed. The two compose, so **Mine · Unreviewed** is your work still to do and
+**Everyone · Reviewed** is every call made on the queue so far.
+
 The toolbar counts two different things, and keeps them apart: **Pair 3 of 871**
-sits beside the filter buttons because it is where you are inside whichever
-queue they select, while the bar and **142 of 1017 reviewed** sit off by Save
-because they are the round as a whole.
+sits beside the filter buttons because it is where you are inside whatever they
+select, while the bar and **142 of 875 reviewed** sit off by Save because they
+are the queue as a whole.
 
 ## Where the answers go
 

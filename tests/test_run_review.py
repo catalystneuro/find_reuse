@@ -194,7 +194,7 @@ class TestServedFullText:
         assert 'No text for this paper is in the cache.' in page
 
 
-class TestLoadAssignment:
+class TestPairsIn:
     @pytest.fixture
     def candidates(self, tmp_path):
         path = tmp_path / 'reuse_candidates.json'
@@ -202,80 +202,65 @@ class TestLoadAssignment:
             {'doi': '10.1/b', 'dandiset': '000541', 'pathway': 'indirect',
              'title': 'The second paper'},
             {'doi': '10.1/a', 'dandiset': '000714', 'pathway': 'direct',
-             'title': 'The first paper'},
+             'title': 'The direct paper'},
             {'doi': '10.1/a', 'dandiset': '000541', 'pathway': 'indirect',
              'title': 'The first paper'},
         ]}))
         return path
 
-    @pytest.fixture
-    def assignment(self, tmp_path):
-        path = tmp_path / 'rly.indirect.json'
-        path.write_text(json.dumps({
-            'reviewer': 'rly', 'pathway': 'indirect',
-            'pairs': {'10.1/b': ['000541'], '10.1/a': ['000541']},
-        }))
-        return path
-
-    def answered(self, tmp_path, reviews):
-        path = tmp_path / 'rly' / 'rly-reviews.json'
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps({'reviewer': 'rly', 'reviews': reviews}))
-
-    def test_reads_the_reviewer_and_the_pathway_off_the_assignment(
-            self, assignment, candidates):
-        _, reviewer, pathway = R.load_assignment(assignment, candidates)
-        assert (reviewer, pathway) == ('rly', 'indirect')
-
-    def test_returns_the_records_of_the_pairs_it_names(self, assignment, candidates):
-        rows, _, _ = R.load_assignment(assignment, candidates)
+    def test_holds_every_candidate_in_the_pathway(self, candidates):
+        rows = R.pairs_in('indirect', candidates)
         assert [r['title'] for r in rows] == ['The first paper', 'The second paper']
 
-    def test_leaves_out_a_pair_the_assignment_does_not_name(
-            self, assignment, candidates):
-        rows, _, _ = R.load_assignment(assignment, candidates)
-        assert ('10.1/a', '000714') not in [(r['doi'], r['dandiset']) for r in rows]
+    def test_leaves_out_the_other_queue(self, candidates):
+        assert R.pairs_in('indirect', candidates) != R.pairs_in('direct', candidates)
+        assert [r['doi'] for r in R.pairs_in('direct', candidates)] == ['10.1/a']
 
-    def test_orders_the_pairs_by_paper_then_dataset(self, assignment, candidates):
-        rows, _, _ = R.load_assignment(assignment, candidates)
+    def test_orders_the_pairs_by_paper_then_dataset(self, candidates):
+        rows = R.pairs_in('indirect', candidates)
         assert [(r['doi'], r['dandiset']) for r in rows] == [
             ('10.1/a', '000541'), ('10.1/b', '000541')]
 
-    def test_shows_a_pair_answered_before_it_was_ever_assigned(
-            self, assignment, candidates, tmp_path):
-        self.answered(tmp_path, {'10.1/c': {'000541': {'call': 'reuse'}}})
-        candidates.write_text(json.dumps({'pairs': [
-            *json.loads(candidates.read_text())['pairs'],
-            {'doi': '10.1/c', 'dandiset': '000541', 'pathway': 'indirect',
-             'title': 'Answered but never assigned'},
-        ]}))
-        rows, _, _ = R.load_assignment(assignment, candidates, tmp_path)
-        assert ('10.1/c', '000541') in [(r['doi'], r['dandiset']) for r in rows]
 
-    def test_leaves_out_an_answer_belonging_to_the_other_queue(
-            self, assignment, candidates, tmp_path):
-        self.answered(tmp_path, {'10.1/a': {'000714': {'call': 'reuse'}}})
-        rows, _, _ = R.load_assignment(assignment, candidates, tmp_path)
-        assert ('10.1/a', '000714') not in [(r['doi'], r['dandiset']) for r in rows]
+class TestReadAssignment:
+    @pytest.fixture
+    def assignment(self, tmp_path):
+        path = tmp_path / 'rly-assignment-indirect.json'
+        path.write_text(json.dumps({
+            'reviewer': 'rly', 'pathway': 'indirect',
+            'pairs': {'10.1/b': ['000541'], '10.1/a': ['000541', '000714']},
+        }))
+        return path
 
-    def test_leaves_out_an_answer_the_candidate_list_no_longer_describes(
-            self, assignment, candidates, tmp_path):
-        self.answered(tmp_path, {'10.1/dropped': {'000541': {'call': 'reuse'}}})
-        rows, _, _ = R.load_assignment(assignment, candidates, tmp_path)
-        assert '10.1/dropped' not in [r['doi'] for r in rows]
+    def test_reads_the_reviewer_and_the_pathway_off_the_file(self, assignment):
+        _, reviewer, pathway = R.read_assignment(assignment)
+        assert (reviewer, pathway) == ('rly', 'indirect')
 
-    def test_counts_an_answered_pair_once_when_it_is_also_assigned(
-            self, assignment, candidates, tmp_path):
-        self.answered(tmp_path, {'10.1/a': {'000541': {'call': 'reuse'}}})
-        rows, _, _ = R.load_assignment(assignment, candidates, tmp_path)
-        assert [(r['doi'], r['dandiset']) for r in rows].count(
-            ('10.1/a', '000541')) == 1
+    def test_flattens_the_pairs_it_names(self, assignment):
+        pairs, _, _ = R.read_assignment(assignment)
+        assert sorted(pairs) == [('10.1/a', '000541'), ('10.1/a', '000714'),
+                                 ('10.1/b', '000541')]
 
-    def test_an_assigned_pair_the_candidate_list_lacks_stops_the_session(
-            self, tmp_path, candidates):
-        path = tmp_path / 'rly.indirect.json'
-        path.write_text(json.dumps({'reviewer': 'rly', 'pathway': 'indirect',
-                                    'pairs': {'10.1/gone': ['000541']}}))
-        with pytest.raises(SystemExit) as excinfo:
-            R.load_assignment(path, candidates)
-        assert '10.1/gone' in str(excinfo.value)
+
+class TestScope:
+    def row(self, doi, dandiset='000541'):
+        return {'doi': doi, 'dandiset': dandiset, 'title': 't',
+                'dandiset_name': 'n', 'reasoning': 'r', 'quotes': []}
+
+    def test_without_an_assignment_the_page_has_no_whose_filter(self):
+        page = R.build([self.row('10.1/a')], 'rly', 'indirect')
+        assert 'const MINE = null' in page
+        assert 'data-s="mine"' not in page
+
+    def test_an_assignment_adds_the_filter_without_removing_a_pair(self):
+        rows = [self.row('10.1/a'), self.row('10.1/b')]
+        page = R.build(rows, 'rly', 'indirect', [('10.1/a', '000541')])
+        assert 'data-s="mine"' in page
+        assert 'data-s="everyone"' in page
+        # Both pairs are still aboard; the filter narrows what is shown.
+        assert '10.1/b' in page
+
+    def test_the_assigned_pairs_reach_the_page_as_a_lookup(self):
+        page = R.build([self.row('10.1/a')], 'rly', 'indirect',
+                       [('10.1/a', '000541')])
+        assert 'const MINE = new Set(["10.1/a\\t000541"])' in page

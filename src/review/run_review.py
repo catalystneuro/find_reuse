@@ -37,7 +37,9 @@ from urllib.parse import parse_qs, urlparse
 from fetch_paper import TextCache
 
 from src.review.build_candidates import CANDIDATES_FILE
-from src.review.reviewers import REUSE_CONFIRMATION_DIR, reviews_path
+from src.review.reviewers import (REUSE_CONFIRMATION_DIR, REVIEWERS_FILE,
+                                  load_reviewers, reviews_path,
+                                  select_reviewers)
 
 REPO = Path(__file__).resolve().parents[2]
 PAPER_CACHE = REPO / '.paper_cache'
@@ -230,6 +232,11 @@ function record(r, field, value){
 // Two ways of working: take the pairs still owed an answer, or look back over
 // the ones already given one. A session opens on the work still to do.
 let filter = 'todo';
+// Two independent filters. `filter` is review state, `scope` is whose the pair
+// is. A session always holds every candidate in its pathway; an assignment
+// narrows what is shown rather than what was loaded, so you can step outside
+// your own queue and back without restarting.
+let scope = MINE ? 'mine' : 'everyone';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
   ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -275,10 +282,13 @@ function save(){
   saveTimer = setTimeout(() => saveNow(false), 500);
 }
 
+const isMine = r => MINE.has(r.doi + '\\t' + r.dandiset);
+
 function visible(){
-  if (filter === 'all') return ROWS;
+  let rows = scope === 'mine' ? ROWS.filter(isMine) : ROWS;
+  if (filter === 'all') return rows;
   const answered = filter === 'done';
-  return ROWS.filter(r => Boolean(callFor(r)) === answered);
+  return rows.filter(r => Boolean(callFor(r)) === answered);
 }
 
 // The pair goes with the citing paper's link so its quoted passages can be
@@ -407,13 +417,15 @@ document.getElementById('save').addEventListener('click', () => saveNow(true));
 document.getElementById('prev').addEventListener('click', () => go(index - 1));
 document.getElementById('next').addEventListener('click', () => go(index + 1));
 
-document.querySelectorAll('.filters .btn').forEach(b => {
-  b.addEventListener('click', () => {
-    filter = b.dataset.f;
-    index = 0;
-    document.querySelectorAll('.filters .btn').forEach(o =>
-      o.setAttribute('aria-pressed', String(o === b)));
-    render();
+document.querySelectorAll('.filters').forEach(group => {
+  group.querySelectorAll('.btn').forEach(b => {
+    b.addEventListener('click', () => {
+      if (b.dataset.f) filter = b.dataset.f; else scope = b.dataset.s;
+      index = 0;
+      group.querySelectorAll('.btn').forEach(o =>
+        o.setAttribute('aria-pressed', String(o === b)));
+      render();
+    });
   });
 });
 
@@ -435,10 +447,25 @@ LABELS = {
     'indirect': ['reuse', 'mention', 'neither', 'unsure'],
 }
 
-def build(rows: list[dict], reviewer: str, mode: str) -> str:
-    """Render the worksheet around one reviewer's session in one pathway."""
+def build(rows: list[dict], reviewer: str, mode: str,
+          mine: list[tuple[str, str]] | None = None) -> str:
+    """
+    Render the worksheet around one reviewer's session in one pathway.
+
+    Every candidate in the pathway is on board. `mine` is the subset assigned to
+    this reviewer, which the page filters down to rather than being built from,
+    so stepping outside your own queue and back costs nothing.
+    """
     payload = json.dumps(rows, ensure_ascii=False).replace('</', r'<\/')
     n = len(rows)
+    scope_buttons = '' if mine is None else """
+  <div class="filters" role="group" aria-label="Whose">
+    <button class="btn" data-s="mine" aria-pressed="true">Mine</button>
+    <button class="btn" data-s="everyone" aria-pressed="false">Everyone</button>
+  </div>"""
+    mine_js = ('null' if mine is None else
+               'new Set(%s)' % json.dumps([f'{doi}\t{dandiset}'
+                                           for doi, dandiset in mine]))
     return f"""<title>DANDI {mode} reuse review &mdash; {n} pairs</title>
 <style>{CSS}</style>
 
@@ -451,7 +478,7 @@ def build(rows: list[dict], reviewer: str, mode: str) -> str:
     <button class="btn" data-f="all" aria-pressed="false">All</button>
     <button class="btn" data-f="todo" aria-pressed="true">Unreviewed</button>
     <button class="btn" data-f="done" aria-pressed="false">Reviewed</button>
-  </div>
+  </div>{scope_buttons}
   <span class="readout" id="position">Pair 1 of {n}</span>
   <div class="spacer"></div>
   <div class="bar"><i id="bar"></i></div>
@@ -467,6 +494,7 @@ const ROWS = {payload};
 const REVIEWER = {json.dumps(reviewer)};
 const MODE = {json.dumps(mode)};
 const LABELS = {json.dumps(LABELS[mode])};
+const MINE = {mine_js};
 {JS}
 </script>
 """
@@ -647,16 +675,18 @@ def make_handler(page: str, reviewer: str, save_path: Path,
 
 def serve(rows: list[dict], reviewer: str, mode: str, port: int,
           base: Path = REUSE_CONFIRMATION_DIR, paper_cache: Path = PAPER_CACHE,
-          open_browser: bool = True) -> None:
+          open_browser: bool = True,
+          mine: list[tuple[str, str]] | None = None) -> None:
     if not rows:
-        raise SystemExit('That assignment holds no pairs; nothing to review.')
+        raise SystemExit(f'No {mode} candidates to review.')
     save_path = reviews_path(reviewer, base)
-    handler = make_handler(build(rows, reviewer, mode), reviewer, save_path,
+    handler = make_handler(build(rows, reviewer, mode, mine), reviewer, save_path,
                            paper_cache, quotes_by_pair(rows))
     server = ThreadingHTTPServer(('127.0.0.1', port), handler)
     url = f'http://127.0.0.1:{server.server_address[1]}/'
     papers = len({r['doi'] for r in rows})
-    print(f'{len(rows)} {mode} pairs across {papers} papers')
+    print(f'{len(rows)} {mode} pairs across {papers} papers'
+          + (f'; {len(mine)} assigned to you' if mine is not None else ''))
     print(f'Reviewing as {reviewer}; answers go to {save_path}')
     print(f'Serving {url} — Ctrl-C to stop')
     if open_browser:
@@ -669,64 +699,68 @@ def serve(rows: list[dict], reviewer: str, mode: str, port: int,
         server.server_close()
 
 
-def load_assignment(assignment_path: Path,
-                    candidates_path: Path = CANDIDATES_FILE,
-                    base: Path = REUSE_CONFIRMATION_DIR
-                    ) -> tuple[list[dict], str, str]:
+def pairs_in(pathway: str, candidates_path: Path = CANDIDATES_FILE) -> list[dict]:
     """
-    The pairs a session covers: the ones assigned, and the ones already answered.
+    Every candidate the queue is responsible for.
 
-    An assignment names its pairs and leaves the records in the candidate list,
-    so the two have to be read together. A pair the candidate list does not hold
-    means the assignment was dealt from a list that has since been rebuilt
-    without it, which is a mismatch to fix rather than to review around.
-
-    The reviewer's own answers come in alongside, because looking back over a
-    call is part of reviewing and an answer outlives the assignment that
-    prompted it. Only this queue's share of them, and only pairs the candidate
-    list still describes: one it has dropped has nothing left to show.
+    A session holds the whole pathway. What one reviewer was assigned narrows
+    what is shown, not what was loaded, so stepping outside your own queue is a
+    click rather than a restart -- and a pair you reviewed before it was ever
+    assigned to you is on screen either way.
     """
+    pairs = [p for p in json.loads(candidates_path.read_text())['pairs']
+             if p['pathway'] == pathway]
+    pairs.sort(key=lambda r: (r['doi'], r['dandiset']))
+    return pairs
+
+
+def read_assignment(assignment_path: Path) -> tuple[list[tuple[str, str]], str, str]:
+    """One reviewer's queue: the pairs it names, and whose and which it is."""
     assignment = json.loads(assignment_path.read_text())
-    by_pair = {(p['doi'], p['dandiset']): p
-               for p in json.loads(candidates_path.read_text())['pairs']}
-
-    wanted = {(doi, dandiset)
-              for doi, dandisets in assignment['pairs'].items()
-              for dandiset in dandisets}
-    missing = sorted(p for p in wanted if p not in by_pair)
-    if missing:
-        raise SystemExit(
-            f'{len(missing)} assigned pair(s) are not in {candidates_path}, '
-            f'starting with {missing[0][0]} / {missing[0][1]}. Rebuild the '
-            f'candidate list, or reassign against the one you have.')
-
-    reviews = reviews_path(assignment['reviewer'], base)
-    if reviews.exists():
-        given = json.loads(reviews.read_text())['reviews']
-        wanted |= {(doi, dandiset)
-                   for doi, dandisets in given.items()
-                   for dandiset in dandisets
-                   if (doi, dandiset) in by_pair
-                   and by_pair[(doi, dandiset)]['pathway'] == assignment['pathway']}
-
-    rows = sorted((by_pair[p] for p in wanted),
-                  key=lambda r: (r['doi'], r['dandiset']))
-    return rows, assignment['reviewer'], assignment['pathway']
+    pairs = [(doi, dandiset)
+             for doi, dandisets in assignment['pairs'].items()
+             for dandiset in dandisets]
+    return pairs, assignment['reviewer'], assignment['pathway']
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--assignment', required=True,
-                        help='The assignment to work through; it names the '
-                             'reviewer and the pathway.')
+    parser.add_argument('--reviewer', required=True,
+                        help='Whose session this is; must be a registered '
+                             'username, and names the file the reviews go to.')
+    parser.add_argument('--pathway', choices=list(LABELS),
+                        help='Which queue to review. Taken from --assignment '
+                             'when there is one, required when there is not.')
+    parser.add_argument('--assignment',
+                        help='A queue to open on. Without it the session shows '
+                             'every candidate in the pathway.')
     parser.add_argument('--paper-cache', default=str(PAPER_CACHE),
                         help='Fetched paper text, served for papers behind a paywall.')
     parser.add_argument('--port', type=int, default=8000)
     args = parser.parse_args()
 
-    rows, reviewer, pathway = load_assignment(Path(args.assignment))
+    select_reviewers(load_reviewers(REVIEWERS_FILE), args.reviewer)
+
+    mine, pathway = None, args.pathway
+    if args.assignment:
+        mine, assigned_to, pathway = read_assignment(Path(args.assignment))
+        if assigned_to != args.reviewer:
+            raise SystemExit(
+                f'{args.assignment} is {assigned_to}\'s, not {args.reviewer}\'s. '
+                f'Open your own, or drop --assignment to review the whole queue.')
+        if args.pathway and args.pathway != pathway:
+            raise SystemExit(
+                f'That assignment is {pathway}, not {args.pathway}.')
+    if not pathway:
+        raise SystemExit(
+            'Say which queue to review: --pathway '
+            f'{{{",".join(LABELS)}}}, or --assignment to take it from a queue.')
+
+    rows = pairs_in(pathway)
     attach_paper_texts(rows, Path(args.paper_cache))
-    serve(rows, reviewer, pathway, args.port, paper_cache=Path(args.paper_cache))
+    serve(rows, args.reviewer, pathway, args.port,
+          paper_cache=Path(args.paper_cache), mine=mine)
+
 
 
 if __name__ == '__main__':
