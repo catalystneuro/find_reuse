@@ -27,7 +27,6 @@ import argparse
 import hashlib
 import json
 import re
-import subprocess
 from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
@@ -232,12 +231,6 @@ def build_candidates(inputs: list[str], results_path: Path,
     return rows
 
 
-def git_sha() -> str:
-    result = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=REPO,
-                            capture_output=True, text=True, check=False)
-    return result.stdout.strip()
-
-
 def input_stamps(inputs: list[str]) -> list[dict]:
     """
     Which run of the pipeline each input came out of.
@@ -280,7 +273,6 @@ def write_candidates(pairs: list[dict], inputs: list[str], path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps({
         'generated_at': datetime.now(timezone.utc).isoformat(timespec='seconds'),
-        'git_sha': git_sha(),
         'inputs': input_stamps(inputs),
         'pairs': pairs,
     }, indent=2, ensure_ascii=False) + '\n')

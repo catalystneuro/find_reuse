@@ -1,6 +1,5 @@
 {
-  "generated_at": "2026-08-27T18:29:52+00:00",
-  "git_sha": "a382fbf0c6ef2ec08fb4b50956bafac149f9697b",
+  "generated_at": "2026-08-27T18:30:32+00:00",
   "inputs": [
     {
       "path": "output/fulltext_classifications.json",
