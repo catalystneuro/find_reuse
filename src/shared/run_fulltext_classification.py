@@ -569,11 +569,14 @@ def main():
 
     def result_cost(r):
         # OpenRouter reports what each request actually billed, cache reads and
-        # writes included; flat per-token rates are the fallback for results
-        # that predate this field or came from another provider.
+        # writes included. Under BYOK its own charge is near zero and the real
+        # spend lands on the upstream account, reported in cost_details; the sum
+        # covers both. Flat per-token rates are the fallback for results that
+        # predate these fields or came from another provider.
         usage = r.get('usage') or {}
-        if usage.get('cost') is not None:
-            return usage['cost']
+        upstream = (usage.get('cost_details') or {}).get('upstream_inference_cost')
+        if usage.get('cost') is not None or upstream is not None:
+            return (usage.get('cost') or 0) + ((upstream or 0) if usage.get('is_byok') else 0)
         return (usage.get('prompt_tokens', 0) * 0.14 / 1e6
                 + usage.get('completion_tokens', 0) * 0.28 / 1e6)
 
