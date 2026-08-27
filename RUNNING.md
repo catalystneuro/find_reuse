@@ -114,14 +114,13 @@ Reports:
 
 ```bash
 python scripts/build_reuse_report_docx.py -o ~/Desktop/dandi_reuse_report.docx
-python -m src.analysis.build_reuse_verification_page \
-    -i output/fulltext_classifications.json \
-    -i output/fulltext_direct_openalex.json \
-    --neuro-only --lab different --dandi-evidenced -o /tmp/review.html
 ```
 
-Both recompute their figures from the classification outputs, so they cannot
-drift from the data.
+It recomputes its figures from the classification outputs, so it cannot drift
+from the data.
+
+Checking those classifications by hand is its own job, with its own page and its
+own answer files: see [REVIEWING.md](REVIEWING.md).
 
 ## Corrections you should know about
 
