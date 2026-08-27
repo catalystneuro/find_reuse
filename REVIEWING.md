@@ -118,7 +118,9 @@ run produced the classification being checked.
 **Commit these files.** They are the durable result of a review round; the
 classifications they check can be regenerated, and the human reads cannot. The
 toolbar shows *Saved* after each write — if it shows a failure instead, the
-server is gone and the answer did not land.
+server is gone and the answer did not land. **Save** writes immediately rather
+than waiting for the moment's pause the automatic write allows; nothing is lost
+without it, but it is there to be sure before closing the tab.
 
 Reviewers work independently. One session serves one reviewer and writes one
 file, so two people reviewing the same round produce two files that are compared

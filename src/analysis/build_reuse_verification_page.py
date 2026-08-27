@@ -216,19 +216,24 @@ function setSaveState(text, cls){
   el.className = 'savestate ' + (cls || '');
 }
 
-// Answers land in reviews/<reviewer>.json as they are made. The write is
-// debounced so that typing a note is one write rather than one per keystroke.
+// Answers land in reviews/<reviewer>.json as they are made.
 let saveTimer = null;
+
+function saveNow(){
+  clearTimeout(saveTimer);
+  setSaveState('Saving\\u2026', '');
+  return fetch('/save', {method: 'POST', headers: {'Content-Type': 'application/json'},
+                         body: JSON.stringify({reviewer: REVIEWER, calls, notes})})
+    .then(r => setSaveState(r.ok ? 'Saved' : 'Save failed \\u2014 ' + r.status,
+                            r.ok ? 'ok' : 'bad'))
+    .catch(e => setSaveState('Save failed \\u2014 ' + e.message, 'bad'));
+}
+
+// Debounced, so that typing a note is one write rather than one per keystroke.
 function save(){
   clearTimeout(saveTimer);
   setSaveState('Saving\\u2026', '');
-  saveTimer = setTimeout(() => {
-    fetch('/save', {method: 'POST', headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({reviewer: REVIEWER, calls, notes})})
-      .then(r => setSaveState(r.ok ? 'Saved' : 'Save failed \\u2014 ' + r.status,
-                              r.ok ? 'ok' : 'bad'))
-      .catch(e => setSaveState('Save failed \\u2014 ' + e.message, 'bad'));
-  }, 500);
+  saveTimer = setTimeout(saveNow, 500);
 }
 
 function visible(){
@@ -359,6 +364,7 @@ document.getElementById('card').addEventListener('input', e => {
   save();
 });
 
+document.getElementById('save').addEventListener('click', saveNow);
 document.getElementById('prev').addEventListener('click', () => go(index - 1));
 document.getElementById('next').addEventListener('click', () => go(index + 1));
 document.getElementById('unreviewed').addEventListener('click', nextUnreviewed);
@@ -414,6 +420,7 @@ def build(rows: list[dict], reviewer: str, mode: str) -> str:
   <span class="readout sep">&middot;</span>
   <div class="bar"><i id="bar"></i></div>
   <span class="readout" id="progress">0 of {n} reviewed</span>
+  <button class="btn" id="save">Save</button>
   <span class="savestate" id="savestate"></span>
 </div>
 
