@@ -93,8 +93,6 @@ always on **Unsure**. Your work saves itself.
 | **Neither** | Neither holds — the identifier is there for another reason. |
 | **Unsure** | You cannot tell from the text. Say why in the note. |
 
-A quote tagged **not in paper** could not be found in the text at all.
-
 ## 7. Push your reviews
 
 ```bash
