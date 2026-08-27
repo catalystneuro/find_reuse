@@ -66,6 +66,12 @@ model's reasoning and the passages it quoted. Both `-i` files are named either
 way, since the queues are cut from the two together and leaving one out would
 put pairs in the wrong one.
 
+`--results-file` is the discovery corpus the cited paper is looked up in,
+`output/all_dandiset_papers_refreshed.json` by default. `--direct-results-file`
+is the direct pathway's discovery output, `output/results_dandi_openalex.json`,
+which is where the titles of its papers come from — its classifications keep
+only the DOI that matched.
+
 Rerun it whenever the pipeline reruns. Pairs come out sorted, so the diff is the
 pairs that were added.
 
@@ -116,6 +122,11 @@ nothing else to get right. This serves the worksheet on `http://127.0.0.1:8000/`
 and opens it; `--port` moves it, which is what a second reviewer on the same
 machine needs.
 
+`--paper-cache` is the fetched paper text served behind the **Raw Text** links,
+`.paper_cache` by default: the same cache the classification run read, so what
+you see is what the classifier saw. It is not in the candidate list, because
+what a machine has fetched is a fact about that machine.
+
 A session covers your queue plus everything you have already answered, read
 from the two files together. **Unreviewed** is the queue, and it empties as you
 work; **Reviewed** is the history, and it grows across rounds. An answer
@@ -128,6 +139,14 @@ One pair fills the screen: the citing paper, the paper it cited where there is
 one, and the cited dataset, each linked and sized to be read. The buttons sit
 directly under them. What the classifier said is below that — useful, but not
 what the answer is read off.
+
+**Raw Text** beside a DOI opens the text we fetched for that paper, so a
+paywall is not where the reading stops. It is what the classifier was given, not
+the published article — the export mangles citations, figure captions and line
+numbers, which is why a quote can be sound and still not match character for
+character. The passages quoted for the pair are marked in it where they stand
+verbatim, and the page opens on the first of them. The link is there only for
+papers the cache holds.
 
 Answering advances to the next pair; **Prev** and **Next** move without
 answering. Pressing the label already recorded takes it back. Notes are free
@@ -156,16 +175,22 @@ because they are the round as a whole.
 ```json
 {
   "reviewer": "your name",
-  "calls": {"10.1002/acn3.70285\t000768": "reuse"},
-  "notes": {}
+  "reviews": {
+    "10.1002/acn3.70285": {
+      "000768": {"call": "reuse"},
+      "000026": {"call": "mention", "note": "Cited for the method, not the data."}
+    }
+  }
 }
 ```
 
-A call is keyed by the DOI and the dandiset, tab-separated — the pair, not the
-paper, because a paper reusing four datasets gets four independent answers.
+The record nests paper, then dataset, then the call and the note made about that
+pair — the pair, not the paper, is what was answered, so a paper reusing four
+datasets holds four records under its DOI.
 
 Both queues write to the same file. A pair belongs to one of them only, so the
-keys cannot collide, and working through both assignments fills one answer set.
+two cannot write over each other, and working through both assignments fills one
+answer set.
 
 Nothing about the model, the prompt version or the time of the run is recorded.
 The same pair should get the same answer from the same person no matter which

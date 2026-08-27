@@ -26,15 +26,23 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import html
 import json
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from functools import lru_cache
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
+
+from fetch_paper import TextCache
 
 from src.review.build_candidates import CANDIDATES_FILE
 from src.review.reviewers import REVIEWS_DIR, answers_path
 
-CSS = """
+REPO = Path(__file__).resolve().parents[2]
+PAPER_CACHE = REPO / '.paper_cache'
+
+PALETTE = """
   :root{
     --ground:#F4F6F7; --surface:#FFFFFF; --raise:#EDF1F3;
     --line:#DCE3E7; --line-strong:#C3CED4;
@@ -62,7 +70,9 @@ CSS = """
       --primary:#BE96E8; --primary-soft:#251B36;
     }
   }
+"""
 
+CSS = PALETTE + """
   *{box-sizing:border-box}
   html,body{height:100%}
   /* One pair fills the viewport. Only the evidence box scrolls, so the paper
@@ -118,9 +128,16 @@ CSS = """
          letter-spacing:-.015em;color:var(--ink);text-decoration:none;text-wrap:pretty}
   a.name:hover{color:var(--accent)}
   .party .absent{font-size:14px;color:var(--muted);font-style:italic}
+  .links{margin-top:auto;display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px}
   a.doi{font-family:var(--mono);font-size:11.5px;color:var(--accent);text-decoration:none;
-        border-bottom:1px solid transparent;word-break:break-all;margin-top:auto}
+        border-bottom:1px solid transparent;word-break:break-all}
   a.doi:hover{border-bottom-color:var(--accent)}
+  /* The way into a paywalled paper: the text we fetched, which is the text the
+     classifier was given. */
+  a.rawtext{font-size:11.5px;font-weight:600;color:var(--accent);text-decoration:none;
+            padding:2px 9px;border-radius:999px;background:var(--accent-soft);
+            white-space:nowrap}
+  a.rawtext:hover{text-decoration:underline}
 
   .party.dataset{background:var(--accent-soft);
                  border-color:color-mix(in srgb,var(--accent) 24%,transparent)}
@@ -192,9 +209,24 @@ CSS = """
 """
 
 JS = """
-let calls = {};
-let notes = {};
+// An answer is one pair's, so the record nests: paper, then dataset, then the
+// call and the note made about that pair.
+let reviews = {};
 let index = 0;
+const entry = r => (reviews[r.doi] || {})[r.dandiset] || {};
+const callFor = r => entry(r).call || '';
+const noteFor = r => entry(r).note || '';
+
+// A pair with neither a call nor a note was never answered, so it is dropped
+// rather than left behind as an empty branch.
+function record(r, field, value){
+  const datasets = reviews[r.doi] || (reviews[r.doi] = {});
+  const answer = datasets[r.dandiset] || (datasets[r.dandiset] = {});
+  if (value) answer[field] = value; else delete answer[field];
+  if (!Object.keys(answer).length) delete datasets[r.dandiset];
+  if (!Object.keys(datasets).length) delete reviews[r.doi];
+  save();
+}
 // Two ways of working: take the pairs still owed an answer, or look back over
 // the ones already given one. A session opens on the work still to do.
 let filter = 'todo';
@@ -229,7 +261,7 @@ function saveNow(manual){
   clearTimeout(saveTimer);
   setSaveState('Saving\\u2026', '');
   return fetch('/save', {method: 'POST', headers: {'Content-Type': 'application/json'},
-                         body: JSON.stringify({reviewer: REVIEWER, calls, notes})})
+                         body: JSON.stringify({reviewer: REVIEWER, reviews})})
     .then(r => setSaveState(
       r.ok ? (manual ? 'Saved' : 'Auto-saved') : 'Save failed \\u2014 ' + r.status,
       r.ok ? 'ok' : 'bad'))
@@ -246,15 +278,27 @@ function save(){
 function visible(){
   if (filter === 'all') return ROWS;
   const answered = filter === 'done';
-  return ROWS.filter(r => Boolean(calls[r.key]) === answered);
+  return ROWS.filter(r => Boolean(callFor(r)) === answered);
 }
 
-function paperPanel(role, doi, title){
+// The pair goes with the citing paper's link so its quoted passages can be
+// marked in the text; the cited paper has none of its own.
+function textLink(doi, dandiset){
+  let href = '/text?doi=' + encodeURIComponent(doi);
+  if (dandiset) href += '&dandiset=' + encodeURIComponent(dandiset);
+  return `<a class="rawtext" href="${href}" target="_blank"
+             rel="noopener">Raw Text</a>`;
+}
+
+function paperPanel(role, doi, title, text){
   const body = doi
     ? `<a class="name" href="https://doi.org/${encodeURI(doi)}"
           target="_blank" rel="noopener">${esc(title || doi)}</a>
-       <a class="doi" href="https://doi.org/${encodeURI(doi)}"
-          target="_blank" rel="noopener">${esc(doi)}</a>`
+       <div class="links">
+         <a class="doi" href="https://doi.org/${encodeURI(doi)}"
+            target="_blank" rel="noopener">${esc(doi)}</a>
+         ${text || ''}
+       </div>`
     : `<span class="absent">Not recorded for this pair.</span>`;
   return `<div class="party"><span class="role">${esc(role)}</span>${body}</div>`;
 }
@@ -275,18 +319,18 @@ function quoteBlock(q){
     </figure>`;
 }
 
-function callButtons(key){
+function callButtons(r){
   return LABELS.map(label => {
     const name = label[0].toUpperCase() + label.slice(1);
     return `<button class="${label}" data-v="${label}"
-              aria-pressed="${calls[key] === label}">${name}</button>`;
+              aria-pressed="${callFor(r) === label}">${name}</button>`;
   }).join('');
 }
 
 function render(){
   const rows = visible();
   index = Math.min(index, Math.max(rows.length - 1, 0));
-  const done = ROWS.filter(x => calls[x.key]).length;
+  const done = ROWS.filter(callFor).length;
   document.getElementById('position').textContent =
     rows.length ? `Pair ${index + 1} of ${rows.length}` : 'No pairs';
   document.getElementById('progress').textContent = `${done} of ${ROWS.length} reviewed`;
@@ -307,16 +351,18 @@ function render(){
 
   document.getElementById('card').innerHTML = `
     <div class="subject ${MODE}">
-      ${paperPanel('Citing Paper', r.doi, r.title)}
+      ${paperPanel('Citing Paper', r.doi, r.title,
+                   r.has_text ? textLink(r.doi, r.dandiset) : '')}
       ${MODE === 'indirect'
-        ? paperPanel(citedRole, r.cited_doi, r.cited_title) : ''}
+        ? paperPanel(citedRole, r.cited_doi, r.cited_title,
+                     r.cited_has_text ? textLink(r.cited_doi, '') : '') : ''}
       ${datasetPanel(r)}
     </div>
 
     <div class="decide">
-      <div class="calls">${callButtons(r.key)}</div>
+      <div class="calls">${callButtons(r)}</div>
       <textarea id="note" placeholder="Why \\u2014 optional"
-        >${esc(notes[r.key] || '')}</textarea>
+        >${esc(noteFor(r))}</textarea>
     </div>
 
     <div class="evidence">
@@ -339,10 +385,9 @@ function go(next){
 // the next one slides into its place, so holding position is the advance.
 function mark(value){
   const r = visible()[index];
-  if (calls[r.key] === value) delete calls[r.key]; else calls[r.key] = value;
-  save();
+  record(r, 'call', callFor(r) === value ? '' : value);
   const after = visible();
-  if (after[index] === r && calls[r.key] && index < after.length - 1) index++;
+  if (after[index] === r && callFor(r) && index < after.length - 1) index++;
   render();
 }
 
@@ -355,9 +400,7 @@ document.getElementById('card').addEventListener('click', e => {
 // the cursor out of the box mid-word.
 document.getElementById('card').addEventListener('input', e => {
   if (e.target.id !== 'note') return;
-  const key = visible()[index].key;
-  if (e.target.value.trim()) notes[key] = e.target.value; else delete notes[key];
-  save();
+  record(visible()[index], 'note', e.target.value.trim() ? e.target.value : '');
 });
 
 document.getElementById('save').addEventListener('click', () => saveNow(true));
@@ -376,7 +419,7 @@ document.querySelectorAll('.filters .btn').forEach(b => {
 
 fetch('/load')
   .then(r => r.json())
-  .then(data => { calls = data.calls || {}; notes = data.notes || {}; render(); })
+  .then(data => { reviews = data.reviews || {}; render(); })
   .catch(e => { setSaveState('Load failed \\u2014 ' + e.message, 'bad'); render(); });
 """
 
@@ -429,8 +472,128 @@ const LABELS = {json.dumps(LABELS[mode])};
 """
 
 
-def make_handler(page: str, reviewer: str, save_path: Path):
+TEXT_CSS = PALETTE + """
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);
+       font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .head{position:sticky;top:0;z-index:1;display:flex;flex-wrap:wrap;align-items:baseline;
+        gap:6px 16px;padding:11px clamp(12px,2vw,26px);background:var(--surface);
+        border-bottom:1px solid var(--line)}
+  .head a{font-family:var(--mono);font-size:12.5px;color:var(--accent);
+          text-decoration:none;word-break:break-all}
+  .head a:hover{text-decoration:underline}
+  .head span{font-size:12px;color:var(--muted)}
+  /* Fetched text is one long flow with the source's own line breaks kept, so it
+     is set as a reading column rather than reflowed into paragraphs. */
+  article{max-width:82ch;margin:0 auto;padding:26px clamp(12px,2vw,26px) 90px;
+          font-family:var(--serif);font-size:16.5px;line-height:1.62;
+          white-space:pre-wrap;overflow-wrap:break-word}
+  mark{background:var(--warn-soft);color:inherit;
+       box-shadow:inset 0 -2px 0 var(--warn);padding:1px 0}
+  .absent{max-width:82ch;margin:0 auto;padding:40px clamp(12px,2vw,26px);
+          color:var(--muted);font-size:14px}
+"""
+
+
+@lru_cache(maxsize=None)
+def text_cache(cache_dir: Path) -> TextCache:
+    """
+    The paper text cache the classification run filled, read without expiry.
+
+    Its entries are what the classifier was given, so they are what a reviewer
+    checking a quote should be reading. Expiry exists to make the fetcher try a
+    paper again; here it would only take a paper away.
+    """
+    return TextCache(cache_dir, metadata_ttl_days=None)
+
+
+def paper_text(cache_dir: Path, doi: str) -> tuple[str, str]:
+    """The cached text of a paper and the source it was fetched from."""
+    cached = text_cache(cache_dir).get(doi)
+    return (cached[0], cached[1]) if cached else ('', '')
+
+
+def mark_quotes(text: str, quotes: list[str]) -> str:
+    """
+    The paper's text as HTML, with each quoted passage marked where it stands.
+
+    A quote the classifier could only match after folding case, spacing or
+    punctuation is not here character for character, and is left unmarked rather
+    than approximated; the tier beside it on the card already says so.
+    """
+    spans = []
+    for quote in quotes:
+        start = text.find(quote) if quote else -1
+        if start >= 0:
+            spans.append((start, start + len(quote)))
+    spans.sort()
+
+    marked, cursor = [], 0
+    for start, end in spans:
+        if start < cursor:
+            continue
+        marked.append(html.escape(text[cursor:start]))
+        marked.append(f'<mark>{html.escape(text[start:end])}</mark>')
+        cursor = end
+    marked.append(html.escape(text[cursor:]))
+    return ''.join(marked)
+
+
+def text_page(doi: str, text: str, source: str, quotes: list[str]) -> str:
+    """
+    Render one paper's fetched text, for when the DOI leads to a paywall.
+
+    This is the text the classification was made from, not the published
+    article: it carries the export's own mangling of citations, captions and
+    line numbers, which is why a quote can be sound and still not match.
+    """
+    body = (f'<article>{mark_quotes(text, quotes)}</article>' if text else
+            '<p class="absent">No text for this paper is in the cache.</p>')
+    return f"""<title>Fetched text &mdash; {html.escape(doi)}</title>
+<style>{TEXT_CSS}</style>
+
+<div class="head">
+  <a href="https://doi.org/{html.escape(doi)}" target="_blank"
+     rel="noopener">{html.escape(doi)}</a>
+  <span>Text as fetched for classification{f' &middot; {html.escape(source)}'
+                                           if source else ''}</span>
+</div>
+
+{body}
+
+<script>
+// Land on the quoted passage rather than the top of a 100,000-character paper.
+document.querySelector('mark')?.scrollIntoView({{block: 'center'}});
+</script>
+"""
+
+
+def attach_paper_texts(rows: list[dict], cache_dir: Path) -> None:
+    """
+    Say which papers the fetched text is on hand for.
+
+    A DOI resolves to the publisher, and behind a paywall that is where a
+    reviewer stops. The text the classifier was given is already on disk, so the
+    card offers it for the papers it covers, and says nothing for the rest.
+    """
+    cache = text_cache(cache_dir)
+    for row in rows:
+        row['has_text'] = bool(cache.get(row['doi']))
+        if 'cited_doi' in row:
+            row['cited_has_text'] = bool(row['cited_doi']
+                                         and cache.get(row['cited_doi']))
+
+
+def quotes_by_pair(rows: list[dict]) -> dict:
+    """The passages to mark in a paper's text, for each pair asked about it."""
+    return {(row['doi'], row['dandiset']): [q['q'] for q in row['quotes']]
+            for row in rows}
+
+
+def make_handler(page: str, reviewer: str, save_path: Path,
+                 paper_cache: Path = PAPER_CACHE, quotes: dict | None = None):
     """A request handler bound to one reviewer's page and answer file."""
+    quotes = quotes or {}
 
     class ReviewHandler(BaseHTTPRequestHandler):
         def _send(self, status: int, body: bytes, content_type: str):
@@ -441,12 +604,21 @@ def make_handler(page: str, reviewer: str, save_path: Path):
             self.wfile.write(body)
 
         def do_GET(self):
-            if self.path == '/':
+            url = urlparse(self.path)
+            if url.path == '/':
                 self._send(200, page.encode(), 'text/html; charset=utf-8')
-            elif self.path == '/load':
+            elif url.path == '/load':
                 saved = (json.loads(save_path.read_text()) if save_path.exists()
-                         else {'reviewer': reviewer, 'calls': {}, 'notes': {}})
+                         else {'reviewer': reviewer, 'reviews': {}})
                 self._send(200, json.dumps(saved).encode(), 'application/json')
+            elif url.path == '/text':
+                query = parse_qs(url.query)
+                doi = (query.get('doi') or [''])[0]
+                dandiset = (query.get('dandiset') or [''])[0]
+                text, source = paper_text(paper_cache, doi)
+                page_text = text_page(doi, text, source,
+                                      quotes.get((doi, dandiset), []))
+                self._send(200, page_text.encode(), 'text/html; charset=utf-8')
             else:
                 self._send(404, b'not found', 'text/plain')
 
@@ -456,14 +628,14 @@ def make_handler(page: str, reviewer: str, save_path: Path):
                 return
             length = int(self.headers.get('Content-Length', 0))
             incoming = json.loads(self.rfile.read(length))
-            # Only the answers. Which model or prompt produced the
-            # classification does not change what the right answer is, so it has
-            # no place in the record of the answer.
+            # Only the answers, nested paper to dataset to what was decided
+            # about that pair. Which model or prompt produced the classification
+            # does not change what the right answer is, so it has no place in
+            # the record of the answer.
             save_path.parent.mkdir(parents=True, exist_ok=True)
             save_path.write_text(json.dumps({
                 'reviewer': reviewer,
-                'calls': incoming.get('calls') or {},
-                'notes': incoming.get('notes') or {},
+                'reviews': incoming.get('reviews') or {},
             }, indent=2, ensure_ascii=False) + '\n')
             self._send(200, b'{"ok":true}', 'application/json')
 
@@ -474,11 +646,13 @@ def make_handler(page: str, reviewer: str, save_path: Path):
 
 
 def serve(rows: list[dict], reviewer: str, mode: str, port: int,
-          reviews_dir: Path = REVIEWS_DIR, open_browser: bool = True) -> None:
+          reviews_dir: Path = REVIEWS_DIR, paper_cache: Path = PAPER_CACHE,
+          open_browser: bool = True) -> None:
     if not rows:
         raise SystemExit('That assignment holds no pairs; nothing to review.')
     save_path = answers_path(reviewer, reviews_dir)
-    handler = make_handler(build(rows, reviewer, mode), reviewer, save_path)
+    handler = make_handler(build(rows, reviewer, mode), reviewer, save_path,
+                           paper_cache, quotes_by_pair(rows))
     server = ThreadingHTTPServer(('127.0.0.1', port), handler)
     url = f'http://127.0.0.1:{server.server_address[1]}/'
     papers = len({r['doi'] for r in rows})
@@ -503,7 +677,7 @@ def load_assignment(assignment_path: Path,
     The pairs a session covers: the ones assigned, and the ones already answered.
 
     An assignment names its pairs and leaves the records in the candidate list,
-    so the two have to be read together. A key the candidate list does not hold
+    so the two have to be read together. A pair the candidate list does not hold
     means the assignment was dealt from a list that has since been rebuilt
     without it, which is a mismatch to fix rather than to review around.
 
@@ -513,23 +687,30 @@ def load_assignment(assignment_path: Path,
     list still describes: one it has dropped has nothing left to show.
     """
     assignment = json.loads(assignment_path.read_text())
-    by_key = {p['key']: p for p in json.loads(candidates_path.read_text())['pairs']}
-    missing = [k for k in assignment['keys'] if k not in by_key]
+    by_pair = {(p['doi'], p['dandiset']): p
+               for p in json.loads(candidates_path.read_text())['pairs']}
+
+    wanted = {(doi, dandiset)
+              for doi, dandisets in assignment['pairs'].items()
+              for dandiset in dandisets}
+    missing = sorted(p for p in wanted if p not in by_pair)
     if missing:
         raise SystemExit(
             f'{len(missing)} assigned pair(s) are not in {candidates_path}, '
-            f'starting with {missing[0]!r}. Rebuild the candidate list, or '
-            f'reassign against the one you have.')
+            f'starting with {missing[0][0]} / {missing[0][1]}. Rebuild the '
+            f'candidate list, or reassign against the one you have.')
 
-    keys = dict.fromkeys(assignment['keys'])
     answers = answers_path(assignment['reviewer'], reviews_dir)
     if answers.exists():
-        for key in json.loads(answers.read_text())['calls']:
-            if key in by_key and by_key[key]['pathway'] == assignment['pathway']:
-                keys.setdefault(key)
+        reviews = json.loads(answers.read_text())['reviews']
+        wanted |= {(doi, dandiset)
+                   for doi, dandisets in reviews.items()
+                   for dandiset in dandisets
+                   if (doi, dandiset) in by_pair
+                   and by_pair[(doi, dandiset)]['pathway'] == assignment['pathway']}
 
-    rows = [by_key[k] for k in keys]
-    rows.sort(key=lambda r: (r['doi'], r['dandiset']))
+    rows = sorted((by_pair[p] for p in wanted),
+                  key=lambda r: (r['doi'], r['dandiset']))
     return rows, assignment['reviewer'], assignment['pathway']
 
 
@@ -538,11 +719,14 @@ def main():
     parser.add_argument('--assignment', required=True,
                         help='The assignment to work through; it names the '
                              'reviewer and the pathway.')
+    parser.add_argument('--paper-cache', default=str(PAPER_CACHE),
+                        help='Fetched paper text, served for papers behind a paywall.')
     parser.add_argument('--port', type=int, default=8000)
     args = parser.parse_args()
 
     rows, reviewer, pathway = load_assignment(Path(args.assignment))
-    serve(rows, reviewer, pathway, args.port)
+    attach_paper_texts(rows, Path(args.paper_cache))
+    serve(rows, reviewer, pathway, args.port, paper_cache=Path(args.paper_cache))
 
 
 if __name__ == '__main__':

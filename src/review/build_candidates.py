@@ -113,7 +113,7 @@ def merge_by_pair(inputs: list[str]) -> dict:
             doi = canonical_doi(r['citing_doi'], known)
             dandiset = r.get('dandiset_id') or ''
             row = merged.setdefault((doi, dandiset), {
-                'key': f'{doi}\t{dandiset}', 'doi': doi, 'dandiset': dandiset,
+                'doi': doi, 'dandiset': dandiset,
                 'title': '', 'reasoning': '', 'quotes': [],
                 'pathways': set(), 'confidence': 0, 'same_lab_values': set(),
                 'reused_neurophysiology': False, 'reused_dandi_hosted': False,
@@ -219,7 +219,7 @@ def build_candidates(inputs: list[str], results_path: Path,
                      direct_results_path: Path) -> list[dict]:
     """Every REUSE pair, carrying everything review and assignment need."""
     rows = [finalize(row) for row in merge_by_pair(inputs).values()]
-    rows.sort(key=lambda r: r['key'])
+    rows.sort(key=lambda r: (r['doi'], r['dandiset']))
     attach_dandiset_names(rows, results_path)
     attach_missing_titles(rows, direct_results_path)
     attach_cited_papers(rows, results_path)

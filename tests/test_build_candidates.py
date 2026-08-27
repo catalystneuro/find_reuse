@@ -89,11 +89,11 @@ def direct_results(tmp_path):
 
 
 class TestMergeByPair:
-    def test_one_row_per_pair_keyed_on_doi_and_dandiset(self, four_dataset_input):
+    def test_one_row_per_pair_of_paper_and_dataset(self, four_dataset_input):
         merged = B.merge_by_pair([four_dataset_input])
-        assert sorted(r['key'] for r in merged.values()) == [
-            '10.1/citer\t000541', '10.1/citer\t000714',
-            '10.1/citer\t000953', '10.1/citer\t000970',
+        assert sorted((r['doi'], r['dandiset']) for r in merged.values()) == [
+            ('10.1/citer', '000541'), ('10.1/citer', '000714'),
+            ('10.1/citer', '000953'), ('10.1/citer', '000970'),
         ]
 
     def test_each_pair_keeps_only_its_own_quote(self, four_dataset_input):
@@ -290,10 +290,15 @@ class TestBuildCandidates:
     def test_pairs_come_out_sorted_so_a_rerun_diffs_cleanly(
             self, four_dataset_input, corpus, direct_results):
         pairs = B.build_candidates([four_dataset_input], corpus, direct_results)
-        assert [p['key'] for p in pairs] == [
-            '10.1/citer\t000541', '10.1/citer\t000714',
-            '10.1/citer\t000953', '10.1/citer\t000970',
+        assert [(p['doi'], p['dandiset']) for p in pairs] == [
+            ('10.1/citer', '000541'), ('10.1/citer', '000714'),
+            ('10.1/citer', '000953'), ('10.1/citer', '000970'),
         ]
+
+    def test_a_pair_is_named_by_its_paper_and_dataset_not_a_joined_key(
+            self, four_dataset_input, corpus, direct_results):
+        pairs = B.build_candidates([four_dataset_input], corpus, direct_results)
+        assert 'key' not in pairs[0]
 
     def test_no_bookkeeping_from_the_merge_survives_into_a_pair(
             self, four_dataset_input, corpus, direct_results):
@@ -316,8 +321,10 @@ class TestWriteCandidates:
         out = tmp_path / 'reuse_candidates.json'
         B.write_candidates([], [four_dataset_input], out)
         assert B.write_candidates(
-            [{'key': '10.1/new\t000541'}], [four_dataset_input], out) is True
-        assert json.loads(out.read_text())['pairs'] == [{'key': '10.1/new\t000541'}]
+            [{'doi': '10.1/new', 'dandiset': '000541'}],
+            [four_dataset_input], out) is True
+        assert json.loads(out.read_text())['pairs'] == [
+            {'doi': '10.1/new', 'dandiset': '000541'}]
 
 
     def test_records_what_each_input_held(self, tmp_path, four_dataset_input):

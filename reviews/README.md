@@ -37,12 +37,13 @@ matches, and it is what identifies the run a set of answers was checking.
 
 ## `assignments/<reviewer>.<pathway>.json`
 
-Which pairs are whose. Keys only — the records are in the candidate list, and
-storing them twice would only let the two disagree.
+Which pairs are whose, nested paper to dataset the way the answers are. Pairs
+only — the records are in the candidate list, and storing them twice would only
+let the two disagree.
 
 ```json
 {"reviewer": "rly", "pathway": "indirect",
- "keys": ["10.1002/acn3.70285\t000768"]}
+ "pairs": {"10.1002/acn3.70285": ["000768"]}}
 ```
 
 A queue, not a history: only what that person still has to read. Answering a
@@ -55,20 +56,26 @@ one. Written by `src.review.assign_reviews`.
 
 ## `<reviewer>.json`
 
-One person's answers, written by the dashboard as they work.
+One person's answers, written by the dashboard as they work, nested paper to
+dataset to what was decided about that pair.
 
 ```json
 {
   "reviewer": "your name",
-  "calls": {"10.1002/acn3.70285\t000768": "reuse"},
-  "notes": {}
+  "reviews": {
+    "10.1002/acn3.70285": {
+      "000768": {"call": "reuse"},
+      "000026": {"call": "mention", "note": "Cited for the method."}
+    }
+  }
 }
 ```
 
-Keyed by DOI and dandiset id joined with a tab. Both queues write to the same
-file, since a pair belongs to one queue only. This is the file that accumulates
-across rounds, and a session reads it alongside the assignment so that past
-calls stay on screen under **Reviewed**.
+A paper reusing four datasets stands in four separate relationships, so it holds
+four records under its DOI, each with its own call and its own optional note.
+Both queues write to the same file, since a pair belongs to one of them only.
+This is the file that accumulates across rounds, and a session reads it alongside
+the assignment so that past calls stay on screen under **Reviewed**.
 
 **This is the one file here that cannot be regenerated.** The classifications it
 checks can be re-run at any time; a person's reading of a paper cannot. It
