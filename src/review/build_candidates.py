@@ -239,7 +239,21 @@ def git_sha() -> str:
 
 
 def input_stamps(inputs: list[str]) -> list[dict]:
-    """What each input held, so a candidate list can be traced to its inputs."""
+    """
+    Which run of the pipeline each input came out of.
+
+    A candidate list is a claim about a corpus made by a particular model
+    answering a particular question, and re-running with either one changed
+    produces different claims about the same papers. Recording the model, the
+    prompt version and the labels that run could reach is what makes two
+    candidate lists comparable, and what says which of them a set of answers was
+    checking.
+
+    The labels are the ones the run actually produced rather than a vocabulary
+    written down here, so they cannot drift from what the file holds. They are
+    also what separates the two pathways: the citing one reaches MENTION and the
+    direct one reaches PRIMARY.
+    """
     stamps = []
     for path in inputs:
         raw = Path(path).read_bytes()
@@ -250,8 +264,16 @@ def input_stamps(inputs: list[str]) -> list[dict]:
             'classifications': len(classifications),
             'reuse': sum(1 for c in classifications
                          if c.get('classification') == 'REUSE'),
+            'models': distinct(classifications, 'model'),
+            'prompt_versions': distinct(classifications, 'prompt_version'),
+            'labels': distinct(classifications, 'classification'),
         })
     return stamps
+
+
+def distinct(classifications: list[dict], field: str) -> list:
+    """The values a run produced for one field, in a stable order."""
+    return sorted({c[field] for c in classifications if c.get(field) is not None})
 
 
 def write_candidates(pairs: list[dict], inputs: list[str], path: Path) -> None:

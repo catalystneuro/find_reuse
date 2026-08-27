@@ -311,6 +311,52 @@ class TestWriteCandidates:
         assert stamp['reuse'] == 4
         assert len(stamp['sha256']) == 64
 
+    def test_records_the_model_and_the_question_it_was_asked(self, tmp_path):
+        path = tmp_path / 'c.json'
+        path.write_text(json.dumps({'classifications': [
+            classification('10.1/a', '000541', 'kept',
+                           model='openai/gpt-5.6-luna', prompt_version=5),
+        ]}))
+        out = tmp_path / 'reuse_candidates.json'
+        B.write_candidates([], [str(path)], out)
+        stamp = json.loads(out.read_text())['inputs'][0]
+        assert stamp['models'] == ['openai/gpt-5.6-luna']
+        assert stamp['prompt_versions'] == [5]
+
+    def test_records_every_label_the_run_reached(self, tmp_path):
+        path = tmp_path / 'c.json'
+        path.write_text(json.dumps({'classifications': [
+            classification('10.1/a', '000541', 'x'),
+            classification('10.1/b', '000541', 'x', classification='MENTION'),
+            classification('10.1/c', '000541', 'x', classification='NEITHER'),
+        ]}))
+        out = tmp_path / 'reuse_candidates.json'
+        B.write_candidates([], [str(path)], out)
+        assert json.loads(out.read_text())['inputs'][0]['labels'] == [
+            'MENTION', 'NEITHER', 'REUSE']
+
+    def test_the_labels_tell_the_two_pathways_apart(self, tmp_path):
+        path = tmp_path / 'direct.json'
+        path.write_text(json.dumps({'classifications': [
+            classification('10.1/a', '000541', 'x', mode='direct'),
+            classification('10.1/b', '000541', 'x', mode='direct',
+                           classification='PRIMARY'),
+        ]}))
+        out = tmp_path / 'reuse_candidates.json'
+        B.write_candidates([], [str(path)], out)
+        labels = json.loads(out.read_text())['inputs'][0]['labels']
+        assert labels == ['PRIMARY', 'REUSE']
+        assert 'MENTION' not in labels
+
+    def test_a_field_no_record_answered_is_left_out_not_nulled(self, tmp_path):
+        path = tmp_path / 'c.json'
+        path.write_text(json.dumps({'classifications': [
+            classification('10.1/a', '000541', 'x', model=None),
+        ]}))
+        out = tmp_path / 'reuse_candidates.json'
+        B.write_candidates([], [str(path)], out)
+        assert json.loads(out.read_text())['inputs'][0]['models'] == []
+
     def test_counts_only_the_reuse_records_as_reuse(self, tmp_path):
         path = tmp_path / 'c.json'
         path.write_text(json.dumps({'classifications': [

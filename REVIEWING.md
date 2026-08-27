@@ -69,6 +69,14 @@ put pairs in the wrong one.
 Rerun it whenever the pipeline reruns. Pairs come out sorted, so the diff is the
 pairs that were added.
 
+The header records which run of the pipeline each input came out of — the model,
+the prompt version, and the labels that run actually reached. A candidate list
+is a claim about a corpus made by a particular model answering a particular
+question, and changing either produces different claims about the same papers.
+This is what makes two candidate lists comparable, and what says which of them a
+set of answers was checking. None of it goes into the answers, where it would be
+noise: which model judged a pair does not change what the right answer is.
+
 ## Assigning a round
 
 ```bash

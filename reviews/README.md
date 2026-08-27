@@ -23,6 +23,18 @@ to judge it: the paper, the dataset, the paper it cited, the model's reasoning
 and the passages it quoted. Written by `src.review.build_candidates`, sorted by
 pair, so rerunning the pipeline shows up as the pairs it added.
 
+Its header says which run of the pipeline produced it — the model, the prompt
+version, and the labels that run reached, per input:
+
+```json
+{"path": "output/fulltext_classifications.json",
+ "models": ["openai/gpt-5.6-luna"], "prompt_versions": [5],
+ "labels": ["MENTION", "NEITHER", "REUSE"]}
+```
+
+That is the version of a candidate list. Two of them are comparable only if this
+matches, and it is what identifies the run a set of answers was checking.
+
 ## `assignments/<reviewer>.<pathway>.json`
 
 Which pairs are whose. Keys only — the records are in the candidate list, and
