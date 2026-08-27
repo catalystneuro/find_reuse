@@ -1108,6 +1108,33 @@ class TestBuildWorklist:
         ]
 
 
+class TestGroupByPaper:
+    """
+    Pairs sharing a citing paper run sequentially on one worker so the repeat
+    requests hit the provider's prompt cache. The worklist is built dandiset by
+    dandiset, so a paper's pairs arrive scattered; grouping reunites them.
+    """
+
+    def group(self, items):
+        from src.shared import run_fulltext_classification as R
+        return R.group_by_paper(items)
+
+    def test_scattered_pairs_of_a_paper_form_one_group(self):
+        a1 = {'doi': '10.1/A', 'dandiset_id': '000001'}
+        b = {'doi': '10.1/B', 'dandiset_id': '000002'}
+        a2 = {'doi': '10.1/A', 'dandiset_id': '000003'}
+        assert self.group([a1, b, a2]) == [[a1, a2], [b]]
+
+    def test_groups_keep_first_appearance_order(self):
+        b = {'doi': '10.1/B', 'dandiset_id': '000001'}
+        a = {'doi': '10.1/A', 'dandiset_id': '000002'}
+        c = {'doi': '10.1/C', 'dandiset_id': '000003'}
+        assert self.group([b, a, c]) == [[b], [a], [c]]
+
+    def test_empty_worklist_yields_no_groups(self):
+        assert self.group([]) == []
+
+
 class TestRetryWorklistPrimaryPaper:
     """
     A rerun must ask the same question the original run asked.
