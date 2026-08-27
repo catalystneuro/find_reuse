@@ -73,17 +73,25 @@ only the DOI that matched.
 
 ## Working through it
 
-One pair fills the screen: the paper under review, the paper it cited where
-there is one, and the dataset, each linked and sized to be read. The
-classifier's reasoning and quotes sit below them. Answering advances to the
-next pair; **Prev**, **Next** and **Next unreviewed** move without answering.
+One pair fills the screen: the citing paper, the paper it cited where there is
+one, and the cited dataset, each linked and sized to be read. The buttons sit
+directly under them. What the classifier said is below that — useful, but not
+what the answer is read off.
 
-Pressing the label already recorded takes it back. Notes are free text and
-optional; write one whenever the answer is not obvious from the paper, and
-always when you answer Unsure.
+Answering advances to the next pair; **Prev** and **Next** move without
+answering. Pressing the label already recorded takes it back. Notes are free
+text and optional; write one whenever the answer is not obvious from the paper,
+and always when you answer Unsure.
 
 Buttons are coloured against the classifier's label: green means you agreed
 with it, red that you contradicted it, amber that you could not tell.
+
+**All / Unreviewed / Reviewed** picks what the queue holds, for the two ways of
+working. **Unreviewed** is the working pass: a pair leaves the queue as you
+answer it and the next one takes its place, so the queue empties as you go.
+**Reviewed** is the looking-back pass over answers already given, where changing
+one is a matter of clicking a different label. The bar in the toolbar is the
+whole queue's progress either way.
 
 ## Where the answers go
 

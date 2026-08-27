@@ -81,6 +81,9 @@ CSS = """
   .btn{font:inherit;font-size:12.5px;padding:6px 12px;border-radius:999px;cursor:pointer;
        border:1px solid var(--line-strong);background:var(--surface);color:var(--muted)}
   .btn:hover{border-color:var(--accent);color:var(--ink)}
+  .btn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);
+                            color:var(--on-accent)}
+  .filters{display:flex;gap:6px}
   .btn:focus-visible,a:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);
                                                             outline-offset:2px}
   .spacer{flex:1}
@@ -92,6 +95,10 @@ CSS = """
         text-transform:uppercase;font-weight:600;padding:3px 9px;border-radius:6px;
         background:var(--accent-soft);color:var(--accent);white-space:nowrap}
   .readout.sep{opacity:.45}
+  .bar{flex:0 0 auto;width:150px;height:7px;border-radius:999px;overflow:hidden;
+       background:var(--raise);border:1px solid var(--line)}
+  .bar i{display:block;height:100%;width:0;border-radius:999px;
+         background:var(--accent);transition:width .3s ease}
   .savestate{font-size:11.5px;min-width:9ch;color:var(--muted)}
   .savestate.ok{color:var(--ok)}
   .savestate.bad{color:var(--bad);font-weight:600}
@@ -102,8 +109,8 @@ CSS = """
   /* The papers and the dataset are what the answer is read off, so they get the
      top of the screen at a size meant to be read rather than scanned. */
   .subject{flex:0 0 auto;display:grid;gap:14px;align-items:stretch;
-           grid-template-columns:1fr 1fr minmax(210px,.6fr)}
-  .subject.direct{grid-template-columns:1fr minmax(240px,.5fr)}
+           grid-template-columns:repeat(3,1fr)}
+  .subject.direct{grid-template-columns:repeat(2,1fr)}
   @media (max-width:980px){
     .subject,.subject.direct{grid-template-columns:1fr}
   }
@@ -128,25 +135,23 @@ CSS = """
   a.dsid:hover{text-decoration:underline}
   .dsname{font-size:14px;color:var(--ink);opacity:.82;line-height:1.35;text-wrap:pretty}
 
-  .reasoning{margin:0 0 14px;font-size:13.5px;color:var(--muted);max-width:96ch}
+  .reasoning{margin:0 0 16px;font-size:13.5px;color:var(--muted)}
   .reasoning b{color:var(--ink);font-weight:600}
 
   .evidence{flex:1 1 auto;min-height:0;overflow-y:auto;background:var(--surface);
             border:1px solid var(--line);border-radius:14px;padding:16px 20px}
-  .evidence h4{margin:0 0 4px;font-size:10.5px;letter-spacing:.09em;
+  .evidence .inner{max-width:104ch;margin:0 auto}
+  .evidence h4{margin:0 0 6px;font-size:10.5px;letter-spacing:.09em;
                text-transform:uppercase;color:var(--muted);font-weight:600}
-  .ehead{display:flex;align-items:baseline;gap:12px;margin-bottom:7px}
-  .ehead h4{margin:0}
-  .verdict{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--muted);
-           white-space:nowrap}
-  .legend{margin:0 0 12px;font-size:12px;color:var(--muted);max-width:96ch}
+  .legend{display:flex;flex-wrap:wrap;gap:5px 20px;margin:0 0 14px;font-size:12px;
+          color:var(--muted)}
+  .key{display:inline-flex;align-items:center;gap:7px}
   figure.q{margin:0;padding:9px 0 9px 14px;border-left:3px solid var(--line-strong)}
   figure.q.exact{border-left-color:var(--ok)}
   figure.q.normalized,figure.q.case_insensitive,figure.q.spacing_insensitive,
   figure.q.punctuation_insensitive{border-left-color:var(--warn)}
   figure.q.not_found{border-left-color:var(--bad)}
-  figure.q blockquote{margin:0;font-family:var(--serif);font-size:15px;line-height:1.55;
-                      max-width:96ch}
+  figure.q blockquote{margin:0;font-family:var(--serif);font-size:15px;line-height:1.55}
   figure.q figcaption{margin-top:7px}
   .tier{display:inline-flex;align-items:center;font-family:var(--mono);font-size:10.5px;
         letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;border-radius:5px;
@@ -156,18 +161,17 @@ CSS = """
   .tier.punctuation_insensitive{background:var(--warn-soft);color:var(--warn)}
   .tier.not_found{background:var(--bad-soft);color:var(--bad)}
 
-  .decide{flex:0 0 auto;display:flex;gap:18px;align-items:flex-start}
-  .decide textarea{flex:1 1 auto;font:inherit;font-size:13px;line-height:1.45;
-                   padding:9px 11px;border-radius:9px;border:1px solid var(--line-strong);
-                   background:var(--surface);color:var(--ink);resize:none;min-height:82px}
-  .decide textarea::placeholder{color:var(--muted);opacity:.75}
-  .ask{flex:0 0 auto;display:flex;flex-direction:column;gap:9px;max-width:62ch}
-  .question{margin:0;font-size:12.5px;color:var(--muted)}
-  .calls{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start}
-  .calls button{font:inherit;font-size:13px;padding:10px 16px;border-radius:9px;
-                cursor:pointer;border:1px solid var(--line-strong);background:var(--surface);
+  .decide{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:11px}
+  .calls{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+  .calls button{font:inherit;font-size:15px;font-weight:560;padding:13px 30px;
+                border-radius:11px;cursor:pointer;min-width:132px;
+                border:1px solid var(--line-strong);background:var(--surface);
                 color:var(--muted);white-space:nowrap}
   .calls button:hover{border-color:var(--accent);color:var(--ink)}
+  .decide textarea{width:min(100%,880px);font:inherit;font-size:13px;line-height:1.45;
+                   padding:9px 12px;border-radius:9px;border:1px solid var(--line-strong);
+                   background:var(--surface);color:var(--ink);resize:none;min-height:54px}
+  .decide textarea::placeholder{color:var(--muted);opacity:.75}
   /* Colour is relative to what the classifier said, not fixed per label: green
      means you agreed with it, red that you contradicted it. */
   .calls button[aria-pressed="true"].agree{background:var(--ok-soft);border-color:var(--ok);
@@ -176,6 +180,7 @@ CSS = """
       border-color:var(--bad);color:var(--bad);font-weight:600}
   .calls button[aria-pressed="true"].hedge{background:var(--warn-soft);border-color:var(--warn);
       color:var(--warn);font-weight:600}
+  .empty{margin:auto;color:var(--muted);font-size:14px}
   @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 """
 
@@ -186,6 +191,9 @@ const AGREE = 'reuse';
 let calls = {};
 let notes = {};
 let index = 0;
+// Two ways of working: take the pairs still owed an answer, or look back over
+// the ones already given one.
+let filter = 'all';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
   ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -193,6 +201,14 @@ const tierLabel = t => ({exact:'exact', normalized:'normalized',
   case_insensitive:'case only', spacing_insensitive:'spacing only',
   punctuation_insensitive:'punctuation only',
   not_found:'not in paper'}[t] || t);
+
+const TIER_KEY = `<div class="legend">
+    <span class="key"><span class="tier exact">exact</span>character for character</span>
+    <span class="key"><span class="tier normalized">normalized</span>matches once case,
+      punctuation or spacing is folded</span>
+    <span class="key"><span class="tier not_found">not in paper</span>does not appear at
+      all, so a claim resting only on these is unsupported</span>
+  </div>`;
 
 function setSaveState(text, cls){
   const el = document.getElementById('savestate');
@@ -215,6 +231,12 @@ function save(){
   }, 500);
 }
 
+function visible(){
+  if (filter === 'all') return ROWS;
+  const answered = filter === 'done';
+  return ROWS.filter(r => Boolean(calls[r.key]) === answered);
+}
+
 function paperPanel(role, doi, title){
   const body = doi
     ? `<a class="name" href="https://doi.org/${encodeURI(doi)}"
@@ -227,7 +249,7 @@ function paperPanel(role, doi, title){
 
 function datasetPanel(r){
   return `<div class="party dataset">
-      <span class="role">${MODE === 'direct' ? 'Dataset it names' : 'Dataset'}</span>
+      <span class="role">Cited Dataset</span>
       <a class="dsid" href="https://dandiarchive.org/dandiset/${esc(r.dandiset)}"
          target="_blank" rel="noopener">${esc(r.dandiset)}</a>
       <span class="dsname">${esc(r.dandiset_name)}</span>
@@ -251,72 +273,75 @@ function callButtons(key){
 }
 
 function render(){
-  const r = ROWS[index];
+  const rows = visible();
+  index = Math.min(index, Math.max(rows.length - 1, 0));
   const done = ROWS.filter(x => calls[x.key]).length;
-  document.getElementById('position').textContent = `${index + 1} of ${ROWS.length}`;
-  document.getElementById('progress').textContent =
-    `${done} of ${ROWS.length} reviewed`;
+  document.getElementById('position').textContent =
+    rows.length ? `${index + 1} of ${rows.length}` : '0 of 0';
+  document.getElementById('progress').textContent = `${done} of ${ROWS.length} reviewed`;
+  document.getElementById('bar').style.width = (100 * done / ROWS.length) + '%';
+
+  const r = rows[index];
+  if (!r){
+    document.getElementById('card').innerHTML = `<p class="empty">${
+      filter === 'done' ? 'Nothing answered yet.' : 'Every pair has an answer.'}</p>`;
+    return;
+  }
 
   const quotes = r.quotes.length ? r.quotes.map(quoteBlock).join('')
     : `<figure class="q"><blockquote><em>No quote returned.</em></blockquote></figure>`;
   // Where discovery held no pairing, the panel shows the dataset's own declared
   // paper, and says so rather than claiming this paper cited it.
-  const citedRole = r.cited_role === 'Cited' ? 'Paper it cited'
-                                             : 'Paper describing the dataset';
+  const citedRole = r.cited_role === 'Cited' ? 'Cited Paper' : 'Dataset Paper';
 
   document.getElementById('card').innerHTML = `
     <div class="subject ${MODE}">
-      ${paperPanel('Paper under review', r.doi, r.title)}
+      ${paperPanel('Citing Paper', r.doi, r.title)}
       ${MODE === 'indirect'
         ? paperPanel(citedRole, r.cited_doi, r.cited_title) : ''}
       ${datasetPanel(r)}
     </div>
 
-    <div class="evidence">
-      <div class="ehead">
-        <h4>What the classifier said</h4>
-        <span class="verdict">REUSE \u00b7 confidence ${esc(r.confidence)}</span>
-      </div>
-      <p class="reasoning">${esc(r.reasoning)}</p>
-      <h4>Evidence it quoted</h4>
-      <p class="legend">A tier says how the quote matched the paper.
-        <em>Exact</em> is character for character; <em>normalized</em>, <em>case</em>,
-        <em>punctuation</em> and <em>spacing</em> mean it appears once those are folded;
-        <em>not in paper</em> means it does not appear at all, so a claim resting only on
-        those is unsupported.</p>
-      ${quotes}
+    <div class="decide">
+      <div class="calls">${callButtons(r.key)}</div>
+      <textarea id="note" placeholder="Why \\u2014 optional"
+        >${esc(notes[r.key] || '')}</textarea>
     </div>
 
-    <div class="decide">
-      <textarea id="note" placeholder="Why \u2014 optional"
-        >${esc(notes[r.key] || '')}</textarea>
-      <div class="ask">
-        <p class="question">${QUESTION}</p>
-        <div class="calls">${callButtons(r.key)}</div>
+    <div class="evidence">
+      <div class="inner">
+        <h4>What the classifier said</h4>
+        <p class="reasoning">${esc(r.reasoning)}</p>
+        <h4>Evidence it quoted</h4>
+        ${TIER_KEY}
+        ${quotes}
       </div>
     </div>`;
 }
 
 function go(next){
-  index = Math.min(Math.max(next, 0), ROWS.length - 1);
+  index = Math.min(Math.max(next, 0), Math.max(visible().length - 1, 0));
   render();
 }
 
 function nextUnreviewed(){
-  for (let i = 1; i <= ROWS.length; i++){
-    const j = (index + i) % ROWS.length;
-    if (!calls[ROWS[j].key]){ go(j); return; }
+  const rows = visible();
+  if (!rows.length) return;
+  for (let i = 1; i <= rows.length; i++){
+    const j = (index + i) % rows.length;
+    if (!calls[rows[j].key]){ go(j); return; }
   }
   setSaveState('All reviewed', 'ok');
 }
 
-// Answering advances. Pressing the same label again takes the answer back, and
-// then there is nothing to move on from, so the pair stays put.
+// Answering advances. Under a filter the answered pair drops out of the list and
+// the next one slides into its place, so holding position is the advance.
 function mark(value){
-  const key = ROWS[index].key;
-  if (calls[key] === value) delete calls[key]; else calls[key] = value;
+  const r = visible()[index];
+  if (calls[r.key] === value) delete calls[r.key]; else calls[r.key] = value;
   save();
-  if (calls[key] && index < ROWS.length - 1) index++;
+  const after = visible();
+  if (after[index] === r && calls[r.key] && index < after.length - 1) index++;
   render();
 }
 
@@ -329,7 +354,7 @@ document.getElementById('card').addEventListener('click', e => {
 // the cursor out of the box mid-word.
 document.getElementById('card').addEventListener('input', e => {
   if (e.target.id !== 'note') return;
-  const key = ROWS[index].key;
+  const key = visible()[index].key;
   if (e.target.value.trim()) notes[key] = e.target.value; else delete notes[key];
   save();
 });
@@ -337,6 +362,16 @@ document.getElementById('card').addEventListener('input', e => {
 document.getElementById('prev').addEventListener('click', () => go(index - 1));
 document.getElementById('next').addEventListener('click', () => go(index + 1));
 document.getElementById('unreviewed').addEventListener('click', nextUnreviewed);
+
+document.querySelectorAll('.filters .btn').forEach(b => {
+  b.addEventListener('click', () => {
+    filter = b.dataset.f;
+    index = 0;
+    document.querySelectorAll('.filters .btn').forEach(o =>
+      o.setAttribute('aria-pressed', String(o === b)));
+    render();
+  });
+});
 
 fetch('/load')
   .then(r => r.json())
@@ -356,14 +391,6 @@ LABELS = {
     'indirect': ['reuse', 'mention', 'neither', 'unsure'],
 }
 
-QUESTION = {
-    'direct': 'This paper names the dandiset in its own text. Did it reuse the '
-              'data, deposit it, or neither?',
-    'indirect': 'This paper cited the dandiset’s paper. Did it reuse the '
-                'data, only mention the work, or neither?',
-}
-
-
 def build(rows: list[dict], reviewer: str, mode: str) -> str:
     """Render the worksheet around one reviewer's session in one pathway."""
     payload = json.dumps(rows, ensure_ascii=False).replace('</', r'<\/')
@@ -377,9 +404,15 @@ def build(rows: list[dict], reviewer: str, mode: str) -> str:
   <button class="btn" id="prev">&larr; Prev</button>
   <button class="btn" id="next">Next &rarr;</button>
   <button class="btn" id="unreviewed">Next unreviewed</button>
+  <div class="filters" role="group" aria-label="Show">
+    <button class="btn" data-f="all" aria-pressed="true">All</button>
+    <button class="btn" data-f="todo" aria-pressed="false">Unreviewed</button>
+    <button class="btn" data-f="done" aria-pressed="false">Reviewed</button>
+  </div>
   <div class="spacer"></div>
   <span class="readout" id="position">1 of {n}</span>
   <span class="readout sep">&middot;</span>
+  <div class="bar"><i id="bar"></i></div>
   <span class="readout" id="progress">0 of {n} reviewed</span>
   <span class="savestate" id="savestate"></span>
 </div>
@@ -391,7 +424,6 @@ const ROWS = {payload};
 const REVIEWER = {json.dumps(reviewer)};
 const MODE = {json.dumps(mode)};
 const LABELS = {json.dumps(LABELS[mode])};
-const QUESTION = {json.dumps(QUESTION[mode])};
 {JS}
 </script>
 """
@@ -472,13 +504,12 @@ def merge_by_pair(inputs: list[str]) -> dict:
             dandiset = r.get('dandiset_id') or ''
             row = merged.setdefault((doi, dandiset), {
                 'key': f'{doi}\t{dandiset}', 'doi': doi, 'dandiset': dandiset,
-                'title': '', 'confidence': 0, 'reasoning': '', 'quotes': [],
+                'title': '', 'reasoning': '', 'quotes': [],
                 'pathways': set(),
             })
             row['pathways'].add(r['mode'])
             if r.get('title') and len(r['title']) > len(row['title']):
                 row['title'] = r['title'].strip()
-            row['confidence'] = max(row['confidence'], r.get('confidence') or 0)
             if len(r.get('reasoning') or '') > len(row['reasoning']):
                 row['reasoning'] = r.get('reasoning') or ''
             for q in r.get('evidence_quotes', []):
@@ -637,7 +668,7 @@ def main():
     args = parser.parse_args()
 
     rows = queue_for(merge_by_pair(args.input), args.mode)
-    rows.sort(key=lambda r: (-(r['confidence'] or 0), r['doi'], r['dandiset']))
+    rows.sort(key=lambda r: (r['doi'], r['dandiset']))
     attach_dandiset_names(rows, Path(args.results_file))
     if args.mode == 'direct':
         attach_missing_titles(rows, Path(args.direct_results_file))

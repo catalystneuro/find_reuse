@@ -14,7 +14,6 @@ def classification(citing_doi, dandiset_id, quote, **overrides):
     record = {
         'classification': 'REUSE',
         'mode': 'citing',
-        'confidence': 8,
         'citing_doi': citing_doi,
         'dandiset_id': dandiset_id,
         'title': 'One paper, several datasets',
@@ -163,14 +162,14 @@ class TestRowContents:
 
         assert set(rows[0]) == {'key', 'doi', 'title', 'cited_doi', 'cited_title',
                                 'cited_role', 'dandiset', 'dandiset_name',
-                                'confidence', 'reasoning', 'quotes'}
+                                'reasoning', 'quotes'}
 
     def test_a_direct_row_carries_no_cited_paper(self, both_pathway_input, corpus):
         rows = B.queue_for(B.merge_by_pair([both_pathway_input]), 'direct')
         B.attach_dandiset_names(rows, corpus)
 
         assert set(rows[0]) == {'key', 'doi', 'title', 'dandiset', 'dandiset_name',
-                                'confidence', 'reasoning', 'quotes'}
+                                'reasoning', 'quotes'}
 
 
 class TestQueueFor:
@@ -244,7 +243,7 @@ class TestLabels:
 
     def test_the_page_offers_the_labels_of_its_own_mode(self):
         row = {'key': 'k', 'doi': 'd', 'title': 't', 'dandiset': '000001',
-               'dandiset_name': 'n', 'confidence': 9, 'reasoning': 'r', 'quotes': []}
+               'dandiset_name': 'n', 'reasoning': 'r', 'quotes': []}
 
         assert '"primary"' in B.build([row], 'Ada', 'direct')
         assert '"mention"' not in B.build([row], 'Ada', 'direct')
