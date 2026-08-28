@@ -97,9 +97,11 @@ On an indirect card the cited paper wears a chip saying how the dandiset came to
 name it. A red **LLM-IDENTIFIED — VERIFY** means DANDI names no paper and a model
 picked this one, and it is often wrong — one dandiset about mouse blood flow was
 given a paper about chimpanzee tool use, and every pair beneath it is a
-primatology paper asked about mouse data. Open the cited paper and check it is
-really about the dataset before judging the pair; where it is not, the answer is
-**Neither**, and say so in the note.
+primatology paper asked about mouse data. Nothing has established that the cited
+paper and the dandiset have anything to do with each other, and it is yours to
+work out: open the dandiset, see what it holds and who deposited it, and decide
+whether the cited paper is that work. Where it is not, the answer is **Neither**,
+and say so in the note.
 
 **Indirect** — the paper cited a dandiset's publication.
 
