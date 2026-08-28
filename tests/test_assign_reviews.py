@@ -64,10 +64,20 @@ class TestMatches:
         assert A.matches(prose, filters(paper_link=both)) is True
         assert A.matches(pair('10.1/b'), filters(paper_link=both)) is False
 
+    def test_paper_link_declared_stands_for_every_origin_a_person_set(self):
+        for origin in A.DECLARED_LINKS:
+            assert A.matches(pair('10.1/a', cited_source=origin),
+                             filters(paper_link=['declared'])) is True
+
+    def test_paper_link_declared_hands_you_nothing_nobody_vouched_for(self):
+        for origin in ('llm_identified', 'unknown'):
+            assert A.matches(pair('10.1/a', cited_source=origin),
+                             filters(paper_link=['declared'])) is False
+
     def test_a_direct_pair_has_no_cited_paper_and_matches_no_origin(self):
         p = pair('10.1/d', '000714', pathway='direct', cited_source='')
         assert A.matches(p, filters(paper_link=['llm_identified'])) is False
-        assert A.matches(p, filters(paper_link=['dcite:IsDescribedBy'])) is False
+        assert A.matches(p, filters(paper_link=['declared'])) is False
 
     def test_a_candidate_list_built_before_the_field_existed_deals_nothing(self):
         p = pair('10.1/a')

@@ -53,7 +53,8 @@ existing queues and deals from scratch.
 
 `--paper-link llm_identified` cuts a different kind of round: the indirect pairs
 whose dandiset names no paper, so a model picked one. What needs checking there
-is the pairing rather than the reuse.
+is the pairing rather than the reuse. `--paper-link declared` is the other side,
+the pairs DANDI's own metadata stands behind.
 
 ## 4. Open a PR with the round
 
