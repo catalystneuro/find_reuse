@@ -286,15 +286,15 @@ def distinct(classifications: list[dict], field: str) -> list:
     return sorted({c[field] for c in classifications if c.get(field) is not None})
 
 
-def write_candidates(pairs: list[dict], inputs: list[str], path: Path) -> bool:
+def write_stamped(path: Path, body: dict) -> bool:
     """
-    Write the candidate list, unless it would say the same thing again.
+    Write a generated file under a timestamp, unless it would say the same
+    thing again.
 
     Returns whether the file changed. Rebuilding is how you check whether the
     pipeline moved, so it has to be cheap to do; stamping a new time on an
     otherwise identical file would make every check look like a change.
     """
-    body = {'inputs': input_stamps(inputs), 'pairs': pairs}
     if path.exists():
         current = json.loads(path.read_text())
         if {k: v for k, v in current.items() if k != 'generated_at'} == body:
@@ -306,6 +306,11 @@ def write_candidates(pairs: list[dict], inputs: list[str], path: Path) -> bool:
         **body,
     }, indent=2, ensure_ascii=False) + '\n')
     return True
+
+
+def write_candidates(pairs: list[dict], inputs: list[str], path: Path) -> bool:
+    """The candidate list, and whether it changed."""
+    return write_stamped(path, {'inputs': input_stamps(inputs), 'pairs': pairs})
 
 
 def main():

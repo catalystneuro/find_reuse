@@ -96,3 +96,8 @@ def reviews_path(username: str, base: Path = REUSE_CONFIRMATION_DIR) -> Path:
 def assignment_paths(base: Path = REUSE_CONFIRMATION_DIR) -> list[Path]:
     """Every assignment on disk, whosever it is."""
     return sorted(base.glob('*/*-assignment-*.json'))
+
+
+def reviews_paths(base: Path = REUSE_CONFIRMATION_DIR) -> list[Path]:
+    """Every reviewer's reviews on disk, whosever they are."""
+    return sorted(base.glob('*/*-reviews.json'))
