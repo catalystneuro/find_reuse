@@ -44,7 +44,9 @@ class TestRequestLine:
         assert body['model'] == B.MODEL_OPENAI
         assert body['messages'] == [{'role': 'user', 'content': 'PROMPT'}]
         assert body['max_completion_tokens'] == 16384
-        assert body['reasoning_effort'] == 'max'
+        # OpenRouter's 'max' does not exist on OpenAI's effort scale; the
+        # request must carry its OpenAI equivalent or the whole batch 400s.
+        assert body['reasoning_effort'] == 'xhigh'
         assert body['response_format'] == {'type': 'json_object'}
         # OpenAI's reasoning models reject any non-default temperature, and
         # chat completions rejects max_tokens for them.

@@ -121,7 +121,9 @@ def chunk_groups(groups: list[list[str]], max_bytes: int) -> list[list[str]]:
 
 def request_line(custom_id: str, prompt: str, max_tokens: int, effort: str) -> str:
     # No temperature: OpenAI's reasoning models accept only the default, and
-    # max_tokens is spelled max_completion_tokens on chat completions.
+    # max_tokens is spelled max_completion_tokens on chat completions. The
+    # effort scale also differs: OpenRouter's 'max' is OpenAI's 'xhigh', and
+    # sending 'max' fails every request in the batch with a 400.
     return json.dumps({
         'custom_id': custom_id,
         'method': 'POST',
@@ -131,7 +133,7 @@ def request_line(custom_id: str, prompt: str, max_tokens: int, effort: str) -> s
             'messages': [{'role': 'user', 'content': prompt}],
             'max_completion_tokens': max_tokens,
             'response_format': {'type': 'json_object'},
-            'reasoning_effort': effort,
+            'reasoning_effort': 'xhigh' if effort == 'max' else effort,
         },
     })
 
