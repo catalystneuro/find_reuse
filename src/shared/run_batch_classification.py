@@ -344,6 +344,17 @@ def pump(args):
             if 'token_limit_exceeded' in errs:
                 entry['batch_id'] = None
                 save_manifest(manifest_path, manifest)
+            elif 'Cannot find file' in errs:
+                # Validation raced the upload: a batch created right after its
+                # file was uploaded can fail to see it. Recreate from the file
+                # when it still exists; re-upload when it is truly gone.
+                f = requests.get(
+                    f"https://api.openai.com/v1/files/{entry['file_id']}",
+                    headers=headers, timeout=60)
+                entry['batch_id'] = None
+                if f.status_code != 200:
+                    entry['file_id'] = None
+                save_manifest(manifest_path, manifest)
             else:
                 print(f'{name}: failed for another reason: {errs[:200]}',
                       file=sys.stderr, flush=True)
