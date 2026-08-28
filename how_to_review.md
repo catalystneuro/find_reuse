@@ -1,7 +1,7 @@
 # How to review
 
-Everyone does step 1. **Steps 2–4 are done once, by whoever cuts the round — if
-you have been assigned one, go from step 1 to [step 5](#5-set-up).**
+Everyone does step 1. **Steps 2–4 and 9 belong to whoever cuts and closes the
+round — if you have been assigned one, go from step 1 to [step 5](#5-set-up).**
 
 ## 1. Get the archives
 
@@ -127,3 +127,15 @@ Both pathways write to this one file, and it is the only file your session
 touches. A paper reviewed against four dandisets holds four entries.
 
 ## 8. Open a PR with your reviews
+
+## 9. Merge the reviews
+
+```bash
+python -m src.review.merge_reviews
+```
+
+`all_reviews.json` is every pair anybody has judged and what each of them called
+it. `confirmed_reuse.json` is the ones that came out reuse — one reviewer is
+enough by default, `--min-reviewers 2` once pairs have been read twice. Both go
+in `reuse_confirmation/`, and pairs the reviewers disagreed about are named on
+the console.

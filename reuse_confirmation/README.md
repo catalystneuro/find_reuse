@@ -3,7 +3,7 @@
 Everything the manual check of the classifier's REUSE calls takes and produces.
 Candidates go in at the top, one reviewer's work sits in the directory named
 after them, and confirmed reuse comes out. See [how_to_review.md](../how_to_review.md)
-for how the three steps fit together.
+for how the steps fit together.
 
 ```
 reuse_confirmation/
@@ -13,6 +13,8 @@ reuse_confirmation/
     pauladkisson-assignment-indirect.json     what they still have to read
     pauladkisson-assignment-direct.json
     pauladkisson-reviews.json                 what they decided
+  all_reviews.json                            what everybody decided
+  confirmed_reuse.json                        what came out reuse
 ```
 
 The top of the tree is what everybody shares; a directory below it is one
@@ -119,8 +121,42 @@ so it stays valid across re-classification.
 Reviewers judge independently, so two people covering the same round leave two
 files; they are compared afterwards, not merged as the work is done.
 
+## `all_reviews.json`
+
+Every pair anybody has judged, with the record it was judged on and what each
+reviewer called it. The per-person files above, merged and keyed on the pair
+rather than on who did the reading.
+
+```json
+{"doi": "10.1002/acn3.70285", "dandiset": "000768", "...": "...",
+ "call": "reuse",
+ "calls": {"pauladkisson": "reuse", "rly": "mention"},
+ "notes": {"rly": "Cited for the method, never opened the data."}}
+```
+
+`call` is what the reviewers agreed the pair is, or null where they did not.
+Rejections are in here as much as confirmations: how often the classifier was
+wrong is a result too, and the two together are the only way to say either.
+
+## `confirmed_reuse.json`
+
+The pairs that came out reuse, in the same shape, which is what the rest of the
+project counts. The other end of `reuse_candidates.json`: what the classifier
+claimed, less what a person did not agree with.
+
+Its header says how many reviewers had to call a pair reuse for it to be here.
+One is enough by default, which is all a round dealt out disjointly can produce;
+`--min-reviewers 2` is for once pairs have been read twice. A dissenting call
+does not veto — what confirms a pair is how many people read it and said yes,
+and the disagreement stays visible in `all_reviews.json`.
+
+Both files are written by `src.review.merge_reviews`.
+
 ## All of it is committed
 
 The reviews because they are irreplaceable, the assignments because they record
 a decision, and the candidate list because it is what the assignments point into
-— together they let somebody clone the repository and start reviewing.
+— together they let somebody clone the repository and start reviewing. The last
+two are rebuilt from the three above them whenever anybody merges again; they
+are committed because they are what gets cited, not because they could not be
+regenerated.
