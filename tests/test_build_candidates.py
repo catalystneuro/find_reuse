@@ -54,7 +54,8 @@ def corpus(tmp_path):
             'dandiset_id': '000541',
             'dandiset_name': 'Mouse motor cortex recordings',
             'paper_relations': [{'doi': '10.1/described-by',
-                                 'name': 'The paper the data came from'}],
+                                 'name': 'The paper the data came from',
+                                 'relation': 'dcite:IsDescribedBy'}],
             'citing_papers': [{'doi': '10.1/CITER',
                                'cited_paper_doi': '10.1/described-by'}],
         },
@@ -66,14 +67,28 @@ def corpus(tmp_path):
                  'relation': 'dcite:IsPublishedIn'},
                 {'doi': '10.1/declared', 'name': 'The paper describing 000714',
                  'relation': 'dcite:IsDescribedBy'},
+                {'doi': '10.1/in-prose', 'name': 'Named in the description',
+                 'relation': 'description'},
             ],
-            'citing_papers': [],
+            'citing_papers': [{'doi': '10.1/PROSE-CITER',
+                               'cited_paper_doi': '10.1/in-prose'}],
         },
         {
             'dandiset_id': '000953',
             'dandiset_name': 'Dataset that declares nothing',
             'paper_relations': [],
-            'citing_papers': [],
+            'citing_papers': [{'doi': '10.1/ORPHAN',
+                               'cited_paper_doi': '10.1/never-declared'}],
+        },
+        {
+            'dandiset_id': '000970',
+            'dandiset_name': 'Dataset DANDI names no paper for',
+            'paper_relations': [{'doi': '10.1/guessed',
+                                 'name': 'The paper a model picked',
+                                 'relation': 'llm_identified', 'source': 'llm',
+                                 'llm_confidence': 10}],
+            'citing_papers': [{'doi': '10.1/CITER',
+                               'cited_paper_doi': '10.1/guessed'}],
         },
     ]}))
     return path
@@ -259,6 +274,41 @@ class TestAttachCitedPapers:
         assert rows[0]['cited_doi'] == ''
         assert rows[0]['cited_title'] == ''
 
+    def test_says_a_paper_dandi_declares_came_from_the_relation_that_named_it(
+            self, corpus):
+        rows = [{'doi': '10.1/citer', 'dandiset': '000541'}]
+        B.attach_cited_papers(rows, corpus)
+        assert rows[0]['cited_source'] == 'dcite:IsDescribedBy'
+
+    def test_says_a_paper_a_model_picked_is_the_models(self, corpus):
+        rows = [{'doi': '10.1/citer', 'dandiset': '000970'}]
+        B.attach_cited_papers(rows, corpus)
+        assert rows[0]['cited_doi'] == '10.1/guessed'
+        assert rows[0]['cited_source'] == 'llm_identified'
+
+    def test_a_paper_read_off_the_description_says_so(self, corpus):
+        rows = [{'doi': '10.1/prose-citer', 'dandiset': '000714'}]
+        B.attach_cited_papers(rows, corpus)
+        assert rows[0]['cited_doi'] == '10.1/in-prose'
+        assert rows[0]['cited_source'] == 'description'
+
+    def test_matches_a_cited_doi_whose_casing_differs_from_the_corpus(self, corpus):
+        rows = [{'doi': '10.1/CITER', 'dandiset': '000541'}]
+        B.attach_cited_papers(rows, corpus)
+        assert rows[0]['cited_source'] == 'dcite:IsDescribedBy'
+
+    def test_a_cited_paper_the_corpus_no_longer_holds_is_not_vouched_for(
+            self, corpus):
+        rows = [{'doi': '10.1/orphan', 'dandiset': '000953'}]
+        B.attach_cited_papers(rows, corpus)
+        assert rows[0]['cited_doi'] == '10.1/never-declared'
+        assert rows[0]['cited_source'] == 'unknown'
+
+    def test_says_nothing_about_a_pair_with_no_cited_paper_at_all(self, corpus):
+        rows = [{'doi': '10.1/stranger', 'dandiset': '000953'}]
+        B.attach_cited_papers(rows, corpus)
+        assert rows[0]['cited_source'] == ''
+
 
 class TestAttachDandisetNames:
     def test_names_the_dataset(self, corpus):
@@ -299,7 +349,15 @@ class TestBuildCandidates:
         pairs = B.build_candidates([both_pathway_input], corpus, direct_results)
         pair = next(p for p in pairs if p['dandiset'] == '000714')
         assert pair['pathway'] == 'direct'
-        assert (pair['cited_doi'], pair['cited_title'], pair['cited_role']) == ('', '', '')
+        assert (pair['cited_doi'], pair['cited_title'], pair['cited_role'],
+                pair['cited_source']) == ('', '', '', '')
+
+    def test_an_indirect_pair_says_how_its_dataset_came_to_name_that_paper(
+            self, four_dataset_input, corpus, direct_results):
+        pairs = B.build_candidates([four_dataset_input], corpus, direct_results)
+        origins = {p['dandiset']: p['cited_source'] for p in pairs}
+        assert origins['000541'] == 'dcite:IsDescribedBy'
+        assert origins['000970'] == 'llm_identified'
 
     def test_pairs_come_out_sorted_so_a_rerun_diffs_cleanly(
             self, four_dataset_input, corpus, direct_results):
@@ -325,7 +383,8 @@ class TestBuildCandidates:
         pairs = B.build_candidates([four_dataset_input], corpus, direct_results)
         assert set(pairs[0]) == {
             'doi', 'dandiset', 'pathway', 'title', 'dandiset_name',
-            'cited_doi', 'cited_title', 'cited_role', 'reasoning', 'quotes',
+            'cited_doi', 'cited_title', 'cited_role', 'cited_source',
+            'reasoning', 'quotes',
             'same_lab', 'reused_neurophysiology', 'reused_modalities',
             'archives', 'reuse_types', 'dandi_reason',
         }

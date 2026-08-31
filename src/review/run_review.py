@@ -175,6 +175,16 @@ CSS = PALETTE + """
   .tier.punctuation_insensitive{background:var(--warn-soft);color:var(--warn)}
   .tier.not_found{background:var(--bad-soft);color:var(--bad)}
 
+  /* Where the dataset's paper came from, worn by the cited paper. The same chip
+     as a quote's tier because it answers the same kind of question: how far to
+     trust what is on the card. The label carries the provenance, so the colour
+     carries only whether a person put it there. */
+  .origin{display:inline-flex;align-items:center;font-family:var(--mono);
+          font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;
+          padding:2px 7px;border-radius:5px;font-weight:600;
+          background:var(--raise);color:var(--muted)}
+  .origin.unvouched{background:var(--bad-soft);color:var(--bad)}
+
   .decide{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:11px}
   .calls{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
   .calls button{font:inherit;font-size:15px;font-weight:560;padding:13px 30px;
@@ -245,6 +255,29 @@ const tierLabel = t => ({exact:'exact', normalized:'normalized',
   punctuation_insensitive:'punctuation only',
   not_found:'not in paper'}[t] || t);
 
+// How the dataset came to name the paper the pair was built from. DANDI names
+// one for a minority of these dandisets; for the rest a model picked it, and a
+// wrong pick puts a paper about something else in front of the reviewer.
+const originLabel = o => ({
+  'dcite:IsDescribedBy':  'described by',
+  'dcite:Describes':      'describes',
+  'dcite:IsSupplementTo': 'supplement to',
+  'dcite:IsPublishedIn':  'published in',
+  description:            'in description',
+  override:               'hand-set',
+  llm_identified:         'LLM-identified \\u2014 verify',
+  unknown:                'unknown',
+}[o] || o);
+
+// A candidate list built before this field existed says nothing, rather than
+// guessing which kind of link it has.
+function originChip(source){
+  if (!source) return '';
+  const unvouched = source === 'llm_identified' || source === 'unknown';
+  return `<span class="origin ${unvouched ? 'unvouched' : ''}"
+            >${esc(originLabel(source))}</span>`;
+}
+
 const TIER_KEY = `<div class="legend">
     <span class="key"><span class="tier exact">exact</span>character for character</span>
     <span class="key"><span class="tier normalized">normalized</span>case, punctuation or
@@ -300,7 +333,7 @@ function textLink(doi, dandiset){
              rel="noopener">Raw Text</a>`;
 }
 
-function paperPanel(role, doi, title, text){
+function paperPanel(role, doi, title, text, chip){
   const body = doi
     ? `<a class="name" href="https://doi.org/${encodeURI(doi)}"
           target="_blank" rel="noopener">${esc(title || doi)}</a>
@@ -308,6 +341,7 @@ function paperPanel(role, doi, title, text){
          <a class="doi" href="https://doi.org/${encodeURI(doi)}"
             target="_blank" rel="noopener">${esc(doi)}</a>
          ${text || ''}
+         ${chip || ''}
        </div>`
     : `<span class="absent">Not recorded for this pair.</span>`;
   return `<div class="party"><span class="role">${esc(role)}</span>${body}</div>`;
@@ -372,7 +406,8 @@ function render(){
                    r.has_text ? textLink(r.doi, r.dandiset) : '')}
       ${MODE === 'indirect'
         ? paperPanel(citedRole, r.cited_doi, r.cited_title,
-                     r.cited_has_text ? textLink(r.cited_doi, '') : '') : ''}
+                     r.cited_has_text ? textLink(r.cited_doi, '') : '',
+                     originChip(r.cited_source)) : ''}
       ${datasetPanel(r)}
     </div>
 
