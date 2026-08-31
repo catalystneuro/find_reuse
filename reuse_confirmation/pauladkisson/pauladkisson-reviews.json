@@ -10,6 +10,203 @@
       "000026": {
         "call": "reuse"
       }
+    },
+    "10.1016/j.celrep.2024.114059": {
+      "000009": {
+        "call": "reuse"
+      }
+    },
+    "10.1016/j.crmeth.2024.100964": {
+      "000776": {
+        "note": "This paper harmonized data from various sources and stored it on the DANDI Archive, which makes it a primary source rather than a re-user.",
+        "call": "primary"
+      }
+    },
+    "10.1016/j.patter.2024.101047": {
+      "000055": {
+        "call": "reuse"
+      }
+    },
+    "10.1016/j.xpro.2023.102543": {
+      "000462": {
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41467-023-40744-6": {
+      "000023": {
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41467-024-53971-2": {
+      "000020": {
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41467-026-68893-4": {
+      "000713": {
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41583-026-01042-4": {
+      "000713": {
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41586-023-06031-6": {
+      "000127": {
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41592-024-02232-7": {
+      "000231": {
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41593-024-01783-4": {
+      "000130": {
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41596-024-01120-w": {
+      "000402": {
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41597-025-06115-0": {
+      "000409": {
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41597-025-06285-x": {
+      "000563": {
+        "call": "reuse"
+      },
+      "001174": {
+        "call": "reuse"
+      },
+      "001354": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2021.03.13.435173": {
+      "000020": {
+        "note": "This Ecosystem paper is just using a DANDI set for illustration purposes. I don't know if we really want to count this as reuse.",
+        "call": "unsure"
+      }
+    },
+    "10.1101/2023.04.05.535396": {
+      "000127": {
+        "call": "reuse"
+      },
+      "000130": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2024.03.29.587341": {
+      "000008": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2024.07.30.605900": {
+      "000552": {
+        "note": "This is definitely reuse, and it does appear that the data is present both on the DANDI Archive and the Buzsaki Lab Databank.\nHowever, the data was obtained from the Buzsaki Lab Databank, not from DANDI.",
+        "call": "reuse"
+      }
+    },
+    "10.1101/2025.04.04.647222": {
+      "000458": {
+        "call": "reuse"
+      }
+    },
+    "10.1103/w49n-2vz8": {
+      "000713": {
+        "call": "reuse"
+      }
+    },
+    "10.1109/tbme.2025.3578583": {
+      "000115": {
+        "call": "reuse"
+      }
+    },
+    "10.1523/jneurosci.1350-21.2021": {
+      "000021": {
+        "note": "This paper definitely reused data from DANDI set 000021, but it appears they used the Allen SDK, not DANDI directly. ",
+        "call": "reuse"
+      }
+    },
+    "10.17605/osf.io/pbu8x": {
+      "001075": {
+        "note": "This is an OSF project registration, not a paper. ",
+        "call": "neither"
+      }
+    },
+    "10.21105/joss.05023": {
+      "000128": {
+        "call": "reuse"
+      }
+    },
+    "10.21203/rs.3.rs-9801550": {
+      "000020": {
+        "note": "This DOI does not resolve, and there's no full text link, so some kind of parsing error.",
+        "call": "neither"
+      }
+    },
+    "10.3389/fnhum.2024.1388267": {
+      "000055": {
+        "call": "reuse"
+      }
+    },
+    "10.64898/2026.01.08.698522": {
+      "000020": {
+        "call": "reuse"
+      }
+    },
+    "10.64898/2026.07.21.739953": {
+      "000688": {
+        "call": "reuse"
+      }
+    },
+    "10.7554/elife.105183.1.sa1": {
+      "000552": {
+        "note": "This is a DOI to a reviewer of a paper, but not the paper itself.",
+        "call": "neither"
+      }
+    },
+    "10.7554/elife.109538.1.sa3": {
+      "000207": {
+        "call": "reuse"
+      }
+    },
+    "10.7554/elife.111322.1.sa1": {
+      "000404": {
+        "note": "This DOI links to a review of a paper rather than the paper itself.",
+        "call": "neither"
+      }
+    },
+    "10.7554/elife.78362": {
+      "000048": {
+        "note": "It's unclear to me whether this ecosystem paper really counts as data reuse. ",
+        "call": "unsure"
+      }
+    },
+    "10.7554/elife.85786": {
+      "000207": {
+        "call": "reuse"
+      }
+    },
+    "10.7554/elife.89421": {
+      "000127": {
+        "call": "reuse"
+      },
+      "000130": {
+        "call": "reuse"
+      }
+    },
+    "10.7554/elife.89421.1.sa2": {
+      "000129": {
+        "note": "This DOI links to a review and not the paper itself.",
+        "call": "neither"
+      }
     }
   }
 }
