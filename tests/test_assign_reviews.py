@@ -15,6 +15,7 @@ def pair(doi, dandiset='000541', pathway='indirect', **overrides):
         'reused_modalities': ['neurophysiology'],
         'archives': ['DANDI Archive'], 'reuse_types': ['NOVEL_ANALYSIS'],
         'dandi_reason': 'names DANDI Archive as the source',
+        'cited_source': 'dcite:IsDescribedBy',
     }
     record.update(overrides)
     return record
@@ -23,7 +24,7 @@ def pair(doi, dandiset='000541', pathway='indirect', **overrides):
 def filters(**overrides):
     """The flags with nothing selected, which is what keeps every pair."""
     defaults = {
-        'pathway': None, 'dandi_source': None, 'neuro': None,
+        'pathway': None, 'paper_link': None, 'dandi_source': None, 'neuro': None,
         'modality': None, 'reuse_type': None, 'lab': 'any',
     }
     defaults.update(overrides)
@@ -50,6 +51,39 @@ class TestMatches:
         assert A.matches(pair('10.1/a', '000541'), filters(pathway='direct')) is False
         assert A.matches(pair('10.1/a', '000541', pathway='direct'),
                          filters(pathway='direct')) is True
+
+    def test_paper_link_keeps_only_the_pairs_named_that_way(self):
+        guessed = pair('10.1/a', cited_source='llm_identified')
+        declared = pair('10.1/b', cited_source='dcite:IsDescribedBy')
+        assert A.matches(guessed, filters(paper_link=['llm_identified'])) is True
+        assert A.matches(declared, filters(paper_link=['llm_identified'])) is False
+
+    def test_paper_link_named_twice_keeps_a_pair_from_either(self):
+        prose = pair('10.1/a', cited_source='description')
+        both = ['description', 'override']
+        assert A.matches(prose, filters(paper_link=both)) is True
+        assert A.matches(pair('10.1/b'), filters(paper_link=both)) is False
+
+    def test_paper_link_declared_stands_for_every_origin_a_person_set(self):
+        for origin in A.DECLARED_LINKS:
+            assert A.matches(pair('10.1/a', cited_source=origin),
+                             filters(paper_link=['declared'])) is True
+
+    def test_paper_link_declared_hands_you_nothing_nobody_vouched_for(self):
+        for origin in ('llm_identified', 'unknown'):
+            assert A.matches(pair('10.1/a', cited_source=origin),
+                             filters(paper_link=['declared'])) is False
+
+    def test_a_direct_pair_has_no_cited_paper_and_matches_no_origin(self):
+        p = pair('10.1/d', '000714', pathway='direct', cited_source='')
+        assert A.matches(p, filters(paper_link=['llm_identified'])) is False
+        assert A.matches(p, filters(paper_link=['declared'])) is False
+
+    def test_a_candidate_list_built_before_the_field_existed_deals_nothing(self):
+        p = pair('10.1/a')
+        del p['cited_source']
+        assert A.matches(p, filters(paper_link=['llm_identified'])) is False
+        assert A.matches(p, filters()) is True
 
 
     def test_dandi_source_possible_keeps_a_pair_naming_no_archive(self):

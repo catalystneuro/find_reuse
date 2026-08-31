@@ -71,29 +71,40 @@ def canonical_doi(doi: str, known: set) -> str:
 
 
 @lru_cache(maxsize=1)
-def corpus_papers(results_path: Path) -> tuple[dict, dict, dict]:
+def corpus_papers(results_path: Path) -> tuple[dict, dict, dict, dict]:
     """
-    Paper titles, dataset names, and the paper each dataset declares.
+    Paper titles, dataset names, the paper each dataset declares, and how that
+    paper came to be named.
 
     primary_paper_index says which paper a pair was built from but not what it
     is called, and a reviewer choosing what to open needs the title as much as
     the identifier. The declared paper stands in for pairs the citing pathway
     never saw; a dandiset naming several, the one asserting it describes the
     data is the one to read.
+
+    For most of these dandisets DANDI names no paper and a model was asked to
+    pick one. A wrong pick makes every pair built under it a paper citing
+    something else entirely, which only a reviewer can catch, and only if the
+    card says which kind of link it is looking at.
+
+    Origins are keyed by pair rather than by DOI: the same paper is a model's
+    guess for one dandiset and DANDI's own claim for another.
     """
     data = json.loads(results_path.read_text())
-    paper_titles, dandiset_names, declared = {}, {}, {}
+    paper_titles, dandiset_names, declared, origins = {}, {}, {}, {}
     for ds in data.get('results', []):
         dandiset_names[ds['dandiset_id']] = ds.get('dandiset_name') or ''
         relations = [r for r in ds.get('paper_relations') or [] if r.get('doi')]
         for relation in relations:
             if relation.get('name'):
                 paper_titles.setdefault(relation['doi'], relation['name'])
+            origins[(ds['dandiset_id'], relation['doi'].lower())] = \
+                relation.get('relation') or 'unknown'
         described = next((r for r in relations
                           if r.get('relation') == 'dcite:IsDescribedBy'), None)
         if described or relations:
             declared[ds['dandiset_id']] = (described or relations[0])['doi']
-    return paper_titles, dandiset_names, declared
+    return paper_titles, dandiset_names, declared, origins
 
 
 def merge_by_pair(inputs: list[str]) -> dict:
@@ -204,7 +215,7 @@ def attach_missing_titles(rows: list[dict], direct_results_path: Path) -> None:
 
 def attach_dandiset_names(rows: list[dict], results_path: Path) -> None:
     """Name the dataset, which both queues show beside its identifier."""
-    _, dandiset_names, _ = corpus_papers(results_path)
+    _, dandiset_names, _, _ = corpus_papers(results_path)
     for row in rows:
         row['dandiset_name'] = dandiset_names.get(row['dandiset'], '')
 
@@ -221,15 +232,23 @@ def attach_cited_papers(rows: list[dict], results_path: Path) -> None:
     Discovery does not always hold the pairing. Where it does not, the dataset's
     own declared paper is what a reviewer opens instead, and `cited_role` says
     which of the two is on offer.
+
+    `cited_source` says how the dataset came to name that paper, which is the
+    other thing a reviewer has to know before reading it. A cited DOI the corpus
+    no longer holds is `unknown` rather than nothing: saying nothing would read
+    as vouching for it.
     """
     primaries = primary_paper_index(results_path)
-    paper_titles, _, declared = corpus_papers(results_path)
+    paper_titles, _, declared, origins = corpus_papers(results_path)
     for row in rows:
         cited = primaries.get((row['doi'].lower(), row['dandiset']), '')
         row['cited_role'] = 'Cited' if cited else 'Dataset paper'
         cited = cited or declared.get(row['dandiset'], '')
         row['cited_doi'] = cited
         row['cited_title'] = paper_titles.get(cited, '')
+        row['cited_source'] = (
+            origins.get((row['dandiset'], cited.lower()), 'unknown')
+            if cited else '')
 
 
 def build_candidates(inputs: list[str], results_path: Path,
@@ -244,7 +263,8 @@ def build_candidates(inputs: list[str], results_path: Path,
     # reviewer to read a paper the question is not about.
     for row in rows:
         if row['pathway'] == 'direct':
-            row['cited_doi'] = row['cited_title'] = row['cited_role'] = ''
+            row['cited_doi'] = row['cited_title'] = ''
+            row['cited_role'] = row['cited_source'] = ''
     return rows
 
 

@@ -7,6 +7,7 @@ from http.server import ThreadingHTTPServer
 
 import pytest
 
+import src.review.assign_reviews as A
 import src.review.run_review as R
 
 
@@ -264,3 +265,32 @@ class TestScope:
         page = R.build([self.row('10.1/a')], 'rly', 'indirect',
                        [('10.1/a', '000541')])
         assert 'const MINE = new Set(["10.1/a\\t000541"])' in page
+
+
+class TestCitedPaperOrigin:
+    """The chip is drawn in the browser, so what the page can be held to is
+    that the field reaches it and that it carries the wording to draw."""
+
+    def row(self, **overrides):
+        record = {'doi': '10.1/citer', 'dandiset': '000541', 'title': 't',
+                  'dandiset_name': 'n', 'reasoning': 'r', 'quotes': [],
+                  'cited_doi': '10.1/guessed', 'cited_title': 'What a model picked',
+                  'cited_role': 'Cited', 'cited_source': 'llm_identified'}
+        record.update(overrides)
+        return record
+
+    def test_the_page_carries_how_each_dataset_named_its_paper(self):
+        page = R.build([self.row()], 'rly', 'indirect')
+        assert '"cited_source": "llm_identified"' in page
+
+    def test_every_origin_a_pair_can_carry_has_wording_on_the_page(self):
+        page = R.build([self.row()], 'rly', 'indirect')
+        labels = page.split('const originLabel')[1].split('}[o]')[0]
+        for origin in A.PAPER_LINKS:
+            assert origin in labels
+
+    def test_a_candidate_list_built_before_the_field_existed_still_loads(self):
+        page = R.build([{'doi': '10.1/citer', 'dandiset': '000541', 'title': 't',
+                         'dandiset_name': 'n', 'reasoning': 'r', 'quotes': []}],
+                       'rly', 'indirect')
+        assert 'cited_source' not in page.split('const REVIEWER')[0]

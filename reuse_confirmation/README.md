@@ -54,7 +54,10 @@ Every (paper, dandiset) pair the classifier called REUSE, with everything needed
 to judge it: the paper, the dataset, the paper it cited, the model's reasoning
 and the passages it quoted. Alongside those, the fields a round is cut on,
 including `dandi_reason` — why this pair counts as DANDI data, which is a
-different question from whether DANDI hosts the modality it reused. Written by
+different question from whether DANDI hosts the modality it reused — and
+`cited_source`, how the dataset came to name the paper the pair was built from.
+Most of them name none and a model was asked to pick one, so that field is the
+difference between a pairing DANDI asserts and one nothing stands behind. Written by
 `src.review.build_candidates`, sorted by pair, so rerunning the pipeline shows
 up as the pairs it added.
 
