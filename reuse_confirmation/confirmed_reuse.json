@@ -1,0 +1,127 @@
+{
+  "generated_at": "2026-08-28T16:28:21+00:00",
+  "candidates_generated_at": "2026-08-27T21:49:01+00:00",
+  "inputs": [
+    {
+      "path": "output/fulltext_classifications.json",
+      "sha256": "dc7201e8a69f789fbd802067b205c8427b94b7ae0de292f49a7d1c1d475cfd33",
+      "classifications": 13943,
+      "reuse": 939,
+      "models": [
+        "openai/gpt-5.6-luna"
+      ],
+      "prompt_versions": [
+        5
+      ],
+      "labels": [
+        "MENTION",
+        "NEITHER",
+        "REUSE"
+      ]
+    },
+    {
+      "path": "output/fulltext_direct_openalex.json",
+      "sha256": "0497b2c913b381587cadadd1737b4b6ebb2492eb8e44737873be2694a3d92b7b",
+      "classifications": 424,
+      "reuse": 147,
+      "models": [
+        "openai/gpt-5.6-luna"
+      ],
+      "prompt_versions": [
+        5
+      ],
+      "labels": [
+        "NEITHER",
+        "PRIMARY",
+        "REUSE"
+      ]
+    }
+  ],
+  "reviewers": [
+    "pauladkisson"
+  ],
+  "min_reviewers": 1,
+  "confirmed": 2,
+  "pairs": [
+    {
+      "doi": "10.1002/acn3.70285",
+      "dandiset": "000768",
+      "title": "Developmental, Neuroanatomical and Cellular Expression of Genes Causing Dystonia",
+      "reasoning": "The Methods explicitly state that adult human single-nuclei RNA-sequencing data were downloaded from CELLxGENE and that 14 dissections from the Siletti study were accessed, establishing direct data reuse rather than a background citation. The paper analyzed gene expression and cell-type data only, not electrophysiological recordings, behavior, or morphology. It applied a new dystonia-focused analysis to the existing data, so the use is best classified as NOVEL_ANALYSIS; the current authors do not overlap with the cited study's authors.",
+      "quotes": [
+        {
+          "q": "snRNA-Seq data from adult human brain were downloaded from the CELLxGENE repository (https://cellxgene.cziscience.com/collections/283d65eb-dd53-496d-adb7-7570c7caa443) [28].",
+          "tier": "exact"
+        },
+        {
+          "q": "In the original study by Siletti and colleagues, 100 tissue dissections from 3 human donors aged between 18 and 68 years were performed across 10 brain regions. For this study, data from 4 brain regions were accessed, encompassing 14 independent dissections (frontal cortex = 8, striatum = 2, cerebellum = 3, substantia nigra = 1; Table S3).",
+          "tier": "exact"
+        }
+      ],
+      "reused_neurophysiology": false,
+      "reused_modalities": [
+        "transcriptomics"
+      ],
+      "archives": [
+        "CELLxGENE"
+      ],
+      "reuse_types": [
+        "NOVEL_ANALYSIS"
+      ],
+      "pathway": "indirect",
+      "same_lab": false,
+      "dandi_reason": null,
+      "dandiset_name": "20231222_AIBS_Patchseq_nonhuman_primate",
+      "cited_role": "Cited",
+      "cited_doi": "10.1126/science.add7046",
+      "cited_title": "Conserved and divergent gene expression and cell types in primate cortex",
+      "call": "reuse",
+      "calls": {
+        "pauladkisson": "reuse"
+      },
+      "notes": {}
+    },
+    {
+      "doi": "10.1002/hbm.70303",
+      "dandiset": "000026",
+      "title": "A Contrast-Agnostic Method for Ultra-High Resolution Claustrum Segmentation.",
+      "reasoning": "The paper used Case 3 from Costantini et al. among the ultra-high-resolution ex vivo MRI cases for claustrum annotation and SynthSeg training, and identifies its source as DANDI dandiset 000026. Because the current authors are not listed as authors of the Costantini et al. dataset-producing work, this is reuse by a different group. The reused component was structural MRI and derived segmentation data, classified as other, with the primary use being machine-learning training.",
+      "quotes": [
+        {
+          "q": "To develop the claustrum segmentation method, we used ultra‐high resolution MRI scans comprising 15 ex vivo samples and one in vivo T1‐weighted scan, as detailed in Table 1 .",
+          "tier": "exact"
+        },
+        {
+          "q": "We trained SynthSeg 1 on the labels described in Section 3.2 to segment the claustrum and other structures in the ROI (we will show only claustrum segmentation in the remainder).",
+          "tier": "exact"
+        },
+        {
+          "q": "Case 3 (Costantini et al. 2023 ) is publicly available on the DANDI platform at https://dandiarchive.org/dandiset/000026 ; all other ex vivo hemispheres cannot be shared for privacy reasons.",
+          "tier": "not_found"
+        }
+      ],
+      "reused_neurophysiology": false,
+      "reused_modalities": [
+        "other"
+      ],
+      "archives": [
+        "DANDI Archive"
+      ],
+      "reuse_types": [
+        "ML_TRAINING"
+      ],
+      "pathway": "direct",
+      "same_lab": false,
+      "dandi_reason": "names a DANDI identifier in its text",
+      "dandiset_name": "Human brain cell census for BA 44/45",
+      "cited_role": "",
+      "cited_doi": "",
+      "cited_title": "",
+      "call": "reuse",
+      "calls": {
+        "pauladkisson": "reuse"
+      },
+      "notes": {}
+    }
+  ]
+}
