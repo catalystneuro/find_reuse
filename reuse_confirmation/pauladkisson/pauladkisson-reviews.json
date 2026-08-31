@@ -55,6 +55,14 @@
     "10.1038/s41586-023-06031-6": {
       "000127": {
         "call": "reuse"
+      },
+      "000128": {
+        "call": "reuse",
+        "note": "This paper clearly reused data from the mc-maze dataset, however they say that they got it from the Neural Latent Benchmark [sic, should be Neural Latents Benchmark], and it's unclear which mc-maze Dandiset corresponds to that dataset."
+      },
+      "000139": {
+        "note": "This paper clearly reused data from the mc-maze dataset, however they say that they got it from the Neural Latent Benchmark [sic, should be Neural Latents Benchmark], and it's unclear which mc-maze Dandiset corresponds to that dataset.",
+        "call": "reuse"
       }
     },
     "10.1038/s41592-024-02232-7": {
@@ -206,6 +214,186 @@
       "000129": {
         "note": "This DOI links to a review and not the paper itself.",
         "call": "neither"
+      }
+    },
+    "10.1007/s12021-026-09806-0": {
+      "000020": {
+        "call": "reuse"
+      },
+      "000636": {
+        "call": "reuse"
+      }
+    },
+    "10.1016/j.neucom.2026.132742": {
+      "000688": {
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41467-024-53232-2": {
+      "000362": {
+        "note": "This paper appears to reuse data from Dandiset 000168 rather than Dandiset 000362, but the relationship between those two data sets is a little unclear to me. ",
+        "call": "neither"
+      }
+    },
+    "10.1038/s41592-023-01964-2": {
+      "000054": {
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41593-024-01626-2": {
+      "000070": {
+        "call": "reuse"
+      },
+      "000139": {
+        "note": "The three cited paper/Dandisets were not present in the three previous data sets that were reanalyzed in this paper. The citation appears to be simply a background mention in the figure legend.",
+        "call": "mention"
+      }
+    },
+    "10.1038/s41593-025-02183-y": {
+      "000447": {
+        "note": "This paper reused data from ref 67, which corresponds to Dandiset 000978, not 000447. However, ref 45 does correspond to the primary paper of Dandiset 000447. Honestly, I am not sure what the relationship is between those two Dandiset, nor what the status should be for this case. ",
+        "call": "unsure"
+      }
+    },
+    "10.1063/5.0296506": {
+      "000044": {
+        "call": "reuse"
+      }
+    },
+    "10.1088/1741-2552/ad1787": {
+      "000138": {
+        "call": "reuse"
+      },
+      "000140": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2021.10.07.463540": {
+      "000139": {
+        "note": "This paper appears to reuse data from Dandiset 000128, which shares its primary paper with Dandiset 000139. Honestly, not sure how to handle such cases.",
+        "call": "unsure"
+      }
+    },
+    "10.1101/2022.11.11.516161": {
+      "000020": {
+        "note": "This paper reused data from Dandiset 000021, not Dandiset 000020.",
+        "call": "neither"
+      }
+    },
+    "10.1101/2023.03.01.530616": {
+      "000128": {
+        "call": "reuse"
+      },
+      "000139": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2024.01.25.577295": {
+      "000059": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2024.04.28.591397": {
+      "000776": {
+        "note": "This paper harmonized data from various sources and stored it on the DANDI Archive, which makes it a primary source rather than a re-user.",
+        "call": "neither"
+      }
+    },
+    "10.1101/2024.08.14.607952": {
+      "000207": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2025.03.21.644350": {
+      "000128": {
+        "call": "unsure",
+        "note": "Clearly, this paper is re-analyzing data from the Neural Latent Benchmark and using the MC_Maze dataset. Unfortunately, it's not clear which MC_Maze Dandiset they used. "
+      },
+      "000139": {
+        "note": "Clearly, this paper is re-analyzing data from the Neural Latent Benchmark and using the MC_Maze dataset. Unfortunately, it's not clear which MC_Maze Dandiset they used. ",
+        "call": "unsure"
+      }
+    },
+    "10.1101/2025.07.01.662601": {
+      "000727": {
+        "call": "reuse"
+      }
+    },
+    "10.1371/journal.pcbi.1011975": {
+      "000070": {
+        "call": "reuse"
+      },
+      "000139": {
+        "call": "reuse"
+      }
+    },
+    "10.1371/journal.pcbi.1013789": {
+      "000127": {
+        "call": "reuse"
+      },
+      "000130": {
+        "call": "reuse"
+      },
+      "000139": {
+        "call": "reuse"
+      }
+    },
+    "10.21105/jose.00309": {
+      "000070": {
+        "note": "I don't know if this counts as reuse, to be honest. ",
+        "call": "unsure"
+      },
+      "000138": {
+        "note": "I don't know if this counts as reuse, to be honest. ",
+        "call": "unsure"
+      },
+      "000140": {
+        "note": "I don't know if this counts as reuse, to be honest.",
+        "call": "unsure"
+      }
+    },
+    "10.3389/fnins.2026.1714738": {
+      "000128": {
+        "call": "reuse"
+      },
+      "000139": {
+        "note": "Clearly, the citing paper used data from one or more of these MC Maze datasets, but which one? No clue.",
+        "call": "unsure"
+      }
+    },
+    "10.3390/e24020152": {
+      "000127": {
+        "call": "reuse"
+      },
+      "000138": {
+        "call": "reuse"
+      },
+      "000140": {
+        "call": "reuse"
+      }
+    },
+    "10.7554/elife.108089": {
+      "000059": {
+        "call": "reuse"
+      }
+    },
+    "10.7554/elife.110170": {
+      "000409": {
+        "call": "reuse"
+      }
+    },
+    "10.7554/elife.93060": {
+      "000128": {
+        "note": "But which MC Maze?",
+        "call": "unsure"
+      },
+      "000138": {
+        "note": "But which MC_Maze?",
+        "call": "unsure"
+      },
+      "000140": {
+        "note": "But which MC_Maze?",
+        "call": "unsure"
       }
     }
   }
