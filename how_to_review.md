@@ -51,6 +51,11 @@ A pair already assigned or already reviewed is never dealt again, so a narrower
 filter deals nothing once a wider round is out. `--reassign` discards the
 existing queues and deals from scratch.
 
+`--paper-link llm_identified` cuts a different kind of round: the indirect pairs
+whose dandiset names no paper, so a model picked one. What needs checking there
+is the pairing rather than the reuse. `--paper-link declared` is the other side,
+the pairs DANDI's own metadata stands behind.
+
 ## 4. Open a PR with the round
 
 ## 5. Set up
@@ -87,6 +92,16 @@ exact and shows the authors obtained and analysed the data, that is enough —
 mark it and move on.** When it is not enough, open the citing paper, the cited
 paper or the dataset from the links on the card. If a paper is paywalled, **Raw
 Text** is the copy we fetched.
+
+On an indirect card the cited paper wears a chip saying how the dandiset came to
+name it. A red **LLM-IDENTIFIED — VERIFY** means DANDI names no paper and a model
+picked this one, and it is often wrong — one dandiset about mouse blood flow was
+given a paper about chimpanzee tool use, and every pair beneath it is a
+primatology paper asked about mouse data. Nothing has established that the cited
+paper and the dandiset have anything to do with each other, and it is yours to
+work out: open the dandiset, see what it holds and who deposited it, and decide
+whether the cited paper is that work. Where it is not, the answer is **Neither**,
+and say so in the note.
 
 **Indirect** — the paper cited a dandiset's publication.
 

@@ -39,10 +39,38 @@ from src.review.reviewers import (REUSE_CONFIRMATION_DIR, REVIEWERS_FILE,
 
 PATHWAYS = ('indirect', 'direct')
 
+# How a dataset came to name the paper its pairs were built from. Most of these
+# datasets name none and a model was asked to pick one, so this is the axis a
+# round is cut on when what needs checking is the pairing rather than the reuse.
+PAPER_LINKS = ('dcite:IsDescribedBy', 'dcite:Describes', 'dcite:IsSupplementTo',
+               'dcite:IsPublishedIn', 'description', 'override',
+               'llm_identified', 'unknown')
+
+# The ones a person put in the metadata, which is the cut the card already draws
+# and the one worth naming in a word. What is left over is not its complement:
+# 'unknown' is a paper discovery no longer holds, and nobody stands behind that
+# either, so asking for the declared ones does not hand you those.
+DECLARED = 'declared'
+DECLARED_LINKS = tuple(link for link in PAPER_LINKS
+                       if link not in ('llm_identified', 'unknown'))
+
+
+def expand_links(chosen: list[str]) -> set[str]:
+    """The origins a --paper-link round names, with `declared` spelled out."""
+    return {link for chosen_link in chosen
+            for link in (DECLARED_LINKS if chosen_link == DECLARED
+                         else (chosen_link,))}
+
 
 def matches(pair: dict, args: argparse.Namespace) -> bool:
     """Whether a pair belongs to the round these flags describe."""
     if args.pathway and pair['pathway'] != args.pathway:
+        return False
+    # A direct pair has no cited paper, so asking where one came from narrows to
+    # the indirect queue on its own. Matched with .get, so a candidate list built
+    # before the field existed deals nothing rather than raising.
+    if args.paper_link and pair.get('cited_source') not in expand_links(
+            args.paper_link):
         return False
     if args.neuro is not None and pair['reused_neurophysiology'] is not args.neuro:
         return False
@@ -206,6 +234,19 @@ def main():
                              'registry; all registered reviewers by default.')
     parser.add_argument('--pathway', choices=list(PATHWAYS),
                         help='Only this queue. Both by default, dealt separately.')
+    parser.add_argument('--paper-link', action='append',
+                        choices=[DECLARED, *PAPER_LINKS], metavar='ORIGIN',
+                        help='How the dataset came to name the paper the pair '
+                             'was built from. Repeatable, and a pair matches if '
+                             'it was named any named way. "llm_identified" is '
+                             'the round to cut when what needs checking is the '
+                             'pairing itself: DANDI named no paper, so a model '
+                             'picked one. "declared" is the shorthand for the '
+                             'rest of the DataCite relations, the description '
+                             'and an override -- the ones a person put in the '
+                             'metadata. Direct pairs have no cited paper and '
+                             'match none of these. '
+                             f'One of: {", ".join([DECLARED, *PAPER_LINKS])}.')
     parser.add_argument('--dandi-source', choices=['possible', 'evidenced'],
                         help='Where the data came from. "possible" keeps pairs '
                              'not ruled out: the paper named DANDI, or named no '
