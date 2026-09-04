@@ -1,0 +1,383 @@
+{
+  "reviewer": "rly",
+  "reviews": {
+    "10.1007/s12021-026-09806-0": {
+      "000228": {
+        "call": "reuse"
+      }
+    },
+    "10.1016/j.isci.2023.107329": {
+      "000020": {
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41467-023-44503-5": {
+      "000020": {
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41586-023-06031-6": {
+      "000070": {
+        "call": "neither",
+        "note": "Dataset says \"tested CEBRA on an additional monkey dataset (mc-maze) presented in the Neural Latent Benchmark\" but cites in the Data Availability section \"Primate dataset: https://gui.dandiarchive.org/#/dandiset/000127\" which is Area2_Bump. The paper describes a primary analysis on the Area2_Bump dataset and Extended Data Fig. 8 shows performance on the mc-maze 20 ms benchmark, which is not the scaling benchmark that uses large/medium/small."
+      },
+      "000138": {
+        "call": "neither",
+        "note": "Dataset says \"tested CEBRA on an additional monkey dataset (mc-maze) presented in the Neural Latent Benchmark\" but cites in the Data Availability section \"Primate dataset: https://gui.dandiarchive.org/#/dandiset/000127\" which is Area2_Bump. The paper describes a primary analysis on the Area2_Bump dataset and Extended Data Fig. 8 shows performance on the mc-maze 20 ms benchmark, which is not the scaling benchmark that uses large/medium/small."
+      },
+      "000140": {
+        "call": "neither",
+        "note": "Dataset says \"tested CEBRA on an additional monkey dataset (mc-maze) presented in the Neural Latent Benchmark\" but cites in the Data Availability section \"Primate dataset: https://gui.dandiarchive.org/#/dandiset/000127\" which is Area2_Bump. The paper describes a primary analysis on the Area2_Bump dataset and Extended Data Fig. 8 shows performance on the mc-maze 20 ms benchmark, which is not the scaling benchmark that uses large/medium/small."
+      }
+    },
+    "10.1038/s41592-024-02232-7": {
+      "000034": {
+        "call": "reuse"
+      },
+      "000410": {
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41593-024-01626-2": {
+      "000128": {
+        "call": "reuse"
+      },
+      "000140": {
+        "call": "reuse"
+      }
+    },
+    "10.1088/1741-2552/ad1787": {
+      "000128": {
+        "call": "reuse"
+      },
+      "000139": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2021.10.07.463540": {
+      "000128": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2022.09.07.507009": {
+      "000020": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2023.03.01.530616": {
+      "000070": {
+        "note": "Note: paper was renamed to Dimensionality reduction beyond neural subspaces with slice tensor component analysis. https://www.nature.com/articles/s41593-024-01626-2, doi: 10.1038/s41593-024-01626-2 (also in this review)",
+        "call": "reuse"
+      },
+      "000138": {
+        "note": "Note: paper was renamed to Dimensionality reduction beyond neural subspaces with slice tensor component analysis. https://www.nature.com/articles/s41593-024-01626-2, doi: 10.1038/s41593-024-01626-2 (also in this review)",
+        "call": "reuse"
+      },
+      "000140": {
+        "note": "Note: paper was renamed to Dimensionality reduction beyond neural subspaces with slice tensor component analysis. https://www.nature.com/articles/s41593-024-01626-2, doi: 10.1038/s41593-024-01626-2 (also in this review)",
+        "call": "reuse"
+      }
+    },
+    "10.1101/2024.03.29.587341": {
+      "000035": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2024.08.13.607787": {
+      "000127": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2024.08.26.609746": {
+      "000020": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2025.03.21.644350": {
+      "000138": {
+        "note": "Used MC_Maze (DANDI:000128), MC_RTT (DANDI:000129), Area2_Bump (DANDI:000127). Seemingly did not use MC_Maze_Small.",
+        "call": "neither"
+      },
+      "000140": {
+        "note": "Used MC_Maze (DANDI:000128), MC_RTT (DANDI:000129), Area2_Bump (DANDI:000127). Seemingly did not use MC_Maze_Small.",
+        "call": "neither"
+      }
+    },
+    "10.1101/2025.10.31.684900": {
+      "000469": {
+        "call": "reuse"
+      }
+    },
+    "10.1371/journal.pcbi.1011975": {
+      "000138": {
+        "note": "Used DANDI:000128, not DANDI:000138. See multiple references to this in the text.",
+        "call": "neither"
+      },
+      "000140": {
+        "note": "Used DANDI:000128, not DANDI:000140. See multiple references to this in the text.",
+        "call": "neither"
+      },
+      "000128": {
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41597-025-06115-0": {
+      "000149": {
+        "note": "Reused data accessed from IBL via ONE.",
+        "call": "reuse"
+      },
+      "000021": {
+        "note": "Yes, accessed from Allen Institute data repositories via allensdk",
+        "call": "reuse"
+      },
+      "000713": {
+        "note": "Yes, accessed from Allen Institute data repositories via allensdk",
+        "call": "reuse"
+      }
+    },
+    "10.1371/journal.pcbi.1013789": {
+      "000128": {
+        "call": "reuse"
+      },
+      "000138": {
+        "note": "No evidence of using the \"large\" variant of MC_Maze. ",
+        "call": "unsure"
+      },
+      "000140": {
+        "note": "No evidence of using the \"large\" variant of MC Maze",
+        "call": "unsure"
+      }
+    },
+    "10.21105/jose.00309": {
+      "000128": {
+        "call": "mention"
+      },
+      "000139": {
+        "call": "mention"
+      },
+      "000582": {
+        "call": "mention"
+      },
+      "000053": {
+        "call": "reuse"
+      }
+    },
+    "10.3389/fnins.2026.1714738": {
+      "000138": {
+        "note": "DANDI:000070 was cited, not 000138",
+        "call": "neither"
+      },
+      "000140": {
+        "note": "DANDI:000070 was cited, not 000140",
+        "call": "neither"
+      },
+      "000070": {
+        "call": "reuse"
+      }
+    },
+    "10.3390/e24020152": {
+      "000128": {
+        "call": "reuse"
+      },
+      "000139": {
+        "call": "reuse"
+      }
+    },
+    "10.7554/elife.107990": {
+      "000727": {
+        "call": "reuse"
+      }
+    },
+    "10.7554/elife.110170": {
+      "000149": {
+        "note": "Reused data from IBL, unclear if from DANDI",
+        "call": "reuse"
+      }
+    },
+    "10.7554/elife.89421": {
+      "001055": {
+        "note": "Some/all of the dandisets used (NLB on DANDI) were repackaged into DANDI:001055, but this paper did not use data from DANDI:001055. ",
+        "call": "neither"
+      },
+      "000129": {
+        "call": "reuse"
+      }
+    },
+    "10.7554/elife.93060": {
+      "000129": {
+        "call": "reuse"
+      },
+      "000139": {
+        "note": "Unclear which maze dataset was used from NLB, but probably was not the \"Medium\" variant ",
+        "call": "neither"
+      },
+      "001055": {
+        "note": "Used Makin et al data that was downloaded from DANDI:000129 (MC_RTT) repackaged into DANDI:001055",
+        "call": "neither"
+      }
+    },
+    "10.1016/j.crmeth.2024.100791": {
+      "000020": {
+        "call": "reuse"
+      }
+    },
+    "10.1016/j.neuron.2023.08.005": {
+      "000458": {
+        "call": "reuse"
+      }
+    },
+    "10.1016/j.patter.2025.101323": {
+      "000020": {
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41467-023-40744-6": {
+      "000020": {
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41467-024-53232-2": {
+      "000168": {
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41467-025-62202-1": {
+      "000129": {
+        "note": "Yes, but reused only for a figure",
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41583-026-01042-4": {
+      "000363": {
+        "call": "reuse"
+      },
+      "001260": {
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41592-022-01675-0": {
+      "000070": {
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41593-025-02183-y": {
+      "000978": {
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41597-025-06285-x": {
+      "000617": {
+        "call": "reuse"
+      },
+      "001349": {
+        "call": "reuse"
+      },
+      "001361": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2021.03.24.436279": {
+      "000037": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2023.04.05.535396": {
+      "000129": {
+        "note": "Same paper as 10.7554/elife.89421.3",
+        "call": "reuse"
+      }
+    },
+    "10.1101/2023.08.23.554148": {
+      "000055": {
+        "note": "Note: same paper as 10.1016/j.patter.2024.101047",
+        "call": "reuse"
+      }
+    },
+    "10.1101/2024.04.28.591397": {
+      "000565": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2025.01.26.634933": {
+      "000939": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2025.07.31.667946": {
+      "000253": {
+        "call": "primary",
+        "note": "OpenScope generated this data for these authors. Does that count as Primary or Reuse?"
+      }
+    },
+    "10.1103/wndc-k654": {
+      "000713": {
+        "call": "reuse"
+      }
+    },
+    "10.1609/aaai.v40i3.37191": {
+      "000688": {
+        "call": "reuse"
+      }
+    },
+    "10.21203/rs.3.rs-8080516": {
+      "000776": {
+        "note": "Title is missing, DOI not found. Where is the main text? https://www.researchsquare.com/article/rs-8080516/v1",
+        "call": "reuse"
+      }
+    },
+    "10.21203/rs.3.rs-9801550": {
+      "000636": {
+        "note": "Title is missing, DOI not found. Where is the main text? https://www.researchsquare.com/article/rs-9801550/v1",
+        "call": "reuse"
+      }
+    },
+    "10.64898/2026.04.07.716149": {
+      "001552": {
+        "call": "reuse"
+      }
+    },
+    "10.7554/elife.105183": {
+      "000552": {
+        "note": "Data was downloaded from The Buzsaki Lab Databank. Complete dataset is at DANDI:000552.",
+        "call": "reuse"
+      }
+    },
+    "10.7554/elife.109538": {
+      "000207": {
+        "call": "reuse"
+      }
+    },
+    "10.7554/elife.111322": {
+      "000404": {
+        "call": "reuse"
+      }
+    },
+    "10.7554/elife.111322.1.sa3": {
+      "000404": {
+        "note": "Duplicate. Same as https://doi.org/10.7554/eLife.111322.1.",
+        "call": "reuse"
+      }
+    },
+    "10.7554/elife.85786": {
+      "000021": {
+        "call": "reuse"
+      }
+    },
+    "10.7554/elife.85786.2.sa2": {
+      "000021": {
+        "note": "Same as https://doi.org/10.7554/eLife.85786.3 but different version",
+        "call": "reuse"
+      }
+    },
+    "10.7554/elife.89421.1.sa2": {
+      "000127": {
+        "note": "This is a review of https://doi.org/10.7554/eLife.89421.3",
+        "call": "reuse"
+      },
+      "000130": {
+        "note": "This is a review of https://doi.org/10.7554/eLife.89421.3",
+        "call": "reuse"
+      }
+    }
+  }
+}
