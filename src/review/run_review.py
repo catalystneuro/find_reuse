@@ -1,26 +1,30 @@
 #!/usr/bin/env python3
 """
-Run a review session over an assigned list of reuse candidates.
+Run a review session over the reuse candidates.
 
-Serves a worksheet that asks one question about one (paper, dataset) pair at a
-time. Answer, and the next pair comes up.
+Two views onto one list of (paper, dataset) pairs. The worksheet asks one
+question about one pair at a time: answer, and the next pair comes up. The
+overview lays the pairs out grouped by dataset or by paper, which is what a
+second pass needs -- every pair you called unsure, or every paper that touched
+one dandiset, read together rather than one screen at a time.
 
-The assignment says whose session this is and which pathway it covers, so a
-session cannot be pointed at the wrong answer file or offered the wrong labels.
-The two pathways ask different questions: a paper found by naming the dandiset
-in its own text might have deposited that dataset, so the direct queue offers
-PRIMARY and shows no cited paper; a paper found by citing the dandiset's
-publication might only be mentioning that work, so the indirect queue offers
+A session holds both pathways, because a dandiset's pairs are split between
+them and neither half is the whole story. Which pathway a pair came down is a
+property of the pair, so the labels are chosen per pair and nothing is ever
+offered a label its classifier could not have produced: a paper found by naming
+the dandiset in its own text might have deposited that dataset, so a direct pair
+offers PRIMARY and shows no cited paper; a paper found by citing the dandiset's
+publication might only be mentioning that work, so an indirect pair offers
 MENTION and leads with the paper it cited.
 
-Answers are written to reviews/<reviewer>.json as they are made. That file is
-the durable artifact of a review round and belongs in version control; nothing
-about the model, the prompt or the run that produced the classification goes
-into it, because none of that changes what the right answer is.
+Answers are written to reuse_confirmation/<reviewer>/<reviewer>-reviews.json as
+they are made. That file is the durable artifact of a review round and belongs
+in version control; nothing about the model, the prompt or the run that produced
+the classification goes into it, because none of that changes what the right
+answer is.
 
 Usage:
-    python -m src.review.run_review \
-        --assignment reviews/assignments/rly.indirect.json
+    python -m src.review.run_review --reviewer rly
 """
 
 from __future__ import annotations
@@ -29,8 +33,10 @@ import argparse
 import html
 import json
 import webbrowser
+from collections import Counter
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from functools import lru_cache
+from itertools import zip_longest
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
@@ -38,8 +44,8 @@ from fetch_paper import TextCache
 
 from src.review.build_candidates import CANDIDATES_FILE
 from src.review.reviewers import (REUSE_CONFIRMATION_DIR, REVIEWERS_FILE,
-                                  load_reviewers, reviews_path,
-                                  select_reviewers)
+                                  assignment_path, load_reviewers,
+                                  reviews_path, select_reviewers)
 
 REPO = Path(__file__).resolve().parents[2]
 PAPER_CACHE = REPO / '.paper_cache'
@@ -55,6 +61,7 @@ PALETTE = """
     --bad:#A22F3D; --bad-soft:#F7E2E4;
     --mention:#1C5D9B; --mention-soft:#E1ECF7;
     --primary:#6D3D9B; --primary-soft:#EEE6F7;
+    --ambiguous-reuse:#4E6070; --ambiguous-reuse-soft:#D9E2EA;
     --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
     --serif:ui-serif,"Iowan Old Style",Georgia,"Times New Roman",serif;
     --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
@@ -70,6 +77,7 @@ PALETTE = """
       --bad:#EF8390; --bad-soft:#3A1B1F;
       --mention:#6DB3F2; --mention-soft:#10263A;
       --primary:#BE96E8; --primary-soft:#251B36;
+      --ambiguous-reuse:#9DB2C2; --ambiguous-reuse-soft:#273846;
     }
   }
 """
@@ -89,11 +97,17 @@ CSS = PALETTE + """
   .btn{font:inherit;font-size:12.5px;padding:6px 12px;border-radius:999px;cursor:pointer;
        border:1px solid var(--line-strong);background:var(--surface);color:var(--muted)}
   .btn:hover{border-color:var(--accent);color:var(--ink)}
+  /* Nothing left to take back reads as nothing to press. */
+  .btn:disabled{opacity:.45;cursor:default}
+  .btn:disabled:hover{border-color:var(--line-strong);color:var(--muted)}
   .btn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);
                             color:var(--on-accent)}
   .filters{display:flex;gap:6px}
-  .btn:focus-visible,a:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);
-                                                            outline-offset:2px}
+  /* A control the view has no use for is hidden, and a display of its own would
+     otherwise outrank the browser's rule for that. */
+  .filters[hidden]{display:none}
+  .btn:focus-visible,a:focus-visible,textarea:focus-visible,
+  input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   .spacer{flex:1}
   .readout{font-family:var(--mono);font-size:12.5px;color:var(--muted);
            font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -185,6 +199,20 @@ CSS = PALETTE + """
           background:var(--raise);color:var(--muted)}
   .origin.unvouched{background:var(--bad-soft);color:var(--bad)}
 
+  /* One paper naming several dandisets, worn by the dataset. Amber rather than
+     red: red says nothing stands behind the link, and this link can be DANDI's
+     own and still leave the reuse unattributable to the dataset on the card. */
+  .shared{display:inline-flex;align-items:center;font-family:var(--mono);
+          font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;
+          padding:2px 7px;border-radius:5px;font-weight:600;
+          background:var(--warn-soft);color:var(--warn)}
+  .shared-paper{margin:0 0 12px;font-size:13.5px;color:var(--muted)}
+  ul.siblings{margin:0 0 16px;padding:0;list-style:none;display:flex;
+              flex-direction:column;gap:8px}
+  ul.siblings li{display:flex;flex-wrap:wrap;align-items:baseline;gap:5px 11px}
+  ul.siblings a.dsid{font-size:13px;font-weight:700}
+  .sibname{font-size:13.5px;color:var(--muted);text-wrap:pretty}
+
   .decide{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:11px}
   .calls{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
   .calls button{font:inherit;font-size:15px;font-weight:560;padding:13px 30px;
@@ -200,23 +228,102 @@ CSS = PALETTE + """
                    background:var(--surface);color:var(--ink);resize:none;min-height:54px}
   .decide textarea::placeholder{color:var(--muted);opacity:.75}
   /* One colour per label, carried from the start so an answer is recognised by
-     its colour rather than read off its text. */
-  .calls button.reuse{color:var(--ok);
+     its colour rather than read off its text. The same rules dress the
+     worksheet's buttons, the overview's and the chips that filter to a call,
+     because all three name the same thing. */
+  .call.reuse{color:var(--ok);
       border-color:color-mix(in srgb,var(--ok) 40%,transparent)}
-  .calls button.mention{color:var(--mention);
+  .call.ambiguous_reuse{color:var(--ambiguous-reuse);
+      border-color:color-mix(in srgb,var(--ambiguous-reuse) 40%,transparent)}
+  .call.mention{color:var(--mention);
       border-color:color-mix(in srgb,var(--mention) 40%,transparent)}
-  .calls button.primary{color:var(--primary);
+  .call.primary{color:var(--primary);
       border-color:color-mix(in srgb,var(--primary) 40%,transparent)}
-  .calls button.neither{color:var(--bad);
+  .call.neither{color:var(--bad);
       border-color:color-mix(in srgb,var(--bad) 40%,transparent)}
-  .calls button.unsure{color:var(--warn);
+  .call.unsure{color:var(--warn);
       border-color:color-mix(in srgb,var(--warn) 40%,transparent)}
-  .calls button[aria-pressed="true"].reuse{background:var(--ok-soft)}
-  .calls button[aria-pressed="true"].mention{background:var(--mention-soft)}
-  .calls button[aria-pressed="true"].primary{background:var(--primary-soft)}
-  .calls button[aria-pressed="true"].neither{background:var(--bad-soft)}
-  .calls button[aria-pressed="true"].unsure{background:var(--warn-soft)}
+  .call[aria-pressed="true"].reuse{background:var(--ok-soft)}
+  .call[aria-pressed="true"].ambiguous_reuse{background:var(--ambiguous-reuse-soft)}
+  .call[aria-pressed="true"].mention{background:var(--mention-soft)}
+  .call[aria-pressed="true"].primary{background:var(--primary-soft)}
+  .call[aria-pressed="true"].neither{background:var(--bad-soft)}
+  .call[aria-pressed="true"].unsure{background:var(--warn-soft)}
+  .btn.call[aria-pressed="true"]{color:var(--ink);font-weight:700}
   .empty{margin:auto;color:var(--muted);font-size:14px}
+
+  /* The second toolbar row: what you are looking at, under where you are. The
+     two read as one band, so only the lower one carries the rule beneath. */
+  .toolbar.controls{border-bottom:1px solid var(--line);padding-top:0;gap:8px}
+  .toolbar:not(.controls){border-bottom:0;padding-bottom:8px}
+  /* Each group asks a different question of the list, so they are told apart by
+     a rule rather than by a wider gap that wrapping would swallow. */
+  .toolbar.controls .filters + .filters{padding-left:9px;
+                                        border-left:1px solid var(--line)}
+  .sep{width:1px;align-self:stretch;margin:0 3px;background:var(--line-strong)}
+  .fold{margin-left:9px}
+  /* Takes what the row has left rather than a width of its own, so the chips
+     keep one line and the box is as wide as that leaves it. */
+  .search{font:inherit;font-size:12.5px;padding:6px 13px;border-radius:999px;
+          border:1px solid var(--line-strong);background:var(--surface);
+          color:var(--ink);flex:1 1 13ch;min-width:11ch;max-width:30ch;
+          margin-left:9px}
+  .search::placeholder{color:var(--muted)}
+  .mode.quiet{background:var(--raise);color:var(--muted);font-weight:500}
+  .dsid.small{font-family:var(--mono);font-size:12px;font-weight:700;
+              color:var(--accent);letter-spacing:0}
+
+  /* The overview is the only thing that scrolls in its view, the way the
+     evidence box is the only one on the worksheet. */
+  .overview{flex:1 1 auto;min-height:0;overflow-y:auto;display:flex;
+            flex-direction:column;gap:14px}
+  /* A group keeps its full height and the overview scrolls past it. Letting it
+     shrink to fit instead would clip its rows away behind the rounded corner,
+     with nothing to scroll to reach them. */
+  .group{flex:0 0 auto;background:var(--surface);border:1px solid var(--line);
+         border-radius:14px;overflow:hidden}
+  .group h3{position:sticky;top:0;z-index:1;display:flex;align-items:baseline;
+            gap:11px;margin:0;padding:10px 18px;background:var(--raise);
+            border-bottom:1px solid var(--line);font-size:14px;font-weight:640;
+            cursor:pointer;user-select:none}
+  .group h3:hover .caret{color:var(--accent)}
+  /* A group folded shut keeps its heading, and the tally on it stands in for
+     the rows being held back. */
+  .group.shut h3{border-bottom:0}
+  .caret{display:inline-block;color:var(--muted);font-size:12px;
+         transition:transform .12s ease}
+  .group.shut .caret{transform:rotate(-90deg)}
+  .groupid{font-family:var(--mono);font-size:14px;font-weight:700;
+           color:var(--accent);white-space:nowrap}
+  .groupname{font-weight:400;color:var(--muted);min-width:0;overflow:hidden;
+             text-overflow:ellipsis;white-space:nowrap}
+  .tally{margin-left:auto;font-family:var(--mono);font-size:11.5px;
+         font-variant-numeric:tabular-nums;color:var(--muted);white-space:nowrap}
+
+  /* A row is the way into its pair, so the whole of it is the target and
+     nothing inside it is a link of its own. */
+  .entry{display:flex;align-items:center;gap:16px;padding:9px 18px;
+         border-top:1px solid var(--line);cursor:pointer}
+  .group h3 + .entry,.group .entry:first-child{border-top:0}
+  .entry:hover{background:var(--raise)}
+  .entry .what{flex:1 1 auto;min-width:0}
+  .entry .line{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .entry .sub{display:flex;align-items:center;gap:9px;margin-top:2px}
+  .entry .sub:empty{display:none}
+  .doitext{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+  .entry .note{margin-top:2px;font-size:12px;color:var(--muted);font-style:italic;
+               white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rowcalls{flex:0 0 auto;display:flex;gap:6px}
+  .rowcalls button{font:inherit;font-size:11.5px;font-weight:560;padding:5px 12px;
+                   border-radius:8px;cursor:pointer;border:1px solid;
+                   background:var(--surface);white-space:nowrap}
+  .rowcalls button:hover{border-color:currentColor}
+  .rowcalls button[aria-pressed="true"]{font-weight:760;
+                                        box-shadow:inset 0 0 0 1px currentColor}
+  @media (max-width:760px){
+    .entry{flex-wrap:wrap;align-items:flex-start}
+    .rowcalls{width:100%}
+  }
   @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 """
 
@@ -239,14 +346,49 @@ function record(r, field, value){
   if (!Object.keys(datasets).length) delete reviews[r.doi];
   save();
 }
-// Two ways of working: take the pairs still owed an answer, or look back over
-// the ones already given one. A session opens on the work still to do.
-let filter = 'todo';
-// Two independent filters. `filter` is review state, `scope` is whose the pair
-// is. A session always holds every candidate in its pathway; an assignment
-// narrows what is shown rather than what was loaded, so you can step outside
-// your own queue and back without restarting.
-let scope = MINE ? 'mine' : 'everyone';
+
+// Two ways of reading the same list. The worksheet asks about one pair at a
+// time, which is how a first pass is made; the overview lays the pairs out in
+// groups, which is how you go back over the answers you already gave and see
+// what a dataset or a paper came to as a whole.
+let view = 'worksheet';
+
+function setView(next){
+  view = next;
+  document.querySelectorAll('[data-view]').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.view === next)));
+}
+
+// A call is one click, and so is the wrong call -- the chip beside the one you
+// meant, or the right one on the row above. Under a filter the pair leaves the
+// list the moment it is answered, so what it was called before is kept here
+// along with where it was called from, and both can be put back.
+const undoStack = [];
+
+// What the session is looking at. Every one of these narrows what is shown
+// rather than what was loaded -- a session always holds every candidate there
+// is -- so you can step outside your own queue, or into the other pathway, and
+// back without restarting.
+const controls = {
+  // Take the pairs still owed an answer, look back over the ones already given
+  // one, or ask for a single call. A session opens on the work still to do.
+  filter: 'todo',
+  pathway: 'all',
+  scope: MINE ? 'mine' : 'everyone',
+  grouping: 'dandiset',
+  search: '',
+};
+
+// A pair is a paper and a dataset, and no two pairs are the same one, so that
+// is the key everything is looked up by.
+const keyOf = r => r.doi + '\\t' + r.dandiset;
+const ROW_BY_KEY = new Map(ROWS.map(r => [keyOf(r), r]));
+// Searching is done over a string built once rather than over the fields each
+// time: this runs on every keystroke across every pair.
+for (const r of ROWS){
+  r.searchText = [r.doi, r.fetched_doi, r.title, r.dandiset, r.dandiset_name,
+                  r.cited_doi, r.cited_title].join(' ').toLowerCase();
+}
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
   ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -278,6 +420,36 @@ function originChip(source){
             >${esc(originLabel(source))}</span>`;
 }
 
+// The paper the pair was built from, where other dandisets name it too. A work
+// citing a paper that describes four datasets has said nothing about which of
+// them it touched, and the pair in front of you is only one of the four.
+function sharedChip(r){
+  if (!r.shared_paper) return '';
+  const n = r.shared_paper.dandisets.length;
+  return `<span class="shared">shared with ${n} dandiset${n === 1 ? '' : 's'}</span>`;
+}
+
+// Each sibling wears how it came to name the paper, because that is what says
+// how much the sharing is worth: DANDI claiming the paper describes both is an
+// ambiguity to resolve, a model picking it twice is a pairing to distrust.
+function sharedBlock(r){
+  if (!r.shared_paper) return '';
+  const shared = r.shared_paper;
+  const siblings = shared.dandisets.map(d => `<li>
+      <a class="dsid" href="https://dandiarchive.org/dandiset/${esc(d.dandiset)}"
+         target="_blank" rel="noopener">${esc(d.dandiset)}</a>
+      <span class="sibname">${esc(d.dandiset_name)}</span>
+      ${originChip(d.relation)}
+    </li>`).join('');
+  return `<h4>Dandisets Sharing This Paper</h4>
+    <p class="shared-paper">
+      <a class="doi" href="https://doi.org/${encodeURI(shared.doi)}"
+         target="_blank" rel="noopener">${esc(shared.doi)}</a>
+      ${esc(shared.title)}
+    </p>
+    <ul class="siblings">${siblings}</ul>`;
+}
+
 const TIER_KEY = `<div class="legend">
     <span class="key"><span class="tier exact">exact</span>character for character</span>
     <span class="key"><span class="tier normalized">normalized</span>case, punctuation or
@@ -292,7 +464,8 @@ function setSaveState(text, cls){
   el.className = 'savestate ' + (cls || '');
 }
 
-// Answers land in reviews/<reviewer>.json as they are made.
+// Answers land in reuse_confirmation/<reviewer>/<reviewer>-reviews.json as they
+// are made.
 let saveTimer = null;
 
 // `manual` only changes what the indicator says afterwards: a write the
@@ -315,14 +488,38 @@ function save(){
   saveTimer = setTimeout(() => saveNow(false), 500);
 }
 
-const isMine = r => MINE.has(r.doi + '\\t' + r.dandiset);
+const isMine = r => MINE.has(keyOf(r));
 
-function visible(){
-  let rows = scope === 'mine' ? ROWS.filter(isMine) : ROWS;
-  if (filter === 'all') return rows;
-  const answered = filter === 'done';
-  return rows.filter(r => Boolean(callFor(r)) === answered);
+// Commas separate alternatives and spaces are all-of, so a group of datasets is
+// one query -- "000128, 000129" -- and so is one paper, "mc_maze reach".
+function matchesSearch(r){
+  const query = controls.search.trim().toLowerCase();
+  if (!query) return true;
+  return query.split(',').some(alternative => {
+    const terms = alternative.split(/\\s+/).filter(Boolean);
+    return terms.length && terms.every(t => r.searchText.includes(t));
+  });
 }
+
+// The work the session is looking at, before anything is asked about the call.
+// Progress is measured over this, so that narrowing to one label does not read
+// as having finished.
+function inScope(){
+  return ROWS.filter(r =>
+    (controls.scope === 'everyone' || isMine(r)) &&
+    (controls.pathway === 'all' || r.pathway === controls.pathway) &&
+    matchesSearch(r));
+}
+
+function matchesCall(r){
+  const call = callFor(r);
+  if (controls.filter === 'all') return true;
+  if (controls.filter === 'todo') return !call;
+  if (controls.filter === 'done') return Boolean(call);
+  return call === controls.filter;
+}
+
+const visible = () => inScope().filter(matchesCall);
 
 // The pair goes with the citing paper's link so its quoted passages can be
 // marked in the text; the cited paper has none of its own.
@@ -348,11 +545,13 @@ function paperPanel(role, doi, title, text, chip){
 }
 
 function datasetPanel(r){
+  const chip = sharedChip(r);
   return `<div class="party dataset">
       <span class="role">Cited Dataset</span>
       <a class="dsid" href="https://dandiarchive.org/dandiset/${esc(r.dandiset)}"
          target="_blank" rel="noopener">${esc(r.dandiset)}</a>
       <span class="dsname">${esc(r.dandiset_name)}</span>
+      ${chip ? `<div class="links">${chip}</div>` : ''}
     </div>`;
 }
 
@@ -363,34 +562,89 @@ function quoteBlock(q){
     </figure>`;
 }
 
+// A label is stored as a key and read as words, so 'ambiguous_reuse' is the
+// answer recorded, ambiguous reuse the answer counted and Ambiguous Reuse the
+// answer offered.
+const callWords = label => label.replace('_', ' ');
+const callName = label => callWords(label).split(' ')
+  .map(word => word[0].toUpperCase() + word.slice(1)).join(' ');
+
+// A pair is offered the labels of its own pathway, so a direct pair can be
+// called primary and an indirect one mention, side by side in the same list.
 function callButtons(r){
-  return LABELS.map(label => {
-    const name = label[0].toUpperCase() + label.slice(1);
-    return `<button class="${label}" data-v="${label}"
-              aria-pressed="${callFor(r) === label}">${name}</button>`;
-  }).join('');
+  return LABELS[r.pathway].map(label =>
+    `<button class="call ${label}" data-v="${label}"
+       aria-pressed="${callFor(r) === label}">${callName(label)}</button>`).join('');
 }
 
-function render(){
-  const rows = visible();
-  index = Math.min(index, Math.max(rows.length - 1, 0));
-  // Progress is measured over whose pairs you are looking at, not over the
-  // review state you have filtered to: switching to Reviewed should not read as
-  // having finished. Narrowing to your assignment does move it, because then
-  // your assignment is the work.
-  const scoped = scope === 'mine' ? ROWS.filter(isMine) : ROWS;
+function renderProgress(rows, scoped){
   const done = scoped.filter(callFor).length;
   document.getElementById('position').textContent =
-    rows.length ? `Pair ${index + 1} of ${rows.length}` : 'No pairs';
+    rows.length ? (view === 'overview' ? `${rows.length} pairs`
+                                       : `Pair ${index + 1} of ${rows.length}`)
+                : 'No pairs';
   document.getElementById('progress').textContent =
     `${done} of ${scoped.length} reviewed`;
   document.getElementById('bar').style.width =
     (scoped.length ? 100 * done / scoped.length : 0) + '%';
+}
 
+// The controls say what the session is looking at, so what they say has to keep
+// up with it: a label no pathway in view can produce is not a filter worth
+// offering, and stepping through pairs is not what the overview does.
+function syncControls(rows){
+  document.querySelectorAll('.step').forEach(b =>
+    b.hidden = view === 'overview');
+  document.querySelector('.grouping').hidden = view === 'worksheet';
+  document.getElementById('undo').disabled = !undoStack.length;
+  const fold = document.getElementById('foldall');
+  fold.hidden = view === 'worksheet' || controls.grouping === 'none';
+  if (!fold.hidden)
+    fold.textContent = groupsOf(rows).some(g => !shut.has(shutKey(g.id)))
+      ? 'Collapse All' : 'Expand All';
+  document.querySelectorAll('[data-control="filter"][data-pathways]')
+    .forEach(b => b.hidden = controls.pathway !== 'all'
+                             && !b.dataset.pathways.split(' ')
+                                  .includes(controls.pathway));
+  // Which pathway a pair came down decides what it can be called, so on the
+  // worksheet the chip says which one is on screen. In the overview each entry
+  // carries its own.
+  const chip = document.getElementById('pathwaychip');
+  const r = rows[index];
+  chip.textContent = view === 'worksheet' && r ? r.pathway : '';
+  chip.hidden = !chip.textContent;
+}
+
+function render(){
+  const scoped = inScope();
+  const rows = visible();
+  index = Math.min(index, Math.max(rows.length - 1, 0));
+  renderProgress(rows, scoped);
+  syncControls(rows);
+  if (view === 'overview') renderOverview(rows); else renderWorksheet(rows);
+}
+
+// An empty list says which control emptied it, which is not always the one you
+// last touched: a reviewer dealt one pathway has nothing on the other, and a
+// call chip hides itself when the pathway that can produce it goes out of view.
+function emptyMessage(){
+  const pathway = controls.pathway === 'all' ? '' : controls.pathway + ' ';
+  if (!inScope().length){
+    if (controls.search.trim()) return 'Nothing matches that search.';
+    if (controls.scope === 'mine')
+      return `No ${pathway}pairs are assigned to you \\u2014 try Everyone.`;
+    return `No ${pathway}pairs here.`;
+  }
+  if (controls.filter === 'todo') return 'Every pair has an answer.';
+  if (controls.filter === 'done') return 'Nothing answered yet.';
+  return `Nothing called ${callWords(controls.filter)}.`;
+}
+
+function renderWorksheet(rows){
   const r = rows[index];
   if (!r){
-    document.getElementById('card').innerHTML = `<p class="empty">${
-      filter === 'done' ? 'Nothing answered yet.' : 'Every pair has an answer.'}</p>`;
+    document.getElementById('card').innerHTML =
+      `<p class="empty">${emptyMessage()}</p>`;
     return;
   }
 
@@ -401,10 +655,10 @@ function render(){
   const citedRole = r.cited_role === 'Cited' ? 'Cited Paper' : 'Dataset Paper';
 
   document.getElementById('card').innerHTML = `
-    <div class="subject ${MODE}">
+    <div class="subject ${r.pathway}">
       ${paperPanel('Citing Paper', r.fetched_doi, r.title,
                    r.has_text ? textLink(r.fetched_doi, r.dandiset) : '')}
-      ${MODE === 'indirect'
+      ${r.pathway === 'indirect'
         ? paperPanel(citedRole, r.cited_doi, r.cited_title,
                      r.cited_has_text ? textLink(r.cited_doi, '') : '',
                      originChip(r.cited_source)) : ''}
@@ -419,6 +673,7 @@ function render(){
 
     <div class="evidence">
       <div class="inner">
+        ${sharedBlock(r)}
         <h4>Model Reasoning</h4>
         <p class="reasoning">${esc(r.reasoning)}</p>
         <h4>Quoted Evidence</h4>
@@ -428,24 +683,161 @@ function render(){
     </div>`;
 }
 
+// Groups folded shut, so that one dataset or one paper can be read with the
+// rest out of the way. Keyed by the grouping they were shut under, since the
+// datasets and the papers gather the same pairs into different groups.
+const shut = new Set();
+const shutKey = id => controls.grouping + '\\t' + id;
+
+// Which pairs stand together. A dandiset's pairs are spread over the papers that
+// used it and a paper's over the datasets it touched, so the two groupings are
+// the same question asked from either end of the pair.
+function groupsOf(rows){
+  if (controls.grouping === 'none') return [{id: '', name: '', rows}];
+  const byPaper = controls.grouping === 'paper';
+  const groups = new Map();
+  for (const r of rows){
+    const id = byPaper ? r.doi : r.dandiset;
+    if (!groups.has(id))
+      groups.set(id, {id, name: byPaper ? r.title : r.dandiset_name, rows: []});
+    groups.get(id).rows.push(r);
+  }
+  const order = byPaper ? (a, b) => a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1
+                        : (a, b) => a.id < b.id ? -1 : 1;
+  return [...groups.values()].sort(order);
+}
+
+// What a group came to, which is the thing a second pass is reading for.
+function tally(rows){
+  const counts = {};
+  for (const r of rows){
+    const call = callFor(r) || 'left';
+    counts[call] = (counts[call] || 0) + 1;
+  }
+  const named = Object.keys(counts).filter(c => c !== 'left').sort()
+    .map(c => `${counts[c]} ${callWords(c)}`);
+  if (counts.left) named.push(`${counts.left} left`);
+  return `${rows.length} pair${rows.length === 1 ? '' : 's'}`
+         + (named.length ? ' \\u00b7 ' + named.join(' \\u00b7 ') : '');
+}
+
+// An entry shows the other side of the grouping: under a dataset you are
+// reading papers, under a paper you are reading datasets. Nothing in it is a
+// link, because the whole row is already the way into the pair -- the links are
+// on the card a click away.
+function entryRow(r){
+  const byPaper = controls.grouping === 'paper';
+  const what = byPaper
+    ? `<div class="line"><span class="dsid small">${esc(r.dandiset)}</span>
+         ${esc(r.dandiset_name)}</div>`
+    : `<div class="line">${esc(r.title || r.fetched_doi)}</div>`;
+  const note = noteFor(r);
+  // The group heading already carries whichever side the pairs were gathered on,
+  // so the entry says the other one and does not repeat it.
+  return `<div class="entry" data-key="${esc(keyOf(r))}">
+      <div class="what">
+        ${what}
+        <div class="line sub">
+          ${byPaper ? '' : `<span class="doitext">${esc(r.fetched_doi)}</span>`}
+          ${controls.grouping === 'none'
+            ? `<span class="dsid small">${esc(r.dandiset)}</span>` : ''}
+          ${controls.pathway === 'all'
+            ? `<span class="mode quiet">${esc(r.pathway)}</span>` : ''}
+        </div>
+        ${note ? `<div class="note">${esc(note)}</div>` : ''}
+      </div>
+      <div class="rowcalls">${callButtons(r)}</div>
+    </div>`;
+}
+
+function renderOverview(rows){
+  const card = document.getElementById('card');
+  if (!rows.length){
+    card.innerHTML = `<p class="empty">${emptyMessage()}</p>`;
+    return;
+  }
+  // Calling a pair from the list redraws it, and a list that jumped back to the
+  // top on every call could not be worked down.
+  const held = card.querySelector('.overview');
+  const scrollTop = held ? held.scrollTop : 0;
+  card.innerHTML = `<div class="overview">${groupsOf(rows).map(group => {
+    const folded = shut.has(shutKey(group.id));
+    return `<section class="group${folded ? ' shut' : ''}">
+      ${group.id ? `<h3 data-group="${esc(group.id)}" aria-expanded="${!folded}">
+        <span class="caret">\\u25be</span>
+        <span class="groupid">${esc(group.id)}</span>
+        <span class="groupname">${esc(group.name)}</span>
+        <span class="tally">${tally(group.rows)}</span>
+      </h3>` : ''}
+      ${folded ? '' : group.rows.map(entryRow).join('')}
+    </section>`;
+  }).join('')}</div>`;
+  card.querySelector('.overview').scrollTop = scrollTop;
+}
+
+// One press to put every group away, the next to bring them all back, so that
+// reading one group on its own does not start with shutting forty.
+function foldAll(){
+  const groups = groupsOf(visible());
+  const shutting = groups.some(g => !shut.has(shutKey(g.id)));
+  for (const group of groups)
+    if (shutting) shut.add(shutKey(group.id)); else shut.delete(shutKey(group.id));
+  render();
+}
+
 function go(next){
   index = Math.min(Math.max(next, 0), Math.max(visible().length - 1, 0));
   render();
 }
 
-// Answering advances. Under a filter the answered pair drops out of the list and
-// the next one slides into its place, so holding position is the advance.
-function mark(value){
-  const r = visible()[index];
+// A pair clicked in the overview came out of visible(), so it is already in the
+// list the worksheet steps through; opening it is finding where it stands.
+function openPair(r){
+  setView('worksheet');
+  index = visible().indexOf(r);
+  render();
+}
+
+// Answering advances, but only on the worksheet: in the overview the list is
+// what you are reading and the next pair is already on screen. Under a filter
+// the answered pair drops out of the list and the next one slides into its
+// place, so holding position is the advance.
+function mark(r, value){
+  undoStack.push({row: r, call: callFor(r), view, index});
   record(r, 'call', callFor(r) === value ? '' : value);
-  const after = visible();
-  if (after[index] === r && callFor(r) && index < after.length - 1) index++;
+  if (view === 'worksheet'){
+    const after = visible();
+    if (after[index] === r && callFor(r) && index < after.length - 1) index++;
+  }
+  render();
+}
+
+// Puts the last call back and returns to where it was made, since the pair may
+// have left the list on being answered and the list has moved on since.
+function undo(){
+  const last = undoStack.pop();
+  if (!last) return;
+  record(last.row, 'call', last.call);
+  setView(last.view);
+  index = Math.min(last.index, Math.max(visible().length - 1, 0));
   render();
 }
 
 document.getElementById('card').addEventListener('click', e => {
+  // A heading is the handle its group is folded by; a row is the way into its
+  // pair.
+  const heading = e.target.closest('.group h3');
+  if (heading){
+    const key = shutKey(heading.dataset.group);
+    if (!shut.delete(key)) shut.add(key);
+    render();
+    return;
+  }
+  const entry = e.target.closest('.entry');
+  const row = entry ? ROW_BY_KEY.get(entry.dataset.key) : visible()[index];
   const button = e.target.closest('button[data-v]');
-  if (button) mark(button.dataset.v);
+  if (button) mark(row, button.dataset.v);
+  else if (entry) openPair(row);
 });
 
 // A note is held as it is typed, but the card is not redrawn: that would take
@@ -456,19 +848,47 @@ document.getElementById('card').addEventListener('input', e => {
 });
 
 document.getElementById('save').addEventListener('click', () => saveNow(true));
+document.getElementById('undo').addEventListener('click', undo);
+document.getElementById('foldall').addEventListener('click', foldAll);
 document.getElementById('prev').addEventListener('click', () => go(index - 1));
 document.getElementById('next').addEventListener('click', () => go(index + 1));
 
-document.querySelectorAll('.filters').forEach(group => {
-  group.querySelectorAll('.btn').forEach(b => {
-    b.addEventListener('click', () => {
-      if (b.dataset.f) filter = b.dataset.f; else scope = b.dataset.s;
-      index = 0;
-      group.querySelectorAll('.btn').forEach(o =>
-        o.setAttribute('aria-pressed', String(o === b)));
-      render();
-    });
+function press(group, button){
+  group.querySelectorAll('.btn').forEach(o =>
+    o.setAttribute('aria-pressed', String(o === button)));
+}
+
+document.querySelectorAll('.filters:not(.views)').forEach(group => {
+  group.addEventListener('click', e => {
+    const button = e.target.closest('.btn');
+    if (!button) return;
+    controls[button.dataset.control] = button.dataset.value;
+    index = 0;
+    press(group, button);
+    render();
   });
+});
+
+// Switching views holds your place, so that reading a pair in the list and
+// going to the card and back is one movement rather than a restart.
+document.querySelector('.views').addEventListener('click', e => {
+  const button = e.target.closest('.btn');
+  if (!button) return;
+  setView(button.dataset.view);
+  render();
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key !== 'z' || !(e.metaKey || e.ctrlKey)) return;
+  if (e.target.closest('textarea, input')) return;
+  e.preventDefault();
+  undo();
+});
+
+document.getElementById('search').addEventListener('input', e => {
+  controls.search = e.target.value;
+  index = 0;
+  render();
 });
 
 fetch('/load')
@@ -483,50 +903,109 @@ fetch('/load')
 # is built from, so offering a label the classifier could not have produced puts
 # the answer off the matrix: only the direct pathway can say a paper is the one
 # that deposited the dataset, and only the indirect pathway distinguishes a
-# mention from a bare citation. 'unsure' is the reviewer's alone.
+# mention from a bare citation. 'unsure' and 'ambiguous_reuse' are the
+# reviewer's alone.
+#
+# A session holds both pathways, so the page picks the list by the pathway of
+# the pair in front of it rather than by anything about the session.
 LABELS = {
-    'direct': ['reuse', 'primary', 'neither', 'unsure'],
-    'indirect': ['reuse', 'mention', 'neither', 'unsure'],
+    'direct': ['reuse', 'ambiguous_reuse', 'primary', 'neither', 'unsure'],
+    'indirect': ['reuse', 'ambiguous_reuse', 'mention', 'neither', 'unsure'],
 }
 
-def build(rows: list[dict], reviewer: str, mode: str,
+# Every label any pair can be given, for the filter that asks for one. Taken a
+# position at a time across the pathways rather than a list at a time, so that
+# the two labels only one pathway can produce stand together where those
+# pathways put them, between the reuse they qualify and the answers that deny
+# it. Reading them off LABELS at all is what keeps a label added to a pathway
+# from being one you then cannot go looking for.
+ALL_LABELS = [label for label in dict.fromkeys(
+    label for column in zip_longest(*LABELS.values()) for label in column)
+    if label]
+
+
+def call_filters() -> str:
+    """The chips that ask for one call, coloured as that call is everywhere."""
+    return ''.join(
+        f'\n    <button class="btn call {label}" data-control="filter" '
+        f'data-value="{label}" aria-pressed="false" data-pathways='
+        f'"{" ".join(p for p in LABELS if label in LABELS[p])}"'
+        f'>{label.replace("_", " ").title()}</button>'
+        for label in ALL_LABELS)
+
+
+def build(rows: list[dict], reviewer: str,
           mine: list[tuple[str, str]] | None = None) -> str:
     """
-    Render the worksheet around one reviewer's session in one pathway.
+    Render one reviewer's session over every candidate there is.
 
-    Every candidate in the pathway is on board. `mine` is the subset assigned to
-    this reviewer, which the page filters down to rather than being built from,
-    so stepping outside your own queue and back costs nothing.
+    Both pathways are on board and the session opens on both. `mine` is the
+    subset assigned to this reviewer, which the page filters down to rather than
+    being built from, so stepping outside your own queue and back costs nothing:
+    a second pass over your own answers is exactly the time you need to see a
+    pair that was never dealt to you.
     """
     payload = json.dumps(rows, ensure_ascii=False).replace('</', r'<\/')
     n = len(rows)
     scope_buttons = '' if mine is None else """
   <div class="filters" role="group" aria-label="Whose">
-    <button class="btn" data-s="mine" aria-pressed="true">Assigned Only</button>
-    <button class="btn" data-s="everyone" aria-pressed="false">All</button>
+    <button class="btn" data-control="scope" data-value="mine"
+            aria-pressed="true">Assigned Only</button>
+    <button class="btn" data-control="scope" data-value="everyone"
+            aria-pressed="false">Everyone</button>
   </div>"""
     mine_js = ('null' if mine is None else
                'new Set(%s)' % json.dumps([f'{doi}\t{dandiset}'
                                            for doi, dandiset in mine]))
-    return f"""<title>DANDI {mode} reuse review &mdash; {n} pairs</title>
+    pathway_buttons = ''.join(
+        f'\n    <button class="btn" data-control="pathway" data-value="{value}" '
+        f'aria-pressed="{str(value == "all").lower()}">{name}</button>'
+        for value, name in [('all', 'Both'), ('indirect', 'Indirect'),
+                            ('direct', 'Direct')])
+    return f"""<title>DANDI reuse review &mdash; {n} pairs</title>
 <style>{CSS}</style>
 
 <div class="toolbar">
   <span class="who">Reviewing as <b>{reviewer}</b></span>
-  <span class="mode">{mode}</span>
-  <button class="btn" id="prev">&larr; Prev</button>
-  <button class="btn" id="next">Next &rarr;</button>
-  <div class="filters" role="group" aria-label="Review state">
-    <button class="btn" data-f="all" aria-pressed="false">All</button>
-    <button class="btn" data-f="todo" aria-pressed="true">Unreviewed</button>
-    <button class="btn" data-f="done" aria-pressed="false">Reviewed</button>
+  <span class="mode" id="pathwaychip"></span>
+  <div class="filters views" role="group" aria-label="View">
+    <button class="btn" data-view="worksheet" aria-pressed="true">Worksheet</button>
+    <button class="btn" data-view="overview" aria-pressed="false">Overview</button>
   </div>
+  <button class="btn step" id="prev">&larr; Prev</button>
+  <button class="btn step" id="next">Next &rarr;</button>
   <span class="readout" id="position">Pair 1 of {n}</span>
-  <div class="spacer"></div>{scope_buttons}
+  <div class="spacer"></div>
   <div class="bar"><i id="bar"></i></div>
   <span class="readout" id="progress">0 of {n} reviewed</span>
+  <button class="btn" id="undo" disabled>&#8630; Undo</button>
   <button class="btn" id="save">Save</button>
   <span class="savestate" id="savestate"></span>
+</div>
+
+<div class="toolbar controls">
+  <div class="filters" role="group" aria-label="Pathway">{pathway_buttons}
+  </div>
+  <div class="filters" role="group" aria-label="Call">
+    <button class="btn" data-control="filter" data-value="all"
+            aria-pressed="false">All</button>
+    <button class="btn" data-control="filter" data-value="todo"
+            aria-pressed="true">Unreviewed</button>
+    <button class="btn" data-control="filter" data-value="done"
+            aria-pressed="false">Reviewed</button>
+    <span class="sep"></span>{call_filters()}
+  </div>{scope_buttons}
+  <div class="filters grouping" role="group" aria-label="Grouping">
+    <button class="btn" data-control="grouping" data-value="dandiset"
+            aria-pressed="true">By Dandiset</button>
+    <button class="btn" data-control="grouping" data-value="paper"
+            aria-pressed="false">By Citing Paper</button>
+    <button class="btn" data-control="grouping" data-value="none"
+            aria-pressed="false">Flat</button>
+  </div>
+  <button class="btn fold" id="foldall" hidden>Collapse All</button>
+  <input class="search" id="search" type="search" autocomplete="off"
+         placeholder="Search &mdash; commas for any">
 </div>
 
 <div class="card" id="card"></div>
@@ -534,8 +1013,7 @@ def build(rows: list[dict], reviewer: str, mode: str,
 <script>
 const ROWS = {payload};
 const REVIEWER = {json.dumps(reviewer)};
-const MODE = {json.dumps(mode)};
-const LABELS = {json.dumps(LABELS[mode])};
+const LABELS = {json.dumps(LABELS)};
 const MINE = {mine_js};
 {JS}
 </script>
@@ -735,19 +1213,21 @@ def make_handler(page: str, reviewer: str, save_path: Path,
     return ReviewHandler
 
 
-def serve(rows: list[dict], reviewer: str, mode: str, port: int,
+def serve(rows: list[dict], reviewer: str, port: int,
           base: Path = REUSE_CONFIRMATION_DIR, paper_cache: Path = PAPER_CACHE,
           open_browser: bool = True,
           mine: list[tuple[str, str]] | None = None) -> None:
     if not rows:
-        raise SystemExit(f'No {mode} candidates to review.')
+        raise SystemExit('No candidates to review.')
     save_path = reviews_path(reviewer, base)
-    handler = make_handler(build(rows, reviewer, mode, mine), reviewer, save_path,
-                           paper_cache, quotes_by_pair(rows))
+    handler = make_handler(build(rows, reviewer, mine), reviewer,
+                           save_path, paper_cache, quotes_by_pair(rows))
     server = ThreadingHTTPServer(('127.0.0.1', port), handler)
     url = f'http://127.0.0.1:{server.server_address[1]}/'
     papers = len({r['doi'] for r in rows})
-    print(f'{len(rows)} {mode} pairs across {papers} papers'
+    counts = Counter(r['pathway'] for r in rows)
+    breakdown = ', '.join(f'{counts[p]} {p}' for p in LABELS if counts[p])
+    print(f'{len(rows)} pairs across {papers} papers — {breakdown}'
           + (f'; {len(mine)} assigned to you' if mine is not None else ''))
     print(f'Reviewing as {reviewer}; answers go to {save_path}')
     print(f'Serving {url} — Ctrl-C to stop')
@@ -761,30 +1241,61 @@ def serve(rows: list[dict], reviewer: str, mode: str, port: int,
         server.server_close()
 
 
-def pairs_in(pathway: str, candidates_path: Path = CANDIDATES_FILE) -> list[dict]:
+def all_pairs(candidates_path: Path = CANDIDATES_FILE) -> list[dict]:
     """
-    Every candidate the queue is responsible for.
+    Every candidate there is, both pathways together.
 
-    A session holds the whole pathway. What one reviewer was assigned narrows
-    what is shown, not what was loaded, so stepping outside your own queue is a
-    click rather than a restart -- and a pair you reviewed before it was ever
-    assigned to you is on screen either way.
+    A dandiset's pairs are split between the two pathways, so a session that
+    loaded one of them could never show a dataset whole -- and sorting out what
+    a dataset was used for is the question a second pass over the reviews is
+    asking. What one reviewer was assigned narrows what is shown, not what was
+    loaded, so stepping outside your own queue is a click rather than a restart,
+    and a pair you reviewed before it was ever assigned to you is on screen
+    either way.
+
+    Sorting by paper then dataset stands a paper's direct pairs next to its
+    indirect ones, so everything asked about one paper is passed through in one
+    go.
     """
-    pairs = [p for p in json.loads(candidates_path.read_text())['pairs']
-             if p['pathway'] == pathway]
+    pairs = json.loads(candidates_path.read_text())['pairs']
     pairs.sort(key=lambda r: (r['doi'], r['dandiset']))
     for pair in pairs:
         pair['fetched_doi'] = fetched_doi(pair)
     return pairs
 
 
-def read_assignment(assignment_path: Path) -> tuple[list[tuple[str, str]], str, str]:
-    """One reviewer's queue: the pairs it names, and whose and which it is."""
+def read_assignment(assignment_path: Path) -> tuple[list[tuple[str, str]], str]:
+    """One reviewer's queue: the pairs it names, and whose it is."""
     assignment = json.loads(assignment_path.read_text())
     pairs = [(doi, dandiset)
              for doi, dandisets in assignment['pairs'].items()
              for dandiset in dandisets]
-    return pairs, assignment['reviewer'], assignment['pathway']
+    return pairs, assignment['reviewer']
+
+
+def assignment_pairs(reviewer: str, base: Path = REUSE_CONFIRMATION_DIR
+                     ) -> list[tuple[str, str]] | None:
+    """
+    The pairs dealt to this reviewer, across every queue they hold.
+
+    Assignments are written one file per pathway and a session covers both, so
+    both of the reviewer's own are opened, found where they are written rather
+    than named. A reviewer a round dealt nothing in has no file for that pathway,
+    which is a queue they are not in rather than a file that went missing. None
+    means nothing was dealt, and the page then offers no filter for whose a pair
+    is.
+    """
+    pairs = []
+    for pathway in LABELS:
+        path = assignment_path(reviewer, pathway, base)
+        if not path.exists():
+            continue
+        named, assigned_to = read_assignment(path)
+        if assigned_to != reviewer:
+            raise SystemExit(
+                f'{path} is {assigned_to}\'s, not {reviewer}\'s.')
+        pairs += named
+    return pairs or None
 
 
 def main():
@@ -792,12 +1303,6 @@ def main():
     parser.add_argument('--reviewer', required=True,
                         help='Whose session this is; must be a registered '
                              'username, and names the file the reviews go to.')
-    parser.add_argument('--pathway', choices=list(LABELS), required=True,
-                        help='Which queue to review. The two ask different '
-                             'questions, so they offer different labels.')
-    parser.add_argument('--assignment',
-                        help='Your share of that queue, to open on. Without it '
-                             'the session opens on all of it.')
     parser.add_argument('--paper-cache', default=str(PAPER_CACHE),
                         help='Fetched paper text, served for papers behind a paywall.')
     parser.add_argument('--port', type=int, default=8000)
@@ -805,20 +1310,10 @@ def main():
 
     select_reviewers(load_reviewers(REVIEWERS_FILE), args.reviewer)
 
-    mine = None
-    if args.assignment:
-        mine, assigned_to, pathway = read_assignment(Path(args.assignment))
-        if assigned_to != args.reviewer:
-            raise SystemExit(
-                f'{args.assignment} is {assigned_to}\'s, not {args.reviewer}\'s. '
-                f'Open your own, or drop --assignment to review the whole queue.')
-        if pathway != args.pathway:
-            raise SystemExit(
-                f'That assignment is {pathway}, not {args.pathway}.')
-
-    rows = pairs_in(args.pathway)
+    mine = assignment_pairs(args.reviewer)
+    rows = all_pairs()
     attach_paper_texts(rows, Path(args.paper_cache))
-    serve(rows, args.reviewer, args.pathway, args.port,
+    serve(rows, args.reviewer, args.port,
           paper_cache=Path(args.paper_cache), mine=mine)
 
 

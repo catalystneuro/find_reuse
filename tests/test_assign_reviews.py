@@ -21,6 +21,16 @@ def pair(doi, dandiset='000541', pathway='indirect', **overrides):
     return record
 
 
+def write_reviews(username, pairs, base):
+    """One reviewer's answers on disk, which is what makes a pair theirs."""
+    path = A.reviews_path(username, base)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    reviews = {}
+    for doi, dandiset in pairs:
+        reviews.setdefault(doi, {})[dandiset] = {'call': 'reuse'}
+    path.write_text(json.dumps({'reviewer': username, 'reviews': reviews}))
+
+
 def filters(**overrides):
     """The flags with nothing selected, which is what keeps every pair."""
     defaults = {
@@ -221,6 +231,108 @@ class TestDeal:
         assigned = A.deal(pairs, reviewers, {}, answered, 1)
         dealt = [k for keys in assigned.values() for k in keys]
         assert dealt == [('10.1/p1', '000541')]
+
+
+class TestDealingPapersWhole:
+    """
+    Every dataset a paper reused is one person's.
+
+    A paper reusing three datasets is one paper to read, and the reviewer
+    reading it is the one who can say the three belong together -- or notice a
+    fourth that should have been among them.
+    """
+
+    @pytest.fixture
+    def reused_twice(self):
+        """Two papers, each reusing three datasets."""
+        return [pair(f'10.1/p{i}', dandiset)
+                for i in range(2)
+                for dandiset in ('000541', '000714', '000939')]
+
+    def test_every_dataset_a_paper_reused_goes_to_one_reviewer(
+            self, reused_twice, reviewers):
+        assigned = A.deal(reused_twice, reviewers, {}, {}, None)
+        assert sorted(assigned[('paul', 'indirect')]) == [
+            ('10.1/p0', '000541'), ('10.1/p0', '000714'), ('10.1/p0', '000939')]
+        assert sorted(assigned[('rly', 'indirect')]) == [
+            ('10.1/p1', '000541'), ('10.1/p1', '000714'), ('10.1/p1', '000939')]
+
+    def test_a_paper_in_both_queues_is_still_one_persons(self, reviewers):
+        both = [pair('10.1/p0', '000541'),
+                pair('10.1/p0', '000714', pathway='direct')]
+        assigned = A.deal(both, reviewers, {}, {}, None)
+        assert assigned[('paul', 'indirect')] == [('10.1/p0', '000541')]
+        assert assigned[('paul', 'direct')] == [('10.1/p0', '000714')]
+        assert assigned[('rly', 'indirect')] == []
+        assert assigned[('rly', 'direct')] == []
+
+    def test_the_rest_of_a_paper_joins_whoever_already_holds_part_of_it(
+            self, reused_twice, reviewers):
+        # paul is the emptier queue, but rly is already reading this paper.
+        placed = {('10.1/p0', '000541'): 'rly'}
+        assigned = A.deal(reused_twice, reviewers, placed, {}, None)
+        assert sorted(assigned[('rly', 'indirect')]) == [
+            ('10.1/p0', '000714'), ('10.1/p0', '000939')]
+        assert sorted(assigned[('paul', 'indirect')]) == [
+            ('10.1/p1', '000541'), ('10.1/p1', '000714'), ('10.1/p1', '000939')]
+
+    def test_the_rest_of_a_paper_joins_whoever_answered_part_of_it(
+            self, reused_twice, reviewers):
+        answered = {('10.1/p0', '000541'): 'rly'}
+        assigned = A.deal(reused_twice, reviewers, {}, answered, None)
+        assert sorted(assigned[('rly', 'indirect')]) == [
+            ('10.1/p0', '000714'), ('10.1/p0', '000939')]
+
+    def test_a_paper_an_earlier_round_split_goes_to_whoever_has_most_of_it(self):
+        held = {('10.1/p0', '000541'): 'paul', ('10.1/p0', '000714'): 'rly',
+                ('10.1/p0', '000939'): 'rly'}
+        assert A.holders_by_paper(held, ['paul', 'rly']) == {'10.1/p0': 'rly'}
+
+    def test_a_paper_held_half_each_goes_to_the_one_listed_first(self):
+        held = {('10.1/p0', '000541'): 'rly', ('10.1/p0', '000714'): 'paul'}
+        assert A.holders_by_paper(held, ['paul', 'rly']) == {'10.1/p0': 'paul'}
+
+    def test_a_paper_held_by_somebody_outside_the_round_anchors_nothing(self):
+        held = {('10.1/p0', '000541'): 'someone-else'}
+        assert A.holders_by_paper(held, ['paul', 'rly']) == {}
+
+    def test_a_limit_stops_between_papers_rather_than_inside_one(
+            self, reused_twice, reviewers):
+        assigned = A.deal(reused_twice, reviewers, {}, {}, 1)
+        dealt = [k for keys in assigned.values() for k in keys]
+        assert sorted(dealt) == [('10.1/p0', '000541'), ('10.1/p0', '000714'),
+                                 ('10.1/p0', '000939')]
+
+
+class TestSplitPapers:
+    """What an earlier round left in two people's hands, which --reassign gathers."""
+
+    @pytest.fixture
+    def registry(self):
+        return [{'username': 'paul'}, {'username': 'rly'}]
+
+    def test_a_paper_two_queues_share_is_reported(self, tmp_path, registry):
+        A.write_assignment('paul', 'indirect', [('10.1/p0', '000541')], 'S', tmp_path)
+        A.write_assignment('rly', 'indirect', [('10.1/p0', '000714')], 'S', tmp_path)
+        assert A.split_papers(tmp_path, registry) == ['10.1/p0']
+
+    def test_a_paper_one_person_holds_whole_is_not(self, tmp_path, registry):
+        A.write_assignment('paul', 'indirect',
+                           [('10.1/p0', '000541'), ('10.1/p0', '000714')],
+                           'S', tmp_path)
+        assert A.split_papers(tmp_path, registry) == []
+
+    def test_a_queued_pair_whose_paper_somebody_else_answered_is_reported(
+            self, tmp_path, registry):
+        A.write_assignment('paul', 'indirect', [('10.1/p0', '000541')], 'S', tmp_path)
+        write_reviews('rly', [('10.1/p0', '000714')], tmp_path)
+        assert A.split_papers(tmp_path, registry) == ['10.1/p0']
+
+    def test_a_paper_nobody_is_still_reading_is_not_reported(self, tmp_path,
+                                                             registry):
+        write_reviews('paul', [('10.1/p0', '000541')], tmp_path)
+        write_reviews('rly', [('10.1/p0', '000714')], tmp_path)
+        assert A.split_papers(tmp_path, registry) == []
 
 
 class TestWriteAssignment:
