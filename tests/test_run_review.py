@@ -26,15 +26,19 @@ class TestLabels:
 
         page = R.build([row], 'Ada')
 
-        assert ('const LABELS = {"direct": ["reuse", "primary", "neither", '
-                '"unsure"], "indirect": ["reuse", "mention", "neither", '
-                '"unsure"]}') in page
+        assert ('const LABELS = {"direct": ["reuse", "ambiguous_reuse", '
+                '"primary", "neither", "unsure"], "indirect": ["reuse", '
+                '"ambiguous_reuse", "mention", "neither", "unsure"]}') in page
 
     def test_a_pair_is_offered_the_labels_of_its_own_pathway(self):
         row = {'doi': 'd', 'title': 't', 'dandiset': '000001',
                'dandiset_name': 'n', 'reasoning': 'r', 'quotes': []}
 
         assert 'LABELS[r.pathway]' in R.build([row], 'Ada')
+
+    def test_either_queue_can_answer_ambiguous_reuse(self):
+        assert 'ambiguous_reuse' in R.LABELS['direct']
+        assert 'ambiguous_reuse' in R.LABELS['indirect']
 
 
 PAPER_TEXT = ('Methods\n\nWe reanalysed the recordings of <i>Mus musculus</i> '
@@ -312,7 +316,7 @@ class TestScope:
     def test_an_empty_list_says_which_control_emptied_it(self):
         page = R.build([row()], 'rly', [('10.1/a', '000541')])
         assert r'No ${pathway}pairs are assigned to you \u2014 try Everyone.' in page
-        assert 'Nothing called ${controls.filter}' in page
+        assert 'Nothing called ${callWords(controls.filter)}' in page
 
     def test_the_assigned_pairs_reach_the_page_as_a_lookup(self):
         page = R.build([row()], 'rly', [('10.1/a', '000541')])
@@ -426,3 +430,43 @@ class TestCitedPaperOrigin:
                          'dandiset_name': 'n', 'reasoning': 'r', 'quotes': []}],
                        'rly')
         assert 'cited_source' not in page.split('const REVIEWER')[0]
+
+
+class TestSharedPaper:
+    """Like the origin chip, the flag is drawn in the browser: what the page can
+    be held to is that the siblings reach it and that it carries the wording."""
+
+    def row(self, **overrides):
+        record = {'doi': '10.1/citer', 'dandiset': '000128', 'title': 't',
+                  'dandiset_name': 'MC_Maze', 'reasoning': 'r', 'quotes': [],
+                  'pathway': 'indirect',
+                  'cited_doi': '10.1/nature11129', 'cited_title': 'Reaching',
+                  'cited_role': 'Cited', 'cited_source': 'dcite:IsDescribedBy',
+                  'shared_paper': {
+                      'doi': '10.1/nature11129', 'title': 'Reaching',
+                      'dandisets': [{'dandiset': '000070',
+                                     'dandiset_name': 'Neural population dynamics',
+                                     'relation': 'dcite:IsDescribedBy'}]}}
+        record.update(overrides)
+        return record
+
+    def test_the_page_carries_the_datasets_sharing_the_paper(self):
+        page = R.build([self.row()], 'rly')
+        assert '"dandiset": "000070"' in page
+        assert 'Neural population dynamics' in page
+
+    def test_the_page_carries_the_wording_the_flag_is_drawn_with(self):
+        page = R.build([self.row()], 'rly')
+        assert 'shared with ' in page
+        assert 'Dandisets Sharing This Paper' in page
+
+    def test_the_direct_queue_flags_it_too(self):
+        page = R.build([self.row(pathway='direct', cited_doi='', cited_title='',
+                                 cited_role='', cited_source='')], 'rly')
+        assert '"dandiset": "000070"' in page
+
+    def test_a_candidate_list_built_before_the_field_existed_still_loads(self):
+        page = R.build([{'doi': '10.1/citer', 'dandiset': '000541', 'title': 't',
+                         'dandiset_name': 'n', 'reasoning': 'r', 'quotes': []}],
+                       'rly')
+        assert 'shared_paper' not in page.split('const REVIEWER')[0]

@@ -61,6 +61,7 @@ PALETTE = """
     --bad:#A22F3D; --bad-soft:#F7E2E4;
     --mention:#1C5D9B; --mention-soft:#E1ECF7;
     --primary:#6D3D9B; --primary-soft:#EEE6F7;
+    --ambiguous-reuse:#0E6E72; --ambiguous-reuse-soft:#DDF0F1;
     --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
     --serif:ui-serif,"Iowan Old Style",Georgia,"Times New Roman",serif;
     --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
@@ -76,6 +77,7 @@ PALETTE = """
       --bad:#EF8390; --bad-soft:#3A1B1F;
       --mention:#6DB3F2; --mention-soft:#10263A;
       --primary:#BE96E8; --primary-soft:#251B36;
+      --ambiguous-reuse:#5AC4C8; --ambiguous-reuse-soft:#0E2E30;
     }
   }
 """
@@ -197,6 +199,20 @@ CSS = PALETTE + """
           background:var(--raise);color:var(--muted)}
   .origin.unvouched{background:var(--bad-soft);color:var(--bad)}
 
+  /* One paper naming several dandisets, worn by the dataset. Amber rather than
+     red: red says nothing stands behind the link, and this link can be DANDI's
+     own and still leave the reuse unattributable to the dataset on the card. */
+  .shared{display:inline-flex;align-items:center;font-family:var(--mono);
+          font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;
+          padding:2px 7px;border-radius:5px;font-weight:600;
+          background:var(--warn-soft);color:var(--warn)}
+  .shared-paper{margin:0 0 12px;font-size:13.5px;color:var(--muted)}
+  ul.siblings{margin:0 0 16px;padding:0;list-style:none;display:flex;
+              flex-direction:column;gap:8px}
+  ul.siblings li{display:flex;flex-wrap:wrap;align-items:baseline;gap:5px 11px}
+  ul.siblings a.dsid{font-size:13px;font-weight:700}
+  .sibname{font-size:13.5px;color:var(--muted);text-wrap:pretty}
+
   .decide{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:11px}
   .calls{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
   .calls button{font:inherit;font-size:15px;font-weight:560;padding:13px 30px;
@@ -212,11 +228,13 @@ CSS = PALETTE + """
                    background:var(--surface);color:var(--ink);resize:none;min-height:54px}
   .decide textarea::placeholder{color:var(--muted);opacity:.75}
   /* One colour per label, carried from the start so an answer is recognised by
-     its colour rather than read off its text. The same five rules dress the
+     its colour rather than read off its text. The same rules dress the
      worksheet's buttons, the overview's and the chips that filter to a call,
      because all three name the same thing. */
   .call.reuse{color:var(--ok);
       border-color:color-mix(in srgb,var(--ok) 40%,transparent)}
+  .call.ambiguous_reuse{color:var(--ambiguous-reuse);
+      border-color:color-mix(in srgb,var(--ambiguous-reuse) 40%,transparent)}
   .call.mention{color:var(--mention);
       border-color:color-mix(in srgb,var(--mention) 40%,transparent)}
   .call.primary{color:var(--primary);
@@ -226,6 +244,7 @@ CSS = PALETTE + """
   .call.unsure{color:var(--warn);
       border-color:color-mix(in srgb,var(--warn) 40%,transparent)}
   .call[aria-pressed="true"].reuse{background:var(--ok-soft)}
+  .call[aria-pressed="true"].ambiguous_reuse{background:var(--ambiguous-reuse-soft)}
   .call[aria-pressed="true"].mention{background:var(--mention-soft)}
   .call[aria-pressed="true"].primary{background:var(--primary-soft)}
   .call[aria-pressed="true"].neither{background:var(--bad-soft)}
@@ -401,6 +420,36 @@ function originChip(source){
             >${esc(originLabel(source))}</span>`;
 }
 
+// The paper the pair was built from, where other dandisets name it too. A work
+// citing a paper that describes four datasets has said nothing about which of
+// them it touched, and the pair in front of you is only one of the four.
+function sharedChip(r){
+  if (!r.shared_paper) return '';
+  const n = r.shared_paper.dandisets.length;
+  return `<span class="shared">shared with ${n} dandiset${n === 1 ? '' : 's'}</span>`;
+}
+
+// Each sibling wears how it came to name the paper, because that is what says
+// how much the sharing is worth: DANDI claiming the paper describes both is an
+// ambiguity to resolve, a model picking it twice is a pairing to distrust.
+function sharedBlock(r){
+  if (!r.shared_paper) return '';
+  const shared = r.shared_paper;
+  const siblings = shared.dandisets.map(d => `<li>
+      <a class="dsid" href="https://dandiarchive.org/dandiset/${esc(d.dandiset)}"
+         target="_blank" rel="noopener">${esc(d.dandiset)}</a>
+      <span class="sibname">${esc(d.dandiset_name)}</span>
+      ${originChip(d.relation)}
+    </li>`).join('');
+  return `<h4>Dandisets Sharing This Paper</h4>
+    <p class="shared-paper">
+      <a class="doi" href="https://doi.org/${encodeURI(shared.doi)}"
+         target="_blank" rel="noopener">${esc(shared.doi)}</a>
+      ${esc(shared.title)}
+    </p>
+    <ul class="siblings">${siblings}</ul>`;
+}
+
 const TIER_KEY = `<div class="legend">
     <span class="key"><span class="tier exact">exact</span>character for character</span>
     <span class="key"><span class="tier normalized">normalized</span>case, punctuation or
@@ -496,11 +545,13 @@ function paperPanel(role, doi, title, text, chip){
 }
 
 function datasetPanel(r){
+  const chip = sharedChip(r);
   return `<div class="party dataset">
       <span class="role">Cited Dataset</span>
       <a class="dsid" href="https://dandiarchive.org/dandiset/${esc(r.dandiset)}"
          target="_blank" rel="noopener">${esc(r.dandiset)}</a>
       <span class="dsname">${esc(r.dandiset_name)}</span>
+      ${chip ? `<div class="links">${chip}</div>` : ''}
     </div>`;
 }
 
@@ -511,14 +562,19 @@ function quoteBlock(q){
     </figure>`;
 }
 
+// A label is stored as a key and read as words, so 'ambiguous_reuse' is the
+// answer recorded, ambiguous reuse the answer counted and Ambiguous Reuse the
+// answer offered.
+const callWords = label => label.replace('_', ' ');
+const callName = label => callWords(label).split(' ')
+  .map(word => word[0].toUpperCase() + word.slice(1)).join(' ');
+
 // A pair is offered the labels of its own pathway, so a direct pair can be
 // called primary and an indirect one mention, side by side in the same list.
 function callButtons(r){
-  return LABELS[r.pathway].map(label => {
-    const name = label[0].toUpperCase() + label.slice(1);
-    return `<button class="call ${label}" data-v="${label}"
-              aria-pressed="${callFor(r) === label}">${name}</button>`;
-  }).join('');
+  return LABELS[r.pathway].map(label =>
+    `<button class="call ${label}" data-v="${label}"
+       aria-pressed="${callFor(r) === label}">${callName(label)}</button>`).join('');
 }
 
 function renderProgress(rows, scoped){
@@ -581,7 +637,7 @@ function emptyMessage(){
   }
   if (controls.filter === 'todo') return 'Every pair has an answer.';
   if (controls.filter === 'done') return 'Nothing answered yet.';
-  return `Nothing called ${controls.filter}.`;
+  return `Nothing called ${callWords(controls.filter)}.`;
 }
 
 function renderWorksheet(rows){
@@ -617,6 +673,7 @@ function renderWorksheet(rows){
 
     <div class="evidence">
       <div class="inner">
+        ${sharedBlock(r)}
         <h4>Model Reasoning</h4>
         <p class="reasoning">${esc(r.reasoning)}</p>
         <h4>Quoted Evidence</h4>
@@ -658,7 +715,7 @@ function tally(rows){
     counts[call] = (counts[call] || 0) + 1;
   }
   const named = Object.keys(counts).filter(c => c !== 'left').sort()
-    .map(c => `${counts[c]} ${c}`);
+    .map(c => `${counts[c]} ${callWords(c)}`);
   if (counts.left) named.push(`${counts.left} left`);
   return `${rows.length} pair${rows.length === 1 ? '' : 's'}`
          + (named.length ? ' \\u00b7 ' + named.join(' \\u00b7 ') : '');
@@ -846,13 +903,14 @@ fetch('/load')
 # is built from, so offering a label the classifier could not have produced puts
 # the answer off the matrix: only the direct pathway can say a paper is the one
 # that deposited the dataset, and only the indirect pathway distinguishes a
-# mention from a bare citation. 'unsure' is the reviewer's alone.
+# mention from a bare citation. 'unsure' and 'ambiguous_reuse' are the
+# reviewer's alone.
 #
 # A session holds both pathways, so the page picks the list by the pathway of
 # the pair in front of it rather than by anything about the session.
 LABELS = {
-    'direct': ['reuse', 'primary', 'neither', 'unsure'],
-    'indirect': ['reuse', 'mention', 'neither', 'unsure'],
+    'direct': ['reuse', 'ambiguous_reuse', 'primary', 'neither', 'unsure'],
+    'indirect': ['reuse', 'ambiguous_reuse', 'mention', 'neither', 'unsure'],
 }
 
 # Every label any pair can be given, for the filter that asks for one. Taken a
@@ -872,7 +930,7 @@ def call_filters() -> str:
         f'\n    <button class="btn call {label}" data-control="filter" '
         f'data-value="{label}" aria-pressed="false" data-pathways='
         f'"{" ".join(p for p in LABELS if label in LABELS[p])}"'
-        f'>{label.capitalize()}</button>'
+        f'>{label.replace("_", " ").title()}</button>'
         for label in ALL_LABELS)
 
 
