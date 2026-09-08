@@ -109,6 +109,15 @@ work out: open the dandiset, see what it holds and who deposited it, and decide
 whether the cited paper is that work. Where it is not, the answer is **Neither**,
 and say so in the note.
 
+An amber **SHARED WITH N DANDISETS** chip on the dataset means other dandisets
+name the same paper, and the evidence box lists them with their own chips. The
+MC_Maze family is the case to have in mind: one paper describes four dandisets,
+so a work citing it has said nothing about which of the four it actually
+obtained. Where the passage does not name the dataset on the card, the reuse is
+not attributable to it, and that belongs in the note. A sibling wearing the red
+verify chip is the weaker case — a model picked that paper for it, so the
+sharing may be nothing more than a bad guess.
+
 **Indirect** — the paper cited a dandiset's publication.
 
 | Label | When |

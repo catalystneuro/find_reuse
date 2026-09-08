@@ -251,6 +251,37 @@ def attach_cited_papers(rows: list[dict], results_path: Path) -> None:
             if cited else '')
 
 
+def attach_shared_papers(rows: list[dict], results_path: Path) -> None:
+    """
+    The other datasets that name the paper this pair was built from.
+
+    A paper describing four dandisets is cited once by the work reusing them,
+    and the claim that citation makes about the data is not attributable to any
+    one of them. That is only visible from outside the pair, so the card has to
+    carry it. Each sibling comes with how it came to name the paper: a model
+    picking the same paper for two datasets says something much weaker than
+    DANDI asserting it describes both.
+    """
+    paper_titles, dandiset_names, _, origins = corpus_papers(results_path)
+    by_paper: dict = {}
+    for (dandiset, doi), relation in origins.items():
+        by_paper.setdefault(doi, []).append((dandiset, relation))
+
+    for row in rows:
+        cited = row['cited_doi']
+        siblings = sorted((dandiset, relation)
+                          for dandiset, relation in by_paper.get(cited.lower(), [])
+                          if dandiset != row['dandiset'])
+        row['shared_paper'] = {
+            'doi': cited,
+            'title': paper_titles.get(cited, ''),
+            'dandisets': [{'dandiset': dandiset,
+                           'dandiset_name': dandiset_names.get(dandiset, ''),
+                           'relation': relation}
+                          for dandiset, relation in siblings],
+        } if siblings else None
+
+
 def build_candidates(inputs: list[str], results_path: Path,
                      direct_results_path: Path) -> list[dict]:
     """Every REUSE pair, carrying everything review and assignment need."""
@@ -259,8 +290,11 @@ def build_candidates(inputs: list[str], results_path: Path,
     attach_dandiset_names(rows, results_path)
     attach_missing_titles(rows, direct_results_path)
     attach_cited_papers(rows, results_path)
+    attach_shared_papers(rows, results_path)
     # The direct queue shows no cited paper, so carrying one would only invite a
-    # reviewer to read a paper the question is not about.
+    # reviewer to read a paper the question is not about. `shared_paper` stays:
+    # it names a paper as what an ambiguity hangs on rather than as one to read,
+    # and a direct pair's dataset shares its paper just as readily.
     for row in rows:
         if row['pathway'] == 'direct':
             row['cited_doi'] = row['cited_title'] = ''

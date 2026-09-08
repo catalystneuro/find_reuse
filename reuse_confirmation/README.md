@@ -57,9 +57,12 @@ including `dandi_reason` — why this pair counts as DANDI data, which is a
 different question from whether DANDI hosts the modality it reused — and
 `cited_source`, how the dataset came to name the paper the pair was built from.
 Most of them name none and a model was asked to pick one, so that field is the
-difference between a pairing DANDI asserts and one nothing stands behind. Written by
-`src.review.build_candidates`, sorted by pair, so rerunning the pipeline shows
-up as the pairs it added.
+difference between a pairing DANDI asserts and one nothing stands behind.
+`shared_paper` names the other dandisets naming that same paper, each with its
+own relation: a paper covering four datasets is cited once, and what the citing
+work then says about the data is not attributable to any one of them. Written
+by `src.review.build_candidates`, sorted by pair, so rerunning the pipeline
+shows up as the pairs it added.
 
 Its header says which run of the pipeline produced it — the model, the prompt
 version, and the labels that run reached, per input:
