@@ -80,12 +80,12 @@ pip install -r requirements.txt
 ```bash
 git pull
 
-python -m src.review.run_review --reviewer rly --pathway indirect \
-    --assignment reuse_confirmation/rly/rly-assignment-indirect.json
+python -m src.review.run_review --reviewer rly
 ```
 
-Serves the worksheet on `http://127.0.0.1:8000/`. One session per pathway, so
-run it again with `--pathway direct` and that assignment.
+Serves the worksheet on `http://127.0.0.1:8000/`. One session covers everything:
+both of your assignments open by themselves, and every candidate there is comes
+aboard behind them. `--pathway indirect` only chooses which queue you start on.
 
 ## 7. Review
 
@@ -127,6 +127,29 @@ and say so in the note.
 | **Neither** | Neither holds — the identifier is there for another reason. |
 | **Unsure** | You cannot tell from the text. Say why in the note. |
 
+### Overview: going back over your answers
+
+**Overview** in the toolbar lays the pairs out in groups instead of one per
+screen. It is for the second pass, where the question is no longer "what is this
+pair" but "what did all of this come to".
+
+The call filter is the way back to a decision you have already made: press
+**Unsure** and you have every pair you could not call, notes and all. It applies
+to the worksheet too — filter to Unsure, switch back, and **Prev**/**Next** walk
+exactly those.
+
+**By Dandiset** gathers every paper that touched one dataset; **By Paper**
+gathers every dataset one paper touched. Each heading tallies what its group came
+to. The search box takes a dandiset id, a paper title, a DOI — commas for any of
+several, so `000128, 000138, 000140` is the whole MC_Maze family at once.
+
+Call a pair from the list with the buttons on its row, or click the row to open
+it in the worksheet where the links, the reasoning and the quotes are. Notes are
+written in the worksheet.
+
+Pathway is a property of a pair, not of the session, so a dandiset's direct and
+indirect pairs sit in one group and each is offered its own labels.
+
 ### Where your reviews go
 
 `reuse_confirmation/<username>/<username>-reviews.json`, written as you work —
@@ -146,6 +169,9 @@ paper, then dataset, then the call and any note:
 
 Both pathways write to this one file, and it is the only file your session
 touches. A paper reviewed against four dandisets holds four entries.
+
+Run one session at a time. A session writes this file whole, so a second one open
+alongside it would overwrite whatever the first had just saved.
 
 ## 8. Open a PR with your reviews
 

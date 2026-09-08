@@ -89,7 +89,9 @@ pair takes it out, so these files stay short and a finished round leaves an
 empty one. What a round did not get through carries into the next.
 
 Every dataset one paper reused is in one person's queues, so nobody reviews half
-a paper.
+a paper. One file per pathway, but a session opens both of a reviewer's together,
+because a dandiset's pairs are split between them and no one queue holds a
+dataset whole.
 
 Regenerable in principle, but not in practice: who was asked to read what is a
 decision, and dealing again from scratch would not necessarily reach the same
@@ -114,10 +116,12 @@ dataset to what was decided about that pair.
 
 A review is one person's read of one pair: a `call`, and a `note` saying why
 where the call is not obvious. A paper reusing four datasets stands in four
-separate relationships, so it holds four reviews under its DOI. Both queues
-write to this one file, since a pair belongs to one of them only. This is the
-file that accumulates across rounds, and a session reads it alongside the
-assignment so that past calls stay on screen under **Reviewed**.
+separate relationships, so it holds four reviews under its DOI. Both queues write
+to this one file, since a pair belongs to one of them only, and one session
+covers both, so nothing races to overwrite it. This is the file that accumulates
+across rounds, and a session reads it alongside the assignment so that past calls
+stay on screen under **Reviewed** — or under the call they were given, which is
+how a second pass finds every pair it left **Unsure**.
 
 **This is the one file here that cannot be regenerated.** The classifications it
 checks can be re-run at any time; a person's reading of a paper cannot. It

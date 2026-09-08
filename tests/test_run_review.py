@@ -20,12 +20,21 @@ class TestLabels:
         assert 'mention' in R.LABELS['indirect']
         assert 'mention' not in R.LABELS['direct']
 
-    def test_the_page_offers_the_labels_of_its_own_mode(self):
+    def test_the_page_carries_the_labels_of_both_pathways(self):
         row = {'doi': 'd', 'title': 't', 'dandiset': '000001',
                'dandiset_name': 'n', 'reasoning': 'r', 'quotes': []}
 
-        assert '"primary"' in R.build([row], 'Ada', 'direct')
-        assert '"mention"' not in R.build([row], 'Ada', 'direct')
+        page = R.build([row], 'Ada', 'direct')
+
+        assert ('const LABELS = {"direct": ["reuse", "primary", "neither", '
+                '"unsure"], "indirect": ["reuse", "mention", "neither", '
+                '"unsure"]}') in page
+
+    def test_a_pair_is_offered_the_labels_of_its_own_pathway(self):
+        row = {'doi': 'd', 'title': 't', 'dandiset': '000001',
+               'dandiset_name': 'n', 'reasoning': 'r', 'quotes': []}
+
+        assert 'LABELS[r.pathway]' in R.build([row], 'Ada', 'direct')
 
 
 PAPER_TEXT = ('Methods\n\nWe reanalysed the recordings of <i>Mus musculus</i> '
@@ -195,7 +204,7 @@ class TestServedFullText:
         assert 'No text for this paper is in the cache.' in page
 
 
-class TestPairsIn:
+class TestAllPairs:
     @pytest.fixture
     def candidates(self, tmp_path):
         path = tmp_path / 'reuse_candidates.json'
@@ -209,18 +218,19 @@ class TestPairsIn:
         ]}))
         return path
 
-    def test_holds_every_candidate_in_the_pathway(self, candidates):
-        rows = R.pairs_in('indirect', candidates)
-        assert [r['title'] for r in rows] == ['The first paper', 'The second paper']
-
-    def test_leaves_out_the_other_queue(self, candidates):
-        assert R.pairs_in('indirect', candidates) != R.pairs_in('direct', candidates)
-        assert [r['doi'] for r in R.pairs_in('direct', candidates)] == ['10.1/a']
+    def test_holds_every_candidate_of_both_pathways(self, candidates):
+        rows = R.all_pairs(candidates)
+        assert [r['title'] for r in rows] == [
+            'The first paper', 'The direct paper', 'The second paper']
 
     def test_orders_the_pairs_by_paper_then_dataset(self, candidates):
-        rows = R.pairs_in('indirect', candidates)
+        rows = R.all_pairs(candidates)
         assert [(r['doi'], r['dandiset']) for r in rows] == [
-            ('10.1/a', '000541'), ('10.1/b', '000541')]
+            ('10.1/a', '000541'), ('10.1/a', '000714'), ('10.1/b', '000541')]
+
+    def test_a_papers_two_pathways_stand_together(self, candidates):
+        rows = R.all_pairs(candidates)
+        assert [r['pathway'] for r in rows] == ['indirect', 'direct', 'indirect']
 
 
 class TestReadAssignment:
@@ -233,38 +243,145 @@ class TestReadAssignment:
         }))
         return path
 
-    def test_reads_the_reviewer_and_the_pathway_off_the_file(self, assignment):
-        _, reviewer, pathway = R.read_assignment(assignment)
-        assert (reviewer, pathway) == ('rly', 'indirect')
+    def test_reads_whose_queue_it_is(self, assignment):
+        _, reviewer = R.read_assignment(assignment)
+        assert reviewer == 'rly'
 
     def test_flattens_the_pairs_it_names(self, assignment):
-        pairs, _, _ = R.read_assignment(assignment)
+        pairs, _ = R.read_assignment(assignment)
         assert sorted(pairs) == [('10.1/a', '000541'), ('10.1/a', '000714'),
                                  ('10.1/b', '000541')]
 
 
-class TestScope:
-    def row(self, doi, dandiset='000541'):
-        return {'doi': doi, 'dandiset': dandiset, 'title': 't',
-                'dandiset_name': 'n', 'reasoning': 'r', 'quotes': []}
+class TestAssignmentPairs:
+    """A session covers both pathways, so it opens both of a reviewer's queues."""
 
+    @pytest.fixture
+    def base(self, tmp_path):
+        queues = {
+            ('rly', 'indirect'): {'10.1/b': ['000541']},
+            ('rly', 'direct'): {'10.1/a': ['000714']},
+            ('ada', 'indirect'): {'10.1/c': ['000128']},
+        }
+        for (reviewer, pathway), pairs in queues.items():
+            path = tmp_path / reviewer / f'{reviewer}-assignment-{pathway}.json'
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(
+                {'reviewer': reviewer, 'pathway': pathway, 'pairs': pairs}))
+        return tmp_path
+
+    def test_opens_both_of_a_reviewers_queues_unasked(self, base):
+        assert sorted(R.assignment_pairs('rly', None, base)) == [
+            ('10.1/a', '000714'), ('10.1/b', '000541')]
+
+    def test_a_reviewer_dealt_only_one_queue_gets_that_one(self, base):
+        assert R.assignment_pairs('ada', None, base) == [('10.1/c', '000128')]
+
+    def test_a_reviewer_dealt_nothing_has_no_assignment(self, base):
+        assert R.assignment_pairs('grace', None, base) is None
+
+    def test_named_files_are_used_instead_of_the_defaults(self, base):
+        named = [str(base / 'rly' / 'rly-assignment-direct.json')]
+        assert R.assignment_pairs('rly', named, base) == [('10.1/a', '000714')]
+
+    def test_refuses_somebody_elses_queue(self, base):
+        named = [str(base / 'ada' / 'ada-assignment-indirect.json')]
+        with pytest.raises(SystemExit):
+            R.assignment_pairs('rly', named, base)
+
+
+def row(doi='10.1/a', dandiset='000541', pathway='indirect'):
+    """A pair as the page receives it, with only the fields the page reads."""
+    return {'doi': doi, 'dandiset': dandiset, 'pathway': pathway, 'title': 't',
+            'dandiset_name': 'n', 'reasoning': 'r', 'quotes': []}
+
+
+class TestScope:
     def test_without_an_assignment_the_page_has_no_whose_filter(self):
-        page = R.build([self.row('10.1/a')], 'rly', 'indirect')
+        page = R.build([row()], 'rly', 'indirect')
         assert 'const MINE = null' in page
-        assert 'data-s="mine"' not in page
+        assert 'data-value="mine"' not in page
 
     def test_an_assignment_adds_the_filter_without_removing_a_pair(self):
-        rows = [self.row('10.1/a'), self.row('10.1/b')]
+        rows = [row('10.1/a'), row('10.1/b')]
         page = R.build(rows, 'rly', 'indirect', [('10.1/a', '000541')])
-        assert 'data-s="mine"' in page
-        assert 'data-s="everyone"' in page
+        assert 'data-control="scope" data-value="mine"' in page
+        assert 'data-control="scope" data-value="everyone"' in page
         # Both pairs are still aboard; the filter narrows what is shown.
         assert '10.1/b' in page
 
     def test_the_assigned_pairs_reach_the_page_as_a_lookup(self):
-        page = R.build([self.row('10.1/a')], 'rly', 'indirect',
-                       [('10.1/a', '000541')])
+        page = R.build([row()], 'rly', 'indirect', [('10.1/a', '000541')])
         assert 'const MINE = new Set(["10.1/a\\t000541"])' in page
+
+
+class TestOpeningPathway:
+    """Both pathways are always aboard; a pathway only says where to open."""
+
+    def test_the_page_opens_on_the_pathway_it_was_given(self):
+        page = R.build([row()], 'rly', 'direct')
+        assert 'const PATHWAY = "direct"' in page
+        assert 'data-control="pathway" data-value="direct" aria-pressed="true"' in page
+
+    def test_without_one_the_page_opens_on_both(self):
+        page = R.build([row()], 'rly')
+        assert 'const PATHWAY = "all"' in page
+        assert 'data-control="pathway" data-value="all" aria-pressed="true"' in page
+
+    def test_a_pathway_narrows_what_is_shown_not_what_was_loaded(self):
+        rows = [row('10.1/a', pathway='indirect'),
+                row('10.1/b', pathway='direct')]
+
+        page = R.build(rows, 'rly', 'direct')
+
+        assert '10.1/a' in page and '10.1/b' in page
+
+    def test_a_pair_carries_its_own_pathway_to_the_page(self):
+        rows = [row('10.1/a', pathway='indirect'),
+                row('10.1/b', pathway='direct')]
+
+        page = R.build(rows, 'rly')
+
+        assert '"pathway": "indirect"' in page
+        assert '"pathway": "direct"' in page
+
+
+class TestOverview:
+    """The second pass: the pairs laid out in groups rather than one at a time."""
+
+    def test_the_page_offers_both_views(self):
+        page = R.build([row()], 'rly')
+        assert 'data-view="worksheet"' in page
+        assert 'data-view="overview"' in page
+
+    def test_every_label_a_pair_can_be_given_can_be_filtered_to(self):
+        page = R.build([row()], 'rly')
+
+        for label in ['reuse', 'mention', 'primary', 'neither', 'unsure']:
+            assert f'data-control="filter" data-value="{label}"' in page
+
+    def test_the_review_state_filters_share_the_group_with_the_labels(self):
+        page = R.build([row()], 'rly')
+
+        for state in ['all', 'todo', 'done']:
+            assert f'data-control="filter" data-value="{state}"' in page
+
+    def test_a_label_chip_says_which_pathways_can_produce_it(self):
+        page = R.build([row()], 'rly')
+        assert ('data-value="primary" aria-pressed="false" '
+                'data-pathways="direct"') in page
+        assert ('data-value="reuse" aria-pressed="false" '
+                'data-pathways="direct indirect"') in page
+
+    def test_the_pairs_can_be_gathered_from_either_end_of_a_pair(self):
+        page = R.build([row()], 'rly')
+        assert 'data-control="grouping" data-value="dandiset"' in page
+        assert 'data-control="grouping" data-value="paper"' in page
+        assert 'data-control="grouping" data-value="none"' in page
+
+    def test_the_page_offers_a_search(self):
+        page = R.build([row()], 'rly')
+        assert 'id="search"' in page
 
 
 class TestCitedPaperOrigin:
