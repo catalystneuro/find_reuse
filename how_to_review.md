@@ -109,6 +109,14 @@ work out: open the dandiset, see what it holds and who deposited it, and decide
 whether the cited paper is that work. Where it is not, the answer is **Neither**,
 and say so in the note.
 
+MC_Maze ([000128](https://dandiarchive.org/dandiset/000128)) and its Large,
+Medium and Small variants ([000138](https://dandiarchive.org/dandiset/000138),
+[000139](https://dandiarchive.org/dandiset/000139),
+[000140](https://dandiarchive.org/dandiset/000140)) share primary papers, and
+papers reanalysing them cite those papers or the Neural Latents Benchmark rather
+than an identifier. You can see the data was reused and not which dandiset it
+came from. That is **Ambiguous Reuse**.
+
 An amber **SHARED WITH N DANDISETS** chip on the dataset means other dandisets
 name the same paper, and the evidence box lists them with their own chips. The
 MC_Maze family is the case to have in mind: one paper describes four dandisets,
@@ -123,6 +131,7 @@ sharing may be nothing more than a bad guess.
 | Label | When |
 |---|---|
 | **Reuse** | The paper obtained the dataset and analysed it. |
+| **Ambiguous Reuse** | The paper reused DANDI data; which dandiset is unclear. Say what you could tell in the note. |
 | **Mention** | The paper refers to the work but never touches the data. |
 | **Neither** | Neither holds — the citation is about something else. |
 | **Unsure** | You cannot tell from the text. Say why in the note. |
@@ -132,6 +141,7 @@ sharing may be nothing more than a bad guess.
 | Label | When |
 |---|---|
 | **Reuse** | The paper obtained the dataset and analysed it. |
+| **Ambiguous Reuse** | The paper reused DANDI data; which dandiset is unclear. Say what you could tell in the note. |
 | **Primary** | The paper *is* the one that deposited the dataset. |
 | **Neither** | Neither holds — the identifier is there for another reason. |
 | **Unsure** | You cannot tell from the text. Say why in the note. |

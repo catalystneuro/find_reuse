@@ -27,6 +27,10 @@ class TestLabels:
         assert '"primary"' in R.build([row], 'Ada', 'direct')
         assert '"mention"' not in R.build([row], 'Ada', 'direct')
 
+    def test_either_queue_can_answer_ambiguous_reuse(self):
+        assert 'ambiguous_reuse' in R.LABELS['direct']
+        assert 'ambiguous_reuse' in R.LABELS['indirect']
+
 
 PAPER_TEXT = ('Methods\n\nWe reanalysed the recordings of <i>Mus musculus</i> '
               'deposited by the original authors.\n')
