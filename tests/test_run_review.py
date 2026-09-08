@@ -298,3 +298,42 @@ class TestCitedPaperOrigin:
                          'dandiset_name': 'n', 'reasoning': 'r', 'quotes': []}],
                        'rly', 'indirect')
         assert 'cited_source' not in page.split('const REVIEWER')[0]
+
+
+class TestSharedPaper:
+    """Like the origin chip, the flag is drawn in the browser: what the page can
+    be held to is that the siblings reach it and that it carries the wording."""
+
+    def row(self, **overrides):
+        record = {'doi': '10.1/citer', 'dandiset': '000128', 'title': 't',
+                  'dandiset_name': 'MC_Maze', 'reasoning': 'r', 'quotes': [],
+                  'cited_doi': '10.1/nature11129', 'cited_title': 'Reaching',
+                  'cited_role': 'Cited', 'cited_source': 'dcite:IsDescribedBy',
+                  'shared_paper': {
+                      'doi': '10.1/nature11129', 'title': 'Reaching',
+                      'dandisets': [{'dandiset': '000070',
+                                     'dandiset_name': 'Neural population dynamics',
+                                     'relation': 'dcite:IsDescribedBy'}]}}
+        record.update(overrides)
+        return record
+
+    def test_the_page_carries_the_datasets_sharing_the_paper(self):
+        page = R.build([self.row()], 'rly', 'indirect')
+        assert '"dandiset": "000070"' in page
+        assert 'Neural population dynamics' in page
+
+    def test_the_page_carries_the_wording_the_flag_is_drawn_with(self):
+        page = R.build([self.row()], 'rly', 'indirect')
+        assert 'shared with ' in page
+        assert 'Dandisets Sharing This Paper' in page
+
+    def test_the_direct_queue_flags_it_too(self):
+        page = R.build([self.row(cited_doi='', cited_title='', cited_role='',
+                                 cited_source='')], 'rly', 'direct')
+        assert '"dandiset": "000070"' in page
+
+    def test_a_candidate_list_built_before_the_field_existed_still_loads(self):
+        page = R.build([{'doi': '10.1/citer', 'dandiset': '000541', 'title': 't',
+                         'dandiset_name': 'n', 'reasoning': 'r', 'quotes': []}],
+                       'rly', 'indirect')
+        assert 'shared_paper' not in page.split('const REVIEWER')[0]

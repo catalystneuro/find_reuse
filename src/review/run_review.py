@@ -187,6 +187,20 @@ CSS = PALETTE + """
           background:var(--raise);color:var(--muted)}
   .origin.unvouched{background:var(--bad-soft);color:var(--bad)}
 
+  /* One paper naming several dandisets, worn by the dataset. Amber rather than
+     red: red says nothing stands behind the link, and this link can be DANDI's
+     own and still leave the reuse unattributable to the dataset on the card. */
+  .shared{display:inline-flex;align-items:center;font-family:var(--mono);
+          font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;
+          padding:2px 7px;border-radius:5px;font-weight:600;
+          background:var(--warn-soft);color:var(--warn)}
+  .shared-paper{margin:0 0 12px;font-size:13.5px;color:var(--muted)}
+  ul.siblings{margin:0 0 16px;padding:0;list-style:none;display:flex;
+              flex-direction:column;gap:8px}
+  ul.siblings li{display:flex;flex-wrap:wrap;align-items:baseline;gap:5px 11px}
+  ul.siblings a.dsid{font-size:13px;font-weight:700}
+  .sibname{font-size:13.5px;color:var(--muted);text-wrap:pretty}
+
   .decide{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:11px}
   .calls{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
   .calls button{font:inherit;font-size:15px;font-weight:560;padding:13px 30px;
@@ -284,6 +298,36 @@ function originChip(source){
             >${esc(originLabel(source))}</span>`;
 }
 
+// The paper the pair was built from, where other dandisets name it too. A work
+// citing a paper that describes four datasets has said nothing about which of
+// them it touched, and the pair in front of you is only one of the four.
+function sharedChip(r){
+  if (!r.shared_paper) return '';
+  const n = r.shared_paper.dandisets.length;
+  return `<span class="shared">shared with ${n} dandiset${n === 1 ? '' : 's'}</span>`;
+}
+
+// Each sibling wears how it came to name the paper, because that is what says
+// how much the sharing is worth: DANDI claiming the paper describes both is an
+// ambiguity to resolve, a model picking it twice is a pairing to distrust.
+function sharedBlock(r){
+  if (!r.shared_paper) return '';
+  const shared = r.shared_paper;
+  const siblings = shared.dandisets.map(d => `<li>
+      <a class="dsid" href="https://dandiarchive.org/dandiset/${esc(d.dandiset)}"
+         target="_blank" rel="noopener">${esc(d.dandiset)}</a>
+      <span class="sibname">${esc(d.dandiset_name)}</span>
+      ${originChip(d.relation)}
+    </li>`).join('');
+  return `<h4>Dandisets Sharing This Paper</h4>
+    <p class="shared-paper">
+      <a class="doi" href="https://doi.org/${encodeURI(shared.doi)}"
+         target="_blank" rel="noopener">${esc(shared.doi)}</a>
+      ${esc(shared.title)}
+    </p>
+    <ul class="siblings">${siblings}</ul>`;
+}
+
 const TIER_KEY = `<div class="legend">
     <span class="key"><span class="tier exact">exact</span>character for character</span>
     <span class="key"><span class="tier normalized">normalized</span>case, punctuation or
@@ -354,11 +398,13 @@ function paperPanel(role, doi, title, text, chip){
 }
 
 function datasetPanel(r){
+  const chip = sharedChip(r);
   return `<div class="party dataset">
       <span class="role">Cited Dataset</span>
       <a class="dsid" href="https://dandiarchive.org/dandiset/${esc(r.dandiset)}"
          target="_blank" rel="noopener">${esc(r.dandiset)}</a>
       <span class="dsname">${esc(r.dandiset_name)}</span>
+      ${chip ? `<div class="links">${chip}</div>` : ''}
     </div>`;
 }
 
@@ -426,6 +472,7 @@ function render(){
 
     <div class="evidence">
       <div class="inner">
+        ${sharedBlock(r)}
         <h4>Model Reasoning</h4>
         <p class="reasoning">${esc(r.reasoning)}</p>
         <h4>Quoted Evidence</h4>
