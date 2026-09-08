@@ -321,13 +321,13 @@
     },
     "10.21203/rs.3.rs-8080516": {
       "000776": {
-        "note": "Title is missing, DOI not found. Where is the main text? https://www.researchsquare.com/article/rs-8080516/v1",
+        "note": "Analysed pre-processed whole-brain image volumes from Atanas et al. (DANDI:000776).",
         "call": "reuse"
       }
     },
     "10.21203/rs.3.rs-9801550": {
       "000636": {
-        "note": "Title is missing, DOI not found. Where is the main text? https://www.researchsquare.com/article/rs-9801550/v1",
+        "note": "Downloaded NWB files from DANDI:000636, human patch-seq recordings of neurosurgical cortex resections.",
         "call": "reuse"
       }
     },
