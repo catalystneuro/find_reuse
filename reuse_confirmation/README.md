@@ -57,9 +57,12 @@ including `dandi_reason` — why this pair counts as DANDI data, which is a
 different question from whether DANDI hosts the modality it reused — and
 `cited_source`, how the dataset came to name the paper the pair was built from.
 Most of them name none and a model was asked to pick one, so that field is the
-difference between a pairing DANDI asserts and one nothing stands behind. Written by
-`src.review.build_candidates`, sorted by pair, so rerunning the pipeline shows
-up as the pairs it added.
+difference between a pairing DANDI asserts and one nothing stands behind.
+`shared_paper` names the other dandisets naming that same paper, each with its
+own relation: a paper covering four datasets is cited once, and what the citing
+work then says about the data is not attributable to any one of them. Written
+by `src.review.build_candidates`, sorted by pair, so rerunning the pipeline
+shows up as the pairs it added.
 
 Its header says which run of the pipeline produced it — the model, the prompt
 version, and the labels that run reached, per input:
@@ -88,6 +91,11 @@ A queue, not a history: only what that person still has to read. Reviewing a
 pair takes it out, so these files stay short and a finished round leaves an
 empty one. What a round did not get through carries into the next.
 
+Every dataset one paper reused is in one person's queues, so nobody reviews half
+a paper. One file per pathway, but a session opens both of a reviewer's together,
+because a dandiset's pairs are split between them and no one queue holds a
+dataset whole.
+
 Regenerable in principle, but not in practice: who was asked to read what is a
 decision, and dealing again from scratch would not necessarily reach the same
 one. Written by `src.review.assign_reviews`.
@@ -111,10 +119,12 @@ dataset to what was decided about that pair.
 
 A review is one person's read of one pair: a `call`, and a `note` saying why
 where the call is not obvious. A paper reusing four datasets stands in four
-separate relationships, so it holds four reviews under its DOI. Both queues
-write to this one file, since a pair belongs to one of them only. This is the
-file that accumulates across rounds, and a session reads it alongside the
-assignment so that past calls stay on screen under **Reviewed**.
+separate relationships, so it holds four reviews under its DOI. Both queues write
+to this one file, since a pair belongs to one of them only, and one session
+covers both, so nothing races to overwrite it. This is the file that accumulates
+across rounds, and a session reads it alongside the assignment so that past calls
+stay on screen under **Reviewed** — or under the call they were given, which is
+how a second pass finds every pair it left **Unsure**.
 
 **This is the one file here that cannot be regenerated.** The classifications it
 checks can be re-run at any time; a person's reading of a paper cannot. It
@@ -152,6 +162,13 @@ One is enough by default, which is all a round dealt out disjointly can produce;
 `--min-reviewers 2` is for once pairs have been read twice. A dissenting call
 does not veto — what confirms a pair is how many people read it and said yes,
 and the disagreement stays visible in `all_reviews.json`.
+
+A pair called `ambiguous_reuse` is reuse of DANDI data that names no dandiset, so
+it is absent here by design: a per-dandiset count reads this file and would
+otherwise credit a dataset nobody could stand behind. Counting papers means
+reading `all_reviews.json` for the calls that came out `reuse` or
+`ambiguous_reuse`, deduplicated by DOI — which a paper-level count off that
+file already has to do, since a paper reusing three datasets is three pairs.
 
 Both files are written by `src.review.merge_reviews`.
 
