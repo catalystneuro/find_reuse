@@ -321,13 +321,11 @@
     },
     "10.21203/rs.3.rs-8080516": {
       "000776": {
-        "note": "Analysed pre-processed whole-brain image volumes from Atanas et al. (DANDI:000776).",
         "call": "reuse"
       }
     },
     "10.21203/rs.3.rs-9801550": {
       "000636": {
-        "note": "Downloaded NWB files from DANDI:000636, human patch-seq recordings of neurosurgical cortex resections.",
         "call": "reuse"
       }
     },
