@@ -379,6 +379,22 @@ class TestOverview:
         assert 'data-control="grouping" data-value="paper"' in page
         assert 'data-control="grouping" data-value="none"' in page
 
+    def test_the_grouping_says_which_end_of_the_pair_the_paper_is(self):
+        assert '>By Citing Paper</button>' in R.build([row()], 'rly')
+
+    def test_a_group_can_be_folded_shut(self):
+        page = R.build([row()], 'rly')
+        assert 'id="foldall"' in page
+        assert 'shut.has(shutKey(group.id))' in page
+
+    def test_a_call_can_be_taken_back(self):
+        page = R.build([row()], 'rly')
+        assert 'id="undo"' in page
+        assert "undoStack.push({row: r, call: callFor(r), view, index})" in page
+
+    def test_nothing_answered_yet_is_nothing_to_take_back(self):
+        assert '<button class="btn" id="undo" disabled>' in R.build([row()], 'rly')
+
     def test_the_page_offers_a_search(self):
         page = R.build([row()], 'rly')
         assert 'id="search"' in page

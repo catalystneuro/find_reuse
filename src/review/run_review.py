@@ -95,6 +95,9 @@ CSS = PALETTE + """
   .btn{font:inherit;font-size:12.5px;padding:6px 12px;border-radius:999px;cursor:pointer;
        border:1px solid var(--line-strong);background:var(--surface);color:var(--muted)}
   .btn:hover{border-color:var(--accent);color:var(--ink)}
+  /* Nothing left to take back reads as nothing to press. */
+  .btn:disabled{opacity:.45;cursor:default}
+  .btn:disabled:hover{border-color:var(--line-strong);color:var(--muted)}
   .btn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);
                             color:var(--on-accent)}
   .filters{display:flex;gap:6px}
@@ -239,6 +242,7 @@ CSS = PALETTE + """
   .toolbar.controls .filters + .filters{padding-left:9px;
                                         border-left:1px solid var(--line)}
   .sep{width:1px;align-self:stretch;margin:0 3px;background:var(--line-strong)}
+  .fold{margin-left:9px}
   /* Takes what the row has left rather than a width of its own, so the chips
      keep one line and the box is as wide as that leaves it. */
   .search{font:inherit;font-size:12.5px;padding:6px 13px;border-radius:999px;
@@ -261,7 +265,15 @@ CSS = PALETTE + """
          border-radius:14px;overflow:hidden}
   .group h3{position:sticky;top:0;z-index:1;display:flex;align-items:baseline;
             gap:11px;margin:0;padding:10px 18px;background:var(--raise);
-            border-bottom:1px solid var(--line);font-size:14px;font-weight:640}
+            border-bottom:1px solid var(--line);font-size:14px;font-weight:640;
+            cursor:pointer;user-select:none}
+  .group h3:hover .caret{color:var(--accent)}
+  /* A group folded shut keeps its heading, and the tally on it stands in for
+     the rows being held back. */
+  .group.shut h3{border-bottom:0}
+  .caret{display:inline-block;color:var(--muted);font-size:12px;
+         transition:transform .12s ease}
+  .group.shut .caret{transform:rotate(-90deg)}
   .groupid{font-family:var(--mono);font-size:14px;font-weight:700;
            color:var(--accent);white-space:nowrap}
   .groupname{font-weight:400;color:var(--muted);min-width:0;overflow:hidden;
@@ -321,6 +333,18 @@ function record(r, field, value){
 // groups, which is how you go back over the answers you already gave and see
 // what a dataset or a paper came to as a whole.
 let view = 'worksheet';
+
+function setView(next){
+  view = next;
+  document.querySelectorAll('[data-view]').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.view === next)));
+}
+
+// A call is one click, and so is the wrong call -- the chip beside the one you
+// meant, or the right one on the row above. Under a filter the pair leaves the
+// list the moment it is answered, so what it was called before is kept here
+// along with where it was called from, and both can be put back.
+const undoStack = [];
 
 // What the session is looking at. Every one of these narrows what is shown
 // rather than what was loaded -- a session always holds every candidate there
@@ -516,6 +540,12 @@ function syncControls(rows){
   document.querySelectorAll('.step').forEach(b =>
     b.hidden = view === 'overview');
   document.querySelector('.grouping').hidden = view === 'worksheet';
+  document.getElementById('undo').disabled = !undoStack.length;
+  const fold = document.getElementById('foldall');
+  fold.hidden = view === 'worksheet' || controls.grouping === 'none';
+  if (!fold.hidden)
+    fold.textContent = groupsOf(rows).some(g => !shut.has(shutKey(g.id)))
+      ? 'Collapse All' : 'Expand All';
   document.querySelectorAll('[data-control="filter"][data-pathways]')
     .forEach(b => b.hidden = controls.pathway !== 'all'
                              && !b.dataset.pathways.split(' ')
@@ -586,6 +616,12 @@ function renderWorksheet(rows){
       </div>
     </div>`;
 }
+
+// Groups folded shut, so that one dataset or one paper can be read with the
+// rest out of the way. Keyed by the grouping they were shut under, since the
+// datasets and the papers gather the same pairs into different groups.
+const shut = new Set();
+const shutKey = id => controls.grouping + '\\t' + id;
 
 // Which pairs stand together. A dandiset's pairs are spread over the papers that
 // used it and a paper's over the datasets it touched, so the two groupings are
@@ -658,16 +694,29 @@ function renderOverview(rows){
   // top on every call could not be worked down.
   const held = card.querySelector('.overview');
   const scrollTop = held ? held.scrollTop : 0;
-  card.innerHTML = `<div class="overview">${groupsOf(rows).map(group => `
-      <section class="group">
-        ${group.id ? `<h3>
-          <span class="groupid">${esc(group.id)}</span>
-          <span class="groupname">${esc(group.name)}</span>
-          <span class="tally">${tally(group.rows)}</span>
-        </h3>` : ''}
-        ${group.rows.map(entryRow).join('')}
-      </section>`).join('')}</div>`;
+  card.innerHTML = `<div class="overview">${groupsOf(rows).map(group => {
+    const folded = shut.has(shutKey(group.id));
+    return `<section class="group${folded ? ' shut' : ''}">
+      ${group.id ? `<h3 data-group="${esc(group.id)}" aria-expanded="${!folded}">
+        <span class="caret">\\u25be</span>
+        <span class="groupid">${esc(group.id)}</span>
+        <span class="groupname">${esc(group.name)}</span>
+        <span class="tally">${tally(group.rows)}</span>
+      </h3>` : ''}
+      ${folded ? '' : group.rows.map(entryRow).join('')}
+    </section>`;
+  }).join('')}</div>`;
   card.querySelector('.overview').scrollTop = scrollTop;
+}
+
+// One press to put every group away, the next to bring them all back, so that
+// reading one group on its own does not start with shutting forty.
+function foldAll(){
+  const groups = groupsOf(visible());
+  const shutting = groups.some(g => !shut.has(shutKey(g.id)));
+  for (const group of groups)
+    if (shutting) shut.add(shutKey(group.id)); else shut.delete(shutKey(group.id));
+  render();
 }
 
 function go(next){
@@ -678,9 +727,7 @@ function go(next){
 // A pair clicked in the overview came out of visible(), so it is already in the
 // list the worksheet steps through; opening it is finding where it stands.
 function openPair(r){
-  view = 'worksheet';
-  document.querySelectorAll('[data-view]').forEach(b =>
-    b.setAttribute('aria-pressed', String(b.dataset.view === 'worksheet')));
+  setView('worksheet');
   index = visible().indexOf(r);
   render();
 }
@@ -690,6 +737,7 @@ function openPair(r){
 // the answered pair drops out of the list and the next one slides into its
 // place, so holding position is the advance.
 function mark(r, value){
+  undoStack.push({row: r, call: callFor(r), view, index});
   record(r, 'call', callFor(r) === value ? '' : value);
   if (view === 'worksheet'){
     const after = visible();
@@ -698,7 +746,27 @@ function mark(r, value){
   render();
 }
 
+// Puts the last call back and returns to where it was made, since the pair may
+// have left the list on being answered and the list has moved on since.
+function undo(){
+  const last = undoStack.pop();
+  if (!last) return;
+  record(last.row, 'call', last.call);
+  setView(last.view);
+  index = Math.min(last.index, Math.max(visible().length - 1, 0));
+  render();
+}
+
 document.getElementById('card').addEventListener('click', e => {
+  // A heading is the handle its group is folded by; a row is the way into its
+  // pair.
+  const heading = e.target.closest('.group h3');
+  if (heading){
+    const key = shutKey(heading.dataset.group);
+    if (!shut.delete(key)) shut.add(key);
+    render();
+    return;
+  }
   const entry = e.target.closest('.entry');
   const row = entry ? ROW_BY_KEY.get(entry.dataset.key) : visible()[index];
   const button = e.target.closest('button[data-v]');
@@ -714,6 +782,8 @@ document.getElementById('card').addEventListener('input', e => {
 });
 
 document.getElementById('save').addEventListener('click', () => saveNow(true));
+document.getElementById('undo').addEventListener('click', undo);
+document.getElementById('foldall').addEventListener('click', foldAll);
 document.getElementById('prev').addEventListener('click', () => go(index - 1));
 document.getElementById('next').addEventListener('click', () => go(index + 1));
 
@@ -738,9 +808,15 @@ document.querySelectorAll('.filters:not(.views)').forEach(group => {
 document.querySelector('.views').addEventListener('click', e => {
   const button = e.target.closest('.btn');
   if (!button) return;
-  view = button.dataset.view;
-  press(document.querySelector('.views'), button);
+  setView(button.dataset.view);
   render();
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key !== 'z' || !(e.metaKey || e.ctrlKey)) return;
+  if (e.target.closest('textarea, input')) return;
+  e.preventDefault();
+  undo();
 });
 
 document.getElementById('search').addEventListener('input', e => {
@@ -837,6 +913,7 @@ def build(rows: list[dict], reviewer: str, pathway: str | None = None,
   <div class="spacer"></div>
   <div class="bar"><i id="bar"></i></div>
   <span class="readout" id="progress">0 of {n} reviewed</span>
+  <button class="btn" id="undo" disabled>&#8630; Undo</button>
   <button class="btn" id="save">Save</button>
   <span class="savestate" id="savestate"></span>
 </div>
@@ -857,10 +934,11 @@ def build(rows: list[dict], reviewer: str, pathway: str | None = None,
     <button class="btn" data-control="grouping" data-value="dandiset"
             aria-pressed="true">By Dandiset</button>
     <button class="btn" data-control="grouping" data-value="paper"
-            aria-pressed="false">By Paper</button>
+            aria-pressed="false">By Citing Paper</button>
     <button class="btn" data-control="grouping" data-value="none"
             aria-pressed="false">Flat</button>
   </div>
+  <button class="btn fold" id="foldall" hidden>Collapse All</button>
   <input class="search" id="search" type="search" autocomplete="off"
          placeholder="Search &mdash; commas for any">
 </div>

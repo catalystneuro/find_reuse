@@ -93,6 +93,10 @@ One pair per screen. Answering advances to the next; **Prev** and **Next** move
 without answering. Notes are optional — write one when the call is not obvious,
 always on **Unsure**. Your work saves itself.
 
+**Undo** takes back the last call and goes back to the pair it was made on —
+⌘Z, or Ctrl+Z, does the same. It works in either view, which is what the
+overview needs: a pair answered there leaves the list at once.
+
 Start from the model's reasoning and the passages it quoted. **If a quote is
 exact and shows the authors obtained and analysed the data, that is enough —
 mark it and move on.** When it is not enough, open the citing paper, the cited
@@ -138,10 +142,15 @@ The call filter is the way back to a decision you have already made: press
 to the worksheet too — filter to Unsure, switch back, and **Prev**/**Next** walk
 exactly those.
 
-**By Dandiset** gathers every paper that touched one dataset; **By Paper**
-gathers every dataset one paper touched. Each heading tallies what its group came
-to. The search box takes a dandiset id, a paper title, a DOI — commas for any of
+**By Dandiset** gathers every paper that touched one dataset; **By Citing
+Paper** gathers every dataset one paper touched — the paper doing the citing,
+never the one the dandiset names. Each heading tallies what its group came to.
+The search box takes a dandiset id, a paper title, a DOI — commas for any of
 several, so `000128, 000138, 000140` is the whole MC_Maze family at once.
+
+Click a heading to fold that group shut; it keeps its tally, so a folded group
+still says what it came to. **Collapse All** puts them all away, which is how you
+open one dataset and read it on its own.
 
 Call a pair from the list with the buttons on its row, or click the row to open
 it in the worksheet where the links, the reasoning and the quotes are. Notes are
