@@ -5,6 +5,11 @@ Deal candidate pairs out to reviewers.
 Narrows the candidate list to the round you want reviewed, then splits it among
 the registered reviewers so each pair belongs to exactly one person.
 
+Papers are dealt whole: every dataset a paper reused goes to the same reviewer,
+so what a paper says about one dataset can be read against what it says about
+the others, and a dataset the pipeline missed shows up as a gap in the set of
+somebody who is reading that paper anyway.
+
 An assignment is a queue, not a history: it holds what a reviewer still has to
 read. Answering a pair takes it out, and the answer file is what accumulates. So
 a round is what you were dealt plus whatever you had left over, and it stays
@@ -27,6 +32,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -143,11 +149,43 @@ def answered_by(registry: list[dict], base: Path) -> dict[tuple[str, str], str]:
     return holders
 
 
+def group_by_paper(pairs: list[dict]) -> dict[str, list[dict]]:
+    """The pairs each paper contributes, in the order they were given."""
+    grouped: dict[str, list[dict]] = {}
+    for pair in pairs:
+        grouped.setdefault(pair['doi'], []).append(pair)
+    return grouped
+
+
+def holders_by_paper(held: dict[tuple[str, str], str],
+                     names: list[str]) -> dict[str, str]:
+    """
+    Which reviewer a paper already belongs to, so the rest of it joins them.
+
+    A paper whose datasets are spread over two people — dealt before rounds were
+    dealt by paper, or answered by both — belongs to whoever has the most of it,
+    and a tie goes to the reviewer the registry lists first.
+    """
+    tally: dict[str, Counter] = defaultdict(Counter)
+    for (doi, _dandiset), holder in held.items():
+        if holder in names:
+            tally[doi][holder] += 1
+    return {doi: max(names, key=lambda name: tally[doi][name]) for doi in tally}
+
+
 def deal(pairs: list[dict], reviewers: list[dict], placed: dict[str, str],
          answered: dict[str, str], limit: int | None
          ) -> dict[tuple[str, str], list[str]]:
     """
-    Give each unplaced pair to whoever holds the fewest of its pathway.
+    Give each paper to one reviewer, and with it every dataset it reused.
+
+    A paper that reused several datasets is one thing to read: whoever is dealt
+    any of it is dealt all of it, so the datasets can be weighed against each
+    other and one the pipeline missed shows up as a gap in the set of somebody
+    who is actually reading that paper. A paper someone already holds or has
+    answered part of stays theirs; a new one goes to whoever holds the fewest of
+    the pathways it touches, which for a paper that sits in one pathway is that
+    queue's share.
 
     A pair someone has already answered is spoken for and is not dealt at all:
     asking a second person to read it would buy nothing. It does not go into an
@@ -157,8 +195,8 @@ def deal(pairs: list[dict], reviewers: list[dict], placed: dict[str, str],
     Ties go to the reviewer the registry lists first, so the same inputs deal
     the same way every time. What someone still owes and what they have already
     answered both count as their share, so a round goes to whoever has done and
-    been given least. Counting per pathway keeps each queue split evenly, which
-    splits the round evenly too.
+    been given least. A limit is counted in pairs but honoured to the nearest
+    paper, since half a paper is the thing this is here to avoid.
     """
     names = [r['username'] for r in reviewers]
     assigned = {(name, pathway): [] for name in names for pathway in PATHWAYS}
@@ -170,19 +208,37 @@ def deal(pairs: list[dict], reviewers: list[dict], placed: dict[str, str],
             if pair and (holder, pair['pathway']) in counts:
                 counts[(holder, pair['pathway'])] += 1
 
+    holders = holders_by_paper({**placed, **answered}, names)
     unplaced = [p for p in pairs
                 if (p['doi'], p['dandiset']) not in placed
                 and (p['doi'], p['dandiset']) not in answered]
     dealt = 0
-    for pair in unplaced:
-        pathway = pair['pathway']
+    for doi, group in group_by_paper(unplaced).items():
         if limit is not None and dealt >= limit:
             break
-        name = min(names, key=lambda n: counts[(n, pathway)])
-        assigned[(name, pathway)].append((pair['doi'], pair['dandiset']))
-        counts[(name, pathway)] += 1
-        dealt += 1
+        pathways = {p['pathway'] for p in group}
+        name = holders.get(doi) or min(
+            names, key=lambda n: sum(counts[(n, pathway)] for pathway in pathways))
+        for pair in group:
+            assigned[(name, pair['pathway'])].append((doi, pair['dandiset']))
+            counts[(name, pair['pathway'])] += 1
+            dealt += 1
     return assigned
+
+
+def split_papers(base: Path, registry: list[dict]) -> list[str]:
+    """
+    Papers in more than one pair of hands, with some of them still unread.
+
+    Only --reassign gathers these: their pairs are placed already, and a deal
+    that adds to the queues leaves what is in them alone.
+    """
+    queued = assigned_to(base)
+    holders: dict[str, set] = defaultdict(set)
+    for held in (queued, answered_by(registry, base)):
+        for (doi, _dandiset), holder in held.items():
+            holders[doi].add(holder)
+    return sorted({doi for doi, _dandiset in queued if len(holders[doi]) > 1})
 
 
 def write_assignment(reviewer: str, pathway: str, pairs: list[tuple[str, str]],
@@ -275,9 +331,11 @@ def main():
                              'Reviews already given are untouched, and their '
                              'pairs are still not dealt again.')
     parser.add_argument('--limit', type=int, metavar='N',
-                        help='Deal at most N new pairs, to size a round to what '
-                             'somebody will finish. Work already owed is kept '
-                             'either way.')
+                        help='Deal about N new pairs, to size a round to what '
+                             'somebody will finish. Counted in pairs but '
+                             'rounded to a whole paper, since a paper is dealt '
+                             'with every dataset it reused. Work already owed '
+                             'is kept either way.')
     args = parser.parse_args()
 
     candidates = json.loads(CANDIDATES_FILE.read_text())
@@ -308,6 +366,12 @@ def main():
         if queue or new or done:
             print(f'  {reviewer:<20} {pathway:<9} '
                   f'+{len(new)} new, {done} finished, {len(queue)} to read')
+
+    split = split_papers(REUSE_CONFIRMATION_DIR, registry)
+    if split:
+        print(f'{len(split)} {"paper sits" if len(split) == 1 else "papers sit"} '
+              f'with more than one reviewer; --reassign gathers what nobody '
+              f'has answered')
     print(f'Assignments in {REUSE_CONFIRMATION_DIR}')
 
 

@@ -88,6 +88,9 @@ A queue, not a history: only what that person still has to read. Reviewing a
 pair takes it out, so these files stay short and a finished round leaves an
 empty one. What a round did not get through carries into the next.
 
+Every dataset one paper reused is in one person's queues, so nobody reviews half
+a paper.
+
 Regenerable in principle, but not in practice: who was asked to read what is a
 decision, and dealing again from scratch would not necessarily reach the same
 one. Written by `src.review.assign_reviews`.

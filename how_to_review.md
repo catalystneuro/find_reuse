@@ -47,9 +47,15 @@ where something in the paper says the data came from DANDI, and where the
 reusing group is not the one that produced it — 73 papers, 97 pairs. Drop
 filters to widen it; see `--help` for the rest.
 
+Papers are dealt whole: every dataset a paper reused goes to the same person,
+so a pair can be judged against the others from the same paper and a dataset the
+pipeline should have found shows up as a gap in the set of somebody reading that
+paper anyway.
+
 A pair already assigned or already reviewed is never dealt again, so a narrower
 filter deals nothing once a wider round is out. `--reassign` discards the
-existing queues and deals from scratch.
+existing queues and deals from scratch, which is also what gathers a paper an
+earlier round split between two people.
 
 `--paper-link llm_identified` cuts a different kind of round: the indirect pairs
 whose dandiset names no paper, so a model picked one. What needs checking there
