@@ -402,8 +402,8 @@ function render(){
 
   document.getElementById('card').innerHTML = `
     <div class="subject ${MODE}">
-      ${paperPanel('Citing Paper', r.doi, r.title,
-                   r.has_text ? textLink(r.doi, r.dandiset) : '')}
+      ${paperPanel('Citing Paper', r.fetched_doi, r.title,
+                   r.has_text ? textLink(r.fetched_doi, r.dandiset) : '')}
       ${MODE === 'indirect'
         ? paperPanel(citedRole, r.cited_doi, r.cited_title,
                      r.cited_has_text ? textLink(r.cited_doi, '') : '',
@@ -638,6 +638,21 @@ document.querySelector('mark')?.scrollIntoView({{block: 'center'}});
 """
 
 
+def fetched_doi(row: dict) -> str:
+    """
+    The DOI a paper's text was fetched and cached under.
+
+    `doi` is collapsed onto the work a preprint's versions share, so that one
+    paper is counted once. The cache, the publisher and doi.org all know the
+    version, and Research Square mints nothing else, so reaching the text and
+    linking to the paper both go through the DOI as fetched.
+
+    A candidate list built without the field carries the collapsed DOI alone,
+    which is the only key it offers.
+    """
+    return row.get('fetched_doi') or row['doi']
+
+
 def attach_paper_texts(rows: list[dict], cache_dir: Path) -> None:
     """
     Say which papers the fetched text is on hand for.
@@ -648,15 +663,20 @@ def attach_paper_texts(rows: list[dict], cache_dir: Path) -> None:
     """
     cache = text_cache(cache_dir)
     for row in rows:
-        row['has_text'] = bool(cache.get(row['doi']))
+        row['has_text'] = bool(cache.get(fetched_doi(row)))
         if 'cited_doi' in row:
             row['cited_has_text'] = bool(row['cited_doi']
                                          and cache.get(row['cited_doi']))
 
 
 def quotes_by_pair(rows: list[dict]) -> dict:
-    """The passages to mark in a paper's text, for each pair asked about it."""
-    return {(row['doi'], row['dandiset']): [q['q'] for q in row['quotes']]
+    """
+    The passages to mark in a paper's text, for each pair asked about it.
+
+    Keyed by the DOI the card asks for the text by, which is the one it was
+    fetched under.
+    """
+    return {(fetched_doi(row), row['dandiset']): [q['q'] for q in row['quotes']]
             for row in rows}
 
 
@@ -753,6 +773,8 @@ def pairs_in(pathway: str, candidates_path: Path = CANDIDATES_FILE) -> list[dict
     pairs = [p for p in json.loads(candidates_path.read_text())['pairs']
              if p['pathway'] == pathway]
     pairs.sort(key=lambda r: (r['doi'], r['dandiset']))
+    for pair in pairs:
+        pair['fetched_doi'] = fetched_doi(pair)
     return pairs
 
 

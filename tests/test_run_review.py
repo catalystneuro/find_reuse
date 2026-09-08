@@ -157,6 +157,26 @@ class TestAttachPaperTexts:
 
         assert rows[0] == {'doi': '10.1/citer', 'has_text': True}
 
+    def test_finds_a_preprint_under_the_doi_it_was_fetched_under(self, paper_cache):
+        R.TextCache(paper_cache).put('10.21203/rs.3.rs-8080516/v1',
+                                     PAPER_TEXT, 'crossref+unpaywall', True)
+        rows = [{'doi': '10.21203/rs.3.rs-8080516',
+                 'fetched_doi': '10.21203/rs.3.rs-8080516/v1'}]
+
+        R.attach_paper_texts(rows, paper_cache)
+
+        assert rows[0]['has_text'] is True
+
+
+class TestQuotesByPair:
+    def test_keyed_by_the_doi_the_card_asks_for_the_text_by(self):
+        rows = [{'doi': '10.21203/rs.3.rs-8080516', 'dandiset': '000776',
+                 'fetched_doi': '10.21203/rs.3.rs-8080516/v1',
+                 'quotes': [{'q': 'the passage', 'tier': 'exact'}]}]
+
+        assert R.quotes_by_pair(rows) == {
+            ('10.21203/rs.3.rs-8080516/v1', '000776'): ['the passage']}
+
 
 class TestServedFullText:
     def test_serves_the_text_the_classification_was_made_from(self, session):
@@ -221,6 +241,19 @@ class TestPairsIn:
         rows = R.pairs_in('indirect', candidates)
         assert [(r['doi'], r['dandiset']) for r in rows] == [
             ('10.1/a', '000541'), ('10.1/b', '000541')]
+
+    def test_every_pair_offers_the_doi_its_text_was_fetched_under(self, tmp_path):
+        path = tmp_path / 'reuse_candidates.json'
+        path.write_text(json.dumps({'generated_at': 'STAMP', 'pairs': [
+            {'doi': '10.21203/rs.3.rs-8080516', 'dandiset': '000776',
+             'pathway': 'indirect',
+             'fetched_doi': '10.21203/rs.3.rs-8080516/v1'},
+            {'doi': '10.1/unversioned', 'dandiset': '000541',
+             'pathway': 'indirect'},
+        ]}))
+
+        assert [r['fetched_doi'] for r in R.pairs_in('indirect', path)] == [
+            '10.1/unversioned', '10.21203/rs.3.rs-8080516/v1']
 
 
 class TestReadAssignment:

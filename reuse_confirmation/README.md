@@ -61,6 +61,14 @@ difference between a pairing DANDI asserts and one nothing stands behind. Writte
 `src.review.build_candidates`, sorted by pair, so rerunning the pipeline shows
 up as the pairs it added.
 
+A paper carries two DOIs. `doi` is the work, with any version suffix collapsed
+off, so a preprint issued three times counts once and is reviewed once, and it
+is the key a review is filed under. `fetched_doi` is the version the text came
+from, which is what the paper cache, the publisher and doi.org answer to, and so
+it is what the card links to and reads the text by. For most papers the two are
+the same string; where a pair merges several versions, `fetched_doi` is the one
+holding the most text.
+
 Its header says which run of the pipeline produced it — the model, the prompt
 version, and the labels that run reached, per input:
 
