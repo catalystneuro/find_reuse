@@ -354,7 +354,7 @@ const controls = {
   // Take the pairs still owed an answer, look back over the ones already given
   // one, or ask for a single call. A session opens on the work still to do.
   filter: 'todo',
-  pathway: PATHWAY,
+  pathway: 'all',
   scope: MINE ? 'mine' : 'everyone',
   grouping: 'dandiset',
   search: '',
@@ -568,11 +568,20 @@ function render(){
   if (view === 'overview') renderOverview(rows); else renderWorksheet(rows);
 }
 
+// An empty list says which control emptied it, which is not always the one you
+// last touched: a reviewer dealt one pathway has nothing on the other, and a
+// call chip hides itself when the pathway that can produce it goes out of view.
 function emptyMessage(){
-  if (controls.search.trim()) return 'Nothing matches that search.';
+  const pathway = controls.pathway === 'all' ? '' : controls.pathway + ' ';
+  if (!inScope().length){
+    if (controls.search.trim()) return 'Nothing matches that search.';
+    if (controls.scope === 'mine')
+      return `No ${pathway}pairs are assigned to you \\u2014 try Everyone.`;
+    return `No ${pathway}pairs here.`;
+  }
   if (controls.filter === 'todo') return 'Every pair has an answer.';
   if (controls.filter === 'done') return 'Nothing answered yet.';
-  return 'No pair here.';
+  return `Nothing called ${controls.filter}.`;
 }
 
 function renderWorksheet(rows){
@@ -867,17 +876,16 @@ def call_filters() -> str:
         for label in ALL_LABELS)
 
 
-def build(rows: list[dict], reviewer: str, pathway: str | None = None,
+def build(rows: list[dict], reviewer: str,
           mine: list[tuple[str, str]] | None = None) -> str:
     """
     Render one reviewer's session over every candidate there is.
 
-    Both pathways are on board, and `pathway` only says which one the session
-    opens on. `mine` is the subset assigned to this reviewer, which the page
-    filters down to rather than being built from, so stepping outside your own
-    queue and back costs nothing. Both are opening positions rather than limits,
-    for the same reason: a second pass over your own answers is exactly the time
-    you need to see a pair that was never dealt to you.
+    Both pathways are on board and the session opens on both. `mine` is the
+    subset assigned to this reviewer, which the page filters down to rather than
+    being built from, so stepping outside your own queue and back costs nothing:
+    a second pass over your own answers is exactly the time you need to see a
+    pair that was never dealt to you.
     """
     payload = json.dumps(rows, ensure_ascii=False).replace('</', r'<\/')
     n = len(rows)
@@ -891,10 +899,9 @@ def build(rows: list[dict], reviewer: str, pathway: str | None = None,
     mine_js = ('null' if mine is None else
                'new Set(%s)' % json.dumps([f'{doi}\t{dandiset}'
                                            for doi, dandiset in mine]))
-    opening = pathway or 'all'
     pathway_buttons = ''.join(
         f'\n    <button class="btn" data-control="pathway" data-value="{value}" '
-        f'aria-pressed="{str(value == opening).lower()}">{name}</button>'
+        f'aria-pressed="{str(value == "all").lower()}">{name}</button>'
         for value, name in [('all', 'Both'), ('indirect', 'Indirect'),
                             ('direct', 'Direct')])
     return f"""<title>DANDI reuse review &mdash; {n} pairs</title>
@@ -948,7 +955,6 @@ def build(rows: list[dict], reviewer: str, pathway: str | None = None,
 <script>
 const ROWS = {payload};
 const REVIEWER = {json.dumps(reviewer)};
-const PATHWAY = {json.dumps(opening)};
 const LABELS = {json.dumps(LABELS)};
 const MINE = {mine_js};
 {JS}
@@ -1129,14 +1135,14 @@ def make_handler(page: str, reviewer: str, save_path: Path,
     return ReviewHandler
 
 
-def serve(rows: list[dict], reviewer: str, pathway: str | None, port: int,
+def serve(rows: list[dict], reviewer: str, port: int,
           base: Path = REUSE_CONFIRMATION_DIR, paper_cache: Path = PAPER_CACHE,
           open_browser: bool = True,
           mine: list[tuple[str, str]] | None = None) -> None:
     if not rows:
         raise SystemExit('No candidates to review.')
     save_path = reviews_path(reviewer, base)
-    handler = make_handler(build(rows, reviewer, pathway, mine), reviewer,
+    handler = make_handler(build(rows, reviewer, mine), reviewer,
                            save_path, paper_cache, quotes_by_pair(rows))
     server = ThreadingHTTPServer(('127.0.0.1', port), handler)
     url = f'http://127.0.0.1:{server.server_address[1]}/'
@@ -1187,30 +1193,27 @@ def read_assignment(assignment_path: Path) -> tuple[list[tuple[str, str]], str]:
     return pairs, assignment['reviewer']
 
 
-def assignment_pairs(reviewer: str, given: list[str] | None,
-                     base: Path = REUSE_CONFIRMATION_DIR
+def assignment_pairs(reviewer: str, base: Path = REUSE_CONFIRMATION_DIR
                      ) -> list[tuple[str, str]] | None:
     """
     The pairs dealt to this reviewer, across every queue they hold.
 
-    Assignments are written one file per pathway, and a session covers both, so
-    unasked it opens both of the reviewer's own. A reviewer a round dealt nothing
-    in has no file for that pathway, which is a queue they are not in rather than
-    a file that went missing. Naming the files yourself is for reading somebody
-    else's round; None means nothing was dealt, and the page then offers no
-    filter for whose a pair is.
+    Assignments are written one file per pathway and a session covers both, so
+    both of the reviewer's own are opened, found where they are written rather
+    than named. A reviewer a round dealt nothing in has no file for that pathway,
+    which is a queue they are not in rather than a file that went missing. None
+    means nothing was dealt, and the page then offers no filter for whose a pair
+    is.
     """
-    paths = ([Path(p) for p in given] if given else
-             [assignment_path(reviewer, pathway, base) for pathway in LABELS])
     pairs = []
-    for path in paths:
-        if not given and not path.exists():
+    for pathway in LABELS:
+        path = assignment_path(reviewer, pathway, base)
+        if not path.exists():
             continue
         named, assigned_to = read_assignment(path)
         if assigned_to != reviewer:
             raise SystemExit(
-                f'{path} is {assigned_to}\'s, not {reviewer}\'s. Open your own, '
-                f'or drop --assignment to open both of yours.')
+                f'{path} is {assigned_to}\'s, not {reviewer}\'s.')
         pairs += named
     return pairs or None
 
@@ -1220,14 +1223,6 @@ def main():
     parser.add_argument('--reviewer', required=True,
                         help='Whose session this is; must be a registered '
                              'username, and names the file the reviews go to.')
-    parser.add_argument('--pathway', choices=list(LABELS),
-                        help='Which queue to open on. Both are loaded either '
-                             'way, so this is where the session starts rather '
-                             'than what it can reach.')
-    parser.add_argument('--assignment', action='append',
-                        help='Your share of a queue, to open on. Defaults to '
-                             'both of your own. Repeat it to name them '
-                             'yourself.')
     parser.add_argument('--paper-cache', default=str(PAPER_CACHE),
                         help='Fetched paper text, served for papers behind a paywall.')
     parser.add_argument('--port', type=int, default=8000)
@@ -1235,10 +1230,10 @@ def main():
 
     select_reviewers(load_reviewers(REVIEWERS_FILE), args.reviewer)
 
-    mine = assignment_pairs(args.reviewer, args.assignment)
+    mine = assignment_pairs(args.reviewer)
     rows = all_pairs()
     attach_paper_texts(rows, Path(args.paper_cache))
-    serve(rows, args.reviewer, args.pathway, args.port,
+    serve(rows, args.reviewer, args.port,
           paper_cache=Path(args.paper_cache), mine=mine)
 
 

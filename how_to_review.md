@@ -83,9 +83,10 @@ git pull
 python -m src.review.run_review --reviewer rly
 ```
 
-Serves the worksheet on `http://127.0.0.1:8000/`. One session covers everything:
-both of your assignments open by themselves, and every candidate there is comes
-aboard behind them. `--pathway indirect` only chooses which queue you start on.
+Serves the worksheet on `http://127.0.0.1:8000/`. That is the whole command:
+one session covers everything, both of your assignments open by themselves, and
+every candidate there is comes aboard behind them. Which pathway you are looking
+at, and whether you are looking past your own queue, are buttons in the toolbar.
 
 ## 7. Review
 
