@@ -156,6 +156,13 @@ One is enough by default, which is all a round dealt out disjointly can produce;
 does not veto — what confirms a pair is how many people read it and said yes,
 and the disagreement stays visible in `all_reviews.json`.
 
+A pair called `ambiguous_reuse` is reuse of DANDI data that names no dandiset, so
+it is absent here by design: a per-dandiset count reads this file and would
+otherwise credit a dataset nobody could stand behind. Counting papers means
+reading `all_reviews.json` for the calls that came out `reuse` or
+`ambiguous_reuse`, deduplicated by DOI — which a paper-level count off that
+file already has to do, since a paper reusing three datasets is three pairs.
+
 Both files are written by `src.review.merge_reviews`.
 
 ## All of it is committed

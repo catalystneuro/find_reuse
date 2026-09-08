@@ -55,6 +55,7 @@ PALETTE = """
     --bad:#A22F3D; --bad-soft:#F7E2E4;
     --mention:#1C5D9B; --mention-soft:#E1ECF7;
     --primary:#6D3D9B; --primary-soft:#EEE6F7;
+    --ambiguous-reuse:#0E6E72; --ambiguous-reuse-soft:#DDF0F1;
     --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
     --serif:ui-serif,"Iowan Old Style",Georgia,"Times New Roman",serif;
     --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
@@ -70,6 +71,7 @@ PALETTE = """
       --bad:#EF8390; --bad-soft:#3A1B1F;
       --mention:#6DB3F2; --mention-soft:#10263A;
       --primary:#BE96E8; --primary-soft:#251B36;
+      --ambiguous-reuse:#5AC4C8; --ambiguous-reuse-soft:#0E2E30;
     }
   }
 """
@@ -211,11 +213,15 @@ CSS = PALETTE + """
       border-color:color-mix(in srgb,var(--bad) 40%,transparent)}
   .calls button.unsure{color:var(--warn);
       border-color:color-mix(in srgb,var(--warn) 40%,transparent)}
+  .calls button.ambiguous_reuse{color:var(--ambiguous-reuse);
+      border-color:color-mix(in srgb,var(--ambiguous-reuse) 40%,transparent)}
   .calls button[aria-pressed="true"].reuse{background:var(--ok-soft)}
   .calls button[aria-pressed="true"].mention{background:var(--mention-soft)}
   .calls button[aria-pressed="true"].primary{background:var(--primary-soft)}
   .calls button[aria-pressed="true"].neither{background:var(--bad-soft)}
   .calls button[aria-pressed="true"].unsure{background:var(--warn-soft)}
+  .calls button[aria-pressed="true"].ambiguous_reuse{
+      background:var(--ambiguous-reuse-soft)}
   .empty{margin:auto;color:var(--muted);font-size:14px}
   @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 """
@@ -365,7 +371,8 @@ function quoteBlock(q){
 
 function callButtons(r){
   return LABELS.map(label => {
-    const name = label[0].toUpperCase() + label.slice(1);
+    const name = label.split('_')
+      .map(word => word[0].toUpperCase() + word.slice(1)).join(' ');
     return `<button class="${label}" data-v="${label}"
               aria-pressed="${callFor(r) === label}">${name}</button>`;
   }).join('');
@@ -483,10 +490,11 @@ fetch('/load')
 # is built from, so offering a label the classifier could not have produced puts
 # the answer off the matrix: only the direct pathway can say a paper is the one
 # that deposited the dataset, and only the indirect pathway distinguishes a
-# mention from a bare citation. 'unsure' is the reviewer's alone.
+# mention from a bare citation. 'unsure' and 'ambiguous_reuse' are the
+# reviewer's alone.
 LABELS = {
-    'direct': ['reuse', 'primary', 'neither', 'unsure'],
-    'indirect': ['reuse', 'mention', 'neither', 'unsure'],
+    'direct': ['reuse', 'ambiguous_reuse', 'primary', 'neither', 'unsure'],
+    'indirect': ['reuse', 'ambiguous_reuse', 'mention', 'neither', 'unsure'],
 }
 
 def build(rows: list[dict], reviewer: str, mode: str,
