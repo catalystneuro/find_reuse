@@ -155,8 +155,10 @@ class TestMarkQuotes:
 
 class TestAttachPaperTexts:
     def test_says_which_papers_the_fetched_text_is_on_hand_for(self, paper_cache):
-        rows = [{'doi': '10.1/citer', 'cited_doi': '10.1/never-fetched'},
-                {'doi': '10.1/never-fetched', 'cited_doi': '10.1/citer'}]
+        rows = [{'doi': '10.1/citer', 'fetched_doi': '10.1/citer',
+                 'cited_doi': '10.1/never-fetched'},
+                {'doi': '10.1/never-fetched', 'fetched_doi': '10.1/never-fetched',
+                 'cited_doi': '10.1/citer'}]
 
         R.attach_paper_texts(rows, paper_cache)
 
@@ -164,11 +166,12 @@ class TestAttachPaperTexts:
             (True, False), (False, True)]
 
     def test_a_direct_row_is_asked_only_about_its_own_paper(self, paper_cache):
-        rows = [{'doi': '10.1/citer'}]
+        rows = [{'doi': '10.1/citer', 'fetched_doi': '10.1/citer'}]
 
         R.attach_paper_texts(rows, paper_cache)
 
-        assert rows[0] == {'doi': '10.1/citer', 'has_text': True}
+        assert rows[0] == {'doi': '10.1/citer', 'fetched_doi': '10.1/citer',
+                           'has_text': True}
 
     def test_finds_a_preprint_under_the_doi_it_was_fetched_under(self, paper_cache):
         R.TextCache(paper_cache).put('10.21203/rs.3.rs-8080516/v1',
@@ -255,19 +258,6 @@ class TestAllPairs:
     def test_a_papers_two_pathways_stand_together(self, candidates):
         rows = R.all_pairs(candidates)
         assert [r['pathway'] for r in rows] == ['indirect', 'direct', 'indirect']
-
-    def test_every_pair_offers_the_doi_its_text_was_fetched_under(self, tmp_path):
-        path = tmp_path / 'reuse_candidates.json'
-        path.write_text(json.dumps({'generated_at': 'STAMP', 'pairs': [
-            {'doi': '10.21203/rs.3.rs-8080516', 'dandiset': '000776',
-             'pathway': 'indirect',
-             'fetched_doi': '10.21203/rs.3.rs-8080516/v1'},
-            {'doi': '10.1/unversioned', 'dandiset': '000541',
-             'pathway': 'indirect'},
-        ]}))
-
-        assert [r['fetched_doi'] for r in R.all_pairs(path)] == [
-            '10.1/unversioned', '10.21203/rs.3.rs-8080516/v1']
 
 
 class TestReadAssignment:

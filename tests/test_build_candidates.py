@@ -377,7 +377,7 @@ class TestVersionedPreprints:
 
 class TestAttachMissingTitles:
     def test_titles_a_paper_the_classification_left_bare(self, direct_results):
-        rows = [{'doi': '10.1/bare', 'title': ''}]
+        rows = [{'doi': '10.1/bare', 'fetched_doi': '10.1/bare', 'title': ''}]
         B.attach_missing_titles(rows, direct_results)
         assert rows[0]['title'] == 'The title discovery kept'
 

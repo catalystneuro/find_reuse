@@ -228,8 +228,7 @@ def attach_missing_titles(rows: list[dict], direct_results_path: Path) -> None:
               if r.get('doi') and r.get('title')}
     for row in rows:
         if not row['title']:
-            fetched = (row.get('fetched_doi') or row['doi']).lower()
-            row['title'] = titles.get(fetched, titles.get(row['doi'].lower(), ''))
+            row['title'] = titles.get(row['fetched_doi'].lower(), '')
 
 
 def attach_dandiset_names(rows: list[dict], results_path: Path) -> None:
