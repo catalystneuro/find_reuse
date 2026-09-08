@@ -57,12 +57,12 @@
         "call": "reuse"
       },
       "000128": {
-        "call": "reuse",
-        "note": "This paper clearly reused data from the mc-maze dataset, however they say that they got it from the Neural Latent Benchmark [sic, should be Neural Latents Benchmark], and it's unclear which mc-maze Dandiset corresponds to that dataset."
+        "call": "ambiguous_reuse",
+        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. "
       },
       "000139": {
-        "note": "This paper clearly reused data from the mc-maze dataset, however they say that they got it from the Neural Latent Benchmark [sic, should be Neural Latents Benchmark], and it's unclear which mc-maze Dandiset corresponds to that dataset.",
-        "call": "reuse"
+        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. ",
+        "call": "ambiguous_reuse"
       }
     },
     "10.1038/s41592-024-02232-7": {
@@ -98,8 +98,7 @@
     },
     "10.1101/2021.03.13.435173": {
       "000020": {
-        "note": "This Ecosystem paper is just using a DANDI set for illustration purposes. I don't know if we really want to count this as reuse.",
-        "call": "unsure"
+        "call": "reuse"
       }
     },
     "10.1101/2023.04.05.535396": {
@@ -150,6 +149,7 @@
     },
     "10.21105/joss.05023": {
       "000128": {
+        "note": "This one actually names Dandiset 000128 by name, so it is unambiguously reused.",
         "call": "reuse"
       }
     },
@@ -193,8 +193,7 @@
     },
     "10.7554/elife.78362": {
       "000048": {
-        "note": "It's unclear to me whether this ecosystem paper really counts as data reuse. ",
-        "call": "unsure"
+        "call": "reuse"
       }
     },
     "10.7554/elife.85786": {
@@ -245,14 +244,14 @@
         "call": "reuse"
       },
       "000139": {
-        "note": "The three cited paper/Dandisets were not present in the three previous data sets that were reanalyzed in this paper. The citation appears to be simply a background mention in the figure legend.",
-        "call": "mention"
+        "call": "ambiguous_reuse",
+        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. "
       }
     },
     "10.1038/s41593-025-02183-y": {
       "000447": {
-        "note": "This paper reused data from ref 67, which corresponds to Dandiset 000978, not 000447. However, ref 45 does correspond to the primary paper of Dandiset 000447. Honestly, I am not sure what the relationship is between those two Dandiset, nor what the status should be for this case. ",
-        "call": "unsure"
+        "note": "This paper reused data from ref 67, which corresponds to Dandiset 000978, not 000447. However, ref 45 does correspond to the primary paper of Dandiset 000447. Since it's most likely that the data was actually obtained from Dandiset 000978, this citation is counted as a \"neither\". It's understandable that the model got confused, though. ",
+        "call": "neither"
       }
     },
     "10.1063/5.0296506": {
@@ -262,16 +261,18 @@
     },
     "10.1088/1741-2552/ad1787": {
       "000138": {
-        "call": "reuse"
+        "call": "ambiguous_reuse",
+        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. "
       },
       "000140": {
-        "call": "reuse"
+        "call": "ambiguous_reuse",
+        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. "
       }
     },
     "10.1101/2021.10.07.463540": {
       "000139": {
-        "note": "This paper appears to reuse data from Dandiset 000128, which shares its primary paper with Dandiset 000139. Honestly, not sure how to handle such cases.",
-        "call": "unsure"
+        "call": "neither",
+        "note": "This paper definitely used data from DANDISET 000128. It is possible that they used other MC_Maze datasets, but not likely (and not evidenced). "
       }
     },
     "10.1101/2022.11.11.516161": {
@@ -282,10 +283,12 @@
     },
     "10.1101/2023.03.01.530616": {
       "000128": {
-        "call": "reuse"
+        "call": "ambiguous_reuse",
+        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. "
       },
       "000139": {
-        "call": "reuse"
+        "call": "ambiguous_reuse",
+        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. "
       }
     },
     "10.1101/2024.01.25.577295": {
@@ -306,12 +309,12 @@
     },
     "10.1101/2025.03.21.644350": {
       "000128": {
-        "call": "unsure",
-        "note": "Clearly, this paper is re-analyzing data from the Neural Latent Benchmark and using the MC_Maze dataset. Unfortunately, it's not clear which MC_Maze Dandiset they used. "
+        "call": "ambiguous_reuse",
+        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. "
       },
       "000139": {
-        "note": "Clearly, this paper is re-analyzing data from the Neural Latent Benchmark and using the MC_Maze dataset. Unfortunately, it's not clear which MC_Maze Dandiset they used. ",
-        "call": "unsure"
+        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. ",
+        "call": "ambiguous_reuse"
       }
     },
     "10.1101/2025.07.01.662601": {
@@ -324,7 +327,8 @@
         "call": "reuse"
       },
       "000139": {
-        "call": "reuse"
+        "call": "ambiguous_reuse",
+        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. "
       }
     },
     "10.1371/journal.pcbi.1013789": {
@@ -335,30 +339,31 @@
         "call": "reuse"
       },
       "000139": {
-        "call": "reuse"
+        "call": "ambiguous_reuse",
+        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. "
       }
     },
     "10.21105/jose.00309": {
       "000070": {
-        "note": "I don't know if this counts as reuse, to be honest. ",
-        "call": "unsure"
+        "call": "reuse"
       },
       "000138": {
-        "note": "I don't know if this counts as reuse, to be honest. ",
-        "call": "unsure"
+        "call": "neither",
+        "note": "This online textbook actually uses data from Dandiset 000070 during the Churchland & Cunningham et al. 2012 lesson: https://nwb4edu.github.io/Lesson_5/02-RotationalDynamics.html."
       },
       "000140": {
-        "note": "I don't know if this counts as reuse, to be honest.",
-        "call": "unsure"
+        "call": "neither",
+        "note": "This online textbook actually uses data from Dandiset 000070 during the Churchland & Cunningham et al. 2012 lesson: https://nwb4edu.github.io/Lesson_5/02-RotationalDynamics.html."
       }
     },
     "10.3389/fnins.2026.1714738": {
       "000128": {
-        "call": "reuse"
+        "call": "neither",
+        "note": "\"Publicly available datasets were analyzed in this study. This data can be found here: https://dandiarchive.org/dandiset/000070.\""
       },
       "000139": {
-        "note": "Clearly, the citing paper used data from one or more of these MC Maze datasets, but which one? No clue.",
-        "call": "unsure"
+        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. ",
+        "call": "ambiguous_reuse"
       }
     },
     "10.3390/e24020152": {
@@ -384,16 +389,16 @@
     },
     "10.7554/elife.93060": {
       "000128": {
-        "note": "But which MC Maze?",
-        "call": "unsure"
+        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. ",
+        "call": "ambiguous_reuse"
       },
       "000138": {
-        "note": "But which MC_Maze?",
-        "call": "unsure"
+        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. ",
+        "call": "ambiguous_reuse"
       },
       "000140": {
-        "note": "But which MC_Maze?",
-        "call": "unsure"
+        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. ",
+        "call": "ambiguous_reuse"
       }
     }
   }
