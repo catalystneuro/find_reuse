@@ -61,7 +61,7 @@ PALETTE = """
     --bad:#A22F3D; --bad-soft:#F7E2E4;
     --mention:#1C5D9B; --mention-soft:#E1ECF7;
     --primary:#6D3D9B; --primary-soft:#EEE6F7;
-    --ambiguous-reuse:#0E6E72; --ambiguous-reuse-soft:#DDF0F1;
+    --ambiguous-reuse:#4E6070; --ambiguous-reuse-soft:#D9E2EA;
     --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
     --serif:ui-serif,"Iowan Old Style",Georgia,"Times New Roman",serif;
     --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
@@ -77,7 +77,7 @@ PALETTE = """
       --bad:#EF8390; --bad-soft:#3A1B1F;
       --mention:#6DB3F2; --mention-soft:#10263A;
       --primary:#BE96E8; --primary-soft:#251B36;
-      --ambiguous-reuse:#5AC4C8; --ambiguous-reuse-soft:#0E2E30;
+      --ambiguous-reuse:#9DB2C2; --ambiguous-reuse-soft:#273846;
     }
   }
 """
