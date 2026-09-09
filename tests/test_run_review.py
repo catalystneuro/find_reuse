@@ -322,6 +322,28 @@ def row(doi='10.1/a', dandiset='000541', pathway='indirect'):
             'dandiset_name': 'n', 'reasoning': 'r', 'quotes': []}
 
 
+class TestCardReachesThePaper:
+    """
+    The citing paper is opened and read by the DOI its text was fetched under.
+
+    `doi` is collapsed onto the work a preprint's versions share, and for
+    Research Square nothing is minted under that collapsed form, so a card
+    built on it links to a 404 and asks the cache for text it will not find.
+    """
+
+    def test_the_card_names_the_paper_by_the_doi_it_was_fetched_under(self):
+        page = R.build([row()], 'rly')
+        assert "paperPanel('Citing Paper', r.fetched_doi" in page
+
+    def test_the_raw_text_link_asks_for_that_same_doi(self):
+        page = R.build([row()], 'rly')
+        assert 'textLink(r.fetched_doi, r.dandiset)' in page
+
+    def test_the_overview_shows_that_same_doi(self):
+        page = R.build([row()], 'rly')
+        assert '<span class="doitext">${esc(r.fetched_doi)}</span>' in page
+
+
 class TestScope:
     def test_without_an_assignment_the_page_has_no_whose_filter(self):
         page = R.build([row()], 'rly')
