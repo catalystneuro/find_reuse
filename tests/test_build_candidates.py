@@ -71,7 +71,9 @@ def corpus(tmp_path):
                  'relation': 'description'},
             ],
             'citing_papers': [{'doi': '10.1/PROSE-CITER',
-                               'cited_paper_doi': '10.1/in-prose'}],
+                               'cited_paper_doi': '10.1/in-prose'},
+                              {'doi': '10.1/versioned/v2',
+                               'cited_paper_doi': '10.1/published-in'}],
         },
         {
             'dandiset_id': '000953',
@@ -264,59 +266,72 @@ class TestDandiReason:
         assert 'source_quotes' not in row
 
 
+def cited_row(doi: str, dandiset: str, fetched: str = '') -> dict:
+    """A pair as attach_cited_papers reads it: the collapsed DOI and the fetched one."""
+    return {'doi': doi, 'dandiset': dandiset, 'fetched_doi': fetched or doi}
+
+
 class TestAttachCitedPapers:
     def test_names_the_paper_the_pair_was_built_from(self, corpus):
-        rows = [{'doi': '10.1/citer', 'dandiset': '000541'}]
+        rows = [cited_row('10.1/citer', '000541')]
         B.attach_cited_papers(rows, corpus)
         assert rows[0]['cited_doi'] == '10.1/described-by'
         assert rows[0]['cited_title'] == 'The paper the data came from'
         assert rows[0]['cited_role'] == 'Cited'
 
+    def test_finds_the_pairing_discovery_holds_under_a_versioned_doi(self, corpus):
+        rows = [cited_row('10.1/versioned', '000714', '10.1/versioned/v2')]
+        B.attach_cited_papers(rows, corpus)
+        assert rows[0]['cited_doi'] == '10.1/published-in'
+        assert rows[0]['cited_title'] == 'Where it appeared'
+        assert rows[0]['cited_role'] == 'Cited'
+        assert rows[0]['cited_source'] == 'dcite:IsPublishedIn'
+
     def test_offers_the_declared_paper_when_the_pair_cited_none(self, corpus):
-        rows = [{'doi': '10.1/stranger', 'dandiset': '000714'}]
+        rows = [cited_row('10.1/stranger', '000714')]
         B.attach_cited_papers(rows, corpus)
         assert rows[0]['cited_doi'] == '10.1/declared'
         assert rows[0]['cited_title'] == 'The paper describing 000714'
         assert rows[0]['cited_role'] == 'Dataset paper'
 
     def test_leaves_the_paper_empty_when_the_dataset_declares_none(self, corpus):
-        rows = [{'doi': '10.1/stranger', 'dandiset': '000953'}]
+        rows = [cited_row('10.1/stranger', '000953')]
         B.attach_cited_papers(rows, corpus)
         assert rows[0]['cited_doi'] == ''
         assert rows[0]['cited_title'] == ''
 
     def test_says_a_paper_dandi_declares_came_from_the_relation_that_named_it(
             self, corpus):
-        rows = [{'doi': '10.1/citer', 'dandiset': '000541'}]
+        rows = [cited_row('10.1/citer', '000541')]
         B.attach_cited_papers(rows, corpus)
         assert rows[0]['cited_source'] == 'dcite:IsDescribedBy'
 
     def test_says_a_paper_a_model_picked_is_the_models(self, corpus):
-        rows = [{'doi': '10.1/citer', 'dandiset': '000970'}]
+        rows = [cited_row('10.1/citer', '000970')]
         B.attach_cited_papers(rows, corpus)
         assert rows[0]['cited_doi'] == '10.1/guessed'
         assert rows[0]['cited_source'] == 'llm_identified'
 
     def test_a_paper_read_off_the_description_says_so(self, corpus):
-        rows = [{'doi': '10.1/prose-citer', 'dandiset': '000714'}]
+        rows = [cited_row('10.1/prose-citer', '000714')]
         B.attach_cited_papers(rows, corpus)
         assert rows[0]['cited_doi'] == '10.1/in-prose'
         assert rows[0]['cited_source'] == 'description'
 
     def test_matches_a_cited_doi_whose_casing_differs_from_the_corpus(self, corpus):
-        rows = [{'doi': '10.1/CITER', 'dandiset': '000541'}]
+        rows = [cited_row('10.1/citer', '000541', '10.1/CITER')]
         B.attach_cited_papers(rows, corpus)
         assert rows[0]['cited_source'] == 'dcite:IsDescribedBy'
 
     def test_a_cited_paper_the_corpus_no_longer_holds_is_not_vouched_for(
             self, corpus):
-        rows = [{'doi': '10.1/orphan', 'dandiset': '000953'}]
+        rows = [cited_row('10.1/orphan', '000953')]
         B.attach_cited_papers(rows, corpus)
         assert rows[0]['cited_doi'] == '10.1/never-declared'
         assert rows[0]['cited_source'] == 'unknown'
 
     def test_says_nothing_about_a_pair_with_no_cited_paper_at_all(self, corpus):
-        rows = [{'doi': '10.1/stranger', 'dandiset': '000953'}]
+        rows = [cited_row('10.1/stranger', '000953')]
         B.attach_cited_papers(rows, corpus)
         assert rows[0]['cited_source'] == ''
 
