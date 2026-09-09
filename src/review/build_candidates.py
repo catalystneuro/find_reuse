@@ -130,13 +130,24 @@ def merge_by_pair(inputs: list[str]) -> dict:
             doi = canonical_doi(r['citing_doi'], known)
             dandiset = r.get('dandiset_id') or ''
             row = merged.setdefault((doi, dandiset), {
-                'doi': doi, 'dandiset': dandiset,
+                'doi': doi, 'dandiset': dandiset, 'fetched_doi': '',
                 'title': '', 'reasoning': '', 'quotes': [], 'source_quotes': [],
-                'pathways': set(), 'same_lab_values': set(),
+                'pathways': set(), 'same_lab_values': set(), 'fetched_chars': -1,
                 'reused_neurophysiology': False,
                 'reused_modalities': [], 'archives': [], 'reuse_types': [],
             })
             row['pathways'].add(r['mode'])
+            # The DOI the text was fetched under, which is what the paper cache,
+            # the publisher and doi.org are keyed by. `doi` is collapsed onto the
+            # work a preprint's versions share, and for Research Square that
+            # collapsed form is a DOI nobody minted. Where two versions merge,
+            # the one holding the most text wins, since that is the text the
+            # classifier read and the text a quote is checked against; the DOI
+            # settles a tie so that a rebuild picks the same version every time.
+            chars = r.get('input_chars') or 0
+            if (chars, r['citing_doi']) > (row['fetched_chars'],
+                                           row['fetched_doi']):
+                row['fetched_doi'], row['fetched_chars'] = r['citing_doi'], chars
             if r.get('title') and len(r['title']) > len(row['title']):
                 row['title'] = r['title'].strip()
             if len(r.get('reasoning') or '') > len(row['reasoning']):
@@ -173,6 +184,10 @@ def finalize(row: dict) -> dict:
     pathways = row.pop('pathways')
     row['pathway'] = 'direct' if 'direct' in pathways else 'indirect'
 
+    # A running tally of the largest record seen, which the merge reads and the
+    # candidate list has no use for.
+    row.pop('fetched_chars')
+
     values = row.pop('same_lab_values')
     row['same_lab'] = (True if values == {True} else
                        False if values == {False} else
@@ -204,13 +219,16 @@ def attach_missing_titles(rows: list[dict], direct_results_path: Path) -> None:
     A direct pair is built by matching a dandiset identifier in a paper's text,
     and the classification records only the DOI that was matched. Discovery kept
     the title, and a DOI is not what a reviewer recognises a paper by.
+
+    Discovery holds the DOI as fetched, versioned where the publisher versions
+    it, so that is the key its titles answer to.
     """
     data = json.loads(direct_results_path.read_text())
     titles = {r['doi'].lower(): r['title'] for r in data.get('results', [])
               if r.get('doi') and r.get('title')}
     for row in rows:
         if not row['title']:
-            row['title'] = titles.get(row['doi'].lower(), '')
+            row['title'] = titles.get(row['fetched_doi'].lower(), '')
 
 
 def attach_dandiset_names(rows: list[dict], results_path: Path) -> None:
