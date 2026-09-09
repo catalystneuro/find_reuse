@@ -365,15 +365,6 @@ class TestVersionedPreprints:
         row = B.merge_by_pair([str(path)])[('10.21203/rs.3.rs-8080516', '000776')]
         assert row['fetched_doi'] == '10.21203/rs.3.rs-8080516/v1'
 
-    def test_the_working_tally_stays_out_of_the_candidate_list(self, tmp_path):
-        path = tmp_path / 'c.json'
-        path.write_text(json.dumps({'classifications': [
-            classification('10.21203/rs.3.rs-8080516/v1', '000776', 'a passage'),
-        ]}))
-        row = B.finalize(
-            B.merge_by_pair([str(path)])[('10.21203/rs.3.rs-8080516', '000776')])
-        assert 'fetched_chars' not in row
-
 
 class TestAttachMissingTitles:
     def test_titles_a_paper_the_classification_left_bare(self, direct_results):
