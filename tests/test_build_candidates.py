@@ -334,9 +334,41 @@ class TestAttachDandisetNames:
         assert rows[0]['dandiset_name'] == ''
 
 
+class TestVersionedPreprints:
+    """A preprint's versions count once, and each is still reachable."""
+
+    def test_the_pair_keeps_the_doi_its_text_was_fetched_under(self, tmp_path):
+        path = tmp_path / 'c.json'
+        path.write_text(json.dumps({'classifications': [
+            classification('10.21203/rs.3.rs-8080516/v1', '000776', 'a passage'),
+        ]}))
+        row = B.merge_by_pair([str(path)])[('10.21203/rs.3.rs-8080516', '000776')]
+        assert row['fetched_doi'] == '10.21203/rs.3.rs-8080516/v1'
+
+    def test_two_versions_of_one_preprint_are_one_pair(self, tmp_path):
+        path = tmp_path / 'c.json'
+        path.write_text(json.dumps({'classifications': [
+            classification('10.21203/rs.3.rs-8080516/v1', '000776', 'a passage'),
+            classification('10.21203/rs.3.rs-8080516/v2', '000776', 'a passage'),
+        ]}))
+        assert list(B.merge_by_pair([str(path)])) == [
+            ('10.21203/rs.3.rs-8080516', '000776')]
+
+    def test_the_version_holding_the_most_text_is_the_one_offered(self, tmp_path):
+        path = tmp_path / 'c.json'
+        path.write_text(json.dumps({'classifications': [
+            classification('10.21203/rs.3.rs-8080516/v2', '000776', 'a passage',
+                           input_chars=400),
+            classification('10.21203/rs.3.rs-8080516/v1', '000776', 'a passage',
+                           input_chars=90_000),
+        ]}))
+        row = B.merge_by_pair([str(path)])[('10.21203/rs.3.rs-8080516', '000776')]
+        assert row['fetched_doi'] == '10.21203/rs.3.rs-8080516/v1'
+
+
 class TestAttachMissingTitles:
     def test_titles_a_paper_the_classification_left_bare(self, direct_results):
-        rows = [{'doi': '10.1/bare', 'title': ''}]
+        rows = [{'doi': '10.1/bare', 'fetched_doi': '10.1/bare', 'title': ''}]
         B.attach_missing_titles(rows, direct_results)
         assert rows[0]['title'] == 'The title discovery kept'
 
@@ -344,6 +376,19 @@ class TestAttachMissingTitles:
         rows = [{'doi': '10.1/bare', 'title': 'What the classifier recorded'}]
         B.attach_missing_titles(rows, direct_results)
         assert rows[0]['title'] == 'What the classifier recorded'
+
+    def test_titles_a_preprint_discovery_holds_under_its_version(self, tmp_path):
+        path = tmp_path / 'results_dandi_openalex.json'
+        path.write_text(json.dumps({'results': [
+            {'doi': '10.21203/rs.3.rs-8080516/v1',
+             'title': 'Annotation-free whole-brain neuron tracking'},
+        ]}))
+        rows = [{'doi': '10.21203/rs.3.rs-8080516', 'title': '',
+                 'fetched_doi': '10.21203/rs.3.rs-8080516/v1'}]
+
+        B.attach_missing_titles(rows, path)
+
+        assert rows[0]['title'] == 'Annotation-free whole-brain neuron tracking'
 
 
 class TestAttachSharedPapers:
@@ -435,7 +480,7 @@ class TestBuildCandidates:
             self, four_dataset_input, corpus, direct_results):
         pairs = B.build_candidates([four_dataset_input], corpus, direct_results)
         assert set(pairs[0]) == {
-            'doi', 'dandiset', 'pathway', 'title', 'dandiset_name',
+            'doi', 'fetched_doi', 'dandiset', 'pathway', 'title', 'dandiset_name',
             'cited_doi', 'cited_title', 'cited_role', 'cited_source',
             'reasoning', 'quotes',
             'same_lab', 'reused_neurophysiology', 'reused_modalities',

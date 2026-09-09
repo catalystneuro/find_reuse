@@ -155,8 +155,10 @@ class TestMarkQuotes:
 
 class TestAttachPaperTexts:
     def test_says_which_papers_the_fetched_text_is_on_hand_for(self, paper_cache):
-        rows = [{'doi': '10.1/citer', 'cited_doi': '10.1/never-fetched'},
-                {'doi': '10.1/never-fetched', 'cited_doi': '10.1/citer'}]
+        rows = [{'doi': '10.1/citer', 'fetched_doi': '10.1/citer',
+                 'cited_doi': '10.1/never-fetched'},
+                {'doi': '10.1/never-fetched', 'fetched_doi': '10.1/never-fetched',
+                 'cited_doi': '10.1/citer'}]
 
         R.attach_paper_texts(rows, paper_cache)
 
@@ -164,11 +166,32 @@ class TestAttachPaperTexts:
             (True, False), (False, True)]
 
     def test_a_direct_row_is_asked_only_about_its_own_paper(self, paper_cache):
-        rows = [{'doi': '10.1/citer'}]
+        rows = [{'doi': '10.1/citer', 'fetched_doi': '10.1/citer'}]
 
         R.attach_paper_texts(rows, paper_cache)
 
-        assert rows[0] == {'doi': '10.1/citer', 'has_text': True}
+        assert rows[0] == {'doi': '10.1/citer', 'fetched_doi': '10.1/citer',
+                           'has_text': True}
+
+    def test_finds_a_preprint_under_the_doi_it_was_fetched_under(self, paper_cache):
+        R.TextCache(paper_cache).put('10.21203/rs.3.rs-8080516/v1',
+                                     PAPER_TEXT, 'crossref+unpaywall', True)
+        rows = [{'doi': '10.21203/rs.3.rs-8080516',
+                 'fetched_doi': '10.21203/rs.3.rs-8080516/v1'}]
+
+        R.attach_paper_texts(rows, paper_cache)
+
+        assert rows[0]['has_text'] is True
+
+
+class TestQuotesByPair:
+    def test_keyed_by_the_doi_the_card_asks_for_the_text_by(self):
+        rows = [{'doi': '10.21203/rs.3.rs-8080516', 'dandiset': '000776',
+                 'fetched_doi': '10.21203/rs.3.rs-8080516/v1',
+                 'quotes': [{'q': 'the passage', 'tier': 'exact'}]}]
+
+        assert R.quotes_by_pair(rows) == {
+            ('10.21203/rs.3.rs-8080516/v1', '000776'): ['the passage']}
 
 
 class TestServedFullText:
@@ -297,6 +320,28 @@ def row(doi='10.1/a', dandiset='000541', pathway='indirect'):
     """A pair as the page receives it, with only the fields the page reads."""
     return {'doi': doi, 'dandiset': dandiset, 'pathway': pathway, 'title': 't',
             'dandiset_name': 'n', 'reasoning': 'r', 'quotes': []}
+
+
+class TestCardReachesThePaper:
+    """
+    The citing paper is opened and read by the DOI its text was fetched under.
+
+    `doi` is collapsed onto the work a preprint's versions share, and for
+    Research Square nothing is minted under that collapsed form, so a card
+    built on it links to a 404 and asks the cache for text it will not find.
+    """
+
+    def test_the_card_names_the_paper_by_the_doi_it_was_fetched_under(self):
+        page = R.build([row()], 'rly')
+        assert "paperPanel('Citing Paper', r.fetched_doi" in page
+
+    def test_the_raw_text_link_asks_for_that_same_doi(self):
+        page = R.build([row()], 'rly')
+        assert 'textLink(r.fetched_doi, r.dandiset)' in page
+
+    def test_the_overview_shows_that_same_doi(self):
+        page = R.build([row()], 'rly')
+        assert '<span class="doitext">${esc(r.fetched_doi)}</span>' in page
 
 
 class TestScope:

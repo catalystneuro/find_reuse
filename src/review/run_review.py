@@ -386,7 +386,7 @@ const ROW_BY_KEY = new Map(ROWS.map(r => [keyOf(r), r]));
 // Searching is done over a string built once rather than over the fields each
 // time: this runs on every keystroke across every pair.
 for (const r of ROWS){
-  r.searchText = [r.doi, r.title, r.dandiset, r.dandiset_name,
+  r.searchText = [r.doi, r.fetched_doi, r.title, r.dandiset, r.dandiset_name,
                   r.cited_doi, r.cited_title].join(' ').toLowerCase();
 }
 
@@ -656,8 +656,8 @@ function renderWorksheet(rows){
 
   document.getElementById('card').innerHTML = `
     <div class="subject ${r.pathway}">
-      ${paperPanel('Citing Paper', r.doi, r.title,
-                   r.has_text ? textLink(r.doi, r.dandiset) : '')}
+      ${paperPanel('Citing Paper', r.fetched_doi, r.title,
+                   r.has_text ? textLink(r.fetched_doi, r.dandiset) : '')}
       ${r.pathway === 'indirect'
         ? paperPanel(citedRole, r.cited_doi, r.cited_title,
                      r.cited_has_text ? textLink(r.cited_doi, '') : '',
@@ -730,7 +730,7 @@ function entryRow(r){
   const what = byPaper
     ? `<div class="line"><span class="dsid small">${esc(r.dandiset)}</span>
          ${esc(r.dandiset_name)}</div>`
-    : `<div class="line">${esc(r.title || r.doi)}</div>`;
+    : `<div class="line">${esc(r.title || r.fetched_doi)}</div>`;
   const note = noteFor(r);
   // The group heading already carries whichever side the pairs were gathered on,
   // so the entry says the other one and does not repeat it.
@@ -738,7 +738,7 @@ function entryRow(r){
       <div class="what">
         ${what}
         <div class="line sub">
-          ${byPaper ? '' : `<span class="doitext">${esc(r.doi)}</span>`}
+          ${byPaper ? '' : `<span class="doitext">${esc(r.fetched_doi)}</span>`}
           ${controls.grouping === 'none'
             ? `<span class="dsid small">${esc(r.dandiset)}</span>` : ''}
           ${controls.pathway === 'all'
@@ -1123,18 +1123,27 @@ def attach_paper_texts(rows: list[dict], cache_dir: Path) -> None:
     A DOI resolves to the publisher, and behind a paywall that is where a
     reviewer stops. The text the classifier was given is already on disk, so the
     card offers it for the papers it covers, and says nothing for the rest.
+
+    The cache is keyed by `fetched_doi`, the version the text came from. `doi` is
+    collapsed onto the work a preprint's versions share, and Research Square
+    mints nothing under that collapsed form.
     """
     cache = text_cache(cache_dir)
     for row in rows:
-        row['has_text'] = bool(cache.get(row['doi']))
+        row['has_text'] = bool(cache.get(row['fetched_doi']))
         if 'cited_doi' in row:
             row['cited_has_text'] = bool(row['cited_doi']
                                          and cache.get(row['cited_doi']))
 
 
 def quotes_by_pair(rows: list[dict]) -> dict:
-    """The passages to mark in a paper's text, for each pair asked about it."""
-    return {(row['doi'], row['dandiset']): [q['q'] for q in row['quotes']]
+    """
+    The passages to mark in a paper's text, for each pair asked about it.
+
+    Keyed by the DOI the card asks for the text by, which is the one it was
+    fetched under.
+    """
+    return {(row['fetched_doi'], row['dandiset']): [q['q'] for q in row['quotes']]
             for row in rows}
 
 
