@@ -321,6 +321,9 @@ class TestAttachCitedPapers:
     def test_matches_a_cited_doi_whose_casing_differs_from_the_corpus(self, corpus):
         rows = [cited_row('10.1/citer', '000541', '10.1/CITER')]
         B.attach_cited_papers(rows, corpus)
+        # 000541 declares the very paper it was paired with, so `cited_role` is
+        # the only field that separates the pairing from the fallback.
+        assert rows[0]['cited_role'] == 'Cited'
         assert rows[0]['cited_source'] == 'dcite:IsDescribedBy'
 
     def test_a_cited_paper_the_corpus_no_longer_holds_is_not_vouched_for(
