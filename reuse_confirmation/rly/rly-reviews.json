@@ -43,15 +43,18 @@
         "call": "reuse"
       },
       "000140": {
-        "call": "reuse"
+        "call": "neither",
+        "note": "The unit count (n = 90 + 92 = 182) is consistent only with MC_Maze, not MC_Maze_Large/Medium/Small, which have 162/152/142 neurons."
       }
     },
     "10.1088/1741-2552/ad1787": {
       "000128": {
-        "call": "reuse"
+        "call": "neither",
+        "note": "The paper say \"MC Maze\" (ambiguous) and cite MC_Maze_Small. The paper mentions 107 neurons held-in, which is unique to MC_Maze_Small, DANDI:000140. Full/Large/Medium/Small held-in counts: 137/122/114/107. The reported ISI 221.9 ms matches MC_Maze_Small. Full/Large/Medium/Small ISIs: 227.4/184.1/236.3/221.9."
       },
       "000139": {
-        "call": "reuse"
+        "call": "neither",
+        "note": "The paper say \"MC Maze\" (ambiguous) and cite MC_Maze_Small. The paper mentions 107 neurons held-in, which is unique to MC_Maze_Small, DANDI:000140. Full/Large/Medium/Small held-in counts: 137/122/114/107. The reported ISI 221.9 ms matches MC_Maze_Small. Full/Large/Medium/Small ISIs: 227.4/184.1/236.3/221.9."
       }
     },
     "10.1101/2021.10.07.463540": {
@@ -66,21 +69,22 @@
     },
     "10.1101/2023.03.01.530616": {
       "000070": {
-        "note": "Note: paper was renamed to Dimensionality reduction beyond neural subspaces with slice tensor component analysis. https://www.nature.com/articles/s41593-024-01626-2, doi: 10.1038/s41593-024-01626-2 (also in this review)",
-        "call": "reuse"
+        "call": "neither",
+        "note": "This pair is redundant. The preprint was renamed upon publication to \"Dimensionality reduction beyond neural subspaces with slice tensor component analysis\". https://www.nature.com/articles/s41593-024-01626-2, doi: 10.1038/s41593-024-01626-2 (also in this review). That pair involves only DANDI:000128."
       },
       "000138": {
-        "note": "Note: paper was renamed to Dimensionality reduction beyond neural subspaces with slice tensor component analysis. https://www.nature.com/articles/s41593-024-01626-2, doi: 10.1038/s41593-024-01626-2 (also in this review)",
-        "call": "reuse"
+        "note": "This pair is redundant. The preprint was renamed upon publication to \"Dimensionality reduction beyond neural subspaces with slice tensor component analysis\". https://www.nature.com/articles/s41593-024-01626-2, doi: 10.1038/s41593-024-01626-2 (also in this review). That pair involves only DANDI:000128.",
+        "call": "neither"
       },
       "000140": {
-        "note": "Note: paper was renamed to Dimensionality reduction beyond neural subspaces with slice tensor component analysis. https://www.nature.com/articles/s41593-024-01626-2, doi: 10.1038/s41593-024-01626-2 (also in this review)",
-        "call": "reuse"
+        "note": "This pair is redundant. The preprint was renamed upon publication to \"Dimensionality reduction beyond neural subspaces with slice tensor component analysis\". https://www.nature.com/articles/s41593-024-01626-2, doi: 10.1038/s41593-024-01626-2 (also in this review). That pair involves only DANDI:000128.",
+        "call": "neither"
       }
     },
     "10.1101/2024.03.29.587341": {
       "000035": {
-        "call": "reuse"
+        "call": "neither",
+        "note": "Scala et al published \"Electrophysiological recordings are available at https://dandiarchive.org/dandiset/000008 (main data set) and https://dandiarchive.org/dandiset/000035 (physiological temperature) in NWB format.\" The paper references DANDI:000008 but does not references DANDI:000035 or data recorded under temperature-controlled conditions."
       }
     },
     "10.1101/2024.08.13.607787": {
@@ -110,14 +114,15 @@
     },
     "10.1371/journal.pcbi.1011975": {
       "000138": {
-        "note": "Used DANDI:000128, not DANDI:000138. See multiple references to this in the text.",
+        "note": "Paper cites DANDI:000128 directly. It also says \"It consists of one full session with 2869 total trials (2295 trials for training and 574 trials for testing), 108 conditions and 182 neurons with simultaneously monitored hand kinematics.\" which is consistent only with MC_Maze and not the Large/Medium/Small variants.",
         "call": "neither"
       },
       "000140": {
-        "note": "Used DANDI:000128, not DANDI:000140. See multiple references to this in the text.",
+        "note": "Paper cites DANDI:000128 directly. It also says \"It consists of one full session with 2869 total trials (2295 trials for training and 574 trials for testing), 108 conditions and 182 neurons with simultaneously monitored hand kinematics.\" which is consistent only with MC_Maze and not the Large/Medium/Small variants.",
         "call": "neither"
       },
       "000128": {
+        "note": "Paper cites DANDI:000128 directly. It also says \"It consists of one full session with 2869 total trials (2295 trials for training and 574 trials for testing), 108 conditions and 182 neurons with simultaneously monitored hand kinematics.\" which is consistent only with MC_Maze and not the Large/Medium/Small variants.",
         "call": "reuse"
       }
     },
@@ -127,25 +132,26 @@
         "call": "reuse"
       },
       "000021": {
-        "note": "Yes, accessed from Allen Institute data repositories via allensdk",
+        "note": "Yes, accessed from Allen Institute data repositories via allensdk.",
         "call": "reuse"
       },
       "000713": {
-        "note": "Yes, accessed from Allen Institute data repositories via allensdk",
+        "note": "Yes, accessed from Allen Institute data repositories via allensdk.",
         "call": "reuse"
       }
     },
     "10.1371/journal.pcbi.1013789": {
       "000128": {
-        "call": "reuse"
+        "call": "reuse",
+        "note": "Stats are consistent only with MC_Maze and not the Large/Medium/Small variants. S_train = 1721, S_test = 574, N_in = 137, N_out = 45."
       },
       "000138": {
-        "note": "No evidence of using the \"large\" variant of MC_Maze. ",
-        "call": "unsure"
+        "note": "Stats are consistent only with MC_Maze and not the Large/Medium/Small variants. S_train = 1721, S_test = 574, N_in = 137, N_out = 45.",
+        "call": "neither"
       },
       "000140": {
-        "note": "No evidence of using the \"large\" variant of MC Maze",
-        "call": "unsure"
+        "note": "Stats are consistent only with MC_Maze and not the Large/Medium/Small variants. S_train = 1721, S_test = 574, N_in = 137, N_out = 45.",
+        "call": "neither"
       }
     },
     "10.21105/jose.00309": {
@@ -196,7 +202,7 @@
     },
     "10.7554/elife.89421": {
       "001055": {
-        "note": "Some/all of the dandisets used (NLB on DANDI) were repackaged into DANDI:001055, but this paper did not use data from DANDI:001055. ",
+        "note": "Same as 10.7554/elife.89421. Some/all of the dandisets used (NLB on DANDI) were repackaged into DANDI:001055, but this paper did not use data from DANDI:001055. ",
         "call": "neither"
       },
       "000129": {
@@ -205,14 +211,15 @@
     },
     "10.7554/elife.93060": {
       "000129": {
-        "call": "reuse"
+        "call": "reuse",
+        "note": "The paper's codebase references \"nlb-mc_maze_large\" (DANDI:000138), and the Figure 7 \"NLB maze\" bar number of neurons = 162 is consistent only with MC_Maze_Large."
       },
       "000139": {
-        "note": "Unclear which maze dataset was used from NLB, but probably was not the \"Medium\" variant ",
-        "call": "neither"
+        "call": "neither",
+        "note": "The paper's codebase references \"nlb-mc_maze_large\" (DANDI:000138), and the Figure 7 \"NLB maze\" bar number of neurons = 162 is consistent only with MC_Maze_Large."
       },
       "001055": {
-        "note": "Used Makin et al data that was downloaded from DANDI:000129 (MC_RTT) repackaged into DANDI:001055",
+        "note": "Same as 10.7554/elife.93060. Used Makin et al data that was downloaded from DANDI:000129 (MC_RTT) repackaged into DANDI:001055",
         "call": "neither"
       }
     },
@@ -243,7 +250,7 @@
     },
     "10.1038/s41467-025-62202-1": {
       "000129": {
-        "note": "Yes, but reused only for a figure",
+        "note": "Yes, for a figure",
         "call": "reuse"
       }
     },
@@ -283,13 +290,13 @@
     },
     "10.1101/2023.04.05.535396": {
       "000129": {
-        "note": "Same paper as 10.7554/elife.89421.3",
+        "note": "This is the preprint of doi:10.7554/elife.89421.3",
         "call": "reuse"
       }
     },
     "10.1101/2023.08.23.554148": {
       "000055": {
-        "note": "Note: same paper as 10.1016/j.patter.2024.101047",
+        "note": "This is the preprint of doi:10.1016/j.patter.2024.101047",
         "call": "reuse"
       }
     },
@@ -306,7 +313,7 @@
     "10.1101/2025.07.31.667946": {
       "000253": {
         "call": "primary",
-        "note": "OpenScope generated this data for these authors. Does that count as Primary or Reuse?"
+        "note": "OpenScope generated this data for these authors."
       }
     },
     "10.1103/wndc-k654": {
@@ -369,11 +376,11 @@
     },
     "10.7554/elife.89421.1.sa2": {
       "000127": {
-        "note": "This is a review of https://doi.org/10.7554/eLife.89421.3",
+        "note": "Same as 10.7554/elife.89421. This is a review of https://doi.org/10.7554/eLife.89421.3",
         "call": "reuse"
       },
       "000130": {
-        "note": "This is a review of https://doi.org/10.7554/eLife.89421.3",
+        "note": "Same as 10.7554/elife.89421. This is a review of https://doi.org/10.7554/eLife.89421.3",
         "call": "reuse"
       }
     }
