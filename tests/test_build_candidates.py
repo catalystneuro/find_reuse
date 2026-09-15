@@ -90,6 +90,17 @@ def corpus(tmp_path):
             'citing_papers': [{'doi': '10.1/CITER',
                                'cited_paper_doi': '10.1/guessed'}],
         },
+        {
+            'dandiset_id': '000971',
+            'dandiset_name': 'The other dataset those papers cover',
+            'paper_relations': [
+                {'doi': '10.1/described-by', 'name': 'The paper the data came from',
+                 'relation': 'dcite:IsPublishedIn'},
+                {'doi': '10.1/declared', 'name': 'The paper describing 000714',
+                 'relation': 'llm_identified', 'source': 'llm'},
+            ],
+            'citing_papers': [],
+        },
     ]}))
     return path
 
@@ -323,9 +334,41 @@ class TestAttachDandisetNames:
         assert rows[0]['dandiset_name'] == ''
 
 
+class TestVersionedPreprints:
+    """A preprint's versions count once, and each is still reachable."""
+
+    def test_the_pair_keeps_the_doi_its_text_was_fetched_under(self, tmp_path):
+        path = tmp_path / 'c.json'
+        path.write_text(json.dumps({'classifications': [
+            classification('10.21203/rs.3.rs-8080516/v1', '000776', 'a passage'),
+        ]}))
+        row = B.merge_by_pair([str(path)])[('10.21203/rs.3.rs-8080516', '000776')]
+        assert row['fetched_doi'] == '10.21203/rs.3.rs-8080516/v1'
+
+    def test_two_versions_of_one_preprint_are_one_pair(self, tmp_path):
+        path = tmp_path / 'c.json'
+        path.write_text(json.dumps({'classifications': [
+            classification('10.21203/rs.3.rs-8080516/v1', '000776', 'a passage'),
+            classification('10.21203/rs.3.rs-8080516/v2', '000776', 'a passage'),
+        ]}))
+        assert list(B.merge_by_pair([str(path)])) == [
+            ('10.21203/rs.3.rs-8080516', '000776')]
+
+    def test_the_version_holding_the_most_text_is_the_one_offered(self, tmp_path):
+        path = tmp_path / 'c.json'
+        path.write_text(json.dumps({'classifications': [
+            classification('10.21203/rs.3.rs-8080516/v2', '000776', 'a passage',
+                           input_chars=400),
+            classification('10.21203/rs.3.rs-8080516/v1', '000776', 'a passage',
+                           input_chars=90_000),
+        ]}))
+        row = B.merge_by_pair([str(path)])[('10.21203/rs.3.rs-8080516', '000776')]
+        assert row['fetched_doi'] == '10.21203/rs.3.rs-8080516/v1'
+
+
 class TestAttachMissingTitles:
     def test_titles_a_paper_the_classification_left_bare(self, direct_results):
-        rows = [{'doi': '10.1/bare', 'title': ''}]
+        rows = [{'doi': '10.1/bare', 'fetched_doi': '10.1/bare', 'title': ''}]
         B.attach_missing_titles(rows, direct_results)
         assert rows[0]['title'] == 'The title discovery kept'
 
@@ -333,6 +376,53 @@ class TestAttachMissingTitles:
         rows = [{'doi': '10.1/bare', 'title': 'What the classifier recorded'}]
         B.attach_missing_titles(rows, direct_results)
         assert rows[0]['title'] == 'What the classifier recorded'
+
+    def test_titles_a_preprint_discovery_holds_under_its_version(self, tmp_path):
+        path = tmp_path / 'results_dandi_openalex.json'
+        path.write_text(json.dumps({'results': [
+            {'doi': '10.21203/rs.3.rs-8080516/v1',
+             'title': 'Annotation-free whole-brain neuron tracking'},
+        ]}))
+        rows = [{'doi': '10.21203/rs.3.rs-8080516', 'title': '',
+                 'fetched_doi': '10.21203/rs.3.rs-8080516/v1'}]
+
+        B.attach_missing_titles(rows, path)
+
+        assert rows[0]['title'] == 'Annotation-free whole-brain neuron tracking'
+
+
+class TestAttachSharedPapers:
+    def test_names_the_other_datasets_that_declare_the_same_paper(self, corpus):
+        rows = [{'doi': '10.1/citer', 'dandiset': '000541',
+                 'cited_doi': '10.1/described-by'}]
+        B.attach_shared_papers(rows, corpus)
+        assert rows[0]['shared_paper'] == {
+            'doi': '10.1/described-by',
+            'title': 'The paper the data came from',
+            'dandisets': [{'dandiset': '000971',
+                           'dandiset_name': 'The other dataset those papers cover',
+                           'relation': 'dcite:IsPublishedIn'}],
+        }
+
+    def test_a_sibling_carries_its_own_link_not_the_one_on_the_card(self, corpus):
+        """000128 is described by the paper 000070 is only published in."""
+        rows = [{'doi': '10.1/citer', 'dandiset': '000971',
+                 'cited_doi': '10.1/described-by'}]
+        B.attach_shared_papers(rows, corpus)
+        assert rows[0]['shared_paper']['dandisets'] == [
+            {'dandiset': '000541', 'dandiset_name': 'Mouse motor cortex recordings',
+             'relation': 'dcite:IsDescribedBy'}]
+
+    def test_the_dataset_on_the_card_is_not_its_own_sibling(self, corpus):
+        rows = [{'doi': '10.1/citer', 'dandiset': '000970',
+                 'cited_doi': '10.1/guessed'}]
+        B.attach_shared_papers(rows, corpus)
+        assert rows[0]['shared_paper'] is None
+
+    def test_a_pair_built_from_no_paper_shares_none(self, corpus):
+        rows = [{'doi': '10.1/orphan', 'dandiset': '000953', 'cited_doi': ''}]
+        B.attach_shared_papers(rows, corpus)
+        assert rows[0]['shared_paper'] is None
 
 
 class TestBuildCandidates:
@@ -351,6 +441,14 @@ class TestBuildCandidates:
         assert pair['pathway'] == 'direct'
         assert (pair['cited_doi'], pair['cited_title'], pair['cited_role'],
                 pair['cited_source']) == ('', '', '', '')
+
+    def test_a_direct_pair_still_says_its_dataset_shares_its_paper(
+            self, both_pathway_input, corpus, direct_results):
+        pairs = B.build_candidates([both_pathway_input], corpus, direct_results)
+        pair = next(p for p in pairs if p['dandiset'] == '000714')
+        assert (pair['pathway'], pair['cited_doi']) == ('direct', '')
+        assert pair['shared_paper']['doi'] == '10.1/declared'
+        assert [d['dandiset'] for d in pair['shared_paper']['dandisets']] == ['000971']
 
     def test_an_indirect_pair_says_how_its_dataset_came_to_name_that_paper(
             self, four_dataset_input, corpus, direct_results):
@@ -382,11 +480,11 @@ class TestBuildCandidates:
             self, four_dataset_input, corpus, direct_results):
         pairs = B.build_candidates([four_dataset_input], corpus, direct_results)
         assert set(pairs[0]) == {
-            'doi', 'dandiset', 'pathway', 'title', 'dandiset_name',
+            'doi', 'fetched_doi', 'dandiset', 'pathway', 'title', 'dandiset_name',
             'cited_doi', 'cited_title', 'cited_role', 'cited_source',
             'reasoning', 'quotes',
             'same_lab', 'reused_neurophysiology', 'reused_modalities',
-            'archives', 'reuse_types', 'dandi_reason',
+            'archives', 'reuse_types', 'dandi_reason', 'shared_paper',
         }
 
 
