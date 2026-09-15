@@ -247,6 +247,9 @@ def attach_cited_papers(rows: list[dict], results_path: Path) -> None:
     A dandiset can declare several papers, and the one this citing work actually
     cited is the one a reviewer has to read.
 
+    Discovery holds the citing DOI as fetched, versioned where the publisher
+    versions it, so that is the key the pairing answers to.
+
     Discovery does not always hold the pairing. Where it does not, the dataset's
     own declared paper is what a reviewer opens instead, and `cited_role` says
     which of the two is on offer.
@@ -259,7 +262,7 @@ def attach_cited_papers(rows: list[dict], results_path: Path) -> None:
     primaries = primary_paper_index(results_path)
     paper_titles, _, declared, origins = corpus_papers(results_path)
     for row in rows:
-        cited = primaries.get((row['doi'].lower(), row['dandiset']), '')
+        cited = primaries.get((row['fetched_doi'].lower(), row['dandiset']), '')
         row['cited_role'] = 'Cited' if cited else 'Dataset paper'
         cited = cited or declared.get(row['dandiset'], '')
         row['cited_doi'] = cited
