@@ -70,14 +70,14 @@
     "10.1101/2023.03.01.530616": {
       "000070": {
         "call": "neither",
-        "note": "This pair is redundant. The preprint was renamed upon publication to \"Dimensionality reduction beyond neural subspaces with slice tensor component analysis\". https://www.nature.com/articles/s41593-024-01626-2, doi: 10.1038/s41593-024-01626-2 (also in this review). That pair involves only DANDI:000128."
+        "note": "Duplicate paper. The preprint was renamed upon publication to \"Dimensionality reduction beyond neural subspaces with slice tensor component analysis\". https://www.nature.com/articles/s41593-024-01626-2, doi: 10.1038/s41593-024-01626-2 (also in this review). That pair involves only DANDI:000128."
       },
       "000138": {
-        "note": "This pair is redundant. The preprint was renamed upon publication to \"Dimensionality reduction beyond neural subspaces with slice tensor component analysis\". https://www.nature.com/articles/s41593-024-01626-2, doi: 10.1038/s41593-024-01626-2 (also in this review). That pair involves only DANDI:000128.",
+        "note": "Duplicate paper. The preprint was renamed upon publication to \"Dimensionality reduction beyond neural subspaces with slice tensor component analysis\". https://www.nature.com/articles/s41593-024-01626-2, doi: 10.1038/s41593-024-01626-2 (also in this review). That pair involves only DANDI:000128.",
         "call": "neither"
       },
       "000140": {
-        "note": "This pair is redundant. The preprint was renamed upon publication to \"Dimensionality reduction beyond neural subspaces with slice tensor component analysis\". https://www.nature.com/articles/s41593-024-01626-2, doi: 10.1038/s41593-024-01626-2 (also in this review). That pair involves only DANDI:000128.",
+        "note": "Duplicate paper. The preprint was renamed upon publication to \"Dimensionality reduction beyond neural subspaces with slice tensor component analysis\". https://www.nature.com/articles/s41593-024-01626-2, doi: 10.1038/s41593-024-01626-2 (also in this review). That pair involves only DANDI:000128.",
         "call": "neither"
       }
     },
@@ -202,7 +202,7 @@
     },
     "10.7554/elife.89421": {
       "001055": {
-        "note": "Same as 10.7554/elife.89421. Some/all of the dandisets used (NLB on DANDI) were repackaged into DANDI:001055, but this paper did not use data from DANDI:001055. ",
+        "note": "Duplicate paper. Same as doi: 10.7554/elife.89421. Some/all of the dandisets used (NLB on DANDI) were repackaged into DANDI:001055, but this paper did not use data from DANDI:001055. ",
         "call": "neither"
       },
       "000129": {
@@ -211,15 +211,14 @@
     },
     "10.7554/elife.93060": {
       "000129": {
-        "call": "reuse",
-        "note": "The paper's codebase references \"nlb-mc_maze_large\" (DANDI:000138), and the Figure 7 \"NLB maze\" bar number of neurons = 162 is consistent only with MC_Maze_Large."
+        "call": "reuse"
       },
       "000139": {
         "call": "neither",
-        "note": "The paper's codebase references \"nlb-mc_maze_large\" (DANDI:000138), and the Figure 7 \"NLB maze\" bar number of neurons = 162 is consistent only with MC_Maze_Large."
+        "note": "The paper's codebase references \"nlb-mc_maze_large\" (DANDI:000138), and the Figure 7 \"NLB maze\" bar number of neurons = 162 is consistent only with MC_Maze_Large, not MC_Maze_Medium."
       },
       "001055": {
-        "note": "Same as 10.7554/elife.93060. Used Makin et al data that was downloaded from DANDI:000129 (MC_RTT) repackaged into DANDI:001055",
+        "note": "Duplicate paper. Same as doi: 10.7554/elife.93060. Used Makin et al data that was downloaded from DANDI:000129 (MC_RTT) repackaged into DANDI:001055",
         "call": "neither"
       }
     },
@@ -290,13 +289,13 @@
     },
     "10.1101/2023.04.05.535396": {
       "000129": {
-        "note": "This is the preprint of doi:10.7554/elife.89421.3",
+        "note": "Duplicate paper. This is the preprint of doi:10.7554/elife.89421.3",
         "call": "reuse"
       }
     },
     "10.1101/2023.08.23.554148": {
       "000055": {
-        "note": "This is the preprint of doi:10.1016/j.patter.2024.101047",
+        "note": "Duplicate paper. This is the preprint of doi:10.1016/j.patter.2024.101047",
         "call": "reuse"
       }
     },
@@ -359,7 +358,7 @@
     },
     "10.7554/elife.111322.1.sa3": {
       "000404": {
-        "note": "Duplicate. Same as https://doi.org/10.7554/eLife.111322.1.",
+        "note": "Duplicate paper. Same as doi: 10.7554/eLife.111322.1.",
         "call": "reuse"
       }
     },
@@ -370,17 +369,17 @@
     },
     "10.7554/elife.85786.2.sa2": {
       "000021": {
-        "note": "Same as https://doi.org/10.7554/eLife.85786.3 but different version",
+        "note": "Duplicate paper. Same as https://doi.org/10.7554/eLife.85786.3 but different version.",
         "call": "reuse"
       }
     },
     "10.7554/elife.89421.1.sa2": {
       "000127": {
-        "note": "Same as 10.7554/elife.89421. This is a review of https://doi.org/10.7554/eLife.89421.3",
+        "note": "Duplicate paper. Same as doi: 10.7554/elife.89421. This is a review of https://doi.org/10.7554/eLife.89421.",
         "call": "reuse"
       },
       "000130": {
-        "note": "Same as 10.7554/elife.89421. This is a review of https://doi.org/10.7554/eLife.89421.3",
+        "note": "Duplicate paper. Same as doi: 10.7554/elife.89421. This is a review of https://doi.org/10.7554/eLife.89421.",
         "call": "reuse"
       }
     }
