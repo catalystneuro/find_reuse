@@ -52,12 +52,12 @@
         "call": "reuse"
       },
       "000128": {
-        "call": "ambiguous_reuse",
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. "
+        "call": "reuse",
+        "note": "In the methods section, this paper states \"We tested CEBRA on the mc-maze 20 ms task from the Neural Latents Benchmark37 (https://eval.ai/web/challenges/challenge-page/1256/leaderboard/3183).\" And that leaderboard resolves to mc-maze specifically (000128 only). There is a separate leaderboard for mc-maze small, medium, and large, which is called mc-maze scaling. This disambiguates 000128 from 000138, 000139, and 000140. "
       },
       "000139": {
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. ",
-        "call": "ambiguous_reuse"
+        "note": "In the methods section, this paper states \"We tested CEBRA on the mc-maze 20 ms task from the Neural Latents Benchmark37 (https://eval.ai/web/challenges/challenge-page/1256/leaderboard/3183).\" And that leaderboard resolves to mc-maze specifically (000128 only). There is a separate leaderboard for mc-maze small, medium, and large, which is called mc-maze scaling. This disambiguates 000128 from 000138, 000139, and 000140. ",
+        "call": "neither"
       }
     },
     "10.1038/s41592-024-02232-7": {
@@ -77,7 +77,8 @@
     },
     "10.1038/s41597-025-06115-0": {
       "000409": {
-        "call": "reuse"
+        "call": "reuse",
+        "note": "Obtained from the IBL ONE API, not DANDI. DANDI:000409 mirrors this data."
       }
     },
     "10.1038/s41597-025-06285-x": {
@@ -93,7 +94,8 @@
     },
     "10.1101/2021.03.13.435173": {
       "000020": {
-        "call": "reuse"
+        "call": "reuse",
+        "note": "Duplicate paper. This is the preprint of doi: 10.7554/eLife.78362."
       }
     },
     "10.1101/2023.04.05.535396": {
@@ -235,7 +237,8 @@
     },
     "10.1038/s41593-024-01626-2": {
       "000070": {
-        "call": "reuse"
+        "call": "ambiguous_reuse",
+        "note": "This paper clearly reused data from \"Neural population dynamics during reaching\", but it is unclear which Dandiset that refers to. Possible candidates include: 000070, 000128, 000138, 000139, and 000140."
       },
       "000139": {
         "call": "ambiguous_reuse",
@@ -303,12 +306,12 @@
     },
     "10.1101/2025.03.21.644350": {
       "000128": {
-        "call": "ambiguous_reuse",
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. "
+        "call": "reuse",
+        "note": "This paper clearly reused one of the MC_Maze datasets. It is only present on the MC_Maze leaderboard (https://eval.ai/web/challenges/challenge-page/1256/leaderboard/3183, Ctrl-TNDM (BAND)), not the MC_Maze scaling leaderboard (https://eval.ai/web/challenges/challenge-page/1256/leaderboard/3184). This indicates that they reused data from dataset 000128. "
       },
       "000139": {
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. ",
-        "call": "ambiguous_reuse"
+        "call": "neither",
+        "note": "This paper clearly reused one of the MC_Maze datasets. It is only present on the MC_Maze leaderboard (https://eval.ai/web/challenges/challenge-page/1256/leaderboard/3183, Ctrl-TNDM (BAND)), not the MC_Maze scaling leaderboard (https://eval.ai/web/challenges/challenge-page/1256/leaderboard/3184). This indicates that they reused data from dataset 000128. "
       }
     },
     "10.1101/2025.07.01.662601": {
@@ -318,11 +321,12 @@
     },
     "10.1371/journal.pcbi.1011975": {
       "000070": {
-        "call": "reuse"
+        "call": "neither",
+        "note": "This paper reused data from dataset 000128, not dataset 000070, as evidenced by their data availability section."
       },
       "000139": {
-        "call": "ambiguous_reuse",
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. "
+        "call": "neither",
+        "note": "This paper reused data from dataset 000128 as evidenced by their data availability section."
       }
     },
     "10.1371/journal.pcbi.1013789": {
@@ -339,7 +343,8 @@
     },
     "10.21105/jose.00309": {
       "000070": {
-        "call": "reuse"
+        "call": "reuse",
+        "note": "https://nwb4edu.github.io/Lesson_5/02-RotationalDynamics.html"
       },
       "000138": {
         "call": "neither",
@@ -356,8 +361,8 @@
         "note": "\"Publicly available datasets were analyzed in this study. This data can be found here: https://dandiarchive.org/dandiset/000070.\""
       },
       "000139": {
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. ",
-        "call": "ambiguous_reuse"
+        "note": "\"Publicly available datasets were analyzed in this study. This data can be found here: https://dandiarchive.org/dandiset/000070.\"",
+        "call": "neither"
       }
     },
     "10.3390/e24020152": {
@@ -383,16 +388,16 @@
     },
     "10.7554/elife.93060": {
       "000128": {
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. ",
-        "call": "ambiguous_reuse"
+        "note": "The paper's codebase (https://github.com/frschu/Aligned-and-oblique-dynamics-in-recurrent-neural-networks/blob/main/notebooks/experimental_data_plot.ipynb) only references \"nlb-mc_maze_large\" (DANDI:000138)",
+        "call": "neither"
       },
       "000138": {
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. ",
-        "call": "ambiguous_reuse"
+        "call": "reuse",
+        "note": "The paper's codebase (https://github.com/frschu/Aligned-and-oblique-dynamics-in-recurrent-neural-networks/blob/main/notebooks/experimental_data_plot.ipynb) only references \"nlb-mc_maze_large\" (DANDI:000138)"
       },
       "000140": {
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. ",
-        "call": "ambiguous_reuse"
+        "note": "The paper's codebase (https://github.com/frschu/Aligned-and-oblique-dynamics-in-recurrent-neural-networks/blob/main/notebooks/experimental_data_plot.ipynb) only references \"nlb-mc_maze_large\" (DANDI:000138)",
+        "call": "neither"
       }
     }
   }
