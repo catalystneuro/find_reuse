@@ -52,12 +52,12 @@
         "call": "reuse"
       },
       "000128": {
-        "call": "ambiguous_reuse",
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. "
+        "call": "reuse",
+        "note": "Dataset says \"tested CEBRA on an additional monkey dataset (mc-maze) presented in the Neural Latent Benchmark\" but cites in the Data Availability section \"Primate dataset: https://gui.dandiarchive.org/#/dandiset/000127\" which is Area2_Bump. The paper describes a primary analysis on the Area2_Bump dataset and Extended Data Fig. 8 shows performance on the mc-maze 20 ms benchmark, which is not the scaling benchmark that uses large/medium/small. The linked leaderboard (https://eval.ai/web/challenges/challenge-page/1256/leaderboard/3183) is \"MC_Maze 20ms\", which scores only MC_Maze (DANDI:000128). The Large/Medium/Small variants are scored only on the separate \"MC_Maze Scaling\" leaderboards."
       },
       "000139": {
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. ",
-        "call": "ambiguous_reuse"
+        "call": "neither",
+        "note": "Dataset says \"tested CEBRA on an additional monkey dataset (mc-maze) presented in the Neural Latent Benchmark\" but cites in the Data Availability section \"Primate dataset: https://gui.dandiarchive.org/#/dandiset/000127\" which is Area2_Bump. The paper describes a primary analysis on the Area2_Bump dataset and Extended Data Fig. 8 shows performance on the mc-maze 20 ms benchmark, which is not the scaling benchmark that uses large/medium/small. The linked leaderboard (https://eval.ai/web/challenges/challenge-page/1256/leaderboard/3183) is \"MC_Maze 20ms\", which scores only MC_Maze (DANDI:000128). The Large/Medium/Small variants are scored only on the separate \"MC_Maze Scaling\" leaderboards."
       }
     },
     "10.1038/s41592-024-02232-7": {
@@ -77,7 +77,8 @@
     },
     "10.1038/s41597-025-06115-0": {
       "000409": {
-        "call": "reuse"
+        "call": "reuse",
+        "note": "Obtained from the IBL ONE API, not DANDI. DANDI:000409 mirrors this data."
       }
     },
     "10.1038/s41597-025-06285-x": {
@@ -93,6 +94,7 @@
     },
     "10.1101/2021.03.13.435173": {
       "000020": {
+        "note": "Duplicate paper. This is the preprint of doi: 10.7554/eLife.78362. Reused DANDI:000020 in Supplemental Material 1.",
         "call": "reuse"
       }
     },
@@ -111,7 +113,7 @@
     },
     "10.1101/2024.07.30.605900": {
       "000552": {
-        "note": "This is definitely reuse, and it does appear that the data is present both on the DANDI Archive and the Buzsaki Lab Databank.\nHowever, the data was obtained from the Buzsaki Lab Databank, not from DANDI.",
+        "note": "Obtained from the Buzsaki Lab Databank, not DANDI. DANDI:000552 mirrors this data.",
         "call": "reuse"
       }
     },
@@ -132,7 +134,7 @@
     },
     "10.1523/jneurosci.1350-21.2021": {
       "000021": {
-        "note": "This paper definitely reused data from DANDI set 000021, but it appears they used the Allen SDK, not DANDI directly. ",
+        "note": "Obtained from AllenSDK, not DANDI. DANDI:000021 mirrors this data.",
         "call": "reuse"
       }
     },
@@ -170,22 +172,27 @@
     },
     "10.7554/elife.105183.1.sa1": {
       "000552": {
-        "note": "This is a DOI to a reviewer of a paper, but not the paper itself.",
+        "note": "Not a paper. This is a peer review of doi: 10.7554/eLife.105183.1.",
         "call": "neither"
       }
     },
     "10.7554/elife.109538.1.sa3": {
       "000207": {
-        "call": "reuse"
+        "call": "neither",
+        "note": "Not a paper. This is the eLife Assessment of doi: 10.7554/eLife.109538.1."
       }
     },
     "10.7554/elife.111322.1.sa1": {
       "000404": {
-        "note": "This DOI links to a review of a paper rather than the paper itself.",
+        "note": "Not a paper. This is a peer review of doi: 10.7554/eLife.111322.1.",
         "call": "neither"
       }
     },
     "10.7554/elife.78362": {
+      "000020": {
+        "note": "Reused DANDI:000020 in Appendix 1.",
+        "call": "reuse"
+      },
       "000048": {
         "call": "reuse"
       }
@@ -205,7 +212,7 @@
     },
     "10.7554/elife.89421.1.sa2": {
       "000129": {
-        "note": "This DOI links to a review and not the paper itself.",
+        "note": "Not a paper. This is a peer review of doi: 10.7554/eLife.89421.1.",
         "call": "neither"
       }
     },
@@ -235,11 +242,12 @@
     },
     "10.1038/s41593-024-01626-2": {
       "000070": {
-        "call": "reuse"
+        "call": "neither",
+        "note": "The unit count (n = 90 + 92 = 182) is consistent only with MC_Maze, not MC_Maze_Large/Medium/Small, which have 162/152/142 neurons."
       },
       "000139": {
-        "call": "ambiguous_reuse",
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. "
+        "call": "neither",
+        "note": "The unit count (n = 90 + 92 = 182) is consistent only with MC_Maze, not MC_Maze_Large/Medium/Small, which have 162/152/142 neurons."
       }
     },
     "10.1038/s41593-025-02183-y": {
@@ -255,12 +263,12 @@
     },
     "10.1088/1741-2552/ad1787": {
       "000138": {
-        "call": "ambiguous_reuse",
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. "
+        "call": "neither",
+        "note": "The paper says \"MC Maze\" (ambiguous) and cites MC_Maze_Small. The paper mentions 107 neurons held-in, which is unique to MC_Maze_Small, DANDI:000140. Full/Large/Medium/Small held-in counts: 137/122/114/107. The reported ISI 221.9 ms matches MC_Maze_Small. Full/Large/Medium/Small ISIs: 227.4/184.1/236.3/221.9."
       },
       "000140": {
-        "call": "ambiguous_reuse",
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. "
+        "call": "reuse",
+        "note": "The paper says \"MC Maze\" (ambiguous) and cites MC_Maze_Small. The paper mentions 107 neurons held-in, which is unique to MC_Maze_Small, DANDI:000140. Full/Large/Medium/Small held-in counts: 137/122/114/107. The reported ISI 221.9 ms matches MC_Maze_Small. Full/Large/Medium/Small ISIs: 227.4/184.1/236.3/221.9."
       }
     },
     "10.1101/2021.10.07.463540": {
@@ -277,12 +285,12 @@
     },
     "10.1101/2023.03.01.530616": {
       "000128": {
-        "call": "ambiguous_reuse",
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. "
+        "call": "reuse",
+        "note": "Duplicate paper. The preprint was renamed upon publication to \"Dimensionality reduction beyond neural subspaces with slice tensor component analysis\". https://www.nature.com/articles/s41593-024-01626-2, doi: 10.1038/s41593-024-01626-2 (also in this review). That pair involves only DANDI:000128."
       },
       "000139": {
-        "call": "ambiguous_reuse",
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. "
+        "call": "neither",
+        "note": "Duplicate paper. The preprint was renamed upon publication to \"Dimensionality reduction beyond neural subspaces with slice tensor component analysis\". https://www.nature.com/articles/s41593-024-01626-2, doi: 10.1038/s41593-024-01626-2 (also in this review). That pair involves only DANDI:000128."
       }
     },
     "10.1101/2024.01.25.577295": {
@@ -303,12 +311,12 @@
     },
     "10.1101/2025.03.21.644350": {
       "000128": {
-        "call": "ambiguous_reuse",
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. "
+        "call": "reuse",
+        "note": "Used MC_Maze (DANDI:000128), MC_RTT (DANDI:000129), Area2_Bump (DANDI:000127). BAND (team Ctrl-TNDM) is on the NLB MC_Maze, MC_RTT and Area2_Bump leaderboards and on no MC_Maze Scaling leaderboard: https://eval.ai/web/challenges/challenge-page/1256/leaderboard"
       },
       "000139": {
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. ",
-        "call": "ambiguous_reuse"
+        "call": "neither",
+        "note": "Used MC_Maze (DANDI:000128), MC_RTT (DANDI:000129), Area2_Bump (DANDI:000127). BAND (team Ctrl-TNDM) is on the NLB MC_Maze, MC_RTT and Area2_Bump leaderboards and on no MC_Maze Scaling leaderboard: https://eval.ai/web/challenges/challenge-page/1256/leaderboard"
       }
     },
     "10.1101/2025.07.01.662601": {
@@ -318,11 +326,12 @@
     },
     "10.1371/journal.pcbi.1011975": {
       "000070": {
-        "call": "reuse"
+        "call": "neither",
+        "note": "Paper cites DANDI:000128 directly. It also says \"It consists of one full session with 2869 total trials (2295 trials for training and 574 trials for testing), 108 conditions and 182 neurons with simultaneously monitored hand kinematics.\" which is consistent only with MC_Maze and not the Large/Medium/Small variants."
       },
       "000139": {
-        "call": "ambiguous_reuse",
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. "
+        "call": "neither",
+        "note": "Paper cites DANDI:000128 directly. It also says \"It consists of one full session with 2869 total trials (2295 trials for training and 574 trials for testing), 108 conditions and 182 neurons with simultaneously monitored hand kinematics.\" which is consistent only with MC_Maze and not the Large/Medium/Small variants."
       }
     },
     "10.1371/journal.pcbi.1013789": {
@@ -333,13 +342,14 @@
         "call": "reuse"
       },
       "000139": {
-        "call": "ambiguous_reuse",
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. "
+        "call": "neither",
+        "note": "Stats are consistent only with MC_Maze and not the Large/Medium/Small variants. S_train = 1721, S_test = 574, N_in = 137, N_out = 45."
       }
     },
     "10.21105/jose.00309": {
       "000070": {
-        "call": "reuse"
+        "call": "reuse",
+        "note": "https://nwb4edu.github.io/Lesson_5/02-RotationalDynamics.html"
       },
       "000138": {
         "call": "neither",
@@ -356,19 +366,22 @@
         "note": "\"Publicly available datasets were analyzed in this study. This data can be found here: https://dandiarchive.org/dandiset/000070.\""
       },
       "000139": {
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. ",
-        "call": "ambiguous_reuse"
+        "call": "neither",
+        "note": "\"Publicly available datasets were analyzed in this study. This data can be found here: https://dandiarchive.org/dandiset/000070.\""
       }
     },
     "10.3390/e24020152": {
       "000127": {
-        "call": "reuse"
+        "call": "reuse",
+        "note": "The paper says \"The primary dataset we conducted experiments on is Area2_Bump.\" The Data Availability Statement says \"The datasets can be found in https://gui.dandiarchive.org/#/dandiset\"."
       },
       "000138": {
-        "call": "reuse"
+        "call": "reuse",
+        "note": "The paper says \"We also used MC_Maze, and its scaled versions, MC_Maze_L, MC_Maze_M, and MC_Maze_S, as the secondary datasets to compare model performance on different datasets.\" The Data Availability Statement says \"The datasets can be found in https://gui.dandiarchive.org/#/dandiset\"."
       },
       "000140": {
-        "call": "reuse"
+        "call": "reuse",
+        "note": "The paper says \"We also used MC_Maze, and its scaled versions, MC_Maze_L, MC_Maze_M, and MC_Maze_S, as the secondary datasets to compare model performance on different datasets.\" The Data Availability Statement says \"The datasets can be found in https://gui.dandiarchive.org/#/dandiset\"."
       }
     },
     "10.7554/elife.108089": {
@@ -378,21 +391,22 @@
     },
     "10.7554/elife.110170": {
       "000409": {
-        "call": "reuse"
+        "call": "reuse",
+        "note": "The paper does not say whether the spike templates data came from DANDI or directly from IBL."
       }
     },
     "10.7554/elife.93060": {
       "000128": {
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. ",
-        "call": "ambiguous_reuse"
+        "call": "neither",
+        "note": "The paper's codebase references \"nlb-mc_maze_large\" (DANDI:000138), and the Figure 7 \"NLB maze\" bar number of neurons = 162 is consistent only with MC_Maze_Large, not MC_Maze_Medium."
       },
       "000138": {
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. ",
-        "call": "ambiguous_reuse"
+        "call": "reuse",
+        "note": "The paper's codebase references \"nlb-mc_maze_large\" (DANDI:000138), and the Figure 7 \"NLB maze\" bar number of neurons = 162 is consistent only with MC_Maze_Large, not MC_Maze_Medium."
       },
       "000140": {
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. ",
-        "call": "ambiguous_reuse"
+        "call": "neither",
+        "note": "The paper's codebase references \"nlb-mc_maze_large\" (DANDI:000138), and the Figure 7 \"NLB maze\" bar number of neurons = 162 is consistent only with MC_Maze_Large, not MC_Maze_Medium."
       }
     }
   }
