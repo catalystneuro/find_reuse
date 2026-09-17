@@ -259,12 +259,12 @@
     },
     "10.1088/1741-2552/ad1787": {
       "000138": {
-        "call": "ambiguous_reuse",
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. "
+        "call": "neither",
+        "note": "This paper specifically cites MC_Maze small [30], and none of the other MC_Maze datasets. Follow up statistical analysis with the unit numbers and the ISIs (done by Ryan Ly) also match MC_Maze small. This paper only reused MC_Maze data from the small version."
       },
       "000140": {
-        "call": "ambiguous_reuse",
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. "
+        "call": "reuse",
+        "note": "This paper specifically cites MC_Maze small [30], and none of the other MC_Maze datasets. Follow up statistical analysis with the unit numbers and the ISIs (done by Ryan Ly) also match MC_Maze small. This paper only reused MC_Maze data from the small version."
       }
     },
     "10.1101/2021.10.07.463540": {
@@ -338,8 +338,8 @@
         "call": "reuse"
       },
       "000139": {
-        "call": "ambiguous_reuse",
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. "
+        "call": "neither",
+        "note": "According to the neural latents benchmark (https://arxiv.org/pdf/2109.04463) in Table 4, the MC_Maze datasets have the following unit counts:\n- MC_Maze: 137 held-in, 45 held out = 182 total\n- MC_Maze-S 107 held in, 35 held out = 142 total\n- MC_Maze-M 114 held in, 38 held out = 152 total\n- MC_Maze-L 122 held in, 40 held out = 162 total\nIn this paper, the unit counts are listed in Table 1: N_in = 137, N_out = 45, matching MC_Maze exactly. Thus, the dandiset they reused was 000128."
       }
     },
     "10.21105/jose.00309": {
