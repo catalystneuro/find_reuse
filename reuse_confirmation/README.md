@@ -175,12 +175,6 @@ these: the candidate list names the datasets the pipeline reached, and a dataset
 it never reached is not in it. The name is what a call is checked against, so
 six digits on their own would not be enough to review from.
 
-A session reads only its own reviewer's finds, the way it shows only their own
-calls: reviewers judge independently, and seeing which dandisets somebody else
-thought a paper reused is seeing a judgement they have already made. So an added
-pair carries one call, from whoever added it. Putting a second reviewer behind
-one is a thing to build when a round is read twice.
-
 `src.review.merge_reviews` reads this key to carry these pairs into
 `all_reviews.json` and `confirmed_reuse.json`, where they are marked
 `"source": "reviewer"`.
