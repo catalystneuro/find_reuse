@@ -253,6 +253,41 @@ class TestMergingAddedPairs:
         assert pairs[0]['reasoning'] is None
         assert pairs[0]['quotes'] == []
 
+    def test_two_reviewers_who_both_found_it_make_one_pair_with_two_calls(
+            self, candidates):
+        """
+        Neither session shows the other's finds, so two calls on an added pair
+        mean two people reached it separately. That is the only way one gets a
+        second reviewer behind it at all, and it is a stronger agreement than a
+        confirmation: nobody was primed by seeing the first call.
+        """
+        pairs, _ = M.merge(
+            candidates,
+            {('10.1/a', '000128'): {'paul': {'call': 'reuse'},
+                                    'rly': {'call': 'reuse'}}},
+            {('10.1/a', '000128'): 'MC_Maze'})
+
+        assert len(pairs) == 1
+        assert pairs[0]['calls'] == {'paul': 'reuse', 'rly': 'reuse'}
+        assert M.confirmed(pairs, 2) == pairs
+
+    def test_a_pair_the_pipeline_later_proposes_carries_the_fuller_record(
+            self, candidates):
+        """
+        A rerun can reach a pair a reviewer had already added by hand. The
+        candidate record holds the reasoning and the quotes the added one never
+        had, and the pair is now a claim the classifier made, so it counts in
+        precision like any other.
+        """
+        pairs, _ = M.merge(
+            candidates,
+            {('10.1/a', '000541'): {'rly': {'call': 'reuse'}}},
+            {('10.1/a', '000541'): 'The name the reviewer was shown'})
+
+        assert pairs[0]['source'] == 'classifier'
+        assert pairs[0]['reasoning'] == candidate('10.1/a')['reasoning']
+        assert M.tally(pairs) == {'reuse': 1}
+
     def test_a_pair_in_neither_list_is_still_orphaned(self, candidates):
         pairs, orphaned = M.merge(
             candidates, {('10.1/gone', '000999'): {'rly': {'call': 'reuse'}}}, {})
