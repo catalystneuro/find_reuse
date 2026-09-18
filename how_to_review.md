@@ -181,35 +181,23 @@ indirect pairs sit in one group and each is offered its own labels.
 
 ### Adding a dandiset the pipeline missed
 
-You are reading the paper, so you are the only one who can see a dandiset it
-reused that the pipeline never proposed. **+ Add Reused Dandiset**, at the right
-of the call row on the worksheet, opens that paper on its own: every dataset it
-was paired with, the call on each, and a box at the bottom that takes an
-identifier.
+As you review the paper or quotes from it, you might notice dandisets that the
+paper reused that the pipeline never proposed. Click the **+ Add Reused Dandiset**
+button at the right of the call row on the worksheet to open that paper on its own
+and see every dataset it was paired with, including those not assigned for review, 
+the call and notes on each, and a box at the bottom that takes an identifier.
 
-Add the ones the paper reused. The box is for reuse the pipeline missed, so an
-added pair is recorded as **Reuse** and offered no other call. A paper that
-merely mentions a dandiset, or names one it deposited itself, is a different
-question and a lower priority than this one; leave those out rather than working
-through the full set of labels for each.
+Enter into that box a six-digit DANDI identifier for a dandiset the paper **reused**.
+A paper that merely mentions a dandiset, or names one it deposited itself, is not
+currently tracked. 
 
-Type the six digits of the dandiset identifier, leading zeros and all, and press
-**Look Up & Add**. It asks DANDI what the dataset is called and puts the pair on
-the list, and the box is ready for the next one. Anything that is not six digits
-is refused, and so is an identifier DANDI does not know, so a typo is caught
-where it was made.
+To undo an added dataset, click **×** on the row or **× Remove Pair** from the worksheet.
 
-Added pairs wear an amber **ADDED** chip and carry the **Reuse** call that
-putting them there made. They are yours to take back: **×** on the row removes
-one, and **× Remove Pair** does it from the worksheet, which is what a mistyped
-identifier needs. Removing the pair is also how its call is taken back, since
-the two arrive together. **Added** in the pathway row gathers everything you
-have added.
-
-The rest of the paper's datasets are on screen because that is the check worth
-making at the same time: whether the pipeline reached every dandiset the paper
-cited, and whether the ones it reached are the ones the paper actually names.
-Clear the search box to get the whole overview back.
+When you clicked the "+ Add Reused Dandiset" button, the view filters were changed to show
+all datasets associated with the paper (All, not Indirect/Direct/Added; All, not Reviewed/Unreviewed; no call
+filter; All Candidates; By Citing Paper; and the search box filled in with the paper DOI).
+Click "Return to Worksheet" in the top left of the page to return to your previous 
+Worksheet state with your previous filters.
 
 ### Where your reviews go
 
