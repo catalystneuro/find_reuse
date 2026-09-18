@@ -15,6 +15,10 @@
       "000776": {
         "note": "This paper harmonized data from various sources and stored it on the DANDI Archive, which makes it a primary source rather than a re-user.",
         "call": "primary"
+      },
+      "000541": {
+        "note": "This paper harmonized data from various sources and stored it on the DANDI Archive, which makes it a primary source rather than a re-user.",
+        "call": "primary"
       }
     },
     "10.1016/j.patter.2024.101047": {
@@ -104,6 +108,22 @@
       },
       "000130": {
         "call": "reuse"
+      },
+      "000128": {
+        "call": "neither",
+        "note": "This preprint is a duplicate of 10.7554/elife.89421.3"
+      },
+      "000138": {
+        "call": "neither",
+        "note": "This preprint is a duplicate of 10.7554/elife.89421.3"
+      },
+      "000139": {
+        "call": "neither",
+        "note": "This preprint is a duplicate of 10.7554/elife.89421.3"
+      },
+      "000140": {
+        "call": "neither",
+        "note": "This preprint is a duplicate of 10.7554/elife.89421.3"
       }
     },
     "10.1101/2024.03.29.587341": {
@@ -191,6 +211,15 @@
     "10.7554/elife.78362": {
       "000048": {
         "call": "reuse"
+      },
+      "000019": {
+        "call": "reuse"
+      },
+      "000020": {
+        "call": "reuse"
+      },
+      "000065": {
+        "call": "reuse"
       }
     },
     "10.7554/elife.85786": {
@@ -203,6 +232,18 @@
         "call": "reuse"
       },
       "000130": {
+        "call": "reuse"
+      },
+      "000128": {
+        "call": "reuse"
+      },
+      "000138": {
+        "call": "reuse"
+      },
+      "000139": {
+        "call": "reuse"
+      },
+      "000140": {
         "call": "reuse"
       }
     },
@@ -399,6 +440,68 @@
       "000140": {
         "note": "The paper's codebase (https://github.com/frschu/Aligned-and-oblique-dynamics-in-recurrent-neural-networks/blob/main/notebooks/experimental_data_plot.ipynb) only references \"nlb-mc_maze_large\" (DANDI:000138)",
         "call": "neither"
+      }
+    },
+    "10.1016/j.celrep.2024.114702": {
+      "000552": {
+        "call": "reuse"
+      }
+    },
+    "10.1016/j.xpro.2025.104030": {
+      "001349": {
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41467-023-37844-8": {
+      "000021": {
+        "note": "This paper clearly reused data from DANDI 0000 to 1, but likely actually accessed them through the Allen SDK. ",
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41467-024-51308-7": {
+      "000070": {
+        "note": "\"The data used in this study are available on DANDI (https://dandiarchive.org/dandiset/000070)\"",
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41586-025-08929-9": {
+      "000251": {
+        "note": "\"The raw electrophysiological data can be found on DANDI Archive (https://dandiarchive.org/dandiset/000251)\"",
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41592-025-02614-5": {
+      "000397": {
+        "call": "reuse"
+      },
+      "000957": {
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41593-025-02114-x": {
+      "000363": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2023.03.02.530774": {
+      "000008": {
+        "call": "reuse"
+      }
+    },
+    "10.1152/jn.00217.2025": {
+      "001132": {
+        "call": "reuse"
+      }
+    },
+    "10.7554/elife.90944.2.sa3": {
+      "000115": {
+        "note": "This is an eLife peer review DOI. ",
+        "call": "neither"
+      }
+    },
+    "10.7554/elife.93981": {
+      "000978": {
+        "call": "reuse"
       }
     }
   }
