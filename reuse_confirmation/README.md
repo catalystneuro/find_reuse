@@ -160,15 +160,11 @@ present only once somebody has added one.
 ```
 
 A paper naming a dandiset the pipeline never reached is something only a person
-reading the paper can see, and the whole point of dealing papers whole is that
-somebody is reading each of them. The dashboard's **+ Add Reused Dandiset** takes
+reading the paper can see. The dashboard's **+ Add Reused Dandiset** takes
 an identifier, asks DANDI what the dataset is called, and puts the pair on the
-list. Those pairs come down the `added` pathway and carry `reuse`: adding one is
-the reviewer saying the paper reused that dataset, so the call arrives with the
-pair, is the only one the pathway offers, and stands as long as the pair does.
+list. Those pairs come down the `added` pathway and carry only the `reuse` call.
 Removing the pair is how it is taken back. The box exists to catch reuse the
-pipeline missed, and the mentions and deposits a paper also names are a separate
-and lower-priority question, left out rather than labelled one at a time.
+pipeline missed. The mentions and deposits a paper also names are not tracked.
 
 An added pair therefore appears twice in this file: once under `added`, which is
 what the dashboard rebuilds the row from, and once under `reviews`, which is
@@ -179,10 +175,8 @@ these: the candidate list names the datasets the pipeline reached, and a dataset
 it never reached is not in it. The name is what a call is checked against, so
 six digits on their own would not be enough to review from.
 
-As irreplaceable as the reviews, and for the same reason. They are also the one
-thing in this file `src.review.merge_reviews` has nowhere to put: it carries a
-review by looking the pair up in the candidate list, and an added pair is not in
-it, so it prints on the console as a pair that is not a candidate and stays out
+`src.review.merge_reviews` has nowhere to put these pairs yet, so it prints
+on the console as a pair that is not a candidate and stays out
 of `all_reviews.json`. Folding them in is still to be written.
 
 ## `all_reviews.json`
