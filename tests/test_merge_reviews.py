@@ -10,10 +10,12 @@ import src.review.merge_reviews as M
 def candidate(doi, dandiset='000541', **overrides):
     record = {
         'doi': doi, 'dandiset': dandiset, 'pathway': 'indirect',
+        'fetched_doi': doi,
         'title': 'Waveform-based classification of dentate spikes',
         'dandiset_name': 'Hippocampal recordings',
         'cited_doi': '10.1/cited', 'cited_title': 'The dataset paper',
-        'cited_role': 'Cited',
+        'cited_role': 'Cited', 'cited_source': 'dcite:IsDescribedBy',
+        'shared_paper': None,
         'reasoning': 'The methods say the recordings were downloaded.',
         'quotes': [{'q': 'downloaded from the DANDI Archive', 'tier': 'exact'}],
         'same_lab': False, 'reused_neurophysiology': True,
@@ -25,11 +27,14 @@ def candidate(doi, dandiset='000541', **overrides):
     return record
 
 
-def write_reviews(base, username, reviews):
+def write_reviews(base, username, reviews, added=None):
     """One reviewer's file, as the dashboard writes it."""
     path = base / username / f'{username}-reviews.json'
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps({'reviewer': username, 'reviews': reviews}))
+    record = {'reviewer': username, 'reviews': reviews}
+    if added:
+        record['added'] = added
+    path.write_text(json.dumps(record))
 
 
 @pytest.fixture
@@ -89,13 +94,26 @@ class TestSettledCall:
         assert M.settled_call({'paul': {'call': 'reuse'},
                                'rly': {'call': 'mention'}}) is None
 
+    def test_an_unfinished_review_settles_nothing(self):
+        """
+        The page writes a note as it is typed and a call only when a button is
+        pressed, so an entry can hold one and not the other: a note typed and
+        never answered, or a call toggled off or undone under one.
+        """
+        assert M.settled_call({'rly': {'note': 'cannot tell from the text'}}) is None
+
+    def test_the_reviewers_who_did_answer_settle_it(self):
+        assert M.settled_call({'paul': {'call': 'reuse'},
+                               'rly': {'note': 'halfway through this one'}}) == 'reuse'
+
 
 class TestMerge:
     def test_a_reviewed_pair_carries_the_record_it_was_judged_on(self, candidates):
         pairs, _ = M.merge(candidates, {('10.1/a', '000541'):
                                         {'paul': {'call': 'reuse'}}})
-        assert pairs == [{**candidate('10.1/a'), 'call': 'reuse',
-                          'calls': {'paul': 'reuse'}, 'notes': {}}]
+        assert pairs == [{**candidate('10.1/a'), 'source': 'classifier',
+                          'call': 'reuse', 'calls': {'paul': 'reuse'},
+                          'notes': {}}]
 
     def test_a_candidate_nobody_read_is_left_out(self, candidates):
         pairs, _ = M.merge(candidates, {('10.1/b', '000541'):
@@ -113,6 +131,20 @@ class TestMerge:
             'paul': {'call': 'reuse'}, 'rly': {'call': 'mention'}}})
         assert pairs[0]['call'] is None
         assert pairs[0]['calls'] == {'paul': 'reuse', 'rly': 'mention'}
+
+    def test_an_unfinished_review_keeps_its_note_and_counts_no_call(self, candidates):
+        """
+        A pair one reviewer left half answered still has to merge, and the
+        merge read it as a KeyError before. What they wrote is worth keeping
+        and what they did not press is not a call.
+        """
+        pairs, _ = M.merge(candidates, {('10.1/a', '000541'): {
+            'paul': {'call': 'reuse'},
+            'rly': {'note': 'Coming back to this one.'}}})
+
+        assert pairs[0]['call'] == 'reuse'
+        assert pairs[0]['calls'] == {'paul': 'reuse'}
+        assert pairs[0]['notes'] == {'rly': 'Coming back to this one.'}
 
     def test_a_note_is_kept_under_the_reviewer_who_wrote_it(self, candidates):
         pairs, _ = M.merge(candidates, {('10.1/a', '000541'): {
@@ -139,6 +171,131 @@ class TestMerge:
             ('10.1/a', '000541'), ('10.1/b', '000001'), ('10.1/b', '000002')]
 
 
+class TestCollectAdded:
+    """The pairs reviewers put on the list themselves, gathered off their files."""
+
+    def test_reads_the_pairs_and_the_names_they_carry(self, tmp_path):
+        write_reviews(tmp_path, 'rly', {'10.1/a': {'000128': {'call': 'reuse'}}},
+                      added={'10.1/a': {'000128': {'dandiset_name': 'MC_Maze'}}})
+
+        assert M.collect_added(tmp_path) == {('10.1/a', '000128'): 'MC_Maze'}
+
+    def test_gathers_what_every_reviewer_added(self, tmp_path):
+        write_reviews(tmp_path, 'paul', {}, added={
+            '10.1/a': {'000128': {'dandiset_name': 'MC_Maze'}}})
+        write_reviews(tmp_path, 'rly', {}, added={
+            '10.1/b': {'000139': {'dandiset_name': 'MC_Maze_Medium'}}})
+
+        assert M.collect_added(tmp_path) == {
+            ('10.1/a', '000128'): 'MC_Maze',
+            ('10.1/b', '000139'): 'MC_Maze_Medium'}
+
+    def test_a_reviewer_who_added_nothing_is_no_trouble(self, tmp_path):
+        write_reviews(tmp_path, 'rly', {'10.1/a': {'000541': {'call': 'reuse'}}})
+
+        assert M.collect_added(tmp_path) == {}
+
+
+class TestMergingAddedPairs:
+    """
+    A pair a reviewer found by reading the paper. It is ground truth like any
+    other, and has no classifier record to carry.
+    """
+
+    def merged(self, candidates, name='MC_Maze', call='reuse'):
+        pairs, orphaned = M.merge(
+            candidates,
+            {('10.1/a', '000128'): {'rly': {'call': call}}},
+            {('10.1/a', '000128'): name})
+        return pairs, orphaned
+
+    def test_an_added_pair_is_merged_rather_than_orphaned(self, candidates):
+        pairs, orphaned = self.merged(candidates)
+
+        assert orphaned == []
+        assert [(p['doi'], p['dandiset']) for p in pairs] == [('10.1/a', '000128')]
+
+    def test_it_says_a_reviewer_found_it(self, candidates):
+        pairs, _ = self.merged(candidates)
+        assert pairs[0]['source'] == 'reviewer'
+
+    def test_it_carries_the_name_and_the_pathway(self, candidates):
+        pairs, _ = self.merged(candidates)
+        assert pairs[0]['dandiset_name'] == 'MC_Maze'
+        assert pairs[0]['pathway'] == 'added'
+
+    def test_it_takes_the_paper_from_a_pair_already_built_on_it(self, candidates):
+        """
+        The paper is one the pipeline reached, so a reviewer opening the record
+        should not be left with a bare DOI where every other pair has a title.
+        """
+        pairs, _ = self.merged(candidates)
+        assert pairs[0]['title'] == candidate('10.1/a')['title']
+
+    def test_it_holds_the_same_fields_as_a_pair_the_classifier_proposed(
+            self, candidates):
+        """
+        Reading a field should not depend on which kind of record it came off,
+        so a field added to the candidate list cannot quietly go missing here.
+        """
+        pairs, _ = M.merge(
+            candidates,
+            {('10.1/a', '000128'): {'rly': {'call': 'reuse'}},
+             ('10.1/b', '000541'): {'rly': {'call': 'reuse'}}},
+            {('10.1/a', '000128'): 'MC_Maze'})
+        found, proposed = pairs[0], pairs[1]
+
+        assert found['source'] == 'reviewer' and proposed['source'] == 'classifier'
+        assert set(found) == set(proposed)
+
+    def test_the_fields_only_a_classifier_answers_come_back_empty(self, candidates):
+        pairs, _ = self.merged(candidates)
+        assert pairs[0]['reasoning'] is None
+        assert pairs[0]['quotes'] == []
+
+    def test_two_reviewers_who_both_found_it_make_one_pair_with_two_calls(
+            self, candidates):
+        """
+        Neither session shows the other's finds, so two calls on an added pair
+        mean two people reached it separately. That is the only way one gets a
+        second reviewer behind it at all, and it is a stronger agreement than a
+        confirmation: nobody was primed by seeing the first call.
+        """
+        pairs, _ = M.merge(
+            candidates,
+            {('10.1/a', '000128'): {'paul': {'call': 'reuse'},
+                                    'rly': {'call': 'reuse'}}},
+            {('10.1/a', '000128'): 'MC_Maze'})
+
+        assert len(pairs) == 1
+        assert pairs[0]['calls'] == {'paul': 'reuse', 'rly': 'reuse'}
+        assert M.confirmed(pairs, 2) == pairs
+
+    def test_a_pair_the_pipeline_later_proposes_carries_the_fuller_record(
+            self, candidates):
+        """
+        A rerun can reach a pair a reviewer had already added by hand. The
+        candidate record holds the reasoning and the quotes the added one never
+        had, and the pair is now a claim the classifier made, so it counts in
+        precision like any other.
+        """
+        pairs, _ = M.merge(
+            candidates,
+            {('10.1/a', '000541'): {'rly': {'call': 'reuse'}}},
+            {('10.1/a', '000541'): 'The name the reviewer was shown'})
+
+        assert pairs[0]['source'] == 'classifier'
+        assert pairs[0]['reasoning'] == candidate('10.1/a')['reasoning']
+        assert M.tally(pairs) == {'reuse': 1}
+
+    def test_a_pair_in_neither_list_is_still_orphaned(self, candidates):
+        pairs, orphaned = M.merge(
+            candidates, {('10.1/gone', '000999'): {'rly': {'call': 'reuse'}}}, {})
+
+        assert pairs == []
+        assert orphaned == [('10.1/gone', '000999')]
+
+
 class TestConfirmed:
     @pytest.fixture
     def pairs(self, candidates):
@@ -163,6 +320,19 @@ class TestConfirmed:
                                         {'paul': {'call': 'mention'}}})
         assert M.confirmed(pairs, 1) == []
 
+    def test_an_unfinished_second_review_does_not_confirm_a_pair(self, candidates):
+        """
+        One reviewer called it reuse and the other only started: a note is not
+        agreement, and counting it would put a pair in confirmed_reuse.json on
+        the strength of one person's reading while claiming two.
+        """
+        pairs, _ = M.merge(candidates, {('10.1/a', '000541'): {
+            'paul': {'call': 'reuse'},
+            'rly': {'note': 'Coming back to this one.'}}})
+
+        assert M.confirmed(pairs, 1) == pairs
+        assert M.confirmed(pairs, 2) == []
+
 
 class TestTally:
     def test_counts_pairs_by_what_they_came_out(self, candidates):
@@ -176,6 +346,31 @@ class TestTally:
         pairs, _ = M.merge(candidates, {('10.1/a', '000541'): {
             'paul': {'call': 'reuse'}, 'rly': {'call': 'neither'}}})
         assert M.tally(pairs) == {'disputed': 1}
+
+    def test_a_pair_nobody_answered_is_not_a_disagreement(self, candidates):
+        """
+        Every review on it was left unfinished, so there is nothing to disagree
+        with. Counting it as disputed would report a fight nobody had.
+        """
+        pairs, _ = M.merge(candidates, {('10.1/a', '000541'): {
+            'rly': {'note': 'Coming back to this one.'}}})
+
+        assert M.tally(pairs) == {'unanswered': 1}
+
+    def test_a_pair_a_reviewer_found_is_left_out(self, candidates):
+        """
+        This is how often the classifier was right about what it proposed, and
+        it never proposed an added pair, so counting one would credit it with a
+        call it did not make and raise its precision for work it did not do.
+        """
+        pairs, _ = M.merge(
+            candidates,
+            {('10.1/a', '000541'): {'rly': {'call': 'reuse'}},
+             ('10.1/a', '000128'): {'rly': {'call': 'reuse'}}},
+            {('10.1/a', '000128'): 'MC_Maze'})
+
+        assert len(pairs) == 2
+        assert M.tally(pairs) == {'reuse': 1}
 
 
 class TestWriting:
@@ -197,5 +392,6 @@ class TestWriting:
         out = tmp_path / 'all_reviews.json'
         M.write_stamped(out, {'pairs': pairs})
         assert json.loads(out.read_text())['pairs'] == [
-            {**candidate('10.1/a'), 'call': 'reuse', 'calls': {'paul': 'reuse'},
+            {**candidate('10.1/a'), 'source': 'classifier', 'call': 'reuse',
+             'calls': {'paul': 'reuse'},
              'notes': {'paul': 'Figure 3 is built on it.'}}]
