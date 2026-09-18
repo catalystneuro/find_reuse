@@ -174,9 +174,9 @@ but the rest of the paper usually does. Look for:
   | 000139 | MC_Maze_Medium | 152 | 114 | 38 | 27 | 250 | 100 |
   | 000140 | MC_Maze_Small | 142 | 107 | 35 | 27 | 100 | 100 |
 
-  Table 4 lists the held-in and held-out units separately. **Neurons** is the
-  two added together, which is how many the sole training file of each of these
-  dandisets holds.
+  Table 4 lists the held-in and held-out units separately and gives no total.
+  **Neurons** is the two added together, verified independently of the paper by
+  counting the neurons in the sole training file each of these dandisets holds.
 
 * **The NLB leaderboard.** A paper that reports NLB results was usually
   submitted to the [leaderboard](https://eval.ai/web/challenges/challenge-page/1256/leaderboard).
