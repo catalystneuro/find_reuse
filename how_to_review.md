@@ -165,7 +165,7 @@ but the rest of the paper usually does. Look for:
 
 * **Counts.** Each variant is a different recording session, so a reported
   neuron, condition or trial count picks one out. These are from the NLB paper
-  ([Pei et al. 2021](https://arxiv.org/abs/2109.04463), Table 3).
+  ([Pei et al. 2021](https://arxiv.org/abs/2109.04463), Table 4).
 
   | Dandiset | Variant | Neurons | Held-in | Held-out | Conditions | Training trials | Test trials |
   |---|---|---|---|---|---|---|---|
@@ -173,6 +173,10 @@ but the rest of the paper usually does. Look for:
   | 000138 | MC_Maze_Large | 162 | 122 | 40 | 27 | 500 | 100 |
   | 000139 | MC_Maze_Medium | 152 | 114 | 38 | 27 | 250 | 100 |
   | 000140 | MC_Maze_Small | 142 | 107 | 35 | 27 | 100 | 100 |
+
+  Table 4 lists the held-in and held-out units separately. **Neurons** is the
+  two added together, which is how many the sole training file of each of these
+  dandisets holds.
 
 * **The NLB leaderboard.** A paper that reports NLB results was usually
   submitted to the [leaderboard](https://eval.ai/web/challenges/challenge-page/1256/leaderboard).
