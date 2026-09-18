@@ -175,7 +175,13 @@ these: the candidate list names the datasets the pipeline reached, and a dataset
 it never reached is not in it. The name is what a call is checked against, so
 six digits on their own would not be enough to review from.
 
-`src.review.merge_reviews` reads this key to carry these pairs into
+A session reads this key out of every reviews file in the repository, not only
+its own, so a pair one reviewer found is on screen for another to agree with.
+The reviewer who added it carries the call already; anybody else is offered it
+and presses it if their own reading of the paper agrees, which is what puts a
+second reviewer behind the pair.
+
+`src.review.merge_reviews` reads the same key to carry these pairs into
 `all_reviews.json` and `confirmed_reuse.json`, where they are marked
 `"source": "reviewer"`.
 

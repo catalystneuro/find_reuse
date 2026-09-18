@@ -94,6 +94,17 @@ class TestSettledCall:
         assert M.settled_call({'paul': {'call': 'reuse'},
                                'rly': {'call': 'mention'}}) is None
 
+    def test_a_note_with_no_call_settles_nothing(self):
+        """
+        The dashboard writes a note as it is typed, so a reviewer who wrote one
+        and moved on without answering leaves an entry holding no call at all.
+        """
+        assert M.settled_call({'rly': {'note': 'cannot tell from the text'}}) is None
+
+    def test_a_reviewer_who_only_wrote_a_note_leaves_the_call_to_the_rest(self):
+        assert M.settled_call({'paul': {'call': 'reuse'},
+                               'rly': {'note': 'agreed, see figure 3'}}) == 'reuse'
+
 
 class TestMerge:
     def test_a_reviewed_pair_carries_the_record_it_was_judged_on(self, candidates):
@@ -119,6 +130,20 @@ class TestMerge:
             'paul': {'call': 'reuse'}, 'rly': {'call': 'mention'}}})
         assert pairs[0]['call'] is None
         assert pairs[0]['calls'] == {'paul': 'reuse', 'rly': 'mention'}
+
+    def test_a_note_without_a_call_is_kept_and_votes_for_nothing(self, candidates):
+        """
+        A reviewer can write a note and move on without answering, and the pair
+        still has to merge: their reading is worth keeping and their silence is
+        not a call.
+        """
+        pairs, _ = M.merge(candidates, {('10.1/a', '000541'): {
+            'paul': {'call': 'reuse'},
+            'rly': {'note': 'I could not confirm this one myself.'}}})
+
+        assert pairs[0]['call'] == 'reuse'
+        assert pairs[0]['calls'] == {'paul': 'reuse'}
+        assert pairs[0]['notes'] == {'rly': 'I could not confirm this one myself.'}
 
     def test_a_note_is_kept_under_the_reviewer_who_wrote_it(self, candidates):
         pairs, _ = M.merge(candidates, {('10.1/a', '000541'): {

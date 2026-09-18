@@ -732,6 +732,57 @@ class TestAddedPairs:
             assert json.loads(response.read())['added'] == added
 
 
+def write_added(base, username, added, reviews=None):
+    """One reviewer's file, as the dashboard writes it once they add a pair."""
+    path = base / username / f'{username}-reviews.json'
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({'reviewer': username,
+                                'reviews': reviews or {}, 'added': added}))
+
+
+class TestEverybodysAddedPairs:
+    """
+    A session loads every reviewer's finds, not only its own. Confirming a pair
+    somebody else added means making your own call on it, and you cannot call a
+    pair that is not on your screen.
+    """
+
+    def test_gathers_what_every_reviewer_added(self, tmp_path):
+        write_added(tmp_path, 'rly', {'10.1/a': {'000128': {'dandiset_name': 'MC_Maze'}}})
+        write_added(tmp_path, 'ada', {'10.1/b': {'000139': {'dandiset_name': 'Medium'}}})
+
+        assert set(R.added_pairs(tmp_path)) == {'10.1/a\t000128', '10.1/b\t000139'}
+
+    def test_a_pair_says_who_put_it_there(self, tmp_path):
+        write_added(tmp_path, 'rly', {'10.1/a': {'000128': {'dandiset_name': 'MC_Maze'}}})
+
+        assert R.added_pairs(tmp_path)['10.1/a\t000128'] == {
+            'doi': '10.1/a', 'dandiset': '000128',
+            'dandiset_name': 'MC_Maze', 'by': ['rly']}
+
+    def test_a_pair_two_people_found_names_both(self, tmp_path):
+        for username in ('ada', 'rly'):
+            write_added(tmp_path, username,
+                        {'10.1/a': {'000128': {'dandiset_name': 'MC_Maze'}}})
+
+        assert R.added_pairs(tmp_path)['10.1/a\t000128']['by'] == ['ada', 'rly']
+
+    def test_a_tree_where_nobody_added_anything_is_empty(self, tmp_path):
+        write_added(tmp_path, 'rly', {}, reviews={'10.1/a': {'000541': {'call': 'reuse'}}})
+
+        assert R.added_pairs(tmp_path) == {}
+
+    def test_the_finds_reach_the_page(self):
+        page = R.build([row()], 'rly', added={
+            '10.1/a\t000128': {'doi': '10.1/a', 'dandiset': '000128',
+                               'dandiset_name': 'MC_Maze', 'by': ['ada']}})
+
+        assert '"by": ["ada"]' in page
+
+    def test_a_session_given_none_carries_none(self):
+        assert 'const ADDED = {}' in R.build([row()], 'rly')
+
+
 class TestAddedPathway:
     """
     A pair the reviewer put on the list. Adding one says the paper reused that

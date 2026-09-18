@@ -487,14 +487,25 @@ const byPair = (a, b) => a.doi < b.doi ? -1 : a.doi > b.doi ? 1
 let added = {};
 const isAdded = r => r.pathway === 'added';
 
+// Whose find a pair is. Adding one is a call, so the reviewer who put it there
+// carries it already; anybody else is looking at somebody's reading of a paper
+// and deciding whether their own agrees.
+const addedBy = r => r.added_by || [];
+const addedByMe = r => addedBy(r).includes(REVIEWER);
+// Your own find needs no name on it; somebody else's is read differently for
+// knowing whose reading of the paper you are being asked to agree with.
+const addedLabel = r => addedByMe(r) ? 'added'
+                                     : 'added by ' + addedBy(r).join(', ');
+
 // An added pair takes its paper from a pair already on the list: the paper is
 // one the pipeline reached and only the dataset is new. Where nothing else
 // reached it, the DOI stands in for the title.
-function enrol(doi, dandiset, name){
+function enrol(doi, dandiset, name, by){
   const key = doi + '\\t' + dandiset;
   if (ROW_BY_KEY.has(key)) return ROW_BY_KEY.get(key);
   const paper = ROWS.find(r => r.doi === doi) || {};
   const row = {doi, dandiset, dandiset_name: name || '', pathway: 'added',
+               added_by: by && by.length ? by : [REVIEWER],
                title: paper.title || '', fetched_doi: paper.fetched_doi || doi,
                has_text: Boolean(paper.has_text), reasoning: '', quotes: [],
                cited_doi: '', cited_title: '', cited_role: '', cited_source: '',
@@ -503,10 +514,12 @@ function enrol(doi, dandiset, name){
   ROWS.push(row);
   ROWS.sort(byPair);
   ROW_BY_KEY.set(key, row);
-  // The call comes with the pair: a reviewer adds a dandiset because they read
-  // the paper as reusing it. It goes into the reviews as it is made, so that
-  // what the file holds is what the screen says.
-  if (callFor(row) !== 'reuse') record(row, 'call', 'reuse');
+  // The call comes with the pair, for the reviewer who added it: they added it
+  // because they read the paper as reusing that dataset. It goes into the
+  // reviews as it is made, so that what the file holds is what the screen says.
+  // Somebody else's find is left uncalled, since agreeing with it is the whole
+  // of what they have to say about it.
+  if (addedByMe(row) && callFor(row) !== 'reuse') record(row, 'call', 'reuse');
   return row;
 }
 
@@ -610,7 +623,8 @@ function save(){
 
 // A pair the reviewer added is theirs by the act of adding it, so narrowing to
 // your own queue does not take it off the screen the moment you put it there.
-const isMine = r => isAdded(r) || MINE.has(keyOf(r));
+// Somebody else's find is theirs, and sits with the rest of the candidates.
+const isMine = r => (isAdded(r) && addedByMe(r)) || MINE.has(keyOf(r));
 
 // Whether any round reached this pair. Rounds are cut with filters and most of
 // the candidate list was never dealt to anybody, so a paper's datasets hold
@@ -708,7 +722,7 @@ const callName = label => callWords(label).split(' ')
 // An added pair is offered reuse alone and wears it already: putting the pair
 // on the list is the call, so the button reports it rather than asking.
 function callButtons(r){
-  const settled = isAdded(r);
+  const settled = isAdded(r) && addedByMe(r);
   return LABELS[r.pathway].map(label =>
     `<button class="call ${label}" data-v="${label}"
        aria-pressed="${callFor(r) === label}"
@@ -804,9 +818,13 @@ function renderWorksheet(rows){
   // the box that holds one says where the call has to come from.
   const evidence = isAdded(r)
     ? `<h4>Added By Hand</h4>
-       <p class="reasoning">You put this pair on the list while reading the
-         paper, so it carries no model reasoning and no quoted passage.
-         Adding it is the reuse call; removing the pair takes that back.</p>`
+       <p class="reasoning">${addedByMe(r)
+         ? `You put this pair on the list while reading the paper, so it
+            carries no model reasoning and no quoted passage. Adding it is the
+            reuse call; removing the pair takes that back.`
+         : `${esc(addedBy(r).join(' and '))} put this pair on the list while
+            reading the paper, so it carries no model reasoning and no quoted
+            passage. Read the paper yourself and call it reuse to agree.`}</p>`
     : `${sharedBlock(r)}
        <h4>Model Reasoning</h4>
        <p class="reasoning">${esc(r.reasoning)}</p>
@@ -829,7 +847,7 @@ function renderWorksheet(rows){
       <div class="choices">
         <div class="calls">${callButtons(r)}</div>
         <div class="actions">
-          ${isAdded(r)
+          ${isAdded(r) && addedByMe(r)
             ? `<button class="btn drop" data-drop="${esc(keyOf(r))}"
                  >\\u00d7 Remove Pair</button>` : ''}
           <button class="btn addcited" id="addcited">+ Add Reused Dandiset</button>
@@ -901,7 +919,7 @@ function entryRow(r){
     : `<div class="line">${esc(r.title || r.fetched_doi)}</div>`;
   // A row the reviewer put here says so whatever the pathway filter is set to,
   // and is the only kind that can be taken back off the list.
-  const drop = isAdded(r)
+  const drop = isAdded(r) && addedByMe(r)
     ? `<button class="drop" data-drop="${esc(keyOf(r))}" title="Remove this pair"
          aria-label="Remove ${esc(r.dandiset)} from this paper">\\u00d7</button>`
     : '';
@@ -916,7 +934,7 @@ function entryRow(r){
             ? `<span class="dsid small">${esc(r.dandiset)}</span>` : ''}
           ${controls.pathway === 'all' || isAdded(r)
             ? `<span class="mode quiet ${esc(r.pathway)}"
-                 >${esc(r.pathway)}</span>` : ''}
+                 >${esc(isAdded(r) ? addedLabel(r) : r.pathway)}</span>` : ''}
           ${unasked(r)
             ? `<span class="mode quiet outside">not in round</span>` : ''}
         </div>
@@ -1070,6 +1088,8 @@ function goBack(){
 // mistyped identifier needs. The note is the part they wrote by hand, and undo
 // does not reach it, so a pair carrying one asks before it goes.
 function dropPair(r){
+  // Somebody else's find is theirs to take back, not yours.
+  if (!addedByMe(r)) return;
   if (noteFor(r) && !confirm(
       `Remove ${r.dandiset} from this paper? The note on it goes too.`))
     return;
@@ -1125,9 +1145,9 @@ function addDandiset(form){
 // the answered pair drops out of the list and the next one slides into its
 // place, so holding position is the advance.
 function mark(r, value){
-  // An added pair holds the call that put it there, and it stands as long as
-  // the pair does. Removing the pair is how that call is taken back.
-  if (isAdded(r)) return;
+  // A pair you added holds the call that put it there, and it stands as long
+  // as the pair does. Removing the pair is how that call is taken back.
+  if (isAdded(r) && addedByMe(r)) return;
   undoStack.push({row: r, call: callFor(r), view, index});
   record(r, 'call', callFor(r) === value ? '' : value);
   if (view === 'worksheet'){
@@ -1238,9 +1258,14 @@ fetch('/load')
   .then(data => {
     reviews = data.reviews || {};
     added = data.added || {};
+    // Everybody's finds come aboard, so one reviewer's can be agreed with by
+    // another. Your own file is read after them, since it is the live copy of
+    // what you have added this session and the page's is a snapshot.
+    for (const pair of Object.values(ADDED))
+      enrol(pair.doi, pair.dandiset, pair.dandiset_name, pair.by);
     for (const [doi, datasets] of Object.entries(added))
       for (const [dandiset, held] of Object.entries(datasets))
-        enrol(doi, dandiset, held.dandiset_name);
+        enrol(doi, dandiset, held.dandiset_name, [REVIEWER]);
     render();
   })
   .catch(e => { setSaveState('Load failed \\u2014 ' + e.message, 'bad'); render(); });
@@ -1290,7 +1315,8 @@ def call_filters() -> str:
 
 def build(rows: list[dict], reviewer: str,
           mine: list[tuple[str, str]] | None = None,
-          dealt: set[tuple[str, str]] | None = None) -> str:
+          dealt: set[tuple[str, str]] | None = None,
+          added: dict[str, dict] | None = None) -> str:
     """
     Render one reviewer's session over every candidate there is.
 
@@ -1304,6 +1330,9 @@ def build(rows: list[dict], reviewer: str,
     pairs nobody was asked about. None leaves them unmarked: a session with no
     queues to read has nothing to say about which pairs a round took, and
     guessing would put the mark on all of them.
+
+    `added` is every pair anybody put on the list by hand, whosever it is, so
+    that one reviewer's find is on screen for another to agree with.
     """
     payload = json.dumps(rows, ensure_ascii=False).replace('</', r'<\/')
     n = len(rows)
@@ -1380,6 +1409,7 @@ const REVIEWER = {json.dumps(reviewer)};
 const LABELS = {json.dumps(LABELS)};
 const MINE = {mine_js};
 const DEALT = {dealt_js};
+const ADDED = {json.dumps(added or {}, ensure_ascii=False)};
 {JS}
 </script>
 """
@@ -1646,9 +1676,9 @@ def serve(rows: list[dict], reviewer: str, port: int,
     if not rows:
         raise SystemExit('No candidates to review.')
     save_path = reviews_path(reviewer, base)
-    handler = make_handler(build(rows, reviewer, mine, round_pairs(base)),
-                           reviewer, save_path, paper_cache,
-                           quotes_by_pair(rows), dandi_api)
+    handler = make_handler(
+        build(rows, reviewer, mine, round_pairs(base), added_pairs(base)),
+        reviewer, save_path, paper_cache, quotes_by_pair(rows), dandi_api)
     server = ThreadingHTTPServer(('127.0.0.1', port), handler)
     url = f'http://127.0.0.1:{server.server_address[1]}/'
     papers = len({r['doi'] for r in rows})
@@ -1722,6 +1752,31 @@ def round_pairs(base: Path = REUSE_CONFIRMATION_DIR
                   for doi, datasets in reviews.items()
                   for dandiset in datasets}
     return pairs
+
+
+def added_pairs(base: Path = REUSE_CONFIRMATION_DIR) -> dict[str, dict]:
+    """
+    Every pair anybody added, the dataset it names, and who put it there.
+
+    An added pair lives in the reviews file of whoever found it, and the
+    repository holds everybody's, so a session loads them all. That is what lets
+    a pair one reviewer found be confirmed by another: confirming is making your
+    own call on it, and you cannot call a pair that is not on your screen.
+
+    Keyed the way the page keys a pair. Reviewers come out in the order their
+    files are found, so a rebuild names them the same way every time.
+    """
+    found: dict[str, dict] = {}
+    for path in reviews_paths(base):
+        data = json.loads(path.read_text())
+        for doi, datasets in (data.get('added') or {}).items():
+            for dandiset, record in datasets.items():
+                pair = found.setdefault(f'{doi}\t{dandiset}', {
+                    'doi': doi, 'dandiset': dandiset,
+                    'dandiset_name': record.get('dandiset_name', ''), 'by': []})
+                if data['reviewer'] not in pair['by']:
+                    pair['by'].append(data['reviewer'])
+    return found
 
 
 def read_assignment(assignment_path: Path) -> tuple[list[tuple[str, str]], str]:

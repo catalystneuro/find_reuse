@@ -193,6 +193,11 @@ currently tracked.
 
 To undo an added dataset, click **×** on the row or **× Remove Pair** from the worksheet.
 
+Pairs another reviewer added are on your screen too, chipped **ADDED BY** their
+name. Yours already carry your **Reuse** call, and theirs are offered it for you
+to press, which is how a pair gets a second reviewer behind it. You cannot remove
+somebody else's, and leaving one uncalled is how you decline to stand behind it.
+
 When you clicked the "+ Add Reused Dandiset" button, the view filters were changed to show
 all datasets associated with the paper (All, not Indirect/Direct/Added; All, not Reviewed/Unreviewed; no call
 filter; All Candidates; By Citing Paper; and the search box filled in with the paper DOI).

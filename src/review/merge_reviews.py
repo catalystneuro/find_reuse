@@ -91,8 +91,14 @@ def collect_added(base: Path) -> dict[tuple[str, str], str]:
 
 
 def settled_call(calls: dict[str, dict]) -> str | None:
-    """What the reviewers agreed a pair is, or nothing where they did not."""
-    distinct = {review['call'] for review in calls.values()}
+    """
+    What the reviewers agreed a pair is, or nothing where they did not.
+
+    A reviewer who wrote a note and made no call has not judged the pair, so
+    they settle nothing. The note is kept; it is often what says why the call
+    was left unmade.
+    """
+    distinct = {review['call'] for review in calls.values() if review.get('call')}
     return distinct.pop() if len(distinct) == 1 else None
 
 
@@ -165,7 +171,8 @@ def merge(candidates: list[dict],
         merged.append({
             **record,
             'call': settled_call(given),
-            'calls': {username: review['call'] for username, review in given.items()},
+            'calls': {username: review['call'] for username, review in given.items()
+                      if review.get('call')},
             'notes': {username: review['note'] for username, review in given.items()
                       if review.get('note')},
         })
