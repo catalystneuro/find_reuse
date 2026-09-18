@@ -935,7 +935,7 @@ function addBox(doi){
   return `<form class="addbox" data-doi="${esc(doi)}">
       <span class="what">Add a dandiset this paper reused</span>
       <input class="dsinput" inputmode="numeric" autocomplete="off"
-             placeholder="000128" aria-label="Dandiset identifier">
+             placeholder="000001" aria-label="Dandiset identifier">
       <button class="btn" type="submit">Look Up &amp; Add</button>
       <span class="addstate" role="status"></span>
     </form>`;
