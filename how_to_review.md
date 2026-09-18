@@ -193,11 +193,6 @@ currently tracked.
 
 To undo an added dataset, click **×** on the row or **× Remove Pair** from the worksheet.
 
-Pairs another reviewer added are on your screen too, chipped **ADDED BY** their
-name. Yours already carry your **Reuse** call, and theirs are offered it for you
-to press, which is how a pair gets a second reviewer behind it. You cannot remove
-somebody else's, and leaving one uncalled is how you decline to stand behind it.
-
 When you clicked the "+ Add Reused Dandiset" button, the view filters were changed to show
 all datasets associated with the paper (All, not Indirect/Direct/Added; All, not Reviewed/Unreviewed; no call
 filter; All Candidates; By Citing Paper; and the search box filled in with the paper DOI).
@@ -249,6 +244,7 @@ the console.
 Pairs somebody added go in too, marked `"source": "reviewer"` so they can be
 told from the ones the classifier proposed. They are confirmed on the same
 terms: adding one is a reviewer saying the paper reused that dataset, so it
-already carries their call, and `--min-reviewers 2` asks somebody else to agree.
-The console says how many of them there were, and counts the classifier's
-precision over its own pairs alone.
+already carries their call and one reviewer confirms it. `--min-reviewers 2`
+would ask a second to agree, and nothing yet puts one reviewer's finds on
+another's screen. The console says how many of them there were, and counts the
+classifier's precision over its own pairs alone.

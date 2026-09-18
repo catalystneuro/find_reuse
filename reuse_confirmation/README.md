@@ -175,13 +175,13 @@ these: the candidate list names the datasets the pipeline reached, and a dataset
 it never reached is not in it. The name is what a call is checked against, so
 six digits on their own would not be enough to review from.
 
-A session reads this key out of every reviews file in the repository, not only
-its own, so a pair one reviewer found is on screen for another to agree with.
-The reviewer who added it carries the call already; anybody else is offered it
-and presses it if their own reading of the paper agrees, which is what puts a
-second reviewer behind the pair.
+A session reads only its own reviewer's finds, the way it shows only their own
+calls: reviewers judge independently, and seeing which dandisets somebody else
+thought a paper reused is seeing a judgement they have already made. So an added
+pair carries one call, from whoever added it. Putting a second reviewer behind
+one is a thing to build when a round is read twice.
 
-`src.review.merge_reviews` reads the same key to carry these pairs into
+`src.review.merge_reviews` reads this key to carry these pairs into
 `all_reviews.json` and `confirmed_reuse.json`, where they are marked
 `"source": "reviewer"`.
 
@@ -224,9 +224,10 @@ does not veto — what confirms a pair is how many people read it and said yes,
 and the disagreement stays visible in `all_reviews.json`.
 
 Added pairs are confirmed on the same terms. Adding one is a reviewer saying the
-paper reused that dataset, so it carries their call from the moment it exists:
-one reviewer is the person who added it, and `--min-reviewers 2` asks somebody
-else to agree.
+paper reused that dataset, so it carries their call from the moment it exists,
+and one reviewer confirms it as it does anything else. `--min-reviewers 2` would
+ask a second to agree, which no session yet gives them a way to do: a reviewer
+sees their own finds and nobody else's.
 
 A pair called `ambiguous_reuse` is reuse of DANDI data that names no dandiset, so
 it is absent here by design: a per-dandiset count reads this file and would
