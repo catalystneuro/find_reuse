@@ -142,6 +142,43 @@ so it stays valid across re-classification.
 Reviewers judge independently, so two people covering the same round leave two
 files; they are compared afterwards, not merged as the work is done.
 
+### `added`
+
+The pairs the reviewer put on the list themselves, nested the same way, and
+present only once somebody has added one.
+
+```json
+{
+  "reviewer": "rly",
+  "reviews": {"10.1002/acn3.70285": {"000128": {"call": "reuse"}}},
+  "added": {
+    "10.1002/acn3.70285": {
+      "000128": {"dandiset_name": "MC_Maze: macaque primary motor and dorsal premotor cortex spiking activity during delayed reaching"}
+    }
+  }
+}
+```
+
+A paper naming a dandiset the pipeline never reached is something only a person
+reading the paper can see. The dashboard's **+ Add Reused Dandiset** takes
+an identifier, asks DANDI what the dataset is called, and puts the pair on the
+list. Those pairs come down the `added` pathway and carry only the `reuse` call.
+Removing the pair is how it is taken back. The box exists to catch reuse the
+pipeline missed. The mentions and deposits a paper also names are not tracked.
+
+An added pair therefore appears twice in this file: once under `added`, which is
+what the dashboard rebuilds the row from, and once under `reviews`, which is
+where its call lives alongside everybody else's.
+
+`dandiset_name` is carried here because nothing else in the tree holds it for
+these: the candidate list names the datasets the pipeline reached, and a dataset
+it never reached is not in it. The name is what a call is checked against, so
+six digits on their own would not be enough to review from.
+
+`src.review.merge_reviews` reads this key to carry these pairs into
+`all_reviews.json` and `confirmed_reuse.json`, where they are marked
+`"source": "reviewer"`.
+
 ## `all_reviews.json`
 
 Every pair anybody has judged, with the record it was judged on and what each
@@ -150,6 +187,7 @@ rather than on who did the reading.
 
 ```json
 {"doi": "10.1002/acn3.70285", "dandiset": "000768", "...": "...",
+ "source": "classifier",
  "call": "reuse",
  "calls": {"pauladkisson": "reuse", "rly": "mention"},
  "notes": {"rly": "Cited for the method, never opened the data."}}
@@ -159,17 +197,38 @@ rather than on who did the reading.
 Rejections are in here as much as confirmations: how often the classifier was
 wrong is a result too, and the two together are the only way to say either.
 
+`source` says where the pair came from. `classifier` is a pair the pipeline
+proposed; `reviewer` is one somebody added while reading the paper, and those
+carry the fields only a classifier answers empty, so every record here holds
+the same keys whichever it is. The `calls` header counts the classifier's own
+pairs alone, since that is the number its precision is read off and a pair it
+never proposed would credit it with a call it never made. `added` beside it is
+how many the reviewers found.
+
+Two outcomes in that header are not calls anybody made. `disputed` is a pair
+the reviewers answered differently. `unanswered` is one where every review on
+it was left unfinished, which the page can produce by writing a note as it is
+typed and a call only when a button is pressed. The merge names those on the
+console, since a pair can otherwise be confirmed on fewer readings than it
+looks to have had.
+
 ## `confirmed_reuse.json`
 
 The pairs that came out reuse, in the same shape, which is what the rest of the
-project counts. The other end of `reuse_candidates.json`: what the classifier
-claimed, less what a person did not agree with.
+project counts. What the classifier claimed less what a person did not agree
+with, and the pairs a person found that it never claimed at all.
 
 Its header says how many reviewers had to call a pair reuse for it to be here.
 One is enough by default, which is all a round dealt out disjointly can produce;
 `--min-reviewers 2` is for once pairs have been read twice. A dissenting call
 does not veto — what confirms a pair is how many people read it and said yes,
 and the disagreement stays visible in `all_reviews.json`.
+
+Added pairs are confirmed on the same terms. Adding one is a reviewer saying the
+paper reused that dataset, so it carries their call from the moment it exists,
+and one reviewer confirms it as it does anything else. `--min-reviewers 2` would
+ask a second to agree, which no session yet gives them a way to do: a reviewer
+sees their own finds and nobody else's.
 
 A pair called `ambiguous_reuse` is reuse of DANDI data that names no dandiset, so
 it is absent here by design: a per-dandiset count reads this file and would

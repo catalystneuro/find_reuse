@@ -240,12 +240,32 @@ Click a heading to fold that group shut; it keeps its tally, so a folded group
 still says what it came to. **Collapse All** puts them all away, which is how you
 open one dataset and read it on its own.
 
-Call a pair from the list with the buttons on its row, or click the row to open
-it in the worksheet where the links, the reasoning and the quotes are. Notes are
-written in the worksheet.
+Call a pair from the list with the buttons on its row, and write the note in the
+box under it. Click the row anywhere else to open it in the worksheet, where the
+links, the reasoning and the quotes are.
 
 Pathway is a property of a pair, not of the session, so a dandiset's direct and
 indirect pairs sit in one group and each is offered its own labels.
+
+### Adding a dandiset the pipeline missed
+
+As you review the paper or quotes from it, you might notice dandisets that the
+paper reused that the pipeline never proposed. Click the **+ Add Reused Dandiset**
+button at the right of the call row on the worksheet to open that paper on its own
+and see every dataset it was paired with, including those not assigned for review, 
+the call and notes on each, and a box at the bottom that takes an identifier.
+
+Enter into that box a six-digit DANDI identifier for a dandiset the paper **reused**.
+A paper that merely mentions a dandiset, or names one it deposited itself, is not
+currently tracked. 
+
+To undo an added dataset, click **×** on the row or **× Remove Pair** from the worksheet.
+
+When you clicked the "+ Add Reused Dandiset" button, the view filters were changed to show
+all datasets associated with the paper (All, not Indirect/Direct/Added; All, not Reviewed/Unreviewed; no call
+filter; All Candidates; By Citing Paper; and the search box filled in with the paper DOI).
+Click "Return to Worksheet" in the top left of the page to return to your previous 
+Worksheet state with your previous filters.
 
 ### Where your reviews go
 
@@ -264,8 +284,13 @@ paper, then dataset, then the call and any note:
 }
 ```
 
-Both pathways write to this one file, and it is the only file your session
-touches. A paper reviewed against four dandisets holds four entries.
+Every pathway writes to this one file, and it is the only file your session
+touches. A paper reviewed against four dandisets holds four entries. Pairs you
+added go in beside them under `added`, with the name DANDI gave the dataset:
+
+```json
+  "added": {"10.1002/acn3.70285": {"000128": {"dandiset_name": "MC_Maze: macaque primary motor …"}}}
+```
 
 Run one session at a time. A session writes this file whole, so a second one open
 alongside it would overwrite whatever the first had just saved.
@@ -283,3 +308,11 @@ it. `confirmed_reuse.json` is the ones that came out reuse — one reviewer is
 enough by default, `--min-reviewers 2` once pairs have been read twice. Both go
 in `reuse_confirmation/`, and pairs the reviewers disagreed about are named on
 the console.
+
+Pairs somebody added go in too, marked `"source": "reviewer"` so they can be
+differentiated from the ones the classifier proposed. They are confirmed on the same
+terms: adding one is a reviewer saying the paper reused that dataset, so it
+already carries their call and one reviewer confirms it. `--min-reviewers 2`
+would ask a second to agree, and nothing yet puts one reviewer's finds on
+another's screen. The console says how many of them there were, and counts the
+classifier's precision over its own pairs alone.

@@ -2,8 +2,9 @@
 
 import json
 import threading
+import urllib.error
 import urllib.request
-from http.server import ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import pytest
 
@@ -20,7 +21,7 @@ class TestLabels:
         assert 'mention' in R.LABELS['indirect']
         assert 'mention' not in R.LABELS['direct']
 
-    def test_the_page_carries_the_labels_of_both_pathways(self):
+    def test_the_page_carries_the_labels_of_every_pathway(self):
         row = {'doi': 'd', 'title': 't', 'dandiset': '000001',
                'dandiset_name': 'n', 'reasoning': 'r', 'quotes': []}
 
@@ -28,7 +29,8 @@ class TestLabels:
 
         assert ('const LABELS = {"direct": ["reuse", "ambiguous_reuse", '
                 '"primary", "neither", "unsure"], "indirect": ["reuse", '
-                '"ambiguous_reuse", "mention", "neither", "unsure"]}') in page
+                '"ambiguous_reuse", "mention", "neither", "unsure"], '
+                '"added": ["reuse"]}') in page
 
     def test_a_pair_is_offered_the_labels_of_its_own_pathway(self):
         row = {'doi': 'd', 'title': 't', 'dandiset': '000001',
@@ -53,13 +55,49 @@ def paper_cache(tmp_path):
     return cache_dir
 
 
+# Two dandisets and no more, so that an identifier the archive does not know is
+# something the tests can ask about. 000128 is published under one name and
+# drafted under another, which is how the two are told apart.
+ARCHIVED = {
+    '000128': {'most_recent_published_version': {'name': 'MC_Maze'},
+               'draft_version': {'name': 'MC_Maze, in progress'}},
+    '000999': {'most_recent_published_version': None,
+               'draft_version': {'name': 'Never published'}},
+}
+
+
 @pytest.fixture
-def session(tmp_path, paper_cache):
+def dandi_api():
+    """A stand-in for the DANDI API, so no test reaches the network."""
+
+    class Archive(BaseHTTPRequestHandler):
+        def do_GET(self):
+            dandiset = ARCHIVED.get(self.path.strip('/').split('/')[-1])
+            body = json.dumps(dandiset or {'detail': 'Not found.'}).encode()
+            self.send_response(200 if dandiset else 404)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Content-Length', str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *args):
+            """Quiet, the way the review server's own log is."""
+
+    server = ThreadingHTTPServer(('127.0.0.1', 0), Archive)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    yield f'http://127.0.0.1:{server.server_address[1]}'
+    server.shutdown()
+    server.server_close()
+
+
+@pytest.fixture
+def session(tmp_path, paper_cache, dandi_api):
     """A running review server, with the directory its answers land in."""
     reviews_dir = tmp_path / 'reuse_confirmation'
     handler = R.make_handler('<title>page</title>', 'Ada Lovelace',
                              reviews_dir / 'ada' / 'ada-reviews.json', paper_cache,
-                             {('10.1/citer', '000541'): ['reanalysed the recordings']})
+                             {('10.1/citer', '000541'): ['reanalysed the recordings']},
+                             dandi_api)
     server = ThreadingHTTPServer(('127.0.0.1', 0), handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     yield f'http://127.0.0.1:{server.server_address[1]}', reviews_dir
@@ -73,6 +111,15 @@ def post_save(url, payload):
         headers={'Content-Type': 'application/json'}, method='POST')
     with urllib.request.urlopen(request) as response:
         return response.status
+
+
+def get_json(url):
+    """A JSON answer and the status it came with, refusals included."""
+    try:
+        with urllib.request.urlopen(url) as response:
+            return response.status, json.loads(response.read())
+    except urllib.error.HTTPError as refusal:
+        return refusal.code, json.loads(refusal.read())
 
 
 class TestReviewServer:
@@ -354,13 +401,13 @@ class TestScope:
         rows = [row('10.1/a'), row('10.1/b')]
         page = R.build(rows, 'rly', [('10.1/a', '000541')])
         assert 'data-control="scope" data-value="mine"' in page
-        assert 'data-control="scope" data-value="everyone"' in page
+        assert 'data-control="scope" data-value="candidates"' in page
         # Both pairs are still aboard; the filter narrows what is shown.
         assert '10.1/b' in page
 
     def test_an_empty_list_says_which_control_emptied_it(self):
         page = R.build([row()], 'rly', [('10.1/a', '000541')])
-        assert r'No ${pathway}pairs are assigned to you \u2014 try Everyone.' in page
+        assert r'No ${pathway}pairs are assigned to you \u2014 try All Candidates.' in page
         assert 'Nothing called ${callWords(controls.filter)}' in page
 
     def test_the_assigned_pairs_reach_the_page_as_a_lookup(self):
@@ -419,7 +466,7 @@ class TestOverview:
         assert ('data-value="primary" aria-pressed="false" '
                 'data-pathways="direct"') in page
         assert ('data-value="reuse" aria-pressed="false" '
-                'data-pathways="direct indirect"') in page
+                'data-pathways="direct indirect added"') in page
 
     def test_the_pairs_can_be_gathered_from_either_end_of_a_pair(self):
         page = R.build([row()], 'rly')
@@ -515,3 +562,219 @@ class TestSharedPaper:
                          'dandiset_name': 'n', 'reasoning': 'r', 'quotes': []}],
                        'rly')
         assert 'shared_paper' not in page.split('const REVIEWER')[0]
+
+
+class TestRoundPairs:
+    """
+    Which pairs a round reached, which is what marks the rest as pairs nobody
+    was asked about. Rounds are cut with filters, so most of the candidate list
+    was never dealt out, and those pairs stand in a paper's datasets looking
+    exactly like the ones somebody owes an answer on.
+    """
+
+    @pytest.fixture
+    def base(self, tmp_path):
+        for reviewer, pathway, pairs in [
+                ('rly', 'indirect', {'10.1/a': ['000541']}),
+                ('rly', 'direct', {'10.1/a': ['000714']}),
+                ('ada', 'indirect', {'10.1/c': ['000128']})]:
+            path = tmp_path / reviewer / f'{reviewer}-assignment-{pathway}.json'
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(
+                {'reviewer': reviewer, 'pathway': pathway, 'pairs': pairs}))
+        return tmp_path
+
+    def test_gathers_the_queues_of_every_reviewer(self, base):
+        assert R.round_pairs(base) == {
+            ('10.1/a', '000541'), ('10.1/a', '000714'), ('10.1/c', '000128')}
+
+    def test_a_pair_already_answered_is_one_the_round_reached(self, base):
+        """
+        Reviewing a pair takes it out of the queue it came from, so the queues
+        alone would call an answered pair one nobody was asked about.
+        """
+        path = base / 'ada' / 'ada-reviews.json'
+        path.write_text(json.dumps({'reviewer': 'ada', 'reviews': {
+            '10.1/b': {'000999': {'call': 'mention'}}}}))
+
+        assert ('10.1/b', '000999') in R.round_pairs(base)
+
+    def test_a_tree_with_no_queues_and_no_reviews_says_nothing(self, tmp_path):
+        """The page reads None as unmarked, where an empty set marks every pair."""
+        assert R.round_pairs(tmp_path) is None
+
+
+class TestPairsNobodyWasAsked:
+    def test_the_pairs_a_round_reached_go_to_the_page(self):
+        page = R.build([row()], 'rly', dealt={('10.1/a', '000541')})
+        assert 'const DEALT = new Set(["10.1/a\\t000541"])' in page
+
+    def test_a_session_with_no_queues_marks_nothing(self):
+        """
+        Saying nothing is the safe answer: a session that cannot see the queues
+        would otherwise put the mark on every pair there is.
+        """
+        assert 'const DEALT = null' in R.build([row()], 'rly')
+
+
+class TestDandisetId:
+    """What the add box takes, which is an identifier and nothing else."""
+
+    def test_takes_the_identifier_as_it_is_written(self):
+        assert R.dandiset_id('000128') == '000128'
+
+    def test_drops_the_space_around_a_pasted_identifier(self):
+        assert R.dandiset_id('  000128  ') == '000128'
+
+    @pytest.mark.parametrize('typed', [
+        '128',                                        # leading zeros dropped
+        '0001289',                                    # a digit too many
+        '10.48324/dandi.000128/0.220113.0400',        # the dandiset's own DOI
+        'https://dandiarchive.org/dandiset/000128',   # its page
+        '10.1002/acn3.70285',                         # a paper's DOI
+        'MC_Maze',
+        '',
+    ])
+    def test_what_is_not_six_digits_names_no_dandiset(self, typed):
+        """
+        Six digits read out of a longer string are a guess at what was meant,
+        and a wrong guess can name a real dandiset and be added with nothing
+        looking amiss.
+        """
+        assert R.dandiset_id(typed) == ''
+
+
+class TestFetchDandiset:
+    """
+    What DANDI calls a dataset, which is what a call is made against. Six digits
+    are not something a reviewer can check a paper's claim about.
+    """
+
+    def test_names_a_dandiset_by_its_published_version(self, dandi_api):
+        assert R.fetch_dandiset('000128', dandi_api) == {
+            'dandiset': '000128', 'name': 'MC_Maze'}
+
+    def test_falls_back_to_the_draft_where_nothing_is_published(self, dandi_api):
+        assert R.fetch_dandiset('000999', dandi_api) == {
+            'dandiset': '000999', 'name': 'Never published'}
+
+    def test_an_identifier_the_archive_does_not_know_is_an_error(self, dandi_api):
+        found = R.fetch_dandiset('000001', dandi_api)
+        assert 'name' not in found
+        assert '000001' in found['error']
+
+
+class TestAddingADandiset:
+    """
+    The lookup behind the box that puts a dataset the pipeline missed onto a
+    paper. A typo has to read as a typo rather than as a dataset with no name.
+    """
+
+    def test_names_the_dandiset_the_reviewer_typed(self, session):
+        url, _ = session
+
+        assert get_json(f'{url}/dandiset?id=000128') == (
+            200, {'dandiset': '000128', 'name': 'MC_Maze'})
+
+    def test_refuses_something_that_is_not_an_identifier(self, session):
+        url, _ = session
+
+        status, body = get_json(f'{url}/dandiset?id=MC_Maze')
+
+        assert status == 400
+        assert 'six digits' in body['error']
+
+    def test_says_so_for_an_identifier_dandi_does_not_know(self, session):
+        url, _ = session
+
+        status, body = get_json(f'{url}/dandiset?id=000001')
+
+        assert status == 404
+        assert '000001' in body['error']
+
+
+class TestAddedPairs:
+    """
+    The pairs a reviewer found by reading the paper, which no classifier
+    proposed. They are as irreplaceable as the reviews, so they are kept beside
+    them in the one file a session writes.
+    """
+
+    def test_save_keeps_the_pairs_the_reviewer_added(self, session):
+        url, reviews_dir = session
+
+        post_save(url, {
+            'reviewer': 'Ada Lovelace',
+            'reviews': {'10.1/citer': {'000128': {'call': 'reuse'}}},
+            'added': {'10.1/citer': {'000128': {'dandiset_name': 'MC_Maze'}}}})
+
+        written = json.loads((reviews_dir / 'ada' / 'ada-reviews.json').read_text())
+        assert written['added'] == {
+            '10.1/citer': {'000128': {'dandiset_name': 'MC_Maze'}}}
+
+    def test_a_reviewer_who_added_nothing_gets_a_file_that_says_nothing(
+            self, session):
+        url, reviews_dir = session
+
+        post_save(url, {'reviewer': 'Ada Lovelace', 'added': {},
+                        'reviews': {'10.1/citer': {'000541': {'call': 'reuse'}}}})
+
+        written = json.loads((reviews_dir / 'ada' / 'ada-reviews.json').read_text())
+        assert 'added' not in written
+
+    def test_load_returns_the_added_pairs_alongside_the_reviews(self, session):
+        url, _ = session
+        added = {'10.1/citer': {'000128': {'dandiset_name': 'MC_Maze'}}}
+
+        post_save(url, {'reviewer': 'Ada Lovelace', 'reviews': {}, 'added': added})
+
+        with urllib.request.urlopen(f'{url}/load') as response:
+            assert json.loads(response.read())['added'] == added
+
+
+class TestAddedPathway:
+    """
+    A pair the reviewer put on the list. Adding one says the paper reused that
+    dataset, so reuse is the call it carries and the only one it is offered:
+    the box is there to catch reuse, and the other calls are a separate job.
+    """
+
+    def test_the_worksheet_can_take_an_added_pair_off_the_list(self):
+        """
+        The call stands as long as the pair does, so removing the pair is the
+        only way back from a mistyped identifier, and the worksheet is where a
+        reviewer is when they read the pair and see it is wrong.
+        """
+        assert '\\u00d7 Remove Pair' in R.build([row()], 'rly')
+
+    def test_the_session_can_be_narrowed_to_the_pairs_you_added(self):
+        assert 'data-control="pathway" data-value="added"' in R.build([row()], 'rly')
+
+    def test_no_round_is_ever_dealt_on_the_added_pathway(self, tmp_path):
+        """
+        Queues are cut from what the classifier proposed, and an added pair is
+        on the list because a person put it there.
+        """
+        path = tmp_path / 'rly' / 'rly-assignment-added.json'
+        path.parent.mkdir(parents=True)
+        path.write_text(json.dumps(
+            {'reviewer': 'rly', 'pathway': 'added', 'pairs': {'10.1/a': ['000128']}}))
+
+        assert R.assignment_pairs('rly', tmp_path) is None
+
+    def test_the_worksheet_offers_the_way_into_the_papers_datasets(self):
+        assert 'id="addcited"' in R.build([row()], 'rly')
+
+    def test_an_added_pair_can_be_taken_back_from_its_row(self):
+        assert 'title="Remove this pair"' in R.build([row()], 'rly')
+
+
+class TestNotesInTheList:
+    def test_a_note_is_written_where_it_is_read(self):
+        r"""
+        The overview is where a second pass happens, and a call made there that
+        needs saying why should not send the reviewer to another screen to say
+        it.
+        """
+        page = R.build([row()], 'rly')
+        assert 'placeholder="Note \\u2014 optional"' in page
