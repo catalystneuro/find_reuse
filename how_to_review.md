@@ -242,7 +242,7 @@ in `reuse_confirmation/`, and pairs the reviewers disagreed about are named on
 the console.
 
 Pairs somebody added go in too, marked `"source": "reviewer"` so they can be
-told from the ones the classifier proposed. They are confirmed on the same
+differentiated from the ones the classifier proposed. They are confirmed on the same
 terms: adding one is a reviewer saying the paper reused that dataset, so it
 already carries their call and one reviewer confirms it. `--min-reviewers 2`
 would ask a second to agree, and nothing yet puts one reviewer's finds on
