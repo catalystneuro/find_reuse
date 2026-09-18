@@ -52,12 +52,12 @@
         "call": "reuse"
       },
       "000128": {
-        "call": "ambiguous_reuse",
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. "
+        "call": "reuse",
+        "note": "In the methods section, this paper states \"We tested CEBRA on the mc-maze 20 ms task from the Neural Latents Benchmark37 (https://eval.ai/web/challenges/challenge-page/1256/leaderboard/3183).\" And that leaderboard resolves to mc-maze specifically (000128 only). There is a separate leaderboard for mc-maze small, medium, and large, which is called mc-maze scaling. This disambiguates 000128 from 000138, 000139, and 000140. "
       },
       "000139": {
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. ",
-        "call": "ambiguous_reuse"
+        "note": "In the methods section, this paper states \"We tested CEBRA on the mc-maze 20 ms task from the Neural Latents Benchmark37 (https://eval.ai/web/challenges/challenge-page/1256/leaderboard/3183).\" And that leaderboard resolves to mc-maze specifically (000128 only). There is a separate leaderboard for mc-maze small, medium, and large, which is called mc-maze scaling. This disambiguates 000128 from 000138, 000139, and 000140. ",
+        "call": "neither"
       }
     },
     "10.1038/s41592-024-02232-7": {
@@ -77,7 +77,8 @@
     },
     "10.1038/s41597-025-06115-0": {
       "000409": {
-        "call": "reuse"
+        "call": "reuse",
+        "note": "Obtained from the IBL ONE API, not DANDI. DANDI:000409 mirrors this data."
       }
     },
     "10.1038/s41597-025-06285-x": {
@@ -93,7 +94,8 @@
     },
     "10.1101/2021.03.13.435173": {
       "000020": {
-        "call": "reuse"
+        "call": "reuse",
+        "note": "Duplicate paper. This is the preprint of doi: 10.7554/eLife.78362."
       }
     },
     "10.1101/2023.04.05.535396": {
@@ -176,7 +178,8 @@
     },
     "10.7554/elife.109538.1.sa3": {
       "000207": {
-        "call": "reuse"
+        "call": "neither",
+        "note": "Not a paper. This is the eLife Assessment of doi: 10.7554/eLife.109538.1."
       }
     },
     "10.7554/elife.111322.1.sa1": {
@@ -235,11 +238,12 @@
     },
     "10.1038/s41593-024-01626-2": {
       "000070": {
-        "call": "reuse"
+        "call": "neither",
+        "note": "According to the neural latents benchmark (https://arxiv.org/pdf/2109.04463) in Table 4, the MC_Maze datasets have the following unit counts: \n- MC_Maze: 137 held-in, 45 held out = 182 total\n- MC_Maze-S 107 held in, 35 held out = 142 total\n- MC_Maze-M 114 held in, 38 held out = 152 total\n- MC_Maze-L 122 held in, 40 held out = 162 total\nThis paper states that the dataset they reused had 90 motor cortical and 92 pre-motor cortical for a total of 182 units. Thus, the dandiset they reused was 000128."
       },
       "000139": {
-        "call": "ambiguous_reuse",
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. "
+        "call": "neither",
+        "note": "According to the neural latents benchmark (https://arxiv.org/pdf/2109.04463) in Table 4, the MC_Maze datasets have the following unit counts: \n- MC_Maze: 137 held-in, 45 held out = 182 total\n- MC_Maze-S 107 held in, 35 held out = 142 total\n- MC_Maze-M 114 held in, 38 held out = 152 total\n- MC_Maze-L 122 held in, 40 held out = 162 total\nThis paper states that the dataset they reused had 90 motor cortical and 92 pre-motor cortical for a total of 182 units. Thus, the dandiset they reused was 000128."
       }
     },
     "10.1038/s41593-025-02183-y": {
@@ -255,12 +259,12 @@
     },
     "10.1088/1741-2552/ad1787": {
       "000138": {
-        "call": "ambiguous_reuse",
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. "
+        "call": "neither",
+        "note": "This paper specifically cites MC_Maze small [30], and none of the other MC_Maze datasets. Follow up statistical analysis with the unit numbers and the ISIs (done by Ryan Ly) also match MC_Maze small. This paper only reused MC_Maze data from the small version."
       },
       "000140": {
-        "call": "ambiguous_reuse",
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. "
+        "call": "reuse",
+        "note": "This paper specifically cites MC_Maze small [30], and none of the other MC_Maze datasets. Follow up statistical analysis with the unit numbers and the ISIs (done by Ryan Ly) also match MC_Maze small. This paper only reused MC_Maze data from the small version."
       }
     },
     "10.1101/2021.10.07.463540": {
@@ -277,12 +281,12 @@
     },
     "10.1101/2023.03.01.530616": {
       "000128": {
-        "call": "ambiguous_reuse",
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. "
+        "call": "reuse",
+        "note": "This paper is a preprint-duplicate of a published paper with a different name: 10.1038/s41593-024-01626-2\n\nAccording to the neural latents benchmark (https://arxiv.org/pdf/2109.04463) in Table 4, the MC_Maze datasets have the following unit counts: - MC_Maze: 137 held-in, 45 held out = 182 total - MC_Maze-S 107 held in, 35 held out = 142 total - MC_Maze-M 114 held in, 38 held out = 152 total - MC_Maze-L 122 held in, 40 held out = 162 total This paper states that the dataset they reused had 90 motor cortical and 92 pre-motor cortical for a total of 182 units. Thus, the dandiset they reused was 000128."
       },
       "000139": {
-        "call": "ambiguous_reuse",
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. "
+        "call": "neither",
+        "note": "This paper is a preprint-duplicate of a published paper with a different name: 10.1038/s41593-024-01626-2\n\nAccording to the neural latents benchmark (https://arxiv.org/pdf/2109.04463) in Table 4, the MC_Maze datasets have the following unit counts: - MC_Maze: 137 held-in, 45 held out = 182 total - MC_Maze-S 107 held in, 35 held out = 142 total - MC_Maze-M 114 held in, 38 held out = 152 total - MC_Maze-L 122 held in, 40 held out = 162 total This paper states that the dataset they reused had 90 motor cortical and 92 pre-motor cortical for a total of 182 units. Thus, the dandiset they reused was 000128."
       }
     },
     "10.1101/2024.01.25.577295": {
@@ -303,12 +307,12 @@
     },
     "10.1101/2025.03.21.644350": {
       "000128": {
-        "call": "ambiguous_reuse",
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. "
+        "call": "reuse",
+        "note": "This paper clearly reused one of the MC_Maze datasets. It is only present on the MC_Maze leaderboard (https://eval.ai/web/challenges/challenge-page/1256/leaderboard/3183, Ctrl-TNDM (BAND)), not the MC_Maze scaling leaderboard (https://eval.ai/web/challenges/challenge-page/1256/leaderboard/3184). This indicates that they reused data from dataset 000128. "
       },
       "000139": {
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. ",
-        "call": "ambiguous_reuse"
+        "call": "neither",
+        "note": "This paper clearly reused one of the MC_Maze datasets. It is only present on the MC_Maze leaderboard (https://eval.ai/web/challenges/challenge-page/1256/leaderboard/3183, Ctrl-TNDM (BAND)), not the MC_Maze scaling leaderboard (https://eval.ai/web/challenges/challenge-page/1256/leaderboard/3184). This indicates that they reused data from dataset 000128. "
       }
     },
     "10.1101/2025.07.01.662601": {
@@ -318,11 +322,12 @@
     },
     "10.1371/journal.pcbi.1011975": {
       "000070": {
-        "call": "reuse"
+        "call": "neither",
+        "note": "This paper reused data from dataset 000128, not dataset 000070, as evidenced by their data availability section."
       },
       "000139": {
-        "call": "ambiguous_reuse",
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. "
+        "call": "neither",
+        "note": "This paper reused data from dataset 000128 as evidenced by their data availability section."
       }
     },
     "10.1371/journal.pcbi.1013789": {
@@ -333,13 +338,14 @@
         "call": "reuse"
       },
       "000139": {
-        "call": "ambiguous_reuse",
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. "
+        "call": "neither",
+        "note": "According to the neural latents benchmark (https://arxiv.org/pdf/2109.04463) in Table 4, the MC_Maze datasets have the following unit counts:\n- MC_Maze: 137 held-in, 45 held out = 182 total\n- MC_Maze-S 107 held in, 35 held out = 142 total\n- MC_Maze-M 114 held in, 38 held out = 152 total\n- MC_Maze-L 122 held in, 40 held out = 162 total\nIn this paper, the unit counts are listed in Table 1: N_in = 137, N_out = 45, matching MC_Maze exactly. Thus, the dandiset they reused was 000128."
       }
     },
     "10.21105/jose.00309": {
       "000070": {
-        "call": "reuse"
+        "call": "reuse",
+        "note": "https://nwb4edu.github.io/Lesson_5/02-RotationalDynamics.html"
       },
       "000138": {
         "call": "neither",
@@ -356,8 +362,8 @@
         "note": "\"Publicly available datasets were analyzed in this study. This data can be found here: https://dandiarchive.org/dandiset/000070.\""
       },
       "000139": {
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. ",
-        "call": "ambiguous_reuse"
+        "note": "\"Publicly available datasets were analyzed in this study. This data can be found here: https://dandiarchive.org/dandiset/000070.\"",
+        "call": "neither"
       }
     },
     "10.3390/e24020152": {
@@ -383,16 +389,16 @@
     },
     "10.7554/elife.93060": {
       "000128": {
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. ",
-        "call": "ambiguous_reuse"
+        "note": "The paper's codebase (https://github.com/frschu/Aligned-and-oblique-dynamics-in-recurrent-neural-networks/blob/main/notebooks/experimental_data_plot.ipynb) only references \"nlb-mc_maze_large\" (DANDI:000138)",
+        "call": "neither"
       },
       "000138": {
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. ",
-        "call": "ambiguous_reuse"
+        "call": "reuse",
+        "note": "The paper's codebase (https://github.com/frschu/Aligned-and-oblique-dynamics-in-recurrent-neural-networks/blob/main/notebooks/experimental_data_plot.ipynb) only references \"nlb-mc_maze_large\" (DANDI:000138)"
       },
       "000140": {
-        "note": "This paper clearly reused one of the MC_Maze datasets. However, it is not clear which one. Possible Dandisets include 000128, 000138, 000139, and 000140. ",
-        "call": "ambiguous_reuse"
+        "note": "The paper's codebase (https://github.com/frschu/Aligned-and-oblique-dynamics-in-recurrent-neural-networks/blob/main/notebooks/experimental_data_plot.ipynb) only references \"nlb-mc_maze_large\" (DANDI:000138)",
+        "call": "neither"
       }
     }
   }
