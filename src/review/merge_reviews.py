@@ -12,6 +12,11 @@ rejections included, since how often the classifier was wrong is a result too.
 confirmed_reuse.json is the narrower thing the project is for: the pairs that
 came out reuse.
 
+A pair carries `source`, saying whether a classifier proposed it or a reviewer
+found it by reading the paper. Both are ground truth and both are confirmed the
+same way, by how many people called the pair reuse; only the classifier's own
+are counted when tallying how often it was right.
+
 Usage:
     python -m src.review.merge_reviews
     python -m src.review.merge_reviews --min-reviewers 2
@@ -67,32 +72,98 @@ def collect_reviews(registry: list[dict], base: Path
     return reviews
 
 
+def collect_added(base: Path) -> dict[tuple[str, str], str]:
+    """
+    Every pair a reviewer put on the list themselves, and what DANDI calls it.
+
+    These are not in the candidate list and never will be: no classifier
+    proposed them, a person reading the paper did. The dataset's name comes
+    along because nothing else in the tree holds it for a dataset the pipeline
+    never reached.
+    """
+    found: dict[tuple[str, str], str] = {}
+    for path in reviews_paths(base):
+        data = json.loads(path.read_text())
+        for doi, datasets in (data.get('added') or {}).items():
+            for dandiset, record in datasets.items():
+                found[(doi, dandiset)] = record.get('dandiset_name', '')
+    return found
+
+
 def settled_call(calls: dict[str, dict]) -> str | None:
     """What the reviewers agreed a pair is, or nothing where they did not."""
     distinct = {review['call'] for review in calls.values()}
     return distinct.pop() if len(distinct) == 1 else None
 
 
-def merge(candidates: list[dict], reviews: dict[tuple[str, str], dict[str, dict]]
+def blank_fields(sample: dict) -> dict:
+    """
+    A candidate record's fields, emptied.
+
+    An added pair has no classifier to have answered them, and carrying them
+    empty keeps one shape for every record in the file, so reading a field does
+    not depend on where the pair came from. A field holding a list comes back an
+    empty list, since that is what reading it expects to find.
+    """
+    return {field: [] if isinstance(value, list) else None
+            for field, value in sample.items()}
+
+
+def reviewer_record(doi: str, dandiset: str, dandiset_name: str,
+                    blank: dict, papers: dict[str, dict]) -> dict:
+    """
+    The record an added pair carries, shaped like the record a candidate has.
+
+    The paper is one the pipeline did reach, so its title and the DOI its text
+    was fetched under come from a pair already built on it.
+    """
+    paper = papers.get(doi, {})
+    return {**blank,
+            'doi': doi, 'dandiset': dandiset, 'dandiset_name': dandiset_name,
+            'pathway': 'added',
+            'title': paper.get('title', ''),
+            'fetched_doi': paper.get('fetched_doi', doi)}
+
+
+def merge(candidates: list[dict],
+          reviews: dict[tuple[str, str], dict[str, dict]],
+          added: dict[tuple[str, str], str] | None = None
           ) -> tuple[list[dict], list[tuple[str, str]]]:
     """
     Every reviewed pair, carrying the record it was judged on.
 
-    A pair somebody reviewed that the candidate list no longer holds comes back
-    separately rather than disappearing: it means the pipeline was re-run and
-    the classifier changed its mind about a pair a person had already read. The
+    `source` says where the pair came from. A classifier proposed most of them;
+    a reviewer reading the paper found the rest, and those have no classifier
+    record to carry, so their fields are empty. Keeping the two apart is what
+    lets the precision of the classifier be counted over the pairs it actually
+    claimed.
+
+    A pair somebody reviewed that is in neither list comes back separately
+    rather than disappearing: it means the pipeline was re-run and the
+    classifier changed its mind about a pair a person had already read. The
     reviews outlive any one run of the classifier, which is the point of them,
     but there is no record left to carry.
     """
+    added = added or {}
     records = {(pair['doi'], pair['dandiset']): pair for pair in candidates}
+    papers: dict[str, dict] = {}
+    for pair in candidates:
+        papers.setdefault(pair['doi'], pair)
+    blank = blank_fields(candidates[0]) if candidates else {}
+
     merged, orphaned = [], []
     for pair in sorted(reviews):
-        if pair not in records:
+        if pair in records:
+            record = {**records[pair], 'source': 'classifier'}
+        elif pair in added:
+            record = {**reviewer_record(*pair, added[pair], blank, papers),
+                      'source': 'reviewer'}
+        else:
             orphaned.append(pair)
             continue
         given = reviews[pair]
         merged.append({
-            **records[pair],
+            **record,
             'call': settled_call(given),
             'calls': {username: review['call'] for username, review in given.items()},
             'notes': {username: review['note'] for username, review in given.items()
@@ -119,12 +190,18 @@ def tally(pairs: list[dict]) -> dict[str, int]:
     """
     How many pairs came out each way, which is the classifier's precision.
 
+    Only the pairs a classifier proposed are counted. A pair a reviewer found by
+    reading the paper was never a claim the classifier made, so crediting it
+    here would measure the classifier against work it did not do.
+
     Pairs the reviewers disagreed about are counted as their own outcome, since
     they have no call and are not evidence either way until somebody settles
     them.
     """
     counts: dict[str, int] = {}
     for pair in pairs:
+        if pair.get('source') != 'classifier':
+            continue
         outcome = pair['call'] or 'disputed'
         counts[outcome] = counts.get(outcome, 0) + 1
     return dict(sorted(counts.items()))
@@ -142,10 +219,12 @@ def main():
     candidates = json.loads(CANDIDATES_FILE.read_text())
     registry = load_reviewers(REVIEWERS_FILE)
     reviews = collect_reviews(registry, REUSE_CONFIRMATION_DIR)
-    pairs, orphaned = merge(candidates['pairs'], reviews)
+    added = collect_added(REUSE_CONFIRMATION_DIR)
+    pairs, orphaned = merge(candidates['pairs'], reviews, added)
     confirmed_pairs = confirmed(pairs, args.min_reviewers)
 
     counts = tally(pairs)
+    found = sum(1 for pair in pairs if pair['source'] == 'reviewer')
     header = {
         'candidates_generated_at': candidates['generated_at'],
         'inputs': candidates['inputs'],
@@ -154,21 +233,27 @@ def main():
     }
     changed = {
         ALL_REVIEWS_FILE: write_stamped(ALL_REVIEWS_FILE, {
-            **header, 'reviewed': len(pairs), 'calls': counts, 'pairs': pairs}),
+            **header, 'reviewed': len(pairs) - found, 'added': found,
+            'calls': counts, 'pairs': pairs}),
         CONFIRMED_FILE: write_stamped(CONFIRMED_FILE, {
             **header, 'min_reviewers': args.min_reviewers,
             'confirmed': len(confirmed_pairs), 'pairs': confirmed_pairs}),
     }
 
-    print(f'{len(pairs)} of {len(candidates["pairs"])} candidate pairs reviewed: '
+    print(f'{len(pairs) - found} of {len(candidates["pairs"])} candidate pairs '
+          f'reviewed: '
           f'{", ".join(f"{count} {outcome}" for outcome, count in counts.items())}')
+    if found:
+        print(f'{found} pair{"" if found == 1 else "s"} reviewers added while '
+              f'reading the papers, counted as reuse and not as the classifier')
     for pair in pairs:
         if pair['call'] is None:
             said = ', '.join(f'{username} {call}'
                              for username, call in pair['calls'].items())
             print(f'  disputed: {pair["doi"]} {pair["dandiset"]} -- {said}')
     for doi, dandiset in orphaned:
-        print(f'  reviewed but no longer a candidate: {doi} {dandiset}')
+        print(f'  reviewed, and the classifier no longer proposes it: '
+              f'{doi} {dandiset}')
     print(f'{len(confirmed_pairs)} confirmed reuse, at '
           f'{args.min_reviewers} reviewer{"" if args.min_reviewers == 1 else "s"}')
     for path, wrote in changed.items():

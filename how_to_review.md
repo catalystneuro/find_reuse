@@ -241,8 +241,9 @@ enough by default, `--min-reviewers 2` once pairs have been read twice. Both go
 in `reuse_confirmation/`, and pairs the reviewers disagreed about are named on
 the console.
 
-A pair somebody added is carried in their own reviews file and stops there. The
-merge looks each reviewed pair up in the candidate list to find the record to
-carry, an added pair is not in it, and so it comes out on the console as a pair
-that is not a candidate. Folding them into `all_reviews.json` is still to be
-written; until it is, the added pairs live in the per-reviewer files.
+Pairs somebody added go in too, marked `"source": "reviewer"` so they can be
+told from the ones the classifier proposed. They are confirmed on the same
+terms: adding one is a reviewer saying the paper reused that dataset, so it
+already carries their call, and `--min-reviewers 2` asks somebody else to agree.
+The console says how many of them there were, and counts the classifier's
+precision over its own pairs alone.
