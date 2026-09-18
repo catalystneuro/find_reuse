@@ -113,7 +113,7 @@
     },
     "10.1101/2024.07.30.605900": {
       "000552": {
-        "note": "Obtained from the Buzsaki Lab Databank, not DANDI. DANDI:000552 mirrors this data.",
+        "note": "This is definitely reuse, and it does appear that the data is present both on the DANDI Archive and the Buzsaki Lab Databank.\nHowever, the data was obtained from the Buzsaki Lab Databank, not from DANDI.",
         "call": "reuse"
       }
     },
@@ -134,7 +134,7 @@
     },
     "10.1523/jneurosci.1350-21.2021": {
       "000021": {
-        "note": "Obtained from AllenSDK, not DANDI. DANDI:000021 mirrors this data.",
+        "note": "This paper definitely reused data from DANDI set 000021, but it appears they used the Allen SDK, not DANDI directly. ",
         "call": "reuse"
       }
     },
@@ -172,7 +172,7 @@
     },
     "10.7554/elife.105183.1.sa1": {
       "000552": {
-        "note": "Not a paper. This is a peer review of doi: 10.7554/eLife.105183.1.",
+        "note": "This is a DOI to a reviewer of a paper, but not the paper itself.",
         "call": "neither"
       }
     },
@@ -184,15 +184,11 @@
     },
     "10.7554/elife.111322.1.sa1": {
       "000404": {
-        "note": "Not a paper. This is a peer review of doi: 10.7554/eLife.111322.1.",
+        "note": "This DOI links to a review of a paper rather than the paper itself.",
         "call": "neither"
       }
     },
     "10.7554/elife.78362": {
-      "000020": {
-        "note": "Reused DANDI:000020 in Appendix 1.",
-        "call": "reuse"
-      },
       "000048": {
         "call": "reuse"
       }
@@ -212,7 +208,7 @@
     },
     "10.7554/elife.89421.1.sa2": {
       "000129": {
-        "note": "Not a paper. This is a peer review of doi: 10.7554/eLife.89421.1.",
+        "note": "This DOI links to a review and not the paper itself.",
         "call": "neither"
       }
     },
@@ -372,16 +368,13 @@
     },
     "10.3390/e24020152": {
       "000127": {
-        "call": "reuse",
-        "note": "The paper says \"The primary dataset we conducted experiments on is Area2_Bump.\" The Data Availability Statement says \"The datasets can be found in https://gui.dandiarchive.org/#/dandiset\"."
+        "call": "reuse"
       },
       "000138": {
-        "call": "reuse",
-        "note": "The paper says \"We also used MC_Maze, and its scaled versions, MC_Maze_L, MC_Maze_M, and MC_Maze_S, as the secondary datasets to compare model performance on different datasets.\" The Data Availability Statement says \"The datasets can be found in https://gui.dandiarchive.org/#/dandiset\"."
+        "call": "reuse"
       },
       "000140": {
-        "call": "reuse",
-        "note": "The paper says \"We also used MC_Maze, and its scaled versions, MC_Maze_L, MC_Maze_M, and MC_Maze_S, as the secondary datasets to compare model performance on different datasets.\" The Data Availability Statement says \"The datasets can be found in https://gui.dandiarchive.org/#/dandiset\"."
+        "call": "reuse"
       }
     },
     "10.7554/elife.108089": {
@@ -391,8 +384,7 @@
     },
     "10.7554/elife.110170": {
       "000409": {
-        "call": "reuse",
-        "note": "The paper does not say whether the spike templates data came from DANDI or directly from IBL."
+        "call": "reuse"
       }
     },
     "10.7554/elife.93060": {
