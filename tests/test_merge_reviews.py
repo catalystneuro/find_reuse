@@ -94,16 +94,17 @@ class TestSettledCall:
         assert M.settled_call({'paul': {'call': 'reuse'},
                                'rly': {'call': 'mention'}}) is None
 
-    def test_a_note_with_no_call_settles_nothing(self):
+    def test_an_unfinished_review_settles_nothing(self):
         """
-        The dashboard writes a note as it is typed, so a reviewer who wrote one
-        and moved on without answering leaves an entry holding no call at all.
+        The page writes a note as it is typed and a call only when a button is
+        pressed, so an entry can hold one and not the other: a note typed and
+        never answered, or a call toggled off or undone under one.
         """
         assert M.settled_call({'rly': {'note': 'cannot tell from the text'}}) is None
 
-    def test_a_reviewer_who_only_wrote_a_note_leaves_the_call_to_the_rest(self):
+    def test_the_reviewers_who_did_answer_settle_it(self):
         assert M.settled_call({'paul': {'call': 'reuse'},
-                               'rly': {'note': 'agreed, see figure 3'}}) == 'reuse'
+                               'rly': {'note': 'halfway through this one'}}) == 'reuse'
 
 
 class TestMerge:
@@ -131,19 +132,19 @@ class TestMerge:
         assert pairs[0]['call'] is None
         assert pairs[0]['calls'] == {'paul': 'reuse', 'rly': 'mention'}
 
-    def test_a_note_without_a_call_is_kept_and_votes_for_nothing(self, candidates):
+    def test_an_unfinished_review_keeps_its_note_and_counts_no_call(self, candidates):
         """
-        A reviewer can write a note and move on without answering, and the pair
-        still has to merge: their reading is worth keeping and their silence is
-        not a call.
+        A pair one reviewer left half answered still has to merge, and the
+        merge read it as a KeyError before. What they wrote is worth keeping
+        and what they did not press is not a call.
         """
         pairs, _ = M.merge(candidates, {('10.1/a', '000541'): {
             'paul': {'call': 'reuse'},
-            'rly': {'note': 'I could not confirm this one myself.'}}})
+            'rly': {'note': 'Coming back to this one.'}}})
 
         assert pairs[0]['call'] == 'reuse'
         assert pairs[0]['calls'] == {'paul': 'reuse'}
-        assert pairs[0]['notes'] == {'rly': 'I could not confirm this one myself.'}
+        assert pairs[0]['notes'] == {'rly': 'Coming back to this one.'}
 
     def test_a_note_is_kept_under_the_reviewer_who_wrote_it(self, candidates):
         pairs, _ = M.merge(candidates, {('10.1/a', '000541'): {
