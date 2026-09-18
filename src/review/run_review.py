@@ -1512,30 +1512,18 @@ def quotes_by_pair(rows: list[dict]) -> dict:
             for row in rows}
 
 
-# A dandiset identifier is six digits, and a reviewer copying one out of a paper
-# brings whatever surrounded it -- a URL, a DOI, a 'DANDI:' prefix, or the bare
-# number with its leading zeros dropped. Six digits standing among more are not
-# an identifier: a seventh digit typed by accident would otherwise be dropped,
-# and the six that survive can name a real dandiset, so the mistake would come
-# back as a dataset that exists and is the wrong one.
-SIX_DIGITS = re.compile(r'(?<!\d)\d{6}(?!\d)')
-UP_TO_SIX_DIGITS = re.compile(r'^\d{1,6}$')
+# What the add box takes: a dandiset identifier, which is six digits.
+DANDISET_ID = re.compile(r'^\d{6}$')
 
 
-def normalize_dandiset(typed: str) -> str:
+def dandiset_id(typed: str) -> str:
     """
-    The dandiset an identifier as typed names, or nothing where it names none.
+    The dandiset an entry names, or nothing where it names none.
 
-    Six digits anywhere in the string are that identifier, which takes a pasted
-    URL or DOI as readily as the bare number. Fewer than six digits on their own
-    are padded, since a dandiset is written with its leading zeros and read
-    without them.
+    Space around it is dropped, since an identifier is usually pasted.
     """
     text = (typed or '').strip()
-    found = SIX_DIGITS.search(text)
-    if found:
-        return found.group()
-    return text.zfill(6) if UP_TO_SIX_DIGITS.match(text) else ''
+    return text if DANDISET_ID.match(text) else ''
 
 
 def fetch_dandiset(identifier: str, api_base: str = DANDI_API) -> dict:
@@ -1585,7 +1573,7 @@ def make_handler(page: str, reviewer: str, save_path: Path,
             are both reported as what they are: the first is a typo to correct,
             the second a reason to try again.
             """
-            identifier = normalize_dandiset(typed)
+            identifier = dandiset_id(typed)
             if not identifier:
                 self._send_json(400, {
                     'error': f'{typed.strip() or "That"} is not a dandiset '

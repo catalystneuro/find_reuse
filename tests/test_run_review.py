@@ -617,36 +617,31 @@ class TestPairsNobodyWasAsked:
         assert 'const DEALT = null' in R.build([row()], 'rly')
 
 
-class TestNormalizeDandiset:
-    """
-    A dandiset as a reviewer types it, which is whatever surrounded the
-    identifier where they found it.
-    """
+class TestDandisetId:
+    """What the add box takes, which is an identifier and nothing else."""
 
     def test_takes_the_identifier_as_it_is_written(self):
-        assert R.normalize_dandiset('000128') == '000128'
+        assert R.dandiset_id('000128') == '000128'
 
-    def test_pads_a_number_written_without_its_leading_zeros(self):
-        assert R.normalize_dandiset('128') == '000128'
+    def test_drops_the_space_around_a_pasted_identifier(self):
+        assert R.dandiset_id('  000128  ') == '000128'
 
-    def test_finds_the_identifier_in_a_pasted_url(self):
-        assert R.normalize_dandiset(
-            'https://dandiarchive.org/dandiset/000128') == '000128'
-
-    def test_finds_the_identifier_in_a_pasted_doi(self):
-        assert R.normalize_dandiset(
-            '10.48324/dandi.000128/0.220113.0400') == '000128'
-
-    def test_a_paper_doi_names_no_dandiset(self):
-        assert R.normalize_dandiset('10.1002/acn3.70285') == ''
-
-    def test_a_seventh_digit_is_a_typo_and_not_an_identifier(self):
+    @pytest.mark.parametrize('typed', [
+        '128',                                        # leading zeros dropped
+        '0001289',                                    # a digit too many
+        '10.48324/dandi.000128/0.220113.0400',        # the dandiset's own DOI
+        'https://dandiarchive.org/dandiset/000128',   # its page
+        '10.1002/acn3.70285',                         # a paper's DOI
+        'MC_Maze',
+        '',
+    ])
+    def test_what_is_not_six_digits_names_no_dandiset(self, typed):
         """
-        Dropping the extra digit would leave six that name a real dandiset, so
-        the lookup would succeed and add a dataset the reviewer never meant.
+        Six digits read out of a longer string are a guess at what was meant,
+        and a wrong guess can name a real dandiset and be added with nothing
+        looking amiss.
         """
-        assert R.normalize_dandiset('0001289') == ''
-        assert R.normalize_dandiset('1000128') == ''
+        assert R.dandiset_id(typed) == ''
 
 
 class TestFetchDandiset:
@@ -680,11 +675,6 @@ class TestAddingADandiset:
 
         assert get_json(f'{url}/dandiset?id=000128') == (
             200, {'dandiset': '000128', 'name': 'MC_Maze'})
-
-    def test_takes_an_identifier_written_without_its_leading_zeros(self, session):
-        url, _ = session
-
-        assert get_json(f'{url}/dandiset?id=128')[1]['dandiset'] == '000128'
 
     def test_refuses_something_that_is_not_an_identifier(self, session):
         url, _ = session

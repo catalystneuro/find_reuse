@@ -193,11 +193,11 @@ merely mentions a dandiset, or names one it deposited itself, is a different
 question and a lower priority than this one; leave those out rather than working
 through the full set of labels for each.
 
-Type the six digits and press **Look Up & Add**. It asks DANDI what the dataset
-is called and puts the pair on the list, and the box is ready for the next one.
-The leading zeros are optional, and a pasted URL or DOI works as well as the
-number. An identifier DANDI does not know is refused, so a typo is caught where
-it was made.
+Type the six digits of the dandiset identifier, leading zeros and all, and press
+**Look Up & Add**. It asks DANDI what the dataset is called and puts the pair on
+the list, and the box is ready for the next one. Anything that is not six digits
+is refused, and so is an identifier DANDI does not know, so a typo is caught
+where it was made.
 
 Added pairs wear an amber **ADDED** chip and carry the **Reuse** call that
 putting them there made. They are yours to take back: **×** on the row removes
