@@ -204,13 +204,14 @@ def tally(pairs: list[dict]) -> dict[str, int]:
 
     Pairs the reviewers disagreed about are counted as their own outcome, since
     they have no call and are not evidence either way until somebody settles
-    them.
+    them. So are pairs nobody answered, where every review on them was left
+    unfinished: those were not disagreed about, they were not judged.
     """
     counts: dict[str, int] = {}
     for pair in pairs:
         if pair.get('source') != 'classifier':
             continue
-        outcome = pair['call'] or 'disputed'
+        outcome = pair['call'] or ('disputed' if pair['calls'] else 'unanswered')
         counts[outcome] = counts.get(outcome, 0) + 1
     return dict(sorted(counts.items()))
 
@@ -255,10 +256,22 @@ def main():
         print(f'{found} pair{"" if found == 1 else "s"} reviewers added while '
               f'reading the papers, counted as reuse and not as the classifier')
     for pair in pairs:
-        if pair['call'] is None:
+        # Disagreement takes two calls. A pair with none was not disputed, and
+        # the line below is the one that has something to say about it.
+        if pair['call'] is None and pair['calls']:
             said = ', '.join(f'{username} {call}'
                              for username, call in pair['calls'].items())
             print(f'  disputed: {pair["doi"]} {pair["dandiset"]} -- {said}')
+    # A review somebody started and did not answer. It counts towards nothing,
+    # so the pair may be confirmed on fewer readings than it looks to have had,
+    # and saying so is the only way anybody goes back and finishes it.
+    for pair in pairs:
+        unfinished = [username for username, review
+                      in reviews[(pair['doi'], pair['dandiset'])].items()
+                      if not review.get('call')]
+        if unfinished:
+            print(f'  reviewed but not called: {pair["doi"]} {pair["dandiset"]}'
+                  f' -- {", ".join(unfinished)}')
     for doi, dandiset in orphaned:
         print(f'  reviewed, and the classifier no longer proposes it: '
               f'{doi} {dandiset}')

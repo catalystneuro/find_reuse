@@ -205,6 +205,13 @@ pairs alone, since that is the number its precision is read off and a pair it
 never proposed would credit it with a call it never made. `added` beside it is
 how many the reviewers found.
 
+Two outcomes in that header are not calls anybody made. `disputed` is a pair
+the reviewers answered differently. `unanswered` is one where every review on
+it was left unfinished, which the page can produce by writing a note as it is
+typed and a call only when a button is pressed. The merge names those on the
+console, since a pair can otherwise be confirmed on fewer readings than it
+looks to have had.
+
 ## `confirmed_reuse.json`
 
 The pairs that came out reuse, in the same shape, which is what the rest of the

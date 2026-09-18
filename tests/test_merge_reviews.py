@@ -285,6 +285,19 @@ class TestConfirmed:
                                         {'paul': {'call': 'mention'}}})
         assert M.confirmed(pairs, 1) == []
 
+    def test_an_unfinished_second_review_does_not_confirm_a_pair(self, candidates):
+        """
+        One reviewer called it reuse and the other only started: a note is not
+        agreement, and counting it would put a pair in confirmed_reuse.json on
+        the strength of one person's reading while claiming two.
+        """
+        pairs, _ = M.merge(candidates, {('10.1/a', '000541'): {
+            'paul': {'call': 'reuse'},
+            'rly': {'note': 'Coming back to this one.'}}})
+
+        assert M.confirmed(pairs, 1) == pairs
+        assert M.confirmed(pairs, 2) == []
+
 
 class TestTally:
     def test_counts_pairs_by_what_they_came_out(self, candidates):
@@ -298,6 +311,16 @@ class TestTally:
         pairs, _ = M.merge(candidates, {('10.1/a', '000541'): {
             'paul': {'call': 'reuse'}, 'rly': {'call': 'neither'}}})
         assert M.tally(pairs) == {'disputed': 1}
+
+    def test_a_pair_nobody_answered_is_not_a_disagreement(self, candidates):
+        """
+        Every review on it was left unfinished, so there is nothing to disagree
+        with. Counting it as disputed would report a fight nobody had.
+        """
+        pairs, _ = M.merge(candidates, {('10.1/a', '000541'): {
+            'rly': {'note': 'Coming back to this one.'}}})
+
+        assert M.tally(pairs) == {'unanswered': 1}
 
     def test_a_pair_a_reviewer_found_is_left_out(self, candidates):
         """
