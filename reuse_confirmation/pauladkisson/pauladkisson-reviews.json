@@ -53,11 +53,11 @@
       },
       "000128": {
         "call": "reuse",
-        "note": "Dataset says \"tested CEBRA on an additional monkey dataset (mc-maze) presented in the Neural Latent Benchmark\" but cites in the Data Availability section \"Primate dataset: https://gui.dandiarchive.org/#/dandiset/000127\" which is Area2_Bump. The paper describes a primary analysis on the Area2_Bump dataset and Extended Data Fig. 8 shows performance on the mc-maze 20 ms benchmark, which is not the scaling benchmark that uses large/medium/small. The linked leaderboard (https://eval.ai/web/challenges/challenge-page/1256/leaderboard/3183) is \"MC_Maze 20ms\", which scores only MC_Maze (DANDI:000128). The Large/Medium/Small variants are scored only on the separate \"MC_Maze Scaling\" leaderboards."
+        "note": "In the methods section, this paper states \"We tested CEBRA on the mc-maze 20 ms task from the Neural Latents Benchmark37 (https://eval.ai/web/challenges/challenge-page/1256/leaderboard/3183).\" And that leaderboard resolves to mc-maze specifically (000128 only). There is a separate leaderboard for mc-maze small, medium, and large, which is called mc-maze scaling. This disambiguates 000128 from 000138, 000139, and 000140. "
       },
       "000139": {
-        "call": "neither",
-        "note": "Dataset says \"tested CEBRA on an additional monkey dataset (mc-maze) presented in the Neural Latent Benchmark\" but cites in the Data Availability section \"Primate dataset: https://gui.dandiarchive.org/#/dandiset/000127\" which is Area2_Bump. The paper describes a primary analysis on the Area2_Bump dataset and Extended Data Fig. 8 shows performance on the mc-maze 20 ms benchmark, which is not the scaling benchmark that uses large/medium/small. The linked leaderboard (https://eval.ai/web/challenges/challenge-page/1256/leaderboard/3183) is \"MC_Maze 20ms\", which scores only MC_Maze (DANDI:000128). The Large/Medium/Small variants are scored only on the separate \"MC_Maze Scaling\" leaderboards."
+        "note": "In the methods section, this paper states \"We tested CEBRA on the mc-maze 20 ms task from the Neural Latents Benchmark37 (https://eval.ai/web/challenges/challenge-page/1256/leaderboard/3183).\" And that leaderboard resolves to mc-maze specifically (000128 only). There is a separate leaderboard for mc-maze small, medium, and large, which is called mc-maze scaling. This disambiguates 000128 from 000138, 000139, and 000140. ",
+        "call": "neither"
       }
     },
     "10.1038/s41592-024-02232-7": {
@@ -94,8 +94,8 @@
     },
     "10.1101/2021.03.13.435173": {
       "000020": {
-        "note": "Duplicate paper. This is the preprint of doi: 10.7554/eLife.78362. Reused DANDI:000020 in Supplemental Material 1.",
-        "call": "reuse"
+        "call": "reuse",
+        "note": "Duplicate paper. This is the preprint of doi: 10.7554/eLife.78362."
       }
     },
     "10.1101/2023.04.05.535396": {
@@ -243,11 +243,11 @@
     "10.1038/s41593-024-01626-2": {
       "000070": {
         "call": "neither",
-        "note": "The unit count (n = 90 + 92 = 182) is consistent only with MC_Maze, not MC_Maze_Large/Medium/Small, which have 162/152/142 neurons."
+        "note": "According to the neural latents benchmark (https://arxiv.org/pdf/2109.04463) in Table 4, the MC_Maze datasets have the following unit counts: \n- MC_Maze: 137 held-in, 45 held out = 182 total\n- MC_Maze-S 107 held in, 35 held out = 142 total\n- MC_Maze-M 114 held in, 38 held out = 152 total\n- MC_Maze-L 122 held in, 40 held out = 162 total\nThis paper states that the dataset they reused had 90 motor cortical and 92 pre-motor cortical for a total of 182 units. Thus, the dandiset they reused was 000128."
       },
       "000139": {
         "call": "neither",
-        "note": "The unit count (n = 90 + 92 = 182) is consistent only with MC_Maze, not MC_Maze_Large/Medium/Small, which have 162/152/142 neurons."
+        "note": "According to the neural latents benchmark (https://arxiv.org/pdf/2109.04463) in Table 4, the MC_Maze datasets have the following unit counts: \n- MC_Maze: 137 held-in, 45 held out = 182 total\n- MC_Maze-S 107 held in, 35 held out = 142 total\n- MC_Maze-M 114 held in, 38 held out = 152 total\n- MC_Maze-L 122 held in, 40 held out = 162 total\nThis paper states that the dataset they reused had 90 motor cortical and 92 pre-motor cortical for a total of 182 units. Thus, the dandiset they reused was 000128."
       }
     },
     "10.1038/s41593-025-02183-y": {
@@ -264,11 +264,11 @@
     "10.1088/1741-2552/ad1787": {
       "000138": {
         "call": "neither",
-        "note": "The paper says \"MC Maze\" (ambiguous) and cites MC_Maze_Small. The paper mentions 107 neurons held-in, which is unique to MC_Maze_Small, DANDI:000140. Full/Large/Medium/Small held-in counts: 137/122/114/107. The reported ISI 221.9 ms matches MC_Maze_Small. Full/Large/Medium/Small ISIs: 227.4/184.1/236.3/221.9."
+        "note": "This paper specifically cites MC_Maze small [30], and none of the other MC_Maze datasets. Follow up statistical analysis with the unit numbers and the ISIs (done by Ryan Ly) also match MC_Maze small. This paper only reused MC_Maze data from the small version."
       },
       "000140": {
         "call": "reuse",
-        "note": "The paper says \"MC Maze\" (ambiguous) and cites MC_Maze_Small. The paper mentions 107 neurons held-in, which is unique to MC_Maze_Small, DANDI:000140. Full/Large/Medium/Small held-in counts: 137/122/114/107. The reported ISI 221.9 ms matches MC_Maze_Small. Full/Large/Medium/Small ISIs: 227.4/184.1/236.3/221.9."
+        "note": "This paper specifically cites MC_Maze small [30], and none of the other MC_Maze datasets. Follow up statistical analysis with the unit numbers and the ISIs (done by Ryan Ly) also match MC_Maze small. This paper only reused MC_Maze data from the small version."
       }
     },
     "10.1101/2021.10.07.463540": {
@@ -286,11 +286,11 @@
     "10.1101/2023.03.01.530616": {
       "000128": {
         "call": "reuse",
-        "note": "Duplicate paper. The preprint was renamed upon publication to \"Dimensionality reduction beyond neural subspaces with slice tensor component analysis\". https://www.nature.com/articles/s41593-024-01626-2, doi: 10.1038/s41593-024-01626-2 (also in this review). That pair involves only DANDI:000128."
+        "note": "This paper is a preprint-duplicate of a published paper with a different name: 10.1038/s41593-024-01626-2\n\nAccording to the neural latents benchmark (https://arxiv.org/pdf/2109.04463) in Table 4, the MC_Maze datasets have the following unit counts: - MC_Maze: 137 held-in, 45 held out = 182 total - MC_Maze-S 107 held in, 35 held out = 142 total - MC_Maze-M 114 held in, 38 held out = 152 total - MC_Maze-L 122 held in, 40 held out = 162 total This paper states that the dataset they reused had 90 motor cortical and 92 pre-motor cortical for a total of 182 units. Thus, the dandiset they reused was 000128."
       },
       "000139": {
         "call": "neither",
-        "note": "Duplicate paper. The preprint was renamed upon publication to \"Dimensionality reduction beyond neural subspaces with slice tensor component analysis\". https://www.nature.com/articles/s41593-024-01626-2, doi: 10.1038/s41593-024-01626-2 (also in this review). That pair involves only DANDI:000128."
+        "note": "This paper is a preprint-duplicate of a published paper with a different name: 10.1038/s41593-024-01626-2\n\nAccording to the neural latents benchmark (https://arxiv.org/pdf/2109.04463) in Table 4, the MC_Maze datasets have the following unit counts: - MC_Maze: 137 held-in, 45 held out = 182 total - MC_Maze-S 107 held in, 35 held out = 142 total - MC_Maze-M 114 held in, 38 held out = 152 total - MC_Maze-L 122 held in, 40 held out = 162 total This paper states that the dataset they reused had 90 motor cortical and 92 pre-motor cortical for a total of 182 units. Thus, the dandiset they reused was 000128."
       }
     },
     "10.1101/2024.01.25.577295": {
@@ -312,11 +312,11 @@
     "10.1101/2025.03.21.644350": {
       "000128": {
         "call": "reuse",
-        "note": "Used MC_Maze (DANDI:000128), MC_RTT (DANDI:000129), Area2_Bump (DANDI:000127). BAND (team Ctrl-TNDM) is on the NLB MC_Maze, MC_RTT and Area2_Bump leaderboards and on no MC_Maze Scaling leaderboard: https://eval.ai/web/challenges/challenge-page/1256/leaderboard"
+        "note": "This paper clearly reused one of the MC_Maze datasets. It is only present on the MC_Maze leaderboard (https://eval.ai/web/challenges/challenge-page/1256/leaderboard/3183, Ctrl-TNDM (BAND)), not the MC_Maze scaling leaderboard (https://eval.ai/web/challenges/challenge-page/1256/leaderboard/3184). This indicates that they reused data from dataset 000128. "
       },
       "000139": {
         "call": "neither",
-        "note": "Used MC_Maze (DANDI:000128), MC_RTT (DANDI:000129), Area2_Bump (DANDI:000127). BAND (team Ctrl-TNDM) is on the NLB MC_Maze, MC_RTT and Area2_Bump leaderboards and on no MC_Maze Scaling leaderboard: https://eval.ai/web/challenges/challenge-page/1256/leaderboard"
+        "note": "This paper clearly reused one of the MC_Maze datasets. It is only present on the MC_Maze leaderboard (https://eval.ai/web/challenges/challenge-page/1256/leaderboard/3183, Ctrl-TNDM (BAND)), not the MC_Maze scaling leaderboard (https://eval.ai/web/challenges/challenge-page/1256/leaderboard/3184). This indicates that they reused data from dataset 000128. "
       }
     },
     "10.1101/2025.07.01.662601": {
@@ -327,11 +327,11 @@
     "10.1371/journal.pcbi.1011975": {
       "000070": {
         "call": "neither",
-        "note": "Paper cites DANDI:000128 directly. It also says \"It consists of one full session with 2869 total trials (2295 trials for training and 574 trials for testing), 108 conditions and 182 neurons with simultaneously monitored hand kinematics.\" which is consistent only with MC_Maze and not the Large/Medium/Small variants."
+        "note": "This paper reused data from dataset 000128, not dataset 000070, as evidenced by their data availability section."
       },
       "000139": {
         "call": "neither",
-        "note": "Paper cites DANDI:000128 directly. It also says \"It consists of one full session with 2869 total trials (2295 trials for training and 574 trials for testing), 108 conditions and 182 neurons with simultaneously monitored hand kinematics.\" which is consistent only with MC_Maze and not the Large/Medium/Small variants."
+        "note": "This paper reused data from dataset 000128 as evidenced by their data availability section."
       }
     },
     "10.1371/journal.pcbi.1013789": {
@@ -343,7 +343,7 @@
       },
       "000139": {
         "call": "neither",
-        "note": "Stats are consistent only with MC_Maze and not the Large/Medium/Small variants. S_train = 1721, S_test = 574, N_in = 137, N_out = 45."
+        "note": "According to the neural latents benchmark (https://arxiv.org/pdf/2109.04463) in Table 4, the MC_Maze datasets have the following unit counts:\n- MC_Maze: 137 held-in, 45 held out = 182 total\n- MC_Maze-S 107 held in, 35 held out = 142 total\n- MC_Maze-M 114 held in, 38 held out = 152 total\n- MC_Maze-L 122 held in, 40 held out = 162 total\nIn this paper, the unit counts are listed in Table 1: N_in = 137, N_out = 45, matching MC_Maze exactly. Thus, the dandiset they reused was 000128."
       }
     },
     "10.21105/jose.00309": {
@@ -366,8 +366,8 @@
         "note": "\"Publicly available datasets were analyzed in this study. This data can be found here: https://dandiarchive.org/dandiset/000070.\""
       },
       "000139": {
-        "call": "neither",
-        "note": "\"Publicly available datasets were analyzed in this study. This data can be found here: https://dandiarchive.org/dandiset/000070.\""
+        "note": "\"Publicly available datasets were analyzed in this study. This data can be found here: https://dandiarchive.org/dandiset/000070.\"",
+        "call": "neither"
       }
     },
     "10.3390/e24020152": {
@@ -397,16 +397,16 @@
     },
     "10.7554/elife.93060": {
       "000128": {
-        "call": "neither",
-        "note": "The paper's codebase references \"nlb-mc_maze_large\" (DANDI:000138), and the Figure 7 \"NLB maze\" bar number of neurons = 162 is consistent only with MC_Maze_Large, not MC_Maze_Medium."
+        "note": "The paper's codebase (https://github.com/frschu/Aligned-and-oblique-dynamics-in-recurrent-neural-networks/blob/main/notebooks/experimental_data_plot.ipynb) only references \"nlb-mc_maze_large\" (DANDI:000138)",
+        "call": "neither"
       },
       "000138": {
         "call": "reuse",
-        "note": "The paper's codebase references \"nlb-mc_maze_large\" (DANDI:000138), and the Figure 7 \"NLB maze\" bar number of neurons = 162 is consistent only with MC_Maze_Large, not MC_Maze_Medium."
+        "note": "The paper's codebase (https://github.com/frschu/Aligned-and-oblique-dynamics-in-recurrent-neural-networks/blob/main/notebooks/experimental_data_plot.ipynb) only references \"nlb-mc_maze_large\" (DANDI:000138)"
       },
       "000140": {
-        "call": "neither",
-        "note": "The paper's codebase references \"nlb-mc_maze_large\" (DANDI:000138), and the Figure 7 \"NLB maze\" bar number of neurons = 162 is consistent only with MC_Maze_Large, not MC_Maze_Medium."
+        "note": "The paper's codebase (https://github.com/frschu/Aligned-and-oblique-dynamics-in-recurrent-neural-networks/blob/main/notebooks/experimental_data_plot.ipynb) only references \"nlb-mc_maze_large\" (DANDI:000138)",
+        "call": "neither"
       }
     }
   }
