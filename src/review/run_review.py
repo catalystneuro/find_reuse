@@ -17,11 +17,19 @@ offers PRIMARY and shows no cited paper; a paper found by citing the dandiset's
 publication might only be mentioning that work, so an indirect pair offers
 MENTION and leads with the paper it cited.
 
+A third kind of pair is the reviewer's own. Reading a paper is what turns up a
+dandiset it cited that the pipeline never proposed, so the overview grouped by
+paper carries a box that takes an identifier, asks DANDI what the dataset is
+called, and puts the pair on the list. Those pairs come down the ADDED pathway
+and carry REUSE: adding one is the reviewer saying the paper reused that
+dataset, so the call arrives with the pair and stands as long as it does.
+Removing the pair is how the call is taken back.
+
 Answers are written to reuse_confirmation/<reviewer>/<reviewer>-reviews.json as
-they are made. That file is the durable artifact of a review round and belongs
-in version control; nothing about the model, the prompt or the run that produced
-the classification goes into it, because none of that changes what the right
-answer is.
+they are made, and the pairs the reviewer added alongside them. That file is the
+durable artifact of a review round and belongs in version control; nothing about
+the model, the prompt or the run that produced the classification goes into it,
+because none of that changes what the right answer is.
 
 Usage:
     python -m src.review.run_review --reviewer rly
@@ -32,6 +40,7 @@ from __future__ import annotations
 import argparse
 import html
 import json
+import re
 import webbrowser
 from collections import Counter
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -40,15 +49,20 @@ from itertools import zip_longest
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
+import requests
+
 from fetch_paper import TextCache
 
 from src.review.build_candidates import CANDIDATES_FILE
 from src.review.reviewers import (REUSE_CONFIRMATION_DIR, REVIEWERS_FILE,
-                                  assignment_path, load_reviewers,
-                                  reviews_path, select_reviewers)
+                                  assignment_path, assignment_paths,
+                                  load_reviewers, reviews_path, reviews_paths,
+                                  select_reviewers)
 
 REPO = Path(__file__).resolve().parents[2]
 PAPER_CACHE = REPO / '.paper_cache'
+
+DANDI_API = 'https://api.dandiarchive.org/api'
 
 PALETTE = """
   :root{
@@ -57,7 +71,7 @@ PALETTE = """
     --ink:#0F171C; --muted:#5C6F7C;
     --accent:#16697A; --accent-soft:#E1EFF2; --on-accent:#FFFFFF;
     --ok:#2C7358; --ok-soft:#E0F0E8;
-    --warn:#8A5E0C; --warn-soft:#F6EBD5;
+    --warn:#8A5E0C; --warn-soft:#F6EBD5; --on-warn:#FFFFFF;
     --bad:#A22F3D; --bad-soft:#F7E2E4;
     --mention:#1C5D9B; --mention-soft:#E1ECF7;
     --primary:#6D3D9B; --primary-soft:#EEE6F7;
@@ -73,7 +87,7 @@ PALETTE = """
       --ink:#E6EDF0; --muted:#93A6B0;
       --accent:#54B6C8; --accent-soft:#12313A; --on-accent:#08181C;
       --ok:#5FC095; --ok-soft:#133026;
-      --warn:#D9A63C; --warn-soft:#33280F;
+      --warn:#D9A63C; --warn-soft:#33280F; --on-warn:#1B1403;
       --bad:#EF8390; --bad-soft:#3A1B1F;
       --mention:#6DB3F2; --mention-soft:#10263A;
       --primary:#BE96E8; --primary-soft:#251B36;
@@ -102,6 +116,15 @@ CSS = PALETTE + """
   .btn:disabled:hover{border-color:var(--line-strong);color:var(--muted)}
   .btn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);
                             color:var(--on-accent)}
+  /* The way back to the pair the reviewer left. It appears only while there is
+     somewhere to go back to, and it is the one amber thing in a toolbar that
+     fills a control to mean selected, so it is found at a glance and reads as
+     an action rather than a state. */
+  .btn.back{background:var(--warn);border-color:var(--warn);
+            color:var(--on-warn);font-weight:660}
+  .btn.back:hover{background:color-mix(in srgb,var(--warn) 85%,black);
+                  border-color:color-mix(in srgb,var(--warn) 85%,black);
+                  color:var(--on-warn)}
   .filters{display:flex;gap:6px}
   /* A control the view has no use for is hidden, and a display of its own would
      otherwise outrank the browser's rule for that. */
@@ -131,9 +154,11 @@ CSS = PALETTE + """
      top of the screen at a size meant to be read rather than scanned. */
   .subject{flex:0 0 auto;display:grid;gap:14px;align-items:stretch;
            grid-template-columns:repeat(3,1fr)}
-  .subject.direct{grid-template-columns:repeat(2,1fr)}
+  /* Two panels where the pair has no cited paper to open: a direct pair was
+     found in the paper's own text, and an added one in a reviewer's reading. */
+  .subject.direct,.subject.added{grid-template-columns:repeat(2,1fr)}
   @media (max-width:980px){
-    .subject,.subject.direct{grid-template-columns:1fr}
+    .subject,.subject.direct,.subject.added{grid-template-columns:1fr}
   }
   .party{min-width:0;display:flex;flex-direction:column;gap:11px;
          background:var(--surface);border:1px solid var(--line);border-radius:14px;
@@ -214,6 +239,30 @@ CSS = PALETTE + """
   .sibname{font-size:13.5px;color:var(--muted);text-wrap:pretty}
 
   .decide{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:11px}
+  /* The call in the middle of the screen, and the actions ending where the
+     dataset panel above them ends, so they keep one place whatever the pathway
+     offers and however wide its calls run. The side columns are held equal,
+     which is what centres the calls on the page. */
+  .choices{display:grid;align-items:center;gap:10px 28px;width:100%;
+           grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)}
+  .choices .calls{grid-column:2}
+  .actions{grid-column:3;justify-self:end;display:flex;flex-wrap:wrap;
+           align-items:center;gap:10px}
+  /* Narrower than this the side columns no longer hold the actions, so the
+     actions take a line of their own under the calls. The calls keep the middle
+     of the screen, which is where the answer is made. */
+  @media (max-width:1260px){
+    .choices .calls,.actions{grid-column:1/-1}
+  }
+  .btn.addcited{font-size:13px;padding:11px 16px;border-radius:11px;
+                color:var(--accent);
+                border-color:color-mix(in srgb,var(--accent) 40%,transparent)}
+  .btn.addcited:hover{background:var(--accent-soft)}
+  /* Taking back a pair the reviewer put on the list, offered wherever that pair
+     is on screen. */
+  .btn.drop{font-size:13px;padding:11px 16px;border-radius:11px;
+            color:var(--muted);border-color:var(--line-strong)}
+  .btn.drop:hover{border-color:var(--bad);color:var(--bad)}
   .calls{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
   .calls button{font:inherit;font-size:15px;font-weight:560;padding:13px 30px;
                 border-radius:11px;cursor:pointer;min-width:132px;
@@ -250,6 +299,9 @@ CSS = PALETTE + """
   .call[aria-pressed="true"].neither{background:var(--bad-soft)}
   .call[aria-pressed="true"].unsure{background:var(--warn-soft)}
   .btn.call[aria-pressed="true"]{color:var(--ink);font-weight:700}
+  /* A call the pair arrived with is shown made and not asked again, so it keeps
+     the colour of the answer it is and takes no pointer. */
+  .call:disabled{cursor:default}
   .empty{margin:auto;color:var(--muted);font-size:14px}
 
   /* The second toolbar row: what you are looking at, under where you are. The
@@ -311,8 +363,18 @@ CSS = PALETTE + """
   .entry .sub{display:flex;align-items:center;gap:9px;margin-top:2px}
   .entry .sub:empty{display:none}
   .doitext{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
-  .entry .note{margin-top:2px;font-size:12px;color:var(--muted);font-style:italic;
-               white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* A note is written where it is read, so the list is where a second pass can
+     say what it found as well as what it called. It sizes to what it holds and
+     keeps out of the way until the pointer reaches it, so forty rows of empty
+     notes still read as a list. */
+  .entry textarea.note{display:block;width:100%;margin-top:3px;font:inherit;
+        font-size:12px;font-style:italic;line-height:1.45;color:var(--muted);
+        padding:3px 7px;border-radius:7px;border:1px solid transparent;
+        background:transparent;resize:none;overflow:hidden;cursor:text}
+  .entry textarea.note:hover{border-color:var(--line)}
+  .entry textarea.note:focus{border-color:var(--accent);background:var(--surface);
+        color:var(--ink);font-style:normal}
+  .entry textarea.note::placeholder{color:var(--muted);opacity:.5}
   .rowcalls{flex:0 0 auto;display:flex;gap:6px}
   .rowcalls button{font:inherit;font-size:11.5px;font-weight:560;padding:5px 12px;
                    border-radius:8px;cursor:pointer;border:1px solid;
@@ -320,6 +382,30 @@ CSS = PALETTE + """
   .rowcalls button:hover{border-color:currentColor}
   .rowcalls button[aria-pressed="true"]{font-weight:760;
                                         box-shadow:inset 0 0 0 1px currentColor}
+  /* Only a pair the reviewer put on the list can be taken off it, so only those
+     rows carry this. A mistyped identifier is what makes it necessary. */
+  .rowcalls .drop{font-size:15px;line-height:1;padding:5px 11px;
+                  border-color:var(--line-strong);color:var(--muted)}
+  .rowcalls .drop:hover{border-color:var(--bad);color:var(--bad)}
+  .mode.quiet.added{background:var(--warn-soft);color:var(--warn);font-weight:600}
+  /* A pair no round dealt out, standing in a paper's datasets beside the ones
+     somebody owes an answer on. Outlined rather than filled, because it says
+     what nobody was asked rather than what the pair is. */
+  .mode.quiet.outside{background:transparent;color:var(--muted);
+                      box-shadow:inset 0 0 0 1px var(--line-strong)}
+
+  /* Adding a dataset the pipeline missed, under the ones it found, so a paper
+     reads as one list with a way to extend it. */
+  .addbox{display:flex;flex-wrap:wrap;align-items:center;gap:10px;
+          padding:11px 18px;border-top:1px solid var(--line);background:var(--raise)}
+  .addbox .what{font-size:12.5px;color:var(--muted)}
+  .addbox input{font:inherit;font-family:var(--mono);font-size:13px;width:12ch;
+                padding:6px 11px;border-radius:8px;
+                border:1px solid var(--line-strong);background:var(--surface);
+                color:var(--ink)}
+  .addstate{font-size:12px;color:var(--muted)}
+  .addstate.ok{color:var(--ok)}
+  .addstate.bad{color:var(--bad);font-weight:600}
   @media (max-width:760px){
     .entry{flex-wrap:wrap;align-items:flex-start}
     .rowcalls{width:100%}
@@ -374,7 +460,7 @@ const controls = {
   // one, or ask for a single call. A session opens on the work still to do.
   filter: 'todo',
   pathway: 'all',
-  scope: MINE ? 'mine' : 'everyone',
+  scope: MINE ? 'mine' : 'candidates',
   grouping: 'dandiset',
   search: '',
 };
@@ -385,9 +471,43 @@ const keyOf = r => r.doi + '\\t' + r.dandiset;
 const ROW_BY_KEY = new Map(ROWS.map(r => [keyOf(r), r]));
 // Searching is done over a string built once rather than over the fields each
 // time: this runs on every keystroke across every pair.
-for (const r of ROWS){
-  r.searchText = [r.doi, r.fetched_doi, r.title, r.dandiset, r.dandiset_name,
-                  r.cited_doi, r.cited_title].join(' ').toLowerCase();
+const searchTextOf = r => [r.doi, r.fetched_doi, r.title, r.dandiset,
+                           r.dandiset_name, r.cited_doi, r.cited_title]
+                          .join(' ').toLowerCase();
+for (const r of ROWS) r.searchText = searchTextOf(r);
+
+// The order the candidates arrive in, which stands a paper's datasets together.
+// A pair added to a paper is sorted into that paper's run of them.
+const byPair = (a, b) => a.doi < b.doi ? -1 : a.doi > b.doi ? 1
+                       : a.dandiset < b.dandiset ? -1 : 1;
+
+// Pairs the reviewer found by reading the paper. Nested paper to dataset the
+// way the reviews are, and holding the dataset's name, which for these is
+// something only DANDI can say and nothing else on the page carries.
+let added = {};
+const isAdded = r => r.pathway === 'added';
+
+// An added pair takes its paper from a pair already on the list: the paper is
+// one the pipeline reached and only the dataset is new. Where nothing else
+// reached it, the DOI stands in for the title.
+function enrol(doi, dandiset, name){
+  const key = doi + '\\t' + dandiset;
+  if (ROW_BY_KEY.has(key)) return ROW_BY_KEY.get(key);
+  const paper = ROWS.find(r => r.doi === doi) || {};
+  const row = {doi, dandiset, dandiset_name: name || '', pathway: 'added',
+               title: paper.title || '', fetched_doi: paper.fetched_doi || doi,
+               has_text: Boolean(paper.has_text), reasoning: '', quotes: [],
+               cited_doi: '', cited_title: '', cited_role: '', cited_source: '',
+               shared_paper: null};
+  row.searchText = searchTextOf(row);
+  ROWS.push(row);
+  ROWS.sort(byPair);
+  ROW_BY_KEY.set(key, row);
+  // The call comes with the pair: a reviewer adds a dandiset because they read
+  // the paper as reusing it. It goes into the reviews as it is made, so that
+  // what the file holds is what the screen says.
+  if (callFor(row) !== 'reuse') record(row, 'call', 'reuse');
+  return row;
 }
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
@@ -474,7 +594,7 @@ function saveNow(manual){
   clearTimeout(saveTimer);
   setSaveState('Saving\\u2026', '');
   return fetch('/save', {method: 'POST', headers: {'Content-Type': 'application/json'},
-                         body: JSON.stringify({reviewer: REVIEWER, reviews})})
+                         body: JSON.stringify({reviewer: REVIEWER, reviews, added})})
     .then(r => setSaveState(
       r.ok ? (manual ? 'Saved' : 'Auto-saved') : 'Save failed \\u2014 ' + r.status,
       r.ok ? 'ok' : 'bad'))
@@ -488,7 +608,21 @@ function save(){
   saveTimer = setTimeout(() => saveNow(false), 500);
 }
 
-const isMine = r => MINE.has(keyOf(r));
+// A pair the reviewer added is theirs by the act of adding it, so narrowing to
+// your own queue does not take it off the screen the moment you put it there.
+const isMine = r => isAdded(r) || MINE.has(keyOf(r));
+
+// Whether any round reached this pair. Rounds are cut with filters and most of
+// the candidate list was never dealt to anybody, so a paper's datasets hold
+// pairs somebody owes an answer on beside pairs nobody was ever asked about.
+// A session that was given no queues to read says nothing about either.
+const inRound = r => !DEALT || DEALT.has(keyOf(r));
+
+// A pair nobody was ever asked about. What wears the chip and what sinks to the
+// bottom of a group are the same question, so both read it off here. A pair the
+// reviewer added is not one of these: no round dealt it either, but they put it
+// there themselves a moment ago and it belongs with the work.
+const unasked = r => !isAdded(r) && !inRound(r);
 
 // Commas separate alternatives and spaces are all-of, so a group of datasets is
 // one query -- "000128, 000129" -- and so is one paper, "mc_maze reach".
@@ -506,7 +640,7 @@ function matchesSearch(r){
 // as having finished.
 function inScope(){
   return ROWS.filter(r =>
-    (controls.scope === 'everyone' || isMine(r)) &&
+    (controls.scope === 'candidates' || isMine(r)) &&
     (controls.pathway === 'all' || r.pathway === controls.pathway) &&
     matchesSearch(r));
 }
@@ -571,10 +705,15 @@ const callName = label => callWords(label).split(' ')
 
 // A pair is offered the labels of its own pathway, so a direct pair can be
 // called primary and an indirect one mention, side by side in the same list.
+// An added pair is offered reuse alone and wears it already: putting the pair
+// on the list is the call, so the button reports it rather than asking.
 function callButtons(r){
+  const settled = isAdded(r);
   return LABELS[r.pathway].map(label =>
     `<button class="call ${label}" data-v="${label}"
-       aria-pressed="${callFor(r) === label}">${callName(label)}</button>`).join('');
+       aria-pressed="${callFor(r) === label}"
+       ${settled ? 'disabled title="Added pairs are reuse"' : ''}
+       >${callName(label)}</button>`).join('');
 }
 
 function renderProgress(rows, scoped){
@@ -593,6 +732,14 @@ function renderProgress(rows, scoped){
 // up with it: a label no pathway in view can produce is not a filter worth
 // offering, and stepping through pairs is not what the overview does.
 function syncControls(rows){
+  // Every chip reads off what the session is looking at, so a control moved by
+  // opening a paper leaves the toolbar saying where that put you.
+  document.querySelectorAll('.btn[data-control]').forEach(b =>
+    b.setAttribute('aria-pressed',
+                   String(controls[b.dataset.control] === b.dataset.value)));
+  // Offered only while there is somewhere to go back to, which is only after
+  // the reviewer left a pair to go and add a dandiset to its paper.
+  document.getElementById('back').hidden = !returnTo;
   document.querySelectorAll('.step').forEach(b =>
     b.hidden = view === 'overview');
   document.querySelector('.grouping').hidden = view === 'worksheet';
@@ -632,7 +779,7 @@ function emptyMessage(){
   if (!inScope().length){
     if (controls.search.trim()) return 'Nothing matches that search.';
     if (controls.scope === 'mine')
-      return `No ${pathway}pairs are assigned to you \\u2014 try Everyone.`;
+      return `No ${pathway}pairs are assigned to you \\u2014 try All Candidates.`;
     return `No ${pathway}pairs here.`;
   }
   if (controls.filter === 'todo') return 'Every pair has an answer.';
@@ -653,6 +800,19 @@ function renderWorksheet(rows){
   // Where discovery held no pairing, the panel shows the dataset's own declared
   // paper, and says so rather than claiming this paper cited it.
   const citedRole = r.cited_role === 'Cited' ? 'Cited Paper' : 'Dataset Paper';
+  // A pair the reviewer added has a classifier record nowhere to be read, so
+  // the box that holds one says where the call has to come from.
+  const evidence = isAdded(r)
+    ? `<h4>Added By Hand</h4>
+       <p class="reasoning">You put this pair on the list while reading the
+         paper, so it carries no model reasoning and no quoted passage.
+         Adding it is the reuse call; removing the pair takes that back.</p>`
+    : `${sharedBlock(r)}
+       <h4>Model Reasoning</h4>
+       <p class="reasoning">${esc(r.reasoning)}</p>
+       <h4>Quoted Evidence</h4>
+       ${TIER_KEY}
+       ${quotes}`;
 
   document.getElementById('card').innerHTML = `
     <div class="subject ${r.pathway}">
@@ -665,21 +825,22 @@ function renderWorksheet(rows){
       ${datasetPanel(r)}
     </div>
 
-    <div class="decide">
-      <div class="calls">${callButtons(r)}</div>
-      <textarea id="note" placeholder="Why \\u2014 optional"
+    <div class="decide ${r.pathway}">
+      <div class="choices">
+        <div class="calls">${callButtons(r)}</div>
+        <div class="actions">
+          ${isAdded(r)
+            ? `<button class="btn drop" data-drop="${esc(keyOf(r))}"
+                 >\\u00d7 Remove Pair</button>` : ''}
+          <button class="btn addcited" id="addcited">+ Add Reused Dandiset</button>
+        </div>
+      </div>
+      <textarea class="note" placeholder="Why \\u2014 optional"
         >${esc(noteFor(r))}</textarea>
     </div>
 
     <div class="evidence">
-      <div class="inner">
-        ${sharedBlock(r)}
-        <h4>Model Reasoning</h4>
-        <p class="reasoning">${esc(r.reasoning)}</p>
-        <h4>Quoted Evidence</h4>
-        ${TIER_KEY}
-        ${quotes}
-      </div>
+      <div class="inner">${evidence}</div>
     </div>`;
 }
 
@@ -692,8 +853,14 @@ const shutKey = id => controls.grouping + '\\t' + id;
 // Which pairs stand together. A dandiset's pairs are spread over the papers that
 // used it and a paper's over the datasets it touched, so the two groupings are
 // the same question asked from either end of the pair.
+// The pairs a round dealt out stand above the ones nobody was asked about, so a
+// group opens on the work there is to do and the rest is context under it. The
+// sort is stable, so each band keeps the paper-then-dataset order it arrived in.
+const roundFirst = rows => [...rows].sort((a, b) => unasked(a) - unasked(b));
+
 function groupsOf(rows){
-  if (controls.grouping === 'none') return [{id: '', name: '', rows}];
+  if (controls.grouping === 'none')
+    return [{id: '', name: '', rows: roundFirst(rows)}];
   const byPaper = controls.grouping === 'paper';
   const groups = new Map();
   for (const r of rows){
@@ -702,6 +869,7 @@ function groupsOf(rows){
       groups.set(id, {id, name: byPaper ? r.title : r.dandiset_name, rows: []});
     groups.get(id).rows.push(r);
   }
+  for (const group of groups.values()) group.rows = roundFirst(group.rows);
   const order = byPaper ? (a, b) => a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1
                         : (a, b) => a.id < b.id ? -1 : 1;
   return [...groups.values()].sort(order);
@@ -731,7 +899,12 @@ function entryRow(r){
     ? `<div class="line"><span class="dsid small">${esc(r.dandiset)}</span>
          ${esc(r.dandiset_name)}</div>`
     : `<div class="line">${esc(r.title || r.fetched_doi)}</div>`;
-  const note = noteFor(r);
+  // A row the reviewer put here says so whatever the pathway filter is set to,
+  // and is the only kind that can be taken back off the list.
+  const drop = isAdded(r)
+    ? `<button class="drop" data-drop="${esc(keyOf(r))}" title="Remove this pair"
+         aria-label="Remove ${esc(r.dandiset)} from this paper">\\u00d7</button>`
+    : '';
   // The group heading already carries whichever side the pairs were gathered on,
   // so the entry says the other one and does not repeat it.
   return `<div class="entry" data-key="${esc(keyOf(r))}">
@@ -741,13 +914,39 @@ function entryRow(r){
           ${byPaper ? '' : `<span class="doitext">${esc(r.fetched_doi)}</span>`}
           ${controls.grouping === 'none'
             ? `<span class="dsid small">${esc(r.dandiset)}</span>` : ''}
-          ${controls.pathway === 'all'
-            ? `<span class="mode quiet">${esc(r.pathway)}</span>` : ''}
+          ${controls.pathway === 'all' || isAdded(r)
+            ? `<span class="mode quiet ${esc(r.pathway)}"
+                 >${esc(r.pathway)}</span>` : ''}
+          ${unasked(r)
+            ? `<span class="mode quiet outside">not in round</span>` : ''}
         </div>
-        ${note ? `<div class="note">${esc(note)}</div>` : ''}
+        <textarea class="note" rows="1"
+          placeholder="Note \\u2014 optional">${esc(noteFor(r))}</textarea>
       </div>
-      <div class="rowcalls">${callButtons(r)}</div>
+      <div class="rowcalls">${callButtons(r)}${drop}</div>
     </div>`;
+}
+
+// The box that puts a dataset on a paper the pipeline paired it with nothing
+// for. It belongs under that paper's datasets, which is the only grouping where
+// the rows are datasets and the heading is the paper they would join.
+function addBox(doi){
+  if (controls.grouping !== 'paper') return '';
+  return `<form class="addbox" data-doi="${esc(doi)}">
+      <span class="what">Add a dandiset this paper reused</span>
+      <input class="dsinput" inputmode="numeric" autocomplete="off"
+             placeholder="000128" aria-label="Dandiset identifier">
+      <button class="btn" type="submit">Look Up &amp; Add</button>
+      <span class="addstate" role="status"></span>
+    </form>`;
+}
+
+// A note sizes to what it holds, so a row grows only for the ones that have
+// something to say. An empty box is already one line and is left unmeasured:
+// reading a height forces layout, and most rows carry no note.
+function autosize(box){
+  box.style.height = 'auto';
+  box.style.height = box.scrollHeight + 'px';
 }
 
 function renderOverview(rows){
@@ -769,10 +968,32 @@ function renderOverview(rows){
         <span class="groupname">${esc(group.name)}</span>
         <span class="tally">${tally(group.rows)}</span>
       </h3>` : ''}
-      ${folded ? '' : group.rows.map(entryRow).join('')}
+      ${folded ? '' : group.rows.map(entryRow).join('') + addBox(group.id)}
     </section>`;
   }).join('')}</div>`;
   card.querySelector('.overview').scrollTop = scrollTop;
+  for (const box of card.querySelectorAll('.entry textarea.note'))
+    if (box.value) autosize(box);
+  restoreAddState(card);
+}
+
+// What the add box last said and whether it is owed the cursor. Adding a pair
+// redraws the whole list, so both have to outlive the redraw that the add
+// itself causes, and adding one more is then a matter of typing.
+let addState = {doi: '', message: '', tone: '', focus: false};
+
+function restoreAddState(card){
+  if (!addState.doi) return;
+  const box = card.querySelector(
+    `.addbox[data-doi="${CSS.escape(addState.doi)}"]`);
+  if (!box) return;
+  const state = box.querySelector('.addstate');
+  state.textContent = addState.message;
+  state.className = 'addstate ' + (addState.tone || '');
+  if (addState.focus){
+    box.querySelector('.dsinput').focus();
+    addState.focus = false;
+  }
 }
 
 // One press to put every group away, the next to bring them all back, so that
@@ -798,11 +1019,115 @@ function openPair(r){
   render();
 }
 
+// Where the reviewer stood when they left to add a dandiset: the pair in front
+// of them and every control that was narrowing the list. Going to a paper moves
+// several of those at once, and this is what puts them all back.
+let returnTo = null;
+
+// One paper on its own: every dataset it was paired with, what each was called,
+// and the box that adds one more. Search is what narrows the list, so the
+// toolbar says why it is short and clearing the box gives the overview back.
+// Scope widens to the whole candidate list, because the question here is what
+// the paper cited, which its datasets answer whether or not a round took them.
+// The ones no round took wear a chip saying so. Pathway widens to all of them
+// for the same reason, and because a pair added here comes down the added
+// pathway and has to stay on screen once it is.
+function openPaper(doi){
+  returnTo = {view, row: visible()[index], scope: controls.scope,
+              grouping: controls.grouping, filter: controls.filter,
+              pathway: controls.pathway, search: controls.search};
+  setView('overview');
+  controls.grouping = 'paper';
+  controls.filter = 'all';
+  controls.pathway = 'all';
+  controls.scope = 'candidates';
+  controls.search = doi;
+  document.getElementById('search').value = doi;
+  shut.delete(shutKey(doi));
+  addState = {doi, message: '', tone: '', focus: true};
+  render();
+}
+
+// Back to the pair the reviewer left, with the scope, the grouping, the filter
+// and the pathway they left it under. The pair is found again rather than
+// stepped back to, since adding one moves everything after it along by a place.
+function goBack(){
+  if (!returnTo) return;
+  const back = returnTo;
+  returnTo = null;
+  setView(back.view);
+  controls.scope = back.scope;
+  controls.grouping = back.grouping;
+  controls.filter = back.filter;
+  controls.pathway = back.pathway;
+  controls.search = back.search;
+  document.getElementById('search').value = back.search;
+  index = Math.max(visible().indexOf(back.row), 0);
+  render();
+}
+
+// A pair the reviewer put on the list is theirs to take off it, which is what a
+// mistyped identifier needs. The note is the part they wrote by hand, and undo
+// does not reach it, so a pair carrying one asks before it goes.
+function dropPair(r){
+  if (noteFor(r) && !confirm(
+      `Remove ${r.dandiset} from this paper? The note on it goes too.`))
+    return;
+  ROWS.splice(ROWS.indexOf(r), 1);
+  ROW_BY_KEY.delete(keyOf(r));
+  for (let i = undoStack.length - 1; i >= 0; i--)
+    if (undoStack[i].row === r) undoStack.splice(i, 1);
+  for (const held of [added, reviews]){
+    delete (held[r.doi] || {})[r.dandiset];
+    if (held[r.doi] && !Object.keys(held[r.doi]).length) delete held[r.doi];
+  }
+  saveNow(false);
+  render();
+}
+
+// Adding a pair asks DANDI what the dataset is called: six digits are not
+// something a call can be made against, and an identifier the archive does not
+// know is a typo the reviewer can still see the source of.
+function addDandiset(form){
+  const doi = form.dataset.doi;
+  const typed = form.querySelector('.dsinput').value;
+  const state = form.querySelector('.addstate');
+  const say = (message, tone) => {
+    state.textContent = message;
+    state.className = 'addstate ' + (tone || '');
+  };
+  say('Looking up\\u2026', '');
+  fetch('/dandiset?id=' + encodeURIComponent(typed))
+    .then(response => response.json().then(body => {
+      if (!response.ok) throw new Error(body.error || 'DANDI lookup failed.');
+      return body;
+    }))
+    .then(found => {
+      if (ROW_BY_KEY.has(doi + '\\t' + found.dandiset))
+        throw new Error(found.dandiset + ' is already on this paper.');
+      const row = enrol(doi, found.dandiset, found.name);
+      (added[doi] || (added[doi] = {}))[found.dandiset] =
+        {dandiset_name: row.dandiset_name};
+      saveNow(false);
+      // The typed identifier goes with the redraw, which is what leaves the box
+      // ready for the next one.
+      addState = {doi, focus: true, tone: 'ok',
+                  message: `Added ${found.dandiset} \\u2014 ${row.dandiset_name}`};
+      render();
+    })
+    // Said on the box the reviewer is standing at, which leaves what they typed
+    // in front of them, so a corrected digit is all it takes.
+    .catch(failure => say(failure.message, 'bad'));
+}
+
 // Answering advances, but only on the worksheet: in the overview the list is
 // what you are reading and the next pair is already on screen. Under a filter
 // the answered pair drops out of the list and the next one slides into its
 // place, so holding position is the advance.
 function mark(r, value){
+  // An added pair holds the call that put it there, and it stands as long as
+  // the pair does. Removing the pair is how that call is taken back.
+  if (isAdded(r)) return;
   undoStack.push({row: r, call: callFor(r), view, index});
   record(r, 'call', callFor(r) === value ? '' : value);
   if (view === 'worksheet'){
@@ -824,6 +1149,10 @@ function undo(){
 }
 
 document.getElementById('card').addEventListener('click', e => {
+  if (e.target.id === 'addcited'){
+    openPaper(visible()[index].doi);
+    return;
+  }
   // A heading is the handle its group is folded by; a row is the way into its
   // pair.
   const heading = e.target.closest('.group h3');
@@ -833,30 +1162,44 @@ document.getElementById('card').addEventListener('click', e => {
     render();
     return;
   }
+  const remove = e.target.closest('button[data-drop]');
+  if (remove){
+    dropPair(ROW_BY_KEY.get(remove.dataset.drop));
+    return;
+  }
   const entry = e.target.closest('.entry');
   const row = entry ? ROW_BY_KEY.get(entry.dataset.key) : visible()[index];
   const button = e.target.closest('button[data-v]');
   if (button) mark(row, button.dataset.v);
-  else if (entry) openPair(row);
+  // The row is the way into its pair, except where the click landed on
+  // something of its own: writing a note there is not asking to leave.
+  else if (entry && !e.target.closest('textarea, input, button')) openPair(row);
 });
 
-// A note is held as it is typed, but the card is not redrawn: that would take
-// the cursor out of the box mid-word.
+document.getElementById('card').addEventListener('submit', e => {
+  const form = e.target.closest('.addbox');
+  if (!form) return;
+  e.preventDefault();
+  addDandiset(form);
+});
+
+// A note is held as it is typed, in the row it sits in, but the card is not
+// redrawn: that would take the cursor out of the box mid-word.
 document.getElementById('card').addEventListener('input', e => {
-  if (e.target.id !== 'note') return;
-  record(visible()[index], 'note', e.target.value.trim() ? e.target.value : '');
+  const box = e.target.closest('textarea.note');
+  if (!box) return;
+  const entry = box.closest('.entry');
+  record(entry ? ROW_BY_KEY.get(entry.dataset.key) : visible()[index],
+         'note', box.value.trim() ? box.value : '');
+  if (entry) autosize(box);
 });
 
+document.getElementById('back').addEventListener('click', goBack);
 document.getElementById('save').addEventListener('click', () => saveNow(true));
 document.getElementById('undo').addEventListener('click', undo);
 document.getElementById('foldall').addEventListener('click', foldAll);
 document.getElementById('prev').addEventListener('click', () => go(index - 1));
 document.getElementById('next').addEventListener('click', () => go(index + 1));
-
-function press(group, button){
-  group.querySelectorAll('.btn').forEach(o =>
-    o.setAttribute('aria-pressed', String(o === button)));
-}
 
 document.querySelectorAll('.filters:not(.views)').forEach(group => {
   group.addEventListener('click', e => {
@@ -864,7 +1207,6 @@ document.querySelectorAll('.filters:not(.views)').forEach(group => {
     if (!button) return;
     controls[button.dataset.control] = button.dataset.value;
     index = 0;
-    press(group, button);
     render();
   });
 });
@@ -893,7 +1235,14 @@ document.getElementById('search').addEventListener('input', e => {
 
 fetch('/load')
   .then(r => r.json())
-  .then(data => { reviews = data.reviews || {}; render(); })
+  .then(data => {
+    reviews = data.reviews || {};
+    added = data.added || {};
+    for (const [doi, datasets] of Object.entries(added))
+      for (const [dandiset, held] of Object.entries(datasets))
+        enrol(doi, dandiset, held.dandiset_name);
+    render();
+  })
   .catch(e => { setSaveState('Load failed \\u2014 ' + e.message, 'bad'); render(); });
 """
 
@@ -908,7 +1257,7 @@ fetch('/load')
 #
 # A session holds both pathways, so the page picks the list by the pathway of
 # the pair in front of it rather than by anything about the session.
-LABELS = {
+CLASSIFIER_LABELS = {
     'direct': ['reuse', 'ambiguous_reuse', 'primary', 'neither', 'unsure'],
     'indirect': ['reuse', 'ambiguous_reuse', 'mention', 'neither', 'unsure'],
 }
@@ -917,11 +1266,16 @@ LABELS = {
 # position at a time across the pathways rather than a list at a time, so that
 # the two labels only one pathway can produce stand together where those
 # pathways put them, between the reuse they qualify and the answers that deny
-# it. Reading them off LABELS at all is what keeps a label added to a pathway
-# from being one you then cannot go looking for.
+# it. Reading them off CLASSIFIER_LABELS at all is what keeps a label added to a
+# pathway from being one you then cannot go looking for.
 ALL_LABELS = [label for label in dict.fromkeys(
-    label for column in zip_longest(*LABELS.values()) for label in column)
+    label for column in zip_longest(*CLASSIFIER_LABELS.values()) for label in column)
     if label]
+
+# A pair a reviewer found by reading the paper. Adding one is the reviewer
+# saying the paper reused that dataset, so reuse is the call it carries and the
+# only one it offers.
+LABELS = {**CLASSIFIER_LABELS, 'added': ['reuse']}
 
 
 def call_filters() -> str:
@@ -935,7 +1289,8 @@ def call_filters() -> str:
 
 
 def build(rows: list[dict], reviewer: str,
-          mine: list[tuple[str, str]] | None = None) -> str:
+          mine: list[tuple[str, str]] | None = None,
+          dealt: set[tuple[str, str]] | None = None) -> str:
     """
     Render one reviewer's session over every candidate there is.
 
@@ -944,6 +1299,11 @@ def build(rows: list[dict], reviewer: str,
     being built from, so stepping outside your own queue and back costs nothing:
     a second pass over your own answers is exactly the time you need to see a
     pair that was never dealt to you.
+
+    `dealt` is every pair any round reached, which is what marks the rest as
+    pairs nobody was asked about. None leaves them unmarked: a session with no
+    queues to read has nothing to say about which pairs a round took, and
+    guessing would put the mark on all of them.
     """
     payload = json.dumps(rows, ensure_ascii=False).replace('</', r'<\/')
     n = len(rows)
@@ -951,21 +1311,25 @@ def build(rows: list[dict], reviewer: str,
   <div class="filters" role="group" aria-label="Whose">
     <button class="btn" data-control="scope" data-value="mine"
             aria-pressed="true">Assigned Only</button>
-    <button class="btn" data-control="scope" data-value="everyone"
-            aria-pressed="false">Everyone</button>
+    <button class="btn" data-control="scope" data-value="candidates"
+            aria-pressed="false">All Candidates</button>
   </div>"""
     mine_js = ('null' if mine is None else
                'new Set(%s)' % json.dumps([f'{doi}\t{dandiset}'
                                            for doi, dandiset in mine]))
+    dealt_js = ('null' if dealt is None else
+                'new Set(%s)' % json.dumps(sorted(f'{doi}\t{dandiset}'
+                                                  for doi, dandiset in dealt)))
     pathway_buttons = ''.join(
         f'\n    <button class="btn" data-control="pathway" data-value="{value}" '
         f'aria-pressed="{str(value == "all").lower()}">{name}</button>'
-        for value, name in [('all', 'Both'), ('indirect', 'Indirect'),
-                            ('direct', 'Direct')])
+        for value, name in [('all', 'All'), ('indirect', 'Indirect'),
+                            ('direct', 'Direct'), ('added', 'Added')])
     return f"""<title>DANDI reuse review &mdash; {n} pairs</title>
 <style>{CSS}</style>
 
 <div class="toolbar">
+  <button class="btn back" id="back" hidden>&larr; Return to Worksheet</button>
   <span class="who">Reviewing as <b>{reviewer}</b></span>
   <span class="mode" id="pathwaychip"></span>
   <div class="filters views" role="group" aria-label="View">
@@ -1015,6 +1379,7 @@ const ROWS = {payload};
 const REVIEWER = {json.dumps(reviewer)};
 const LABELS = {json.dumps(LABELS)};
 const MINE = {mine_js};
+const DEALT = {dealt_js};
 {JS}
 </script>
 """
@@ -1147,8 +1512,56 @@ def quotes_by_pair(rows: list[dict]) -> dict:
             for row in rows}
 
 
+# A dandiset identifier is six digits, and a reviewer copying one out of a paper
+# brings whatever surrounded it -- a URL, a DOI, a 'DANDI:' prefix, or the bare
+# number with its leading zeros dropped. Six digits standing among more are not
+# an identifier: a seventh digit typed by accident would otherwise be dropped,
+# and the six that survive can name a real dandiset, so the mistake would come
+# back as a dataset that exists and is the wrong one.
+SIX_DIGITS = re.compile(r'(?<!\d)\d{6}(?!\d)')
+UP_TO_SIX_DIGITS = re.compile(r'^\d{1,6}$')
+
+
+def normalize_dandiset(typed: str) -> str:
+    """
+    The dandiset an identifier as typed names, or nothing where it names none.
+
+    Six digits anywhere in the string are that identifier, which takes a pasted
+    URL or DOI as readily as the bare number. Fewer than six digits on their own
+    are padded, since a dandiset is written with its leading zeros and read
+    without them.
+    """
+    text = (typed or '').strip()
+    found = SIX_DIGITS.search(text)
+    if found:
+        return found.group()
+    return text.zfill(6) if UP_TO_SIX_DIGITS.match(text) else ''
+
+
+def fetch_dandiset(identifier: str, api_base: str = DANDI_API) -> dict:
+    """
+    What DANDI calls this dandiset, or why it could not say.
+
+    The published version's name is the one the archive shows for a dandiset
+    that has one, and a dandiset still in draft has only the draft's. An
+    identifier DANDI does not know comes back as an error, so that a typo reads
+    as a typo rather than as a dataset with no name.
+    """
+    response = requests.get(f'{api_base}/dandisets/{identifier}/', timeout=15)
+    if response.status_code == 404:
+        return {'error': f'DANDI has no dandiset {identifier}.'}
+    response.raise_for_status()
+    versions = response.json()
+    name = next((name for name in
+                 ((versions.get(version) or {}).get('name')
+                  for version in ('most_recent_published_version', 'draft_version'))
+                 if name), '')
+    return {'dandiset': identifier, 'name': name}
+
+
 def make_handler(page: str, reviewer: str, save_path: Path,
-                 paper_cache: Path = PAPER_CACHE, quotes: dict | None = None):
+                 paper_cache: Path = PAPER_CACHE, quotes: dict | None = None,
+                 dandi_api: str = DANDI_API):
     """A request handler bound to one reviewer's page and answer file."""
     quotes = quotes or {}
 
@@ -1159,6 +1572,32 @@ def make_handler(page: str, reviewer: str, save_path: Path,
             self.send_header('Content-Length', str(len(body)))
             self.end_headers()
             self.wfile.write(body)
+
+        def _send_json(self, status: int, body: dict):
+            self._send(status, json.dumps(body).encode(), 'application/json')
+
+        def _lookup_dandiset(self, typed: str):
+            """
+            Name the dandiset a reviewer is adding, so the pair carries what a
+            call is made against rather than six digits.
+
+            An identifier that names nothing and an archive that does not answer
+            are both reported as what they are: the first is a typo to correct,
+            the second a reason to try again.
+            """
+            identifier = normalize_dandiset(typed)
+            if not identifier:
+                self._send_json(400, {
+                    'error': f'{typed.strip() or "That"} is not a dandiset '
+                             f'identifier; a dandiset is six digits.'})
+                return
+            try:
+                found = fetch_dandiset(identifier, dandi_api)
+            except requests.RequestException as failure:
+                self._send_json(502, {
+                    'error': f'DANDI did not answer for {identifier}: {failure}'})
+                return
+            self._send_json(404 if 'error' in found else 200, found)
 
         def do_GET(self):
             url = urlparse(self.path)
@@ -1176,6 +1615,9 @@ def make_handler(page: str, reviewer: str, save_path: Path,
                 page_text = text_page(doi, text, source,
                                       quotes.get((doi, dandiset), []))
                 self._send(200, page_text.encode(), 'text/html; charset=utf-8')
+            elif url.path == '/dandiset':
+                self._lookup_dandiset(
+                    (parse_qs(url.query).get('id') or [''])[0])
             else:
                 self._send(404, b'not found', 'text/plain')
 
@@ -1185,15 +1627,21 @@ def make_handler(page: str, reviewer: str, save_path: Path,
                 return
             length = int(self.headers.get('Content-Length', 0))
             incoming = json.loads(self.rfile.read(length))
-            # Only the answers, nested paper to dataset to what was decided
-            # about that pair. Which model or prompt produced the classification
-            # does not change what the right answer is, so it has no place in
-            # the record of the answer.
-            save_path.parent.mkdir(parents=True, exist_ok=True)
-            save_path.write_text(json.dumps({
+            # Only the answers and the pairs the reviewer found, both nested
+            # paper to dataset. Which model or prompt produced the
+            # classification does not change what the right answer is, so it has
+            # no place in the record of the answer.
+            record = {
                 'reviewer': reviewer,
                 'reviews': incoming.get('reviews') or {},
-            }, indent=2, ensure_ascii=False) + '\n')
+            }
+            # A reviewer who has added nothing gets a file that says nothing
+            # about it, so the feature costs the committed reviews no diff.
+            if incoming.get('added'):
+                record['added'] = incoming['added']
+            save_path.parent.mkdir(parents=True, exist_ok=True)
+            save_path.write_text(
+                json.dumps(record, indent=2, ensure_ascii=False) + '\n')
             self._send(200, b'{"ok":true}', 'application/json')
 
         def log_message(self, *args):
@@ -1205,17 +1653,20 @@ def make_handler(page: str, reviewer: str, save_path: Path,
 def serve(rows: list[dict], reviewer: str, port: int,
           base: Path = REUSE_CONFIRMATION_DIR, paper_cache: Path = PAPER_CACHE,
           open_browser: bool = True,
-          mine: list[tuple[str, str]] | None = None) -> None:
+          mine: list[tuple[str, str]] | None = None,
+          dandi_api: str = DANDI_API) -> None:
     if not rows:
         raise SystemExit('No candidates to review.')
     save_path = reviews_path(reviewer, base)
-    handler = make_handler(build(rows, reviewer, mine), reviewer,
-                           save_path, paper_cache, quotes_by_pair(rows))
+    handler = make_handler(build(rows, reviewer, mine, round_pairs(base)),
+                           reviewer, save_path, paper_cache,
+                           quotes_by_pair(rows), dandi_api)
     server = ThreadingHTTPServer(('127.0.0.1', port), handler)
     url = f'http://127.0.0.1:{server.server_address[1]}/'
     papers = len({r['doi'] for r in rows})
     counts = Counter(r['pathway'] for r in rows)
-    breakdown = ', '.join(f'{counts[p]} {p}' for p in LABELS if counts[p])
+    breakdown = ', '.join(f'{counts[p]} {p}'
+                          for p in CLASSIFIER_LABELS if counts[p])
     print(f'{len(rows)} pairs across {papers} papers — {breakdown}'
           + (f'; {len(mine)} assigned to you' if mine is not None else ''))
     print(f'Reviewing as {reviewer}; answers go to {save_path}')
@@ -1251,6 +1702,40 @@ def all_pairs(candidates_path: Path = CANDIDATES_FILE) -> list[dict]:
     return pairs
 
 
+def round_pairs(base: Path = REUSE_CONFIRMATION_DIR
+                ) -> set[tuple[str, str]] | None:
+    """
+    Every pair a round has reached, dealt to somebody or already judged, or
+    None where there are no queues and no reviews to read.
+
+    A round is cut with filters, so most of the candidate list was never dealt
+    to anyone. Those pairs stand in a paper's datasets beside the ones somebody
+    owes an answer on, and a reviewer looking at the paper has no way to tell
+    which is which. This is what the page marks them apart by.
+
+    The reviews are read alongside the queues because reviewing a pair takes it
+    out of the queue it came from: a pair somebody has answered is one the round
+    reached, whatever is left in the queues.
+
+    A tree holding neither says nothing about which pairs a round took, so the
+    page is told nothing and marks no pair as one nobody was asked about.
+    """
+    if not assignment_paths(base) and not reviews_paths(base):
+        return None
+    pairs: set[tuple[str, str]] = set()
+    for path in assignment_paths(base):
+        assignment = json.loads(path.read_text())
+        pairs |= {(doi, dandiset)
+                  for doi, dandisets in assignment['pairs'].items()
+                  for dandiset in dandisets}
+    for path in reviews_paths(base):
+        reviews = json.loads(path.read_text())['reviews']
+        pairs |= {(doi, dandiset)
+                  for doi, datasets in reviews.items()
+                  for dandiset in datasets}
+    return pairs
+
+
 def read_assignment(assignment_path: Path) -> tuple[list[tuple[str, str]], str]:
     """One reviewer's queue: the pairs it names, and whose it is."""
     assignment = json.loads(assignment_path.read_text())
@@ -1273,7 +1758,7 @@ def assignment_pairs(reviewer: str, base: Path = REUSE_CONFIRMATION_DIR
     is.
     """
     pairs = []
-    for pathway in LABELS:
+    for pathway in CLASSIFIER_LABELS:
         path = assignment_path(reviewer, pathway, base)
         if not path.exists():
             continue

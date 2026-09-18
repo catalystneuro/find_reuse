@@ -172,12 +172,44 @@ Click a heading to fold that group shut; it keeps its tally, so a folded group
 still says what it came to. **Collapse All** puts them all away, which is how you
 open one dataset and read it on its own.
 
-Call a pair from the list with the buttons on its row, or click the row to open
-it in the worksheet where the links, the reasoning and the quotes are. Notes are
-written in the worksheet.
+Call a pair from the list with the buttons on its row, and write the note in the
+box under it. Click the row anywhere else to open it in the worksheet, where the
+links, the reasoning and the quotes are.
 
 Pathway is a property of a pair, not of the session, so a dandiset's direct and
 indirect pairs sit in one group and each is offered its own labels.
+
+### Adding a dandiset the pipeline missed
+
+You are reading the paper, so you are the only one who can see a dandiset it
+reused that the pipeline never proposed. **+ Add Reused Dandiset**, at the right
+of the call row on the worksheet, opens that paper on its own: every dataset it
+was paired with, the call on each, and a box at the bottom that takes an
+identifier.
+
+Add the ones the paper reused. The box is for reuse the pipeline missed, so an
+added pair is recorded as **Reuse** and offered no other call. A paper that
+merely mentions a dandiset, or names one it deposited itself, is a different
+question and a lower priority than this one; leave those out rather than working
+through the full set of labels for each.
+
+Type the six digits and press **Look Up & Add**. It asks DANDI what the dataset
+is called and puts the pair on the list, and the box is ready for the next one.
+The leading zeros are optional, and a pasted URL or DOI works as well as the
+number. An identifier DANDI does not know is refused, so a typo is caught where
+it was made.
+
+Added pairs wear an amber **ADDED** chip and carry the **Reuse** call that
+putting them there made. They are yours to take back: **×** on the row removes
+one, and **× Remove Pair** does it from the worksheet, which is what a mistyped
+identifier needs. Removing the pair is also how its call is taken back, since
+the two arrive together. **Added** in the pathway row gathers everything you
+have added.
+
+The rest of the paper's datasets are on screen because that is the check worth
+making at the same time: whether the pipeline reached every dandiset the paper
+cited, and whether the ones it reached are the ones the paper actually names.
+Clear the search box to get the whole overview back.
 
 ### Where your reviews go
 
@@ -196,8 +228,13 @@ paper, then dataset, then the call and any note:
 }
 ```
 
-Both pathways write to this one file, and it is the only file your session
-touches. A paper reviewed against four dandisets holds four entries.
+Every pathway writes to this one file, and it is the only file your session
+touches. A paper reviewed against four dandisets holds four entries. Pairs you
+added go in beside them under `added`, with the name DANDI gave the dataset:
+
+```json
+  "added": {"10.1002/acn3.70285": {"000128": {"dandiset_name": "MC_Maze: macaque primary motor …"}}}
+```
 
 Run one session at a time. A session writes this file whole, so a second one open
 alongside it would overwrite whatever the first had just saved.
@@ -215,3 +252,9 @@ it. `confirmed_reuse.json` is the ones that came out reuse — one reviewer is
 enough by default, `--min-reviewers 2` once pairs have been read twice. Both go
 in `reuse_confirmation/`, and pairs the reviewers disagreed about are named on
 the console.
+
+A pair somebody added is carried in their own reviews file and stops there. The
+merge looks each reviewed pair up in the candidate list to find the record to
+carry, an added pair is not in it, and so it comes out on the console as a pair
+that is not a candidate. Folding them into `all_reviews.json` is still to be
+written; until it is, the added pairs live in the per-reviewer files.
