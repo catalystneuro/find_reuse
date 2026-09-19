@@ -503,6 +503,64 @@
       "000978": {
         "call": "reuse"
       }
+    },
+    "10.1007/s11263-022-01713-6": {
+      "000055": {
+        "call": "reuse"
+      }
+    },
+    "10.1007/s12264-022-00983-x": {
+      "000008": {
+        "call": "ambiguous_reuse",
+        "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035). "
+      },
+      "000035": {
+        "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035). ",
+        "call": "ambiguous_reuse"
+      }
+    },
+    "10.1016/j.cell.2022.02.006": {
+      "000007": {
+        "call": "reuse"
+      },
+      "000009": {
+        "call": "reuse"
+      }
+    },
+    "10.1016/j.celrep.2023.112574": {
+      "000011": {
+        "call": "reuse"
+      }
+    },
+    "10.1016/j.celrep.2024.113807": {
+      "000552": {
+        "call": "reuse"
+      }
+    },
+    "10.1016/j.celrep.2026.116991": {
+      "000070": {
+        "note": "This paper definitely used data from \"publicly available datasets\" including Churchland et al. 2012. However, this paper is shared across five Dandisets that could be reused here: 000070, 000128, 000138, 000139, 000140.",
+        "call": "ambiguous_reuse"
+      },
+      "000139": {
+        "note": "This paper definitely reused publicly available data from Churchland et al. (2012), which is a shared paper across all five MC_Maze Dandisets. However, they got their data from Dropbox, not DANDI. So it's unclear which Dandiset should count here.",
+        "call": "ambiguous_reuse"
+      }
+    },
+    "10.1016/j.cub.2020.09.067": {
+      "000017": {
+        "note": "This paper does cite Steinmetz et al. 2019 in the deposited data section of the methods table, all other citations appear to be background and/or methodological references rather than reuse.",
+        "call": "mention"
+      }
+    },
+    "10.1016/j.envint.2026.110151": {
+      "000008": {
+        "call": "reuse"
+      },
+      "000035": {
+        "note": "This paper definitely reused data from Scala et al. (2020), but it is shared with Dandiset 000008. Since Dandiset 000008 has a title that matches the paper, I am attributing the reuse to that Dandiset instead of 000035.",
+        "call": "neither"
+      }
     }
   }
 }
