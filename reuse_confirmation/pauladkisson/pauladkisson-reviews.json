@@ -75,6 +75,12 @@
     "10.1038/s41593-024-01783-4": {
       "000130": {
         "call": "reuse"
+      },
+      "000017": {
+        "call": "reuse"
+      },
+      "000044": {
+        "call": "reuse"
       }
     },
     "10.1038/s41596-024-01120-w": {
@@ -296,6 +302,14 @@
       "000139": {
         "call": "neither",
         "note": "According to the neural latents benchmark (https://arxiv.org/pdf/2109.04463) in Table 4, the MC_Maze datasets have the following unit counts: \n- MC_Maze: 137 held-in, 45 held out = 182 total\n- MC_Maze-S 107 held in, 35 held out = 142 total\n- MC_Maze-M 114 held in, 38 held out = 152 total\n- MC_Maze-L 122 held in, 40 held out = 162 total\nThis paper states that the dataset they reused had 90 motor cortical and 92 pre-motor cortical for a total of 182 units. Thus, the dandiset they reused was 000128."
+      },
+      "000045": {
+        "call": "neither",
+        "note": "This paper clearly re-analyzed data from the BrainWideMap dataset. Given that 000409 contains the neurophysiology data, that is the one I will count as reuse."
+      },
+      "000409": {
+        "note": "This paper clearly re-analyzed data from the BrainWideMap dataset. Given that 000409 contains the neurophysiology data, that is the one I will count as reuse.",
+        "call": "reuse"
       }
     },
     "10.1038/s41593-025-02183-y": {
@@ -323,6 +337,9 @@
       "000139": {
         "call": "neither",
         "note": "This paper definitely used data from DANDISET 000128. It is possible that they used other MC_Maze datasets, but not likely (and not evidenced). "
+      },
+      "000129": {
+        "call": "reuse"
       }
     },
     "10.1101/2022.11.11.516161": {
@@ -713,6 +730,326 @@
       },
       "000045": {
         "call": "reuse"
+      }
+    },
+    "10.1038/s41592-023-02005-8": {
+      "000168": {
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41592-024-02319-1": {
+      "000045": {
+        "note": "This paper clearly reused data from IBL, but they got their data from the Figshare IBL release rather than DANDI. That makes it unclear whether they reused data from 000045 or 000409.",
+        "call": "ambiguous_reuse"
+      },
+      "000409": {
+        "note": "This paper clearly reused data from IBL, but they got their data from the Figshare IBL release rather than DANDI. That makes it unclear whether they reused data from 000045 or 000409.",
+        "call": "ambiguous_reuse"
+      }
+    },
+    "10.1038/s41592-026-03076-z": {
+      "000045": {
+        "note": "This paper references the brain-wide map paper for their data reuse, indicating that they reused data from 000409 rather than 000045.",
+        "call": "neither"
+      },
+      "000409": {
+        "note": "This paper references the brain-wide map paper for their data reuse, indicating that they reused data from 000409 rather than 000045.",
+        "call": "reuse"
+      }
+    },
+    "10.1101/2023.04.28.538703": {
+      "000045": {
+        "note": "This is a preprint duplicate of DOI: 10.1038/s41586-025-09226-1",
+        "call": "neither"
+      },
+      "000409": {
+        "note": "This is a preprint duplicate of the following doi: 10.1038/s41592-024-02319-1",
+        "call": "neither"
+      }
+    },
+    "10.1101/2023.07.04.547684": {
+      "000045": {
+        "note": "This is a preprint duplicate of the following DOI: 10.1038/s41586-025-09226-1",
+        "call": "neither"
+      },
+      "000409": {
+        "note": "This paper appears to have gotten their data from the IBL data release rather than from DANDI.",
+        "call": "reuse"
+      }
+    },
+    "10.1101/2025.10.01.679820": {
+      "000045": {
+        "call": "reuse"
+      },
+      "000409": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2024.11.06.622308": {
+      "000409": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2025.02.23.639768": {
+      "000409": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2025.05.12.653551": {
+      "000409": {
+        "note": "This paper cites both datasets 000409 and 000045.",
+        "call": "reuse"
+      },
+      "000045": {
+        "call": "reuse",
+        "note": "This paper cites both datasets 000409 and 000045."
+      }
+    },
+    "10.3390/a19040305": {
+      "000409": {
+        "call": "reuse"
+      }
+    },
+    "10.64898/2025.12.15.694430": {
+      "000409": {
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41593-022-01171-w": {
+      "000010": {
+        "call": "reuse"
+      },
+      "000011": {
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41593-023-01270-2": {
+      "000017": {
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41593-023-01554-7": {
+      "000397": {
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41593-024-01774-5": {
+      "000636": {
+        "call": "reuse"
+      },
+      "000630": {
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41598-021-98021-9": {
+      "000129": {
+        "note": "This paper definitely reused data from non-human primate reaching with multi-channel sensory-motor cortex electrophysiology, but it looks like they got it from Zenodo rather than DANDI.",
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41598-024-53907-2": {
+      "000070": {
+        "note": "This paper definitely reused data from the neural population dynamics during reaching paper; however, it is ambiguous which Dandiset that refers to. Candidate Dandisets include 000070, 000128, 000138, 000139, and 000140.",
+        "call": "ambiguous_reuse"
+      },
+      "000128": {
+        "note": "This paper definitely reused data from the neural population dynamics during reaching paper; however, it is ambiguous which Dandiset that refers to. Candidate Dandisets include 000070, 000128, 000138, 000139, and 000140.",
+        "call": "ambiguous_reuse"
+      },
+      "000138": {
+        "note": "This paper definitely reused data from the neural population dynamics during reaching paper; however, it is ambiguous which Dandiset that refers to. Candidate Dandisets include 000070, 000128, 000138, 000139, and 000140.",
+        "call": "ambiguous_reuse"
+      },
+      "000139": {
+        "note": "This paper definitely reused data from the neural population dynamics during reaching paper; however, it is ambiguous which Dandiset that refers to. Candidate Dandisets include 000070, 000128, 000138, 000139, and 000140.",
+        "call": "ambiguous_reuse"
+      },
+      "000140": {
+        "note": "This paper definitely reused data from the neural population dynamics during reaching paper; however, it is ambiguous which Dandiset that refers to. Candidate Dandisets include 000070, 000128, 000138, 000139, and 000140.",
+        "call": "ambiguous_reuse"
+      }
+    },
+    "10.1038/s42256-023-00663-z": {
+      "000008": {
+        "call": "reuse",
+        "note": "Scala et al. 2020 is shared across two Dandisets, but I am attributing it to the one that shares the title: 00008."
+      },
+      "000035": {
+        "note": "Scala et al. 2020 is shared across two Dandisets, but I am attributing it to the one that shares the title: 00008.",
+        "call": "neither"
+      }
+    },
+    "10.1038/s43588-025-00911-9": {
+      "000044": {
+        "note": "This paper appears to have gotten their data through CRCNS rather than DANDI. ",
+        "call": "reuse"
+      },
+      "000127": {
+        "call": "reuse"
+      }
+    },
+    "10.1073/pnas.2200931119": {
+      "000017": {
+        "call": "reuse"
+      }
+    },
+    "10.1073/pnas.2415695121": {
+      "000017": {
+        "note": "This paper appears to have gotten their paper data from Figshare rather than DANDI.",
+        "call": "reuse"
+      }
+    },
+    "10.1088/1741-2552/abda0b": {
+      "000055": {
+        "call": "reuse"
+      }
+    },
+    "10.1088/1741-2552/accece": {
+      "000129": {
+        "call": "reuse"
+      }
+    },
+    "10.1088/1741-2552/ad038d": {
+      "000129": {
+        "call": "reuse"
+      }
+    },
+    "10.1088/1742-5468/abffd5": {
+      "000010": {
+        "note": "This paper got their data from CRCNS rather than DANDI. ",
+        "call": "reuse"
+      }
+    },
+    "10.1093/biomtc/ujag051": {
+      "000017": {
+        "call": "reuse"
+      }
+    },
+    "10.1093/cercor/bhae433": {
+      "000402": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2020.07.13.201673": {
+      "000017": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2020.12.16.423127": {
+      "000007": {
+        "call": "reuse"
+      },
+      "000009": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2021.03.24.436765": {
+      "000041": {
+        "note": "This paper got their data from CRCNS rather than DANDI.",
+        "call": "reuse"
+      }
+    },
+    "10.1101/2021.06.11.448131": {
+      "000041": {
+        "note": "This paper got their data from CRCNS rather than DANDI. ",
+        "call": "reuse"
+      },
+      "000044": {
+        "note": "This paper got their data from CRCNS rather than DANDI. ",
+        "call": "reuse"
+      }
+    },
+    "10.1101/2021.09.03.458628": {
+      "000129": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2021.09.10.459775": {
+      "000055": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2021.10.05.463257": {
+      "000016": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2021.10.10.463703": {
+      "000008": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2021.10.30.466617": {
+      "000053": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2021.11.23.469734": {
+      "000017": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2021.12.16.472983": {
+      "000041": {
+        "note": "This paper got their data from CRCNS rather than DANDI. ",
+        "call": "reuse"
+      }
+    },
+    "10.1101/2022.03.04.482986": {
+      "000127": {
+        "note": "This paper got their data from Dryad rather than DANDI. ",
+        "call": "reuse"
+      }
+    },
+    "10.1101/2022.03.11.483905": {
+      "000044": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2022.04.26.489628": {
+      "000023": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2022.05.19.492525": {
+      "000008": {
+        "call": "reuse"
+      },
+      "000035": {
+        "note": "This dataset is shared, or this primary paper is shared with Dandiset 000008, which actually has the title matched, so I am attributing reuse to that one instead. ",
+        "call": "neither"
+      }
+    },
+    "10.1101/2022.06.10.495710": {
+      "000061": {
+        "note": "This paper appears to have gotten their data from the Buzsáki lab website rather than DANDI, as far as I can tell.",
+        "call": "reuse"
+      },
+      "000166": {
+        "note": "This paper appears to have gotten their data from the Buzsáki lab website rather than DANDI. ",
+        "call": "reuse"
+      },
+      "000213": {
+        "note": "This paper appears to have gotten their data from the Buzsáki lab website rather than DANDI.",
+        "call": "reuse"
+      }
+    },
+    "10.1101/2022.09.25.509420": {
+      "000067": {
+        "note": "This paper got their data from CRCNS rather than DANDI. ",
+        "call": "reuse"
+      }
+    },
+    "10.1101/2022.09.27.509618": {
+      "000009": {
+        "call": "reuse"
+      }
+    }
+  },
+  "added": {
+    "10.1101/2025.05.12.653551": {
+      "000045": {
+        "dandiset_name": "IBL behavioral data"
       }
     }
   }
