@@ -382,6 +382,9 @@
       "000139": {
         "call": "neither",
         "note": "This paper clearly reused one of the MC_Maze datasets. It is only present on the MC_Maze leaderboard (https://eval.ai/web/challenges/challenge-page/1256/leaderboard/3183, Ctrl-TNDM (BAND)), not the MC_Maze scaling leaderboard (https://eval.ai/web/challenges/challenge-page/1256/leaderboard/3184). This indicates that they reused data from dataset 000128. "
+      },
+      "000688": {
+        "call": "reuse"
       }
     },
     "10.1101/2025.07.01.662601": {
@@ -606,7 +609,7 @@
         "call": "reuse"
       },
       "000035": {
-        "note": "This paper definitely reused data from Scala et al. (2020), but it is shared with Dandiset 000008. Since Dandiset 000008 has a title that matches the paper, I am attributing the reuse to that Dandiset instead of 000035.",
+        "note": "This paper definitely reused data from Scala et al. (2021), but it is shared with Dandiset 000008. Since Dandiset 000008 has a title that matches the paper, I am attributing the reuse to that Dandiset instead of 000035.",
         "call": "neither"
       }
     },
@@ -876,10 +879,10 @@
     "10.1038/s42256-023-00663-z": {
       "000008": {
         "call": "reuse",
-        "note": "Scala et al. 2020 is shared across two Dandisets, but I am attributing it to the one that shares the title: 00008."
+        "note": "This paper definitely reused data from Scala et al. (2021), but it is shared with Dandiset 000008. Since Dandiset 000008 has a title that matches the paper, I am attributing the reuse to that Dandiset instead of 000035."
       },
       "000035": {
-        "note": "Scala et al. 2020 is shared across two Dandisets, but I am attributing it to the one that shares the title: 00008.",
+        "note": "This paper definitely reused data from Scala et al. (2021), but it is shared with Dandiset 000008. Since Dandiset 000008 has a title that matches the paper, I am attributing the reuse to that Dandiset instead of 000035.",
         "call": "neither"
       }
     },
@@ -1020,7 +1023,7 @@
         "call": "reuse"
       },
       "000035": {
-        "note": "This dataset is shared, or this primary paper is shared with Dandiset 000008, which actually has the title matched, so I am attributing reuse to that one instead. ",
+        "note": "This paper definitely reused data from Scala et al. (2021), but it is shared with Dandiset 000008. Since Dandiset 000008 has a title that matches the paper, I am attributing the reuse to that Dandiset instead of 000035.",
         "call": "neither"
       }
     },
@@ -1051,11 +1054,11 @@
     },
     "10.1101/2022.10.15.512388": {
       "000008": {
-        "note": "This Dandiset (000008) shares its primary paper with one other Dandiset (000035). But since this Dandiset matches the title of the paper, I am attributing reuse to it. ",
+        "note": "This paper definitely reused data from Scala et al. (2021), but it is shared with Dandiset 000008. Since Dandiset 000008 has a title that matches the paper, I am attributing the reuse to that Dandiset instead of 000035.",
         "call": "reuse"
       },
       "000035": {
-        "note": "This Dandiset (000008) shares its primary paper with one other Dandiset (000035). But since this Dandiset matches the title of the paper, I am attributing reuse to it. ",
+        "note": "This paper definitely reused data from Scala et al. (2021), but it is shared with Dandiset 000008. Since Dandiset 000008 has a title that matches the paper, I am attributing the reuse to that Dandiset instead of 000035.",
         "call": "neither"
       }
     },
@@ -1246,6 +1249,100 @@
       "000954": {
         "note": "This is a primary paper for the FALCON benchmark. ",
         "call": "neither"
+      }
+    },
+    "10.1101/2024.10.30.621133": {
+      "000004": {
+        "call": "reuse"
+      },
+      "000017": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2024.11.14.623530": {
+      "001132": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2024.11.25.625180": {
+      "000128": {
+        "note": "This paper used some data from Shenoy, but not at all clear which dataset, whether it's MC_Maze or otherwise. ",
+        "call": "unsure"
+      },
+      "000138": {
+        "note": "This paper used some data from Shenoy, but not at all clear which dataset, whether it's MC_Maze or otherwise. ",
+        "call": "unsure"
+      },
+      "000139": {
+        "note": "This paper used some data from Shenoy, but not at all clear which dataset, whether it's MC_Maze or otherwise. ",
+        "call": "unsure"
+      },
+      "000140": {
+        "note": "This paper used some data from Shenoy, but not at all clear which dataset, whether it's MC_Maze or otherwise. ",
+        "call": "unsure"
+      }
+    },
+    "10.1101/2024.12.09.627642": {
+      "000017": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2024.12.17.628936": {
+      "000953": {
+        "note": "This paper used data from the MC_Maze RTT dataset (000129).",
+        "call": "neither"
+      }
+    },
+    "10.1101/2025.01.10.632411": {
+      "000939": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2025.01.29.635443": {
+      "000044": {
+        "note": "This paper got their data from CRCNs rather than DANDI. ",
+        "call": "reuse"
+      }
+    },
+    "10.1101/2025.03.14.642461": {
+      "000166": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2025.03.25.645208": {
+      "000008": {
+        "note": "This paper definitely reused data from Scala et al. (2021), but it is shared with Dandiset 000008. Since Dandiset 000008 has a title that matches the paper, I am attributing the reuse to that Dandiset instead of 000035.",
+        "call": "reuse"
+      },
+      "000035": {
+        "note": "This paper definitely reused data from Scala et al. (2021), but it is shared with Dandiset 000008. Since Dandiset 000008 has a title that matches the paper, I am attributing the reuse to that Dandiset instead of 000035.",
+        "call": "neither"
+      }
+    },
+    "10.1371/journal.pcbi.1014106": {
+      "000008": {
+        "note": "This paper definitely reused data from Scala et al. (2021), but it is shared with Dandiset 000008. Since Dandiset 000008 has a title that matches the paper, I am attributing the reuse to that Dandiset instead of 000035.",
+        "call": "reuse"
+      },
+      "000035": {
+        "note": "This paper definitely reused data from Scala et al. (2021), but it is shared with Dandiset 000008. Since Dandiset 000008 has a title that matches the paper, I am attributing the reuse to that Dandiset instead of 000035.",
+        "call": "neither"
+      }
+    },
+    "10.64898/2026.03.05.709819": {
+      "000008": {
+        "note": "This paper definitely reused data from Scala et al. (2021), but it is shared with Dandiset 000008. Since Dandiset 000008 has a title that matches the paper, I am attributing the reuse to that Dandiset instead of 000035.",
+        "call": "reuse"
+      }
+    },
+    "10.1101/2025.04.25.650191": {
+      "000939": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2025.05.09.653224": {
+      "000402": {
+        "call": "reuse"
       }
     }
   },
