@@ -104,6 +104,11 @@ mark it and move on.** When it is not enough, open the citing paper, the cited
 paper or the dataset from the links on the card. If a paper is paywalled, **Raw
 Text** is the copy we fetched.
 
+Review without AI assistance. Read the card, the paper, its code and the
+dataset yourself, and write the note from what you found there. These reviews
+are the ground truth the classifier is measured against, so every call rests on
+a person's reading of the sources.
+
 The question is whether the paper reused the dataset, not which copy of it the
 authors downloaded. Many datasets on DANDI are also served by the group that
 produced them (the AllenSDK, the IBL ONE API, a lab's own databank). A paper that
@@ -320,3 +325,11 @@ already carries their call and one reviewer confirms it. `--min-reviewers 2`
 would ask a second to agree, and nothing yet puts one reviewer's finds on
 another's screen. The console says how many of them there were, and counts the
 classifier's precision over its own pairs alone.
+
+Once the reviews are merged, an AI-assisted pass over them can help settle
+**Ambiguous Reuse** and **Unsure** pairs and catch calls that disagree with
+their notes or with each other. Whatever it turns up enters the ground truth if
+it is accepted, and a model states an invented quote, count or table number as
+confidently as a real one. Check every fact it offers against the paper, the
+code or the dataset before it changes a call or goes into a note. A call that
+changes is changed by the reviewer who made it, in their own reviews file.
