@@ -104,6 +104,25 @@ mark it and move on.** When it is not enough, open the citing paper, the cited
 paper or the dataset from the links on the card. If a paper is paywalled, **Raw
 Text** is the copy we fetched.
 
+Review without AI assistance. Read the card, the paper, its code and the
+dataset yourself, and write the note from what you found there. These reviews
+are the ground truth the classifier is measured against, so every call rests on
+a person's reading of the sources.
+
+The question is whether the paper reused the dataset, not which copy of it the
+authors downloaded. Many datasets on DANDI are also served by the group that
+produced them (the AllenSDK, the IBL ONE API, a lab's own databank). A paper that
+analysed the same data through one of those is **Reuse**. Where the paper says
+it got the data somewhere other than DANDI, the note names the source and the
+dandiset that mirrors it in this form, so a count of data obtained from DANDI can
+leave these out:
+
+```text
+Obtained from AllenSDK, not DANDI. DANDI:000021 mirrors this data.
+```
+
+A paper that does not say where it got the data needs no such note.
+
 On an indirect card the cited paper wears a chip saying how the dandiset came to
 name it. A red **LLM-IDENTIFIED — VERIFY** means DANDI names no paper and a model
 picked this one, and it is often wrong — one dandiset about mouse blood flow was
@@ -114,21 +133,79 @@ work out: open the dandiset, see what it holds and who deposited it, and decide
 whether the cited paper is that work. Where it is not, the answer is **Neither**,
 and say so in the note.
 
+Some citing DOIs are not papers but documents published alongside one. eLife
+gives each version of a paper its own DOI (`10.7554/eLife.85786.1`, `.2`, `.3`)
+and each document about that version one more, ending in `.saN`:
+
+| Title starts with | Document |
+|---|---|
+| eLife Assessment | The editors' summary judgement of the paper |
+| Reviewer #N (Public review) | One reviewer's report |
+| Author response | The authors' reply to the reviews |
+
+The number after `sa` does not say which document it is (the assessment is
+`sa0` on one version and `sa3` on another, and `sa2` can be Reviewer #1), so go
+by the title on the card. The eLife Assessment is written by the editors, not by
+a reviewer, but it is the same case as the others: none of these documents
+obtained any data, even when the paper they are about did, so every pair on one
+is **Neither**. The note says which document it is and gives the DOI of the
+version of the paper it is about, which is the DOI with the `.saN` removed:
+
+```text
+Not a paper. This is the eLife Assessment of doi: 10.7554/eLife.109538.1.
+Not a paper. This is a peer review of doi: 10.7554/eLife.89421.1.
+Not a paper. This is the author response to the reviews of doi: 10.7554/eLife.85069.1.
+```
+
+Review DOIs from other publishers are the same case, and Crossref lists them
+all, eLife's included, with type `peer-review`.
+
 MC_Maze ([000128](https://dandiarchive.org/dandiset/000128)) and its Large,
 Medium and Small variants ([000138](https://dandiarchive.org/dandiset/000138),
 [000139](https://dandiarchive.org/dandiset/000139),
 [000140](https://dandiarchive.org/dandiset/000140)) share primary papers, and
-papers reanalysing them cite those papers or the Neural Latents Benchmark rather
-than an identifier. You can see the data was reused and not which dandiset it
-came from. That is **Ambiguous Reuse**.
+papers reanalysing them cite those papers or the Neural Latents Benchmark (NLB)
+rather than an identifier. The citation does not say which dandiset was used,
+but the rest of the paper usually does. Look for:
+
+* **Counts.** Each variant is a different recording session, so a reported
+  neuron, condition or trial count picks one out. These are from the NLB paper
+  ([Pei et al. 2021](https://arxiv.org/abs/2109.04463), Table 4).
+
+  | Dandiset | Variant | Neurons | Held-in | Held-out | Conditions | Training trials | Test trials |
+  |---|---|---|---|---|---|---|---|
+  | 000128 | MC_Maze | 182 | 137 | 45 | 108 | 2295 | 574 |
+  | 000138 | MC_Maze_Large | 162 | 122 | 40 | 27 | 500 | 100 |
+  | 000139 | MC_Maze_Medium | 152 | 114 | 38 | 27 | 250 | 100 |
+  | 000140 | MC_Maze_Small | 142 | 107 | 35 | 27 | 100 | 100 |
+
+  Table 4 lists the held-in and held-out units separately and gives no total.
+  **Neurons** is the two added together, verified independently of the paper by
+  counting the neurons in the sole training file each of these dandisets holds.
+
+* **The NLB leaderboard.** A paper that reports NLB results was usually
+  submitted to the [leaderboard](https://eval.ai/web/challenges/challenge-page/1256/leaderboard).
+  The "MC_Maze" leaderboards score 000128 only. The variants are scored only on
+  the "MC_Maze Scaling" leaderboards, in columns headed [500], [250] and [100].
+  A method listed on MC_Maze and on no MC_Maze Scaling leaderboard used 000128.
+  The leaderboards list public submissions only.
+* **Code and data availability.** Dataset names such as `mc_maze_large`, a
+  dandiset URL, or a download script in the paper's repository.
+
+Where the evidence identifies one dandiset, call that pair **Reuse** and its
+siblings on the same paper **Neither**, and put the evidence in the note on
+each, so whoever reads any one of them sees why. **Ambiguous Reuse** is for when
+none of this settles it: the data was reused, and nothing in the paper, its code
+or the leaderboard says which dandiset it came from. Say in the note what you
+checked.
 
 An amber **SHARED WITH N DANDISETS** chip on the dataset means other dandisets
 name the same paper, and the evidence box lists them with their own chips. The
 MC_Maze family is the case to have in mind: one paper describes four dandisets,
 so a work citing it has said nothing about which of the four it actually
-obtained. Where the passage does not name the dataset on the card, the reuse is
-not attributable to it, and that belongs in the note. A sibling wearing the red
-verify chip is the weaker case — a model picked that paper for it, so the
+obtained. Where nothing in the paper identifies the dataset on the card, the
+reuse is not attributable to it, and that belongs in the note. A sibling wearing
+the red verify chip is the weaker case — a model picked that paper for it, so the
 sharing may be nothing more than a bad guess.
 
 **Indirect** — the paper cited a dandiset's publication.
@@ -248,3 +325,11 @@ already carries their call and one reviewer confirms it. `--min-reviewers 2`
 would ask a second to agree, and nothing yet puts one reviewer's finds on
 another's screen. The console says how many of them there were, and counts the
 classifier's precision over its own pairs alone.
+
+Once the reviews are merged, an AI-assisted pass over them can help settle
+**Ambiguous Reuse** and **Unsure** pairs and catch calls that disagree with
+their notes or with each other. Importantly, we must be careful about not
+taking anything the AI claims to be true without verifying it ourselves.
+Check every fact it offers against the paper, the
+code or the dataset before it changes a call or goes into a note. A call that
+changes is changed by the reviewer who made it, in their own reviews file.
