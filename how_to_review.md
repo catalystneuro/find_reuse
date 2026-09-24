@@ -328,8 +328,8 @@ classifier's precision over its own pairs alone.
 
 Once the reviews are merged, an AI-assisted pass over them can help settle
 **Ambiguous Reuse** and **Unsure** pairs and catch calls that disagree with
-their notes or with each other. Whatever it turns up enters the ground truth if
-it is accepted, and a model states an invented quote, count or table number as
-confidently as a real one. Check every fact it offers against the paper, the
+their notes or with each other. Importantly, we must be careful about not
+taking anything the AI claims to be true without verifying it ourselves.
+Check every fact it offers against the paper, the
 code or the dataset before it changes a call or goes into a note. A call that
 changes is changed by the reviewer who made it, in their own reviews file.
