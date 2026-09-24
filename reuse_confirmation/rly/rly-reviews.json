@@ -19,15 +19,15 @@
     "10.1038/s41586-023-06031-6": {
       "000070": {
         "call": "neither",
-        "note": "Dataset says \"tested CEBRA on an additional monkey dataset (mc-maze) presented in the Neural Latent Benchmark\" but cites in the Data Availability section \"Primate dataset: https://gui.dandiarchive.org/#/dandiset/000127\" which is Area2_Bump. The paper describes a primary analysis on the Area2_Bump dataset and Extended Data Fig. 8 shows performance on the mc-maze 20 ms benchmark, which is not the scaling benchmark that uses large/medium/small. The linked leaderboard (https://eval.ai/web/challenges/challenge-page/1256/leaderboard/3183) is \"MC_Maze 20ms\", which scores only MC_Maze (DANDI:000128). The Large/Medium/Small variants are scored only on the separate \"MC_Maze Scaling\" leaderboards."
+        "note": "Dataset says \"tested CEBRA on an additional monkey dataset (mc-maze) presented in the Neural Latent Benchmark\" but cites in the Data Availability section \"Primate dataset: https://gui.dandiarchive.org/#/dandiset/000127\" which is Area2_Bump. The paper describes a primary analysis on the Area2_Bump dataset and Extended Data Fig. 8g shows performance on the mc-maze 20 ms benchmark. The NLB leaderboard for \"MC_Maze 20 ms\" (https://eval.ai/web/challenges/challenge-page/1256/leaderboard/3183) scores only MC_Maze (DANDI:000128) and shows a CEBRA entry. The leaderboard for \"MC_Maze Scaling 20ms\" uses the Large/Medium/Small dataset variants and does not show a CEBRA entry."
       },
       "000138": {
         "call": "neither",
-        "note": "Dataset says \"tested CEBRA on an additional monkey dataset (mc-maze) presented in the Neural Latent Benchmark\" but cites in the Data Availability section \"Primate dataset: https://gui.dandiarchive.org/#/dandiset/000127\" which is Area2_Bump. The paper describes a primary analysis on the Area2_Bump dataset and Extended Data Fig. 8 shows performance on the mc-maze 20 ms benchmark, which is not the scaling benchmark that uses large/medium/small. The linked leaderboard (https://eval.ai/web/challenges/challenge-page/1256/leaderboard/3183) is \"MC_Maze 20ms\", which scores only MC_Maze (DANDI:000128). The Large/Medium/Small variants are scored only on the separate \"MC_Maze Scaling\" leaderboards."
+        "note": "Dataset says \"tested CEBRA on an additional monkey dataset (mc-maze) presented in the Neural Latent Benchmark\" but cites in the Data Availability section \"Primate dataset: https://gui.dandiarchive.org/#/dandiset/000127\" which is Area2_Bump. The paper describes a primary analysis on the Area2_Bump dataset and Extended Data Fig. 8g shows performance on the mc-maze 20 ms benchmark. The NLB leaderboard for \"MC_Maze 20 ms\" (https://eval.ai/web/challenges/challenge-page/1256/leaderboard/3183) scores only MC_Maze (DANDI:000128) and shows a CEBRA entry. The leaderboard for \"MC_Maze Scaling 20ms\" uses the Large/Medium/Small dataset variants and does not show a CEBRA entry."
       },
       "000140": {
         "call": "neither",
-        "note": "Dataset says \"tested CEBRA on an additional monkey dataset (mc-maze) presented in the Neural Latent Benchmark\" but cites in the Data Availability section \"Primate dataset: https://gui.dandiarchive.org/#/dandiset/000127\" which is Area2_Bump. The paper describes a primary analysis on the Area2_Bump dataset and Extended Data Fig. 8 shows performance on the mc-maze 20 ms benchmark, which is not the scaling benchmark that uses large/medium/small. The linked leaderboard (https://eval.ai/web/challenges/challenge-page/1256/leaderboard/3183) is \"MC_Maze 20ms\", which scores only MC_Maze (DANDI:000128). The Large/Medium/Small variants are scored only on the separate \"MC_Maze Scaling\" leaderboards."
+        "note": "Dataset says \"tested CEBRA on an additional monkey dataset (mc-maze) presented in the Neural Latent Benchmark\" but cites in the Data Availability section \"Primate dataset: https://gui.dandiarchive.org/#/dandiset/000127\" which is Area2_Bump. The paper describes a primary analysis on the Area2_Bump dataset and Extended Data Fig. 8g shows performance on the mc-maze 20 ms benchmark. The NLB leaderboard for \"MC_Maze 20 ms\" (https://eval.ai/web/challenges/challenge-page/1256/leaderboard/3183) scores only MC_Maze (DANDI:000128) and shows a CEBRA entry. The leaderboard for \"MC_Maze Scaling 20ms\" uses the Large/Medium/Small dataset variants and does not show a CEBRA entry."
       }
     },
     "10.1038/s41592-024-02232-7": {
@@ -50,11 +50,11 @@
     "10.1088/1741-2552/ad1787": {
       "000128": {
         "call": "neither",
-        "note": "The paper says \"MC Maze\" (ambiguous) and cites MC_Maze_Small. The paper mentions 107 neurons held-in, which is unique to MC_Maze_Small, DANDI:000140. Full/Large/Medium/Small held-in counts: 137/122/114/107. The reported ISI 221.9 ms matches MC_Maze_Small. Full/Large/Medium/Small ISIs: 227.4/184.1/236.3/221.9."
+        "note": "The paper says \"MC Maze\" (ambiguous) and cites the \"MC Maze Small\" dataset as [30] in the references. The paper also mentions 107 neurons, which uniquely matches the number of held-in neurons in MC_Maze_Small when looking across the counts of held-in/held-out/total in the four maze datasets. Also, with AI help, I computed ISI in various ways: using mean of per-unit ISIs or pooled mean, and using held-in, held-out, and all neurons for all four maze datasets. The pooled mean on held-in neurons from MC Maze Small was the only combination that matched the reported 221.9 ms."
       },
       "000139": {
         "call": "neither",
-        "note": "The paper says \"MC Maze\" (ambiguous) and cites MC_Maze_Small. The paper mentions 107 neurons held-in, which is unique to MC_Maze_Small, DANDI:000140. Full/Large/Medium/Small held-in counts: 137/122/114/107. The reported ISI 221.9 ms matches MC_Maze_Small. Full/Large/Medium/Small ISIs: 227.4/184.1/236.3/221.9."
+        "note": "The paper says \"MC Maze\" (ambiguous) and cites the \"MC Maze Small\" dataset as [30] in the references. The paper also mentions 107 neurons, which uniquely matches the number of held-in neurons in MC_Maze_Small when looking across the counts of held-in/held-out/total in the four maze datasets. Also, with AI help, I computed ISI in various ways: using mean of per-unit ISIs or pooled mean, and using held-in, held-out, and all neurons for all four maze datasets. The pooled mean on held-in neurons from MC Maze Small was the only combination that matched the reported 221.9 ms."
       }
     },
     "10.1101/2021.10.07.463540": {
@@ -200,11 +200,11 @@
     "10.3390/e24020152": {
       "000128": {
         "call": "reuse",
-        "note": "The paper says \"We also used MC_Maze, and its scaled versions, MC_Maze_L, MC_Maze_M, and MC_Maze_S, as the secondary datasets to compare model performance on different datasets.\" The Data Availability Statement says \"The datasets can be found in https://gui.dandiarchive.org/#/dandiset\"."
+        "note": "The paper says \"We also used MC_Maze, and its scaled versions, MC_Maze_L, MC_Maze_M, and MC_Maze_S, as the secondary datasets to compare model performance on different datasets.\""
       },
       "000139": {
         "call": "reuse",
-        "note": "The paper says \"We also used MC_Maze, and its scaled versions, MC_Maze_L, MC_Maze_M, and MC_Maze_S, as the secondary datasets to compare model performance on different datasets.\" The Data Availability Statement says \"The datasets can be found in https://gui.dandiarchive.org/#/dandiset\"."
+        "note": "The paper says \"We also used MC_Maze, and its scaled versions, MC_Maze_L, MC_Maze_M, and MC_Maze_S, as the secondary datasets to compare model performance on different datasets.\""
       }
     },
     "10.7554/elife.107990": {
