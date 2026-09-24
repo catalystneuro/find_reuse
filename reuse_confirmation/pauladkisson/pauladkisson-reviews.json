@@ -823,6 +823,10 @@
     "10.64898/2025.12.15.694430": {
       "000409": {
         "call": "reuse"
+      },
+      "000017": {
+        "note": "This paper reused data from the IBL Brainwide Map Dandiset. Steinmetz et al., 2019 is only cited as background (mention) in the discussion section.",
+        "call": "mention"
       }
     },
     "10.1038/s41593-022-01171-w": {
@@ -1586,6 +1590,166 @@
       "000953": {
         "call": "reuse"
       }
+    },
+    "10.3390/biom12101402": {
+      "000010": {
+        "note": "This paper got their data from CRCNS rather than DANDI. ",
+        "call": "reuse"
+      }
+    },
+    "10.3390/brainsci15030221": {
+      "000129": {
+        "call": "reuse"
+      },
+      "001055": {
+        "note": "This paper only reused data from one source, which is cited in the paper that corresponds to Dandiset 000129.",
+        "call": "neither"
+      }
+    },
+    "10.3390/e25071026": {
+      "000070": {
+        "note": "The cited paper is shared among the five MC_Maze Dandisets.",
+        "call": "ambiguous_reuse"
+      },
+      "000128": {
+        "note": "The cited paper is shared among the five MC_Maze Dandisets.",
+        "call": "ambiguous_reuse"
+      },
+      "000138": {
+        "note": "The cited paper is shared among the five MC_Maze Dandisets.",
+        "call": "ambiguous_reuse"
+      },
+      "000139": {
+        "note": "The cited paper is shared among the five MC_Maze Dandisets.",
+        "call": "ambiguous_reuse"
+      },
+      "000140": {
+        "note": "The cited paper is shared among the five MC_Maze Dandisets.",
+        "call": "ambiguous_reuse"
+      }
+    },
+    "10.64898/2026.01.13.699305": {
+      "000402": {
+        "call": "reuse"
+      }
+    },
+    "10.64898/2026.01.26.701583": {
+      "000044": {
+        "call": "reuse"
+      }
+    },
+    "10.64898/2026.03.03.705098": {
+      "000336": {
+        "note": "This paper reanalyzed data from Jordan and Keller (2023). However, the cited paper in this pair is Keller and Mrsic-Flogel, 2018. The only citations of the cited paper in this pair are in the intro and discussion and are background mentions. ",
+        "call": "mention"
+      }
+    },
+    "10.64898/2026.03.06.709637": {
+      "000941": {
+        "note": "This paper specifically mentions both Dandiset 000941 and Dandiset 000129.",
+        "call": "reuse"
+      },
+      "001209": {
+        "call": "reuse",
+        "note": "This paper specifically mentions both Dandiset 000941 and Dandiset 000129."
+      }
+    },
+    "10.64898/2026.03.25.714179": {
+      "000070": {
+        "note": "\"The dataset used for these experiments was recorded from a rhesus macaque performing a center-out isometric wrist force task, previously reported in [37].\" This paper reused data from reference 37, which corresponds to Gallego et al. 2018 (doi:10.1038/s41467-018-06560-z). As far as I can tell, the Gallego paper is unrelated to the MC_Maze group. The cited paper, on the other hand, is only cited as a background mention. ",
+        "call": "mention"
+      },
+      "000128": {
+        "note": "\"The dataset used for these experiments was recorded from a rhesus macaque performing a center-out isometric wrist force task, previously reported in [37].\" This paper reused data from reference 37, which corresponds to Gallego et al. 2018 (doi:10.1038/s41467-018-06560-z). As far as I can tell, the Gallego paper is unrelated to the MC_Maze group. The cited paper, on the other hand, is only cited as a background mention. ",
+        "call": "mention"
+      },
+      "000138": {
+        "note": "\"The dataset used for these experiments was recorded from a rhesus macaque performing a center-out isometric wrist force task, previously reported in [37].\" This paper reused data from reference 37, which corresponds to Gallego et al. 2018 (doi:10.1038/s41467-018-06560-z). As far as I can tell, the Gallego paper is unrelated to the MC_Maze group. The cited paper, on the other hand, is only cited as a background mention. ",
+        "call": "mention"
+      },
+      "000139": {
+        "note": "\"The dataset used for these experiments was recorded from a rhesus macaque performing a center-out isometric wrist force task, previously reported in [37].\" This paper reused data from reference 37, which corresponds to Gallego et al. 2018 (doi:10.1038/s41467-018-06560-z). As far as I can tell, the Gallego paper is unrelated to the MC_Maze group. The cited paper, on the other hand, is only cited as a background mention. ",
+        "call": "mention"
+      },
+      "000140": {
+        "note": "\"The dataset used for these experiments was recorded from a rhesus macaque performing a center-out isometric wrist force task, previously reported in [37].\" This paper reused data from reference 37, which corresponds to Gallego et al. 2018 (doi:10.1038/s41467-018-06560-z). As far as I can tell, the Gallego paper is unrelated to the MC_Maze group. The cited paper, on the other hand, is only cited as a background mention. ",
+        "call": "mention"
+      }
+    },
+    "10.7554/elife.101506": {
+      "000017": {
+        "call": "reuse"
+      }
+    },
+    "10.7554/elife.101850": {
+      "000402": {
+        "call": "reuse"
+      }
+    },
+    "10.7554/elife.109053": {
+      "000253": {
+        "note": "I believe this is the primary paper for the Allen Institute OpenScope global/local oddball project, rather than a reuser. ",
+        "call": "neither"
+      }
+    },
+    "10.7554/elife.110803": {
+      "000623": {
+        "note": "This is an interesting case of data reuse, since they collected their own microwire data but used the mean waveform of APs from an open dataset to assist with their virtual simulations. ",
+        "call": "reuse"
+      }
+    },
+    "10.7554/elife.63163": {
+      "000017": {
+        "call": "reuse"
+      }
+    },
+    "10.7554/elife.67256": {
+      "000127": {
+        "call": "reuse"
+      }
+    },
+    "10.7554/elife.73155": {
+      "000127": {
+        "call": "reuse"
+      }
+    },
+    "10.7554/elife.80263": {
+      "000044": {
+        "call": "reuse"
+      }
+    },
+    "10.7554/elife.87881": {
+      "000129": {
+        "call": "reuse"
+      }
+    },
+    "10.7554/elife.87881.3.sa3": {
+      "000070": {
+        "note": "This is an eLife review DOI.",
+        "call": "neither"
+      }
+    },
+    "10.7554/elife.89131.3.sa3": {
+      "000070": {
+        "note": "This is an eLife review DOI. ",
+        "call": "neither"
+      },
+      "000128": {
+        "note": "This is an eLife review DOI. ",
+        "call": "neither"
+      },
+      "000138": {
+        "note": "This is an eLife review DOI. ",
+        "call": "neither"
+      },
+      "000139": {
+        "note": "This is an eLife review DOI. ",
+        "call": "neither"
+      },
+      "000140": {
+        "note": "This is an eLife review DOI. ",
+        "call": "neither"
+      }
     }
   },
   "added": {
@@ -1597,6 +1761,11 @@
     "10.1101/2022.12.06.519376": {
       "000021": {
         "dandiset_name": "Allen Institute - Visual Coding - Neuropixels (Brain Observatory 1.1 Stimulus Set)"
+      }
+    },
+    "10.64898/2026.03.06.709637": {
+      "001209": {
+        "dandiset_name": "FALCON Benchmark M1-B: primary motor cortex recordings in primate during reach-to-grasp task"
       }
     }
   }
