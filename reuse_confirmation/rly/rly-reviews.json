@@ -422,5 +422,15 @@
         "call": "neither"
       }
     }
+  },
+  "added": {
+    "10.1101/2025.03.21.644350": {
+      "000127": {
+        "dandiset_name": "Area2_Bump: macaque somatosensory area 2 spiking activity during reaching with perturbations"
+      },
+      "000129": {
+        "dandiset_name": "MC_RTT: macaque motor cortex spiking activity during self-paced reaching"
+      }
+    }
   }
 }
