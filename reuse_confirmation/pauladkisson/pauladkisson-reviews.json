@@ -790,6 +790,9 @@
       },
       "000409": {
         "call": "reuse"
+      },
+      "000397": {
+        "call": "reuse"
       }
     },
     "10.1101/2024.11.06.622308": {
@@ -1342,6 +1345,245 @@
     },
     "10.1101/2025.05.09.653224": {
       "000402": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2025.07.10.664247": {
+      "000138": {
+        "note": "The authors reused data from the CRCNS pmd-1 dataset, which is completely unrelated to the cited paper and cited dataset.",
+        "call": "mention"
+      },
+      "000139": {
+        "note": "The authors reused data from the CRCNS pmd-1 dataset, which is completely unrelated to the cited paper and cited dataset.",
+        "call": "mention"
+      },
+      "000140": {
+        "note": "The authors reused data from the CRCNS pmd-1 dataset, which is completely unrelated to the cited paper and cited dataset.",
+        "call": "mention"
+      }
+    },
+    "10.1101/2025.08.03.668332": {
+      "000166": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2025.08.10.669543": {
+      "000004": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2025.08.27.672292": {
+      "000402": {
+        "note": "This paper mentions or cites the Microns paper in their experiments, data collection, and preprocessing section. That is suggestive, but it's not clear to me whether they actually reused data from that dataset or if they are just using it as a methodological reference.",
+        "call": "unsure"
+      }
+    },
+    "10.1101/2025.09.11.675660": {
+      "000397": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2025.10.05.680498": {
+      "000010": {
+        "note": "This paper used data from CRCNS rather than DANDI. ",
+        "call": "reuse"
+      }
+    },
+    "10.1101/2025.10.29.685162": {
+      "000004": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2025.11.01.686029": {
+      "001357": {
+        "call": "reuse"
+      }
+    },
+    "10.1109/access.2022.3159225": {
+      "000129": {
+        "call": "reuse"
+      }
+    },
+    "10.1109/embc48229.2022.9871085": {
+      "000070": {
+        "note": "This paper is abstract/intro only, not full text.",
+        "call": "neither"
+      },
+      "000138": {
+        "note": "This paper is abstract/intro only, not full text. ",
+        "call": "neither"
+      }
+    },
+    "10.1109/jsen.2024.3487021": {
+      "000129": {
+        "call": "reuse"
+      },
+      "001055": {
+        "note": "This DANDI set shares a primary paper with DANDI set 000129, which I am calling the reused DANDI set for this citing paper. ",
+        "call": "neither"
+      }
+    },
+    "10.1126/science.adk8261": {
+      "000552": {
+        "call": "reuse"
+      },
+      "000044": {
+        "note": "This paper got their Grosmark et al. data from the Buzsáki lab website rather than DANDI.",
+        "call": "reuse"
+      }
+    },
+    "10.1152/jn.00234.2024": {
+      "000006": {
+        "note": "This paper got their data from CRCNS ALM-5. Which corresponds to a different primary paper Inagaki et al., indicating that they did not reuse data from the Dandiset 000006. The Aimon paper is only cited as a background mention. ",
+        "call": "mention"
+      }
+    },
+    "10.1176/appi.ajp.20250355": {
+      "000636": {
+        "note": "This paper got their data from the Allen Institute GitHub repository rather than DANDI. ",
+        "call": "reuse"
+      }
+    },
+    "10.1371/journal.pbio.3003198": {
+      "000041": {
+        "call": "reuse"
+      }
+    },
+    "10.1371/journal.pcbi.1010792": {
+      "000041": {
+        "note": "This paper got their data from CRCNS rather than DANDI. ",
+        "call": "reuse"
+      }
+    },
+    "10.1371/journal.pcbi.1011167": {
+      "000168": {
+        "call": "reuse"
+      }
+    },
+    "10.1371/journal.pcbi.1011605": {
+      "000041": {
+        "call": "reuse"
+      }
+    },
+    "10.1371/journal.pcbi.1012614": {
+      "000127": {
+        "call": "reuse"
+      }
+    },
+    "10.1371/journal.pcbi.1012747": {
+      "000061": {
+        "call": "reuse"
+      }
+    },
+    "10.1371/journal.pone.0312438": {
+      "000034": {
+        "call": "reuse"
+      }
+    },
+    "10.1523/eneuro.0202-21.2021": {
+      "000044": {
+        "note": "This paper got their data from the CRCNS dataset hc-11 rather than DANDI.",
+        "call": "reuse"
+      }
+    },
+    "10.1523/eneuro.0266-21.2021": {
+      "000044": {
+        "call": "reuse"
+      }
+    },
+    "10.1523/eneuro.0484-20.2021": {
+      "000061": {
+        "note": "This paper got their data from CRCNS rather than DANDI. ",
+        "call": "reuse"
+      }
+    },
+    "10.1523/eneuro.0554-23.2024": {
+      "000006": {
+        "call": "reuse"
+      },
+      "000007": {
+        "call": "reuse"
+      },
+      "000009": {
+        "call": "reuse"
+      },
+      "000011": {
+        "call": "reuse"
+      },
+      "000017": {
+        "call": "reuse"
+      },
+      "000239": {
+        "call": "reuse"
+      }
+    },
+    "10.1523/jneurosci.2155-24.2025": {
+      "000004": {
+        "call": "reuse"
+      },
+      "000017": {
+        "call": "reuse"
+      }
+    },
+    "10.18280/ts.380327": {
+      "000041": {
+        "note": "This paper got their data from the FCX-1 dataset from CRCNS.",
+        "call": "reuse"
+      }
+    },
+    "10.21203/rs.3.rs-10058744": {
+      "001285": {
+        "note": "The only citation of Purdon et al. is coming from a background mention in the introduction, and this paper reuses data from PhysioNet, which is a completely unrelated paper.",
+        "call": "mention"
+      }
+    },
+    "10.21203/rs.3.rs-2191626": {
+      "000044": {
+        "call": "reuse"
+      }
+    },
+    "10.21203/rs.3.rs-4102129": {
+      "000129": {
+        "call": "reuse"
+      }
+    },
+    "10.21203/rs.3.rs-5731906": {
+      "000004": {
+        "call": "reuse"
+      }
+    },
+    "10.31083/j.jin2105128": {
+      "000061": {
+        "call": "reuse"
+      }
+    },
+    "10.3389/fncel.2023.1144260": {
+      "000166": {
+        "call": "reuse"
+      }
+    },
+    "10.3389/fncir.2026.1814667": {
+      "000397": {
+        "call": "reuse"
+      }
+    },
+    "10.3389/fncom.2022.913617": {
+      "000010": {
+        "call": "reuse"
+      }
+    },
+    "10.3389/fninf.2023.938689": {
+      "000010": {
+        "call": "reuse"
+      }
+    },
+    "10.3389/fnins.2024.1432750": {
+      "000041": {
+        "call": "reuse"
+      }
+    },
+    "10.3390/a17040156": {
+      "000953": {
         "call": "reuse"
       }
     }
