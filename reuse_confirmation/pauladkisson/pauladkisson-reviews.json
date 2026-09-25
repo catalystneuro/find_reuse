@@ -780,8 +780,8 @@
         "call": "neither"
       },
       "000409": {
-        "note": "This paper appears to have gotten their data from the IBL data release rather than from DANDI.",
-        "call": "reuse"
+        "note": "This is a preprint duplicate of the following DOI: 10.1038/s41586-025-09226-1",
+        "call": "neither"
       }
     },
     "10.1101/2025.10.01.679820": {
@@ -1650,7 +1650,7 @@
       },
       "001209": {
         "call": "reuse",
-        "note": "This paper specifically mentions both Dandiset 000941 and Dandiset 000129."
+        "note": "This paper specifically mentions both Dandiset 000941 and Dandiset 001209."
       }
     },
     "10.64898/2026.03.25.714179": {
