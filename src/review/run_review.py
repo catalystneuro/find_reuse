@@ -182,10 +182,11 @@ CSS = PALETTE + """
             padding:2px 9px;border-radius:999px;background:var(--accent-soft);
             white-space:nowrap}
   a.rawtext:hover{text-decoration:underline}
-  button.filter{font:inherit;font-size:11.5px;font-weight:600;color:var(--accent);
-                padding:2px 9px;border-radius:999px;border:1px solid var(--accent-soft);
-                background:none;cursor:pointer;white-space:nowrap}
-  button.filter:hover{background:var(--accent-soft)}
+  button.filter{font:inherit;font-size:13px;font-weight:600;color:var(--accent);
+                padding:5px 13px;border-radius:999px;
+                border:1px solid color-mix(in srgb,var(--accent) 45%,transparent);
+                background:var(--surface);cursor:pointer;white-space:nowrap}
+  button.filter:hover{background:var(--accent);color:var(--surface)}
 
   .party.dataset{background:var(--accent-soft);
                  border-color:color-mix(in srgb,var(--accent) 24%,transparent)}
@@ -675,9 +676,9 @@ function textLink(doi, dandiset){
 
 // Narrows the list to the pairs that share this paper or dataset, by searching
 // for its identifier, so it reads and clears like any other search.
-const filterButton = id =>
+const filterButton = (id, what) =>
   `<button class="filter" data-filter="${esc(id)}"
-     title="Show only pairs matching ${esc(id)}">Filter</button>`;
+     title="Show only the pairs matching ${esc(id)}">Show only this ${what}</button>`;
 
 function filterTo(id){
   controls.search = id;
@@ -698,7 +699,7 @@ function paperPanel(role, doi, title, byline, filter, text, chip){
             target="_blank" rel="noopener">${esc(doi)}</a>
          ${text || ''}
          ${chip || ''}
-         ${filterButton(filter)}
+         ${filterButton(filter, 'paper')}
        </div>`
     : `<span class="absent">Not recorded for this pair.</span>`;
   return `<div class="party"><span class="role">${esc(role)}</span>${body}</div>`;
@@ -711,7 +712,7 @@ function datasetPanel(r){
       <a class="dsid" href="https://dandiarchive.org/dandiset/${esc(r.dandiset)}"
          target="_blank" rel="noopener">${esc(r.dandiset)}</a>
       <span class="dsname">${esc(r.dandiset_name)}</span>
-      <div class="links">${chip}${filterButton(r.dandiset)}</div>
+      <div class="links">${chip}${filterButton(r.dandiset, 'dataset')}</div>
     </div>`;
 }
 
