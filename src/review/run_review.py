@@ -169,6 +169,9 @@ CSS = PALETTE + """
          letter-spacing:-.015em;color:var(--ink);text-decoration:none;text-wrap:pretty}
   a.name:hover{color:var(--accent)}
   .party .absent{font-size:14px;color:var(--muted);font-style:italic}
+  .byline{font-size:14px;color:var(--ink);opacity:.82}
+  .shared-paper .byline{font-size:inherit;color:inherit;opacity:1}
+  .shared-paper .byline::before{content:'\\2014  '}
   .links{margin-top:auto;display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px}
   a.doi{font-family:var(--mono);font-size:11.5px;color:var(--accent);text-decoration:none;
         border-bottom:1px solid transparent;word-break:break-all}
@@ -472,7 +475,8 @@ const ROW_BY_KEY = new Map(ROWS.map(r => [keyOf(r), r]));
 // Searching is done over a string built once rather than over the fields each
 // time: this runs on every keystroke across every pair.
 const searchTextOf = r => [r.doi, r.fetched_doi, r.title, r.dandiset,
-                           r.dandiset_name, r.cited_doi, r.cited_title]
+                           r.dandiset_name, r.cited_doi, r.cited_title,
+                           r.cited_citation]
                           .join(' ').toLowerCase();
 for (const r of ROWS) r.searchText = searchTextOf(r);
 
@@ -497,8 +501,8 @@ function enrol(doi, dandiset, name){
   const row = {doi, dandiset, dandiset_name: name || '', pathway: 'added',
                title: paper.title || '', fetched_doi: paper.fetched_doi || doi,
                has_text: Boolean(paper.has_text), reasoning: '', quotes: [],
-               cited_doi: '', cited_title: '', cited_role: '', cited_source: '',
-               shared_paper: null};
+               cited_doi: '', cited_title: '', cited_citation: '', cited_role: '',
+               cited_source: '', shared_paper: null};
   row.searchText = searchTextOf(row);
   ROWS.push(row);
   ROWS.sort(byPair);
@@ -566,6 +570,7 @@ function sharedBlock(r){
       <a class="doi" href="https://doi.org/${encodeURI(shared.doi)}"
          target="_blank" rel="noopener">${esc(shared.doi)}</a>
       ${esc(shared.title)}
+      ${shared.citation ? `<span class="byline">${esc(shared.citation)}</span>` : ''}
     </p>
     <ul class="siblings">${siblings}</ul>`;
 }
@@ -664,10 +669,13 @@ function textLink(doi, dandiset){
              rel="noopener">Raw Text</a>`;
 }
 
-function paperPanel(role, doi, title, text, chip){
+// The byline is who wrote the paper and when, which is how a citing paper's text
+// refers to it.
+function paperPanel(role, doi, title, byline, text, chip){
   const body = doi
     ? `<a class="name" href="https://doi.org/${encodeURI(doi)}"
           target="_blank" rel="noopener">${esc(title || doi)}</a>
+       ${byline ? `<span class="byline">${esc(byline)}</span>` : ''}
        <div class="links">
          <a class="doi" href="https://doi.org/${encodeURI(doi)}"
             target="_blank" rel="noopener">${esc(doi)}</a>
@@ -816,10 +824,10 @@ function renderWorksheet(rows){
 
   document.getElementById('card').innerHTML = `
     <div class="subject ${r.pathway}">
-      ${paperPanel('Citing Paper', r.fetched_doi, r.title,
+      ${paperPanel('Citing Paper', r.fetched_doi, r.title, '',
                    r.has_text ? textLink(r.fetched_doi, r.dandiset) : '')}
       ${r.pathway === 'indirect'
-        ? paperPanel(citedRole, r.cited_doi, r.cited_title,
+        ? paperPanel(citedRole, r.cited_doi, r.cited_title, r.cited_citation,
                      r.cited_has_text ? textLink(r.cited_doi, '') : '',
                      originChip(r.cited_source)) : ''}
       ${datasetPanel(r)}

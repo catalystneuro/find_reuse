@@ -22,6 +22,7 @@ venv/
 .doi_date_cache.json
 .doi_title_cache.json
 .doi_metadata_cache.json
+.paper_metadata_cache.json
 .preprint_published_map.json
 .alternate_doi_cache.json
 .missing_paper_cache.json
