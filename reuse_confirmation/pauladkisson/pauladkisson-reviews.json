@@ -562,12 +562,12 @@
     },
     "10.1007/s12264-022-00983-x": {
       "000008": {
-        "call": "ambiguous_reuse",
-        "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035). "
+        "call": "reuse",
+        "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035). Since Dandiset 000008 shares its title with the cited paper, I am making the somewhat arbitrary call that that one will count for the reuse. "
       },
       "000035": {
-        "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035). ",
-        "call": "ambiguous_reuse"
+        "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035). Since Dandiset 000008 shares its title with the cited paper, I am making the somewhat arbitrary call that that one will count for the reuse. ",
+        "call": "neither"
       }
     },
     "10.1016/j.cell.2022.02.006": {
@@ -600,8 +600,8 @@
     },
     "10.1016/j.cub.2020.09.067": {
       "000017": {
-        "note": "This paper does cite Steinmetz et al. 2019 in the deposited data section of the methods table, all other citations appear to be background and/or methodological references rather than reuse.",
-        "call": "mention"
+        "call": "reuse",
+        "note": "The paper cites Steinmetz et al. 2019 in their deposited data section, indicating that they reused data from that work. Since the authors are shared, this is likely internal reuse."
       }
     },
     "10.1016/j.envint.2026.110151": {
@@ -732,7 +732,7 @@
     },
     "10.1038/s41592-022-01742-6": {
       "000409": {
-        "note": "This methods paper uses data from Dandiset 000045, not 000049. ",
+        "note": "This methods paper uses data from Dandiset 000045, not 000409. ",
         "call": "neither"
       },
       "000045": {
@@ -1099,7 +1099,7 @@
     },
     "10.1101/2023.05.14.540714": {
       "000128": {
-        "note": "The only citation of the cortical preparatory activity paper is a background mention.",
+        "note": "The only citation of the cortical preparatory activity paper is a background mention.\nMatt +18 corresponds to a completely separate work: Matthew G. Perich et al. Extracellular neural recordings from macaque primary and dorsal premotor motor cortex during a sequential reaching task",
         "call": "mention"
       }
     },
@@ -1220,12 +1220,11 @@
     },
     "10.1101/2024.05.30.596374": {
       "000574": {
-        "call": "ambiguous_reuse",
-        "note": "I might be able to work these out, but I'd like to tackle them in a separate pass. Ambiguous with 000574 vs 000577."
+        "call": "reuse"
       },
       "000575": {
-        "note": "I might be able to work these out, but I'd like to tackle them in a separate pass. Ambiguous with 000574 vs 000577.",
-        "call": "ambiguous_reuse"
+        "call": "mention",
+        "note": "This citing paper used data from Dandiset 000574, the verbal working memory task. Boran et al. 2022 is just a background mention in the introduction."
       }
     },
     "10.1101/2024.07.08.601617": {
@@ -1378,7 +1377,7 @@
     },
     "10.1101/2025.08.27.672292": {
       "000402": {
-        "note": "This paper mentions or cites the Microns paper in their experiments, data collection, and preprocessing section. That is suggestive, but it's not clear to me whether they actually reused data from that dataset or if they are just using it as a methodological reference.",
+        "note": "This paper mentions or cites the Microns paper in their \"experiments, data collection, and preprocessing\" section. That is suggestive, but it's not clear to me whether they actually reused data from that dataset or if they are just using it as a methodological reference.",
         "call": "unsure"
       }
     },
@@ -1438,7 +1437,7 @@
     },
     "10.1152/jn.00234.2024": {
       "000006": {
-        "note": "This paper got their data from CRCNS ALM-5. Which corresponds to a different primary paper Inagaki et al., indicating that they did not reuse data from the Dandiset 000006. The Aimon paper is only cited as a background mention. ",
+        "note": "This paper got their data from CRCNS ALM-5. Which corresponds to a different primary paper Inagaki et al., indicating that they did not reuse data from the Dandiset 000006. The Economo paper is only cited as a background mention. ",
         "call": "mention"
       }
     },
