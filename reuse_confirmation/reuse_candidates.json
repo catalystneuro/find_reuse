@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-25T17:10:50+00:00",
+  "generated_at": "2026-09-25T19:09:59+00:00",
   "inputs": [
     {
       "path": "output/fulltext_classifications.json",
@@ -58625,6 +58625,11 @@
         "title": "A rise-to-threshold signal for a relative value deliberation",
         "dandisets": [
           {
+            "dandiset": "000247",
+            "dandiset_name": "Calcium imaging of egg-laying related neurons in head-fixed Drosophila",
+            "relation": "dcite:Describes"
+          },
+          {
             "dandiset": "000250",
             "dandiset_name": "High-resolution tracking of Drosophila during egg-laying",
             "relation": "dcite:Describes"
@@ -58668,7 +58673,23 @@
       "cited_doi": "10.1101/2021.09.23.461548",
       "cited_title": "A rise-to-threshold signal for a relative value deliberation",
       "cited_source": "dcite:Describes",
-      "shared_paper": null,
+      "shared_paper": {
+        "doi": "10.1101/2021.09.23.461548",
+        "title": "A rise-to-threshold signal for a relative value deliberation",
+        "dandisets": [
+          {
+            "dandiset": "000212",
+            "dandiset_name": "Tracking of Drosophila during egg-laying decisions",
+            "relation": "dcite:Describes"
+          },
+          {
+            "dandiset": "000250",
+            "dandiset_name": "High-resolution tracking of Drosophila during egg-laying",
+            "relation": "dcite:Describes"
+          }
+        ],
+        "citation": "Vijayan et al., 2021"
+      },
       "cited_citation": "Vijayan et al., 2021"
     },
     {
@@ -58712,6 +58733,11 @@
           {
             "dandiset": "000212",
             "dandiset_name": "Tracking of Drosophila during egg-laying decisions",
+            "relation": "dcite:Describes"
+          },
+          {
+            "dandiset": "000247",
+            "dandiset_name": "Calcium imaging of egg-laying related neurons in head-fixed Drosophila",
             "relation": "dcite:Describes"
           }
         ],
