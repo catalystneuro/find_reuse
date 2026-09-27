@@ -265,6 +265,9 @@
     "10.1016/j.patter.2025.101323": {
       "000020": {
         "call": "reuse"
+      },
+      "000008": {
+        "call": "reuse"
       }
     },
     "10.1038/s41467-023-40744-6": {
@@ -419,6 +422,105 @@
       },
       "000130": {
         "note": "Not a paper. This is a peer review of doi: 10.7554/eLife.89421.1.",
+        "call": "neither"
+      },
+      "000128": {
+        "note": "Not a paper. This is a peer review of doi: 10.7554/elife.89421.1.",
+        "call": "neither"
+      },
+      "000138": {
+        "note": "Not a paper. This is a peer review of doi: 10.7554/elife.89421.1.",
+        "call": "neither"
+      },
+      "000139": {
+        "note": "Not a paper. This is a peer review of doi: 10.7554/elife.89421.1.",
+        "call": "neither"
+      },
+      "000140": {
+        "note": "Not a paper. This is a peer review of doi: 10.7554/elife.89421.1.",
+        "call": "neither"
+      }
+    },
+    "10.1016/j.cub.2024.05.031": {
+      "000467": {
+        "call": "reuse"
+      }
+    },
+    "10.1016/j.neuron.2024.06.015": {
+      "000713": {
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41467-023-38529-y": {
+      "000060": {
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41467-025-58717-2": {
+      "000458": {
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41592-026-03183-x": {
+      "000362": {
+        "call": "reuse"
+      }
+    },
+    "10.1038/s43588-021-00030-1": {
+      "000020": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2023.04.17.532851": {
+      "000021": {
+        "note": "This preprint was published in Nature Communications as doi: 10.1038/s41467-023-37844-8. Authors likely downloaded the Visual Coding Neuropixels dataset via the AllenSDK, but it is also available on DANDI as DANDI:000021.",
+        "call": "reuse"
+      }
+    },
+    "10.1101/2023.10.02.560574": {
+      "000020": {
+        "note": "This preprint was published in Nature Computational Science as doi: 10.1038/s43588-024-00683-8.",
+        "call": "reuse"
+      }
+    },
+    "10.1101/2025.06.30.662469": {
+      "000248": {
+        "note": "The latest version of this preprint, doi: 10.1101/2025.06.30.662469v2 no longer uses DANDI:000248. Instead, it uses DANDI:000021, DANDI:000713, and DANDI:000728, which I have not added. The key should really be 10.1101/2025.06.30.662469v1.",
+        "call": "reuse"
+      }
+    },
+    "10.1101/2025.10.17.682917": {
+      "000363": {
+        "call": "reuse"
+      }
+    },
+    "10.1126/science.adf0805": {
+      "000020": {
+        "call": "reuse"
+      }
+    },
+    "10.64898/2026.03.14.711812": {
+      "000473": {
+        "call": "reuse"
+      },
+      "001260": {
+        "note": "The paper says \"The data from the three example Neuropixels recordings is available for download in Neurodata Without Borders (NWB) format\non DANDI Archive: https://dandiarchive.org/dandiset/000473 and https://dandiarchive.org/dandiset/001260\" - However, the paper does not describe DANDI:001260 in the main text and instead says the three Neuropixels recordings are from DANDI:000473. Pierre Le Merre is involved in both datasets and this paper. The paper associated with DANDI:001260 says data are available from both these dandisets. It seems the two datasets are related and may even share data. Since the paper explicitly lists DANDI:001260 and this is not the paper associated with DANDI:001260, I will call it reuse.",
+        "call": "reuse"
+      }
+    },
+    "10.7554/elife.87169": {
+      "000021": {
+        "call": "reuse"
+      }
+    },
+    "10.7554/elife.90944": {
+      "000115": {
+        "call": "reuse"
+      }
+    },
+    "10.7554/elife.90944.3.sa1": {
+      "000115": {
+        "note": "Not a paper. This is a peer review of doi: 10.7554/elife.90944.3.",
         "call": "neither"
       }
     }
