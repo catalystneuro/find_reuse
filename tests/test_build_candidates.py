@@ -266,6 +266,22 @@ class TestDandiReason:
         assert 'source_quotes' not in row
 
 
+@pytest.fixture
+def paper_metadata_cache(tmp_path):
+    """What the corpus's DOIs resolve to, so that building never goes to doi.org."""
+    path = tmp_path / 'paper_metadata_cache.json'
+    path.write_text(json.dumps({
+        '10.1/described-by': {'title': 'What the DOI resolves to',
+                              'authors': ['Churchland', 'Cunningham', 'Kaufman'],
+                              'year': 2012},
+        '10.1/declared': {'title': 'The real paper describing 000714',
+                          'authors': ['Chowdhury', 'Glaser'], 'year': 2020},
+        '10.1/guessed': None,
+        '10.1/never-declared': None,
+    }))
+    return path
+
+
 def cited_row(doi: str, dandiset: str, fetched: str = '') -> dict:
     """A pair as attach_cited_papers reads it: the collapsed DOI and the fetched one."""
     return {'doi': doi, 'dandiset': dandiset, 'fetched_doi': fetched or doi}
@@ -299,6 +315,22 @@ class TestAttachCitedPapers:
         B.attach_cited_papers(rows, corpus)
         assert rows[0]['cited_doi'] == ''
         assert rows[0]['cited_title'] == ''
+
+    def test_drops_whitespace_a_depositor_pasted_around_the_doi(self, tmp_path):
+        path = tmp_path / 'all_dandiset_papers_refreshed.json'
+        path.write_text(json.dumps({'results': [{
+            'dandiset_id': '000128',
+            'paper_relations': [{'doi': '10.5281/zenodo.3854034\t',
+                                 'name': 'Nonhuman primate reaching',
+                                 'relation': 'dcite:IsDescribedBy'}],
+            'citing_papers': [{'doi': '10.1/citer',
+                               'cited_paper_doi': '10.5281/zenodo.3854034\t'}],
+        }]}))
+        rows = [cited_row('10.1/citer', '000128')]
+        B.attach_cited_papers(rows, path)
+        assert rows[0]['cited_doi'] == '10.5281/zenodo.3854034'
+        assert rows[0]['cited_title'] == 'Nonhuman primate reaching'
+        assert rows[0]['cited_source'] == 'dcite:IsDescribedBy'
 
     def test_says_a_paper_dandi_declares_came_from_the_relation_that_named_it(
             self, corpus):
@@ -443,64 +475,118 @@ class TestAttachSharedPapers:
         assert rows[0]['shared_paper'] is None
 
 
+class TestAttachPaperMetadata:
+    def test_titles_the_cited_paper_as_its_doi_resolves(self, paper_metadata_cache):
+        rows = [{'cited_doi': '10.1/described-by', 'cited_title': 'Publication',
+                 'shared_paper': None}]
+        B.attach_paper_metadata(rows, paper_metadata_cache)
+        assert rows[0]['cited_title'] == 'What the DOI resolves to'
+
+    def test_cites_the_cited_paper_by_author_and_year(self, paper_metadata_cache):
+        rows = [{'cited_doi': '10.1/described-by', 'cited_title': 'Publication',
+                 'shared_paper': None}]
+        B.attach_paper_metadata(rows, paper_metadata_cache)
+        assert rows[0]['cited_citation'] == 'Churchland et al., 2012'
+
+    def test_matches_a_cited_doi_whose_casing_differs_from_the_cache(
+            self, paper_metadata_cache):
+        rows = [{'cited_doi': '10.1/Described-By', 'cited_title': 'Publication',
+                 'shared_paper': None}]
+        B.attach_paper_metadata(rows, paper_metadata_cache)
+        assert rows[0]['cited_title'] == 'What the DOI resolves to'
+
+    def test_a_doi_no_registrar_knows_keeps_the_recorded_name(
+            self, paper_metadata_cache):
+        rows = [{'cited_doi': '10.1/guessed', 'cited_title': 'The paper a model picked',
+                 'shared_paper': None}]
+        B.attach_paper_metadata(rows, paper_metadata_cache)
+        assert (rows[0]['cited_title'], rows[0]['cited_citation']) == (
+            'The paper a model picked', '')
+
+    def test_a_pair_with_no_cited_paper_is_cited_by_nothing(
+            self, paper_metadata_cache):
+        rows = [{'cited_doi': '', 'cited_title': '', 'shared_paper': None}]
+        B.attach_paper_metadata(rows, paper_metadata_cache)
+        assert (rows[0]['cited_title'], rows[0]['cited_citation']) == ('', '')
+
+    def test_titles_and_cites_the_shared_paper(self, paper_metadata_cache):
+        rows = [{'cited_doi': '', 'cited_title': '',
+                 'shared_paper': {'doi': '10.1/declared',
+                                  'title': 'The paper describing 000714',
+                                  'dandisets': []}}]
+        B.attach_paper_metadata(rows, paper_metadata_cache)
+        assert rows[0]['shared_paper'] == {
+            'doi': '10.1/declared', 'title': 'The real paper describing 000714',
+            'citation': 'Chowdhury & Glaser, 2020', 'dandisets': []}
+
+
 class TestBuildCandidates:
     def test_an_indirect_pair_carries_the_cited_paper(
-            self, four_dataset_input, corpus, direct_results):
-        pairs = B.build_candidates([four_dataset_input], corpus, direct_results)
+            self, four_dataset_input, corpus, direct_results, paper_metadata_cache):
+        pairs = B.build_candidates([four_dataset_input], corpus, direct_results,
+                                    paper_metadata_cache)
         pair = next(p for p in pairs if p['dandiset'] == '000541')
         assert pair['pathway'] == 'indirect'
         assert pair['cited_doi'] == '10.1/described-by'
-        assert pair['cited_title'] == 'The paper the data came from'
+        assert pair['cited_title'] == 'What the DOI resolves to'
+        assert pair['cited_citation'] == 'Churchland et al., 2012'
 
     def test_a_direct_pair_carries_no_cited_paper(
-            self, both_pathway_input, corpus, direct_results):
-        pairs = B.build_candidates([both_pathway_input], corpus, direct_results)
+            self, both_pathway_input, corpus, direct_results, paper_metadata_cache):
+        pairs = B.build_candidates([both_pathway_input], corpus, direct_results,
+                                    paper_metadata_cache)
         pair = next(p for p in pairs if p['dandiset'] == '000714')
         assert pair['pathway'] == 'direct'
-        assert (pair['cited_doi'], pair['cited_title'], pair['cited_role'],
-                pair['cited_source']) == ('', '', '', '')
+        assert (pair['cited_doi'], pair['cited_title'], pair['cited_citation'],
+                pair['cited_role'], pair['cited_source']) == ('', '', '', '', '')
 
     def test_a_direct_pair_still_says_its_dataset_shares_its_paper(
-            self, both_pathway_input, corpus, direct_results):
-        pairs = B.build_candidates([both_pathway_input], corpus, direct_results)
+            self, both_pathway_input, corpus, direct_results, paper_metadata_cache):
+        pairs = B.build_candidates([both_pathway_input], corpus, direct_results,
+                                    paper_metadata_cache)
         pair = next(p for p in pairs if p['dandiset'] == '000714')
         assert (pair['pathway'], pair['cited_doi']) == ('direct', '')
         assert pair['shared_paper']['doi'] == '10.1/declared'
         assert [d['dandiset'] for d in pair['shared_paper']['dandisets']] == ['000971']
 
     def test_an_indirect_pair_says_how_its_dataset_came_to_name_that_paper(
-            self, four_dataset_input, corpus, direct_results):
-        pairs = B.build_candidates([four_dataset_input], corpus, direct_results)
+            self, four_dataset_input, corpus, direct_results, paper_metadata_cache):
+        pairs = B.build_candidates([four_dataset_input], corpus, direct_results,
+                                    paper_metadata_cache)
         origins = {p['dandiset']: p['cited_source'] for p in pairs}
         assert origins['000541'] == 'dcite:IsDescribedBy'
         assert origins['000970'] == 'llm_identified'
 
     def test_pairs_come_out_sorted_so_a_rerun_diffs_cleanly(
-            self, four_dataset_input, corpus, direct_results):
-        pairs = B.build_candidates([four_dataset_input], corpus, direct_results)
+            self, four_dataset_input, corpus, direct_results, paper_metadata_cache):
+        pairs = B.build_candidates([four_dataset_input], corpus, direct_results,
+                                    paper_metadata_cache)
         assert [(p['doi'], p['dandiset']) for p in pairs] == [
             ('10.1/citer', '000541'), ('10.1/citer', '000714'),
             ('10.1/citer', '000953'), ('10.1/citer', '000970'),
         ]
 
     def test_a_pair_is_named_by_its_paper_and_dataset_not_a_joined_key(
-            self, four_dataset_input, corpus, direct_results):
-        pairs = B.build_candidates([four_dataset_input], corpus, direct_results)
+            self, four_dataset_input, corpus, direct_results, paper_metadata_cache):
+        pairs = B.build_candidates([four_dataset_input], corpus, direct_results,
+                                    paper_metadata_cache)
         assert 'key' not in pairs[0]
 
     def test_no_bookkeeping_from_the_merge_survives_into_a_pair(
-            self, four_dataset_input, corpus, direct_results):
-        pairs = B.build_candidates([four_dataset_input], corpus, direct_results)
+            self, four_dataset_input, corpus, direct_results, paper_metadata_cache):
+        pairs = B.build_candidates([four_dataset_input], corpus, direct_results,
+                                    paper_metadata_cache)
         assert 'pathways' not in pairs[0]
         assert 'same_lab_values' not in pairs[0]
 
     def test_a_pair_carries_only_what_something_downstream_reads(
-            self, four_dataset_input, corpus, direct_results):
-        pairs = B.build_candidates([four_dataset_input], corpus, direct_results)
+            self, four_dataset_input, corpus, direct_results, paper_metadata_cache):
+        pairs = B.build_candidates([four_dataset_input], corpus, direct_results,
+                                    paper_metadata_cache)
         assert set(pairs[0]) == {
             'doi', 'fetched_doi', 'dandiset', 'pathway', 'title', 'dandiset_name',
-            'cited_doi', 'cited_title', 'cited_role', 'cited_source',
-            'reasoning', 'quotes',
+            'cited_doi', 'cited_title', 'cited_citation', 'cited_role',
+            'cited_source', 'reasoning', 'quotes',
             'same_lab', 'reused_neurophysiology', 'reused_modalities',
             'archives', 'reuse_types', 'dandi_reason', 'shared_paper',
         }
