@@ -169,6 +169,9 @@ CSS = PALETTE + """
          letter-spacing:-.015em;color:var(--ink);text-decoration:none;text-wrap:pretty}
   a.name:hover{color:var(--accent)}
   .party .absent{font-size:14px;color:var(--muted);font-style:italic}
+  .byline{font-size:14px;color:var(--ink);opacity:.82}
+  .shared-paper .byline{font-size:inherit;color:inherit;opacity:1}
+  .shared-paper .byline::before{content:'\\2014  '}
   .links{margin-top:auto;display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px}
   a.doi{font-family:var(--mono);font-size:11.5px;color:var(--accent);text-decoration:none;
         border-bottom:1px solid transparent;word-break:break-all}
@@ -179,6 +182,11 @@ CSS = PALETTE + """
             padding:2px 9px;border-radius:999px;background:var(--accent-soft);
             white-space:nowrap}
   a.rawtext:hover{text-decoration:underline}
+  button.filter{font:inherit;font-size:13px;font-weight:600;color:var(--accent);
+                padding:5px 13px;border-radius:999px;
+                border:1px solid color-mix(in srgb,var(--accent) 45%,transparent);
+                background:var(--surface);cursor:pointer;white-space:nowrap}
+  button.filter:hover{background:var(--accent);color:var(--surface)}
 
   .party.dataset{background:var(--accent-soft);
                  border-color:color-mix(in srgb,var(--accent) 24%,transparent)}
@@ -472,7 +480,8 @@ const ROW_BY_KEY = new Map(ROWS.map(r => [keyOf(r), r]));
 // Searching is done over a string built once rather than over the fields each
 // time: this runs on every keystroke across every pair.
 const searchTextOf = r => [r.doi, r.fetched_doi, r.title, r.dandiset,
-                           r.dandiset_name, r.cited_doi, r.cited_title]
+                           r.dandiset_name, r.cited_doi, r.cited_title,
+                           r.cited_citation]
                           .join(' ').toLowerCase();
 for (const r of ROWS) r.searchText = searchTextOf(r);
 
@@ -497,8 +506,8 @@ function enrol(doi, dandiset, name){
   const row = {doi, dandiset, dandiset_name: name || '', pathway: 'added',
                title: paper.title || '', fetched_doi: paper.fetched_doi || doi,
                has_text: Boolean(paper.has_text), reasoning: '', quotes: [],
-               cited_doi: '', cited_title: '', cited_role: '', cited_source: '',
-               shared_paper: null};
+               cited_doi: '', cited_title: '', cited_citation: '', cited_role: '',
+               cited_source: '', shared_paper: null};
   row.searchText = searchTextOf(row);
   ROWS.push(row);
   ROWS.sort(byPair);
@@ -566,6 +575,7 @@ function sharedBlock(r){
       <a class="doi" href="https://doi.org/${encodeURI(shared.doi)}"
          target="_blank" rel="noopener">${esc(shared.doi)}</a>
       ${esc(shared.title)}
+      ${shared.citation ? `<span class="byline">${esc(shared.citation)}</span>` : ''}
     </p>
     <ul class="siblings">${siblings}</ul>`;
 }
@@ -664,15 +674,32 @@ function textLink(doi, dandiset){
              rel="noopener">Raw Text</a>`;
 }
 
-function paperPanel(role, doi, title, text, chip){
+// Narrows the list to the pairs that share this paper or dataset, by searching
+// for its identifier, so it reads and clears like any other search.
+const filterButton = (id, what) =>
+  `<button class="filter" data-filter="${esc(id)}"
+     title="Show only the pairs matching ${esc(id)}">Show only this ${what}</button>`;
+
+function filterTo(id){
+  controls.search = id;
+  document.getElementById('search').value = id;
+  index = 0;
+  render();
+}
+
+// The byline is who wrote the paper and when, which is how a citing paper's text
+// refers to it. `filter` is what the panel's filter button searches for.
+function paperPanel(role, doi, title, byline, filter, text, chip){
   const body = doi
     ? `<a class="name" href="https://doi.org/${encodeURI(doi)}"
           target="_blank" rel="noopener">${esc(title || doi)}</a>
+       ${byline ? `<span class="byline">${esc(byline)}</span>` : ''}
        <div class="links">
          <a class="doi" href="https://doi.org/${encodeURI(doi)}"
             target="_blank" rel="noopener">${esc(doi)}</a>
          ${text || ''}
          ${chip || ''}
+         ${filterButton(filter, 'paper')}
        </div>`
     : `<span class="absent">Not recorded for this pair.</span>`;
   return `<div class="party"><span class="role">${esc(role)}</span>${body}</div>`;
@@ -685,7 +712,7 @@ function datasetPanel(r){
       <a class="dsid" href="https://dandiarchive.org/dandiset/${esc(r.dandiset)}"
          target="_blank" rel="noopener">${esc(r.dandiset)}</a>
       <span class="dsname">${esc(r.dandiset_name)}</span>
-      ${chip ? `<div class="links">${chip}</div>` : ''}
+      <div class="links">${chip}${filterButton(r.dandiset, 'dataset')}</div>
     </div>`;
 }
 
@@ -816,11 +843,11 @@ function renderWorksheet(rows){
 
   document.getElementById('card').innerHTML = `
     <div class="subject ${r.pathway}">
-      ${paperPanel('Citing Paper', r.fetched_doi, r.title,
+      ${paperPanel('Citing Paper', r.fetched_doi, r.title, '', r.doi,
                    r.has_text ? textLink(r.fetched_doi, r.dandiset) : '')}
       ${r.pathway === 'indirect'
-        ? paperPanel(citedRole, r.cited_doi, r.cited_title,
-                     r.cited_has_text ? textLink(r.cited_doi, '') : '',
+        ? paperPanel(citedRole, r.cited_doi, r.cited_title, r.cited_citation,
+                     r.cited_doi, r.cited_has_text ? textLink(r.cited_doi, '') : '',
                      originChip(r.cited_source)) : ''}
       ${datasetPanel(r)}
     </div>
@@ -1151,6 +1178,11 @@ function undo(){
 document.getElementById('card').addEventListener('click', e => {
   if (e.target.id === 'addcited'){
     openPaper(visible()[index].doi);
+    return;
+  }
+  const filter = e.target.closest('button[data-filter]');
+  if (filter){
+    filterTo(filter.dataset.filter);
     return;
   }
   // A heading is the handle its group is folded by; a row is the way into its

@@ -31,6 +31,7 @@ from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
 
+from src.review import paper_metadata
 from src.shared.run_fulltext_classification import primary_paper_index
 
 # What it takes for a passage to be talking about DANDI at all.
@@ -40,6 +41,7 @@ REPO = Path(__file__).resolve().parents[2]
 CANDIDATES_FILE = REPO / 'reuse_confirmation/reuse_candidates.json'
 RESULTS_FILE = REPO / 'output/all_dandiset_papers_refreshed.json'
 DIRECT_RESULTS_FILE = REPO / 'output/results_dandi_openalex.json'
+PAPER_METADATA_CACHE = REPO / '.paper_metadata_cache.json'
 
 
 # Version suffixes. '/vN' is unambiguous. '.N' is not: 10.1002/brx2.47 and
@@ -94,7 +96,10 @@ def corpus_papers(results_path: Path) -> tuple[dict, dict, dict, dict]:
     paper_titles, dandiset_names, declared, origins = {}, {}, {}, {}
     for ds in data.get('results', []):
         dandiset_names[ds['dandiset_id']] = ds.get('dandiset_name') or ''
-        relations = [r for r in ds.get('paper_relations') or [] if r.get('doi')]
+        # Depositors paste DOIs with stray whitespace, which doi.org does not
+        # resolve.
+        relations = [{**r, 'doi': r['doi'].strip()}
+                     for r in ds.get('paper_relations') or [] if r.get('doi')]
         for relation in relations:
             if relation.get('name'):
                 paper_titles.setdefault(relation['doi'], relation['name'])
@@ -264,7 +269,7 @@ def attach_cited_papers(rows: list[dict], results_path: Path) -> None:
     for row in rows:
         cited = primaries.get((row['fetched_doi'].lower(), row['dandiset']), '')
         row['cited_role'] = 'Cited' if cited else 'Dataset paper'
-        cited = cited or declared.get(row['dandiset'], '')
+        cited = (cited or declared.get(row['dandiset'], '')).strip()
         row['cited_doi'] = cited
         row['cited_title'] = paper_titles.get(cited, '')
         row['cited_source'] = (
@@ -303,8 +308,39 @@ def attach_shared_papers(rows: list[dict], results_path: Path) -> None:
         } if siblings else None
 
 
+def attach_paper_metadata(rows: list[dict], cache_path: Path) -> None:
+    """
+    Title the cited and shared papers as their DOIs resolve, and say who wrote
+    them and when.
+
+    The name a dataset records for its paper is whatever the depositor typed,
+    or for a model's pick whatever the model called it, and neither has to be
+    the title of the paper the DOI points at. A citing paper refers to the
+    cited one by author and year, so `cited_citation` is what a reviewer
+    searches its text for. A DOI no registrar knows keeps the recorded name and
+    goes without a citation.
+    """
+    shared = [row['shared_paper'] for row in rows if row['shared_paper']]
+    papers = paper_metadata.resolve(
+        {row['cited_doi'] for row in rows if row['cited_doi']}
+        | {paper['doi'] for paper in shared}, cache_path)
+
+    def describe(doi: str, title: str) -> tuple[str, str]:
+        record = papers.get(doi.lower()) if doi else None
+        if not record:
+            return title, ''
+        return record['title'] or title, paper_metadata.citation(record)
+
+    for row in rows:
+        row['cited_title'], row['cited_citation'] = describe(row['cited_doi'],
+                                                             row['cited_title'])
+    for paper in shared:
+        paper['title'], paper['citation'] = describe(paper['doi'], paper['title'])
+
+
 def build_candidates(inputs: list[str], results_path: Path,
-                     direct_results_path: Path) -> list[dict]:
+                     direct_results_path: Path,
+                     paper_metadata_cache: Path) -> list[dict]:
     """Every REUSE pair, carrying everything review and assignment need."""
     rows = [finalize(row) for row in merge_by_pair(inputs).values()]
     rows.sort(key=lambda r: (r['doi'], r['dandiset']))
@@ -320,6 +356,7 @@ def build_candidates(inputs: list[str], results_path: Path,
         if row['pathway'] == 'direct':
             row['cited_doi'] = row['cited_title'] = ''
             row['cited_role'] = row['cited_source'] = ''
+    attach_paper_metadata(rows, paper_metadata_cache)
     return rows
 
 
@@ -399,7 +436,7 @@ def main():
     args = parser.parse_args()
 
     pairs = build_candidates(args.input, Path(args.results_file),
-                             Path(args.direct_results_file))
+                             Path(args.direct_results_file), PAPER_METADATA_CACHE)
     changed = write_candidates(pairs, args.input, CANDIDATES_FILE)
 
     indirect = sum(1 for p in pairs if p['pathway'] == 'indirect')
