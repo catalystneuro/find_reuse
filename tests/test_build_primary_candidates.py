@@ -58,7 +58,8 @@ def papers():
 
 @pytest.fixture
 def dandisets():
-    return {'001414': {'description': 'Blood flow in mice.', 'species': ['House mouse'],
+    return {'001414': {'description': 'Data for "Astrocytic cAMP and blood flow".',
+                       'species': ['House mouse'],
                        'approaches': [], 'techniques': ['two-photon microscopy']}}
 
 
@@ -99,6 +100,23 @@ class TestSameTitle:
             "Integrated multimodal cell atlas of Alzheimer's disease")
 
 
+class TestTitleInDandiset:
+    def test_a_title_quoted_in_the_description_ignoring_case_and_punctuation(self):
+        assert B.title_in_dandiset(
+            'Astrocytic cAMP: blood flow', 'Blood flow',
+            'Data for "astrocytic cAMP -- blood flow" (Doe, 2025).')
+
+    def test_a_title_quoted_in_the_dandiset_title(self):
+        assert B.title_in_dandiset('Astrocytic cAMP and blood flow',
+                                   'Astrocytic cAMP and blood flow', '')
+
+    def test_part_of_a_word_does_not_count(self):
+        assert not B.title_in_dandiset('Blood flow', 'Bloodflows', 'Bloodflow data')
+
+    def test_no_title_is_never_quoted(self):
+        assert not B.title_in_dandiset('', 'Blood flow', 'Blood flow in mice.')
+
+
 class TestBuildCards:
     @pytest.fixture
     def card(self, corpus_records, direct_classifications, papers, dandisets):
@@ -113,8 +131,8 @@ class TestBuildCards:
             'species', 'techniques')} == {
             'dandiset': '001414', 'dandiset_name': 'Cerebral blood flow and cAMP',
             'contact_person': 'Doe, Jane', 'created': '2025-04-01',
-            'description': 'Blood flow in mice.', 'species': ['House mouse'],
-            'techniques': ['two-photon microscopy']}
+            'description': 'Data for "Astrocytic cAMP and blood flow".',
+            'species': ['House mouse'], 'techniques': ['two-photon microscopy']}
 
     def test_puts_the_models_pick_first_then_the_other_candidates(self, card):
         assert [c['doi'] for c in card['candidates']] == [
@@ -138,6 +156,10 @@ class TestBuildCards:
         found = card['candidates'][2]
 
         assert (found['title'], found['citation'], found['resolves']) == ('', '', False)
+
+    def test_says_which_titles_the_dandiset_quotes(self, card):
+        assert [c['title_in_dandiset'] for c in card['candidates']] == [
+            False, True, False]
 
     def test_cites_a_resolved_paper(self, card):
         assert card['candidates'][1]['citation'] == 'Doe & Roe, 2025'

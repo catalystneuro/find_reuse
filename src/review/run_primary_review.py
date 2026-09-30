@@ -115,6 +115,7 @@ CSS = PALETTE + """
         background:var(--accent-soft);color:var(--accent)}
   .chip.llm_identified{background:var(--warn-soft);color:var(--warn)}
   .chip.mismatch{background:var(--bad);color:var(--surface)}
+  .chip.named{background:var(--ok-soft);color:var(--ok)}
   .chip.added{background:var(--primary-soft);color:var(--primary)}
   blockquote{margin:6px 0;padding:4px 10px;border-left:3px solid var(--line-strong);
              font-family:var(--serif)}
@@ -191,10 +192,10 @@ let index = 0;
 const undoStack = [];
 
 // What the session is looking at. `filter` is whether a dandiset is answered,
-// or which call one of its papers carries; `direct`, `title` and `added` narrow
-// by what a card holds, either way round.
-const controls = {filter: 'todo', direct: 'any', title: 'any', added: 'any',
-                  search: ''};
+// or which call one of its papers carries; `direct`, `title`, `named` and
+// `added` narrow by what a card holds, either way round.
+const controls = {filter: 'todo', direct: 'any', title: 'any', named: 'any',
+                  added: 'any', search: ''};
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g,
   c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -211,6 +212,7 @@ const hasDirect = card => card.candidates.some(c =>
   c.sources.some(s => s.kind === 'direct_primary'));
 const mismatched = card => card.candidates.some(c =>
   'claimed_name' in c && !c.name_matches);
+const named = card => card.candidates.some(c => c.title_in_dandiset);
 const cardByDandiset = id => CARDS.find(card => card.dandiset === id);
 
 function setSaveState(text, cls){
@@ -262,6 +264,7 @@ const narrowedBy = (setting, holds) =>
 const inScope = () => CARDS.filter(card =>
   narrowedBy(controls.direct, hasDirect(card)) &&
   narrowedBy(controls.title, mismatched(card)) &&
+  narrowedBy(controls.named, named(card)) &&
   narrowedBy(controls.added, added(card).length > 0) &&
   matchesSearch(card));
 
@@ -370,6 +373,9 @@ function candidateBlock(card, c){
          rel="noopener">${esc(c.doi)}</a>
       ${c.has_text ? rawText(c.doi, card.dandiset) : ''}
     </div>
+    ${c.title_in_dandiset ? `<div class="source"><span class="chip named"
+       >title in dandiset</span> This title appears word for word in the
+       dandiset's title or description.</div>` : ''}
     ${mismatchNote(c)}
     ${c.sources.map(source).join('')}
     ${callButtons(card, c.doi)}
@@ -639,7 +645,8 @@ def embed(value) -> str:
 def narrow_counts(cards: list[dict]) -> dict[str, int]:
     """
     How many cards each narrowing filter keeps: those with a direct-pipeline
-    PRIMARY paper, and those whose model pick resolves to some other title.
+    PRIMARY paper, those whose model pick resolves to some other title, and
+    those with a paper whose title the dandiset quotes.
     """
     return {
         'direct': sum(any(source['kind'] == 'direct_primary'
@@ -647,6 +654,8 @@ def narrow_counts(cards: list[dict]) -> dict[str, int]:
                           for source in candidate['sources']) for card in cards),
         'mismatch': sum(any('claimed_name' in candidate and not candidate['name_matches']
                             for candidate in card['candidates']) for card in cards),
+        'named': sum(any(candidate['title_in_dandiset']
+                         for candidate in card['candidates']) for card in cards),
     }
 
 
@@ -672,6 +681,9 @@ def build(cards: list[dict]) -> str:
     title = choices('title', 'Title mismatch', [
         ('any', 'Any'), ('with', f'With ({counts["mismatch"]})'),
         ('without', f'Without ({total - counts["mismatch"]})')])
+    named = choices('named', 'Title in dandiset', [
+        ('any', 'Any'), ('with', f'With ({counts["named"]})'),
+        ('without', f'Without ({total - counts["named"]})')])
     added = choices('added', 'Added paper', [
         ('any', 'Any'), ('with', 'With'), ('without', 'Without')])
     return f"""<!doctype html>
@@ -695,7 +707,7 @@ def build(cards: list[dict]) -> str:
   <button class="btn" id="save">Save</button>
   <span class="savestate" id="savestate"></span>
 </div>
-<div class="toolbar controls">{calls}{direct}{title}{added}
+<div class="toolbar controls">{calls}{direct}{title}{named}{added}
   <input class="search" id="search" type="search" autocomplete="off"
          placeholder="Search &mdash; commas for any">
 </div>

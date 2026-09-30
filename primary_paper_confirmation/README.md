@@ -35,6 +35,10 @@ and every candidate paper. For each paper:
 - `direct_primary`: the direct pathway classified the paper PRIMARY, with the
   passages naming the dandiset as the authors' own deposit
 
+Every paper also carries `title_in_dandiset`: whether the title its DOI resolves
+to appears word for word, case and punctuation aside, in the dandiset's title or
+description.
+
 ## `confirmed_primary_papers.json`
 
 ```json

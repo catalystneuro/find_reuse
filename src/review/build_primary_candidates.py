@@ -11,6 +11,9 @@ with the case for each:
   * papers the direct pathway classified PRIMARY, with the passages that name
     the dandiset as the authors' own deposit.
 
+Each paper also says whether its title appears in the dandiset's own title or
+description, which all but settles that it describes the data.
+
 A dandiset can have several primary papers, so the card asks about each paper
 rather than for one answer.
 
@@ -95,6 +98,12 @@ def same_title(claimed: str, title: str) -> bool:
     return SequenceMatcher(None, squash(claimed), squash(title)).ratio() >= SAME_TITLE
 
 
+def title_in_dandiset(title: str, dandiset_name: str, description: str) -> bool:
+    """Whether a paper's title appears word for word in the dandiset's title or description."""
+    words = squash(title)
+    return bool(words) and f' {words} ' in f' {squash(dandiset_name + " " + description)} '
+
+
 def build_cards(records: list[dict], direct: dict[str, list[dict]],
                 dandisets: dict[str, dict],
                 papers: dict[str, dict | None]) -> list[dict]:
@@ -140,6 +149,10 @@ def build_cards(records: list[dict], direct: dict[str, list[dict]],
                            for quote in classification['evidence_quotes']],
             })
 
+        for paper in candidates.values():
+            paper['title_in_dandiset'] = title_in_dandiset(
+                paper['title'], record['dandiset_name'],
+                dandisets[dandiset]['description'])
         cards.append({
             'dandiset': dandiset,
             'dandiset_name': record['dandiset_name'],

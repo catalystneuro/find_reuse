@@ -17,7 +17,7 @@ CARD = {
     'description': 'Blood flow.', 'species': [], 'approaches': [], 'techniques': [],
     'candidates': [{
         'doi': '10.1/own-deposit', 'title': 'Astrocytic cAMP', 'citation': 'Doe, 2025',
-        'resolves': True,
+        'resolves': True, 'title_in_dandiset': True,
         'sources': [{'kind': 'direct_primary', 'confidence': 9, 'reasoning': 'Theirs.',
                      'quotes': ['available at DANDI 001414']}]}],
 }
@@ -122,16 +122,16 @@ class TestBuild:
 
 
 class TestNarrowCounts:
-    def test_counts_cards_with_a_direct_primary_and_with_a_mismatched_pick(self):
+    def test_counts_cards_by_direct_primary_mismatched_pick_and_quoted_title(self):
         mismatched = {**CARD, 'candidates': [{
             'doi': '10.1/pick', 'claimed_name': 'Another paper', 'name_matches': False,
-            'sources': [{'kind': 'llm_identified'}]}]}
+            'title_in_dandiset': False, 'sources': [{'kind': 'llm_identified'}]}]}
         matched = {**CARD, 'candidates': [{
             'doi': '10.1/pick', 'claimed_name': 'Same paper', 'name_matches': True,
-            'sources': [{'kind': 'llm_identified'}]}]}
+            'title_in_dandiset': False, 'sources': [{'kind': 'llm_identified'}]}]}
 
         assert R.narrow_counts([CARD, mismatched, matched]) == {
-            'direct': 1, 'mismatch': 1}
+            'direct': 1, 'mismatch': 1, 'named': 1}
 
 
 class TestAttachPaperTexts:

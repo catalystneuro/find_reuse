@@ -37,7 +37,8 @@
             }
           ],
           "claimed_name": "Integrated Morphoelectric and Transcriptomic Classification of Cortical GABAergic Cells",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -73,7 +74,8 @@
             }
           ],
           "claimed_name": "MEArec: a fast and customizable simulator of extracellular recordings",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -111,7 +113,8 @@
             }
           ],
           "claimed_name": "A large-scale, standardized physiological survey reveals functional organization of the mouse visual cortex",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -150,7 +153,8 @@
             }
           ],
           "claimed_name": "Internally organized mechanisms of the head direction sense",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": true
         }
       ]
     },
@@ -186,7 +190,8 @@
             }
           ],
           "claimed_name": "Attractor dynamics gate cortical information flow during decision-making",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": true
         }
       ]
     },
@@ -214,7 +219,8 @@
             }
           ],
           "claimed_name": "Integrated platform for multiscale molecular imaging and phenotyping of the human brain",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -242,7 +248,8 @@
             }
           ],
           "claimed_name": "Integrated Morphoelectric and Transcriptomic Classification of Cortical GABAergic Cells",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -270,7 +277,8 @@
             }
           ],
           "claimed_name": "Integrated control of anatomical and molecular diversity in the human brain",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         },
         {
           "doi": "10.1126/science.adh9979",
@@ -286,7 +294,8 @@
                 "The human brain microscopy image data from the SHIELD and mELAST tissues acquired using MegaSPIM for the BICCN (RRID:SCR_015820) by J.P. and colleagues can be accessed in the DANDI Archive (RRID:SCR_017571) under accession number DANDI:000108. Data may be accessed at https://dandiarchive.org/dandiset/000108 (84)."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         },
         {
           "doi": "10.3389/fnins.2022.871228",
@@ -303,7 +312,8 @@
                 "M-HB, GM, FC, and JC-A contributed datasets."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         }
       ]
     },
@@ -336,7 +346,8 @@
             }
           ],
           "claimed_name": "A spinal-to-nucleus-accumbens pathway drives instinctive fear conditioning",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -364,7 +375,8 @@
             }
           ],
           "claimed_name": "Analysis methods for recording functional near-infrared spectroscopy (fNIRS) data",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -398,7 +410,8 @@
             }
           ],
           "claimed_name": "A spinal-cortex-spinal circuit for the maintenance of persistent locomotive activity",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -435,7 +448,8 @@
             }
           ],
           "claimed_name": "A brain-wide map of neural activity during complex behaviour",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -470,7 +484,8 @@
             }
           ],
           "claimed_name": "The Sensory Representation of Somatic Self in the Mouse Spatiotemporal Odor Map",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         },
         {
           "doi": "10.1371/journal.pbio.3002206",
@@ -487,7 +502,8 @@
                 "The mouse and fly datasets used in this paper are available at the following sites: Mouse: https://doi.org/10.48324/dandi.000167/0.220928.1306 The repository contains the main dataset, which is the one used in all the main figures, and a supplementary set comprising 4 datasets, which were used in reporting statistics in Table E in S1 Text ."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         },
         {
           "doi": "10.1523/jneurosci.0381-24.2024",
@@ -503,7 +519,8 @@
                 "We discuss our experience contributing a demonstrative calcium imaging dataset ( Daste, 2022 ) on DANDI in “Considerations for sharing on DANDI.”"
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         }
       ]
     },
@@ -537,7 +554,8 @@
             }
           ],
           "claimed_name": "Transcranial ultrasound neuromodulation induces neuronal correlation change in the rat somatosensory cortex",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": true
         }
       ]
     },
@@ -573,7 +591,8 @@
             }
           ],
           "claimed_name": "A large-scale virtual reality image-based foraging task for mice",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -603,7 +622,8 @@
             }
           ],
           "claimed_name": "Sniff-synchronized, gradient-guided olfactory search by freely moving mice",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": true
         }
       ]
     },
@@ -642,7 +662,8 @@
             }
           ],
           "claimed_name": "Inferring monosynaptic connections from paired spine calcium imaging and large-scale recording of extracellular spiking",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         },
         {
           "doi": "10.1088/1741-2552/ac8765",
@@ -659,7 +680,8 @@
                 "The extracellular recordings, imaging data, and curated spike sorting outputs have been converted to Neurodata Without Borders (NWB) [40, 14] using the SpikeInterface [23], RoiExtractors [41], and nwb-conversion-tools [42] software frameworks. The collection of NWB files is available on DANDI archive at: https://gui.dandiarchive.org/#/dandiset/000223."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         }
       ]
     },
@@ -694,7 +716,8 @@
             }
           ],
           "claimed_name": "Signature morphometric and physiological properties of individual neuron types in the human neocortex",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -742,7 +765,8 @@
             }
           ],
           "claimed_name": "All-viral tracing of monosynaptic inputs to single birthdate-defined neurons in the intact brain",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": true
         }
       ]
     },
@@ -791,7 +815,8 @@
             }
           ],
           "claimed_name": "Rule-based modulation of a sensorimotor transformation across cortical areas",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": true
         },
         {
           "doi": "10.7554/elife.92620.3.sa1",
@@ -808,7 +833,8 @@
                 "Data in the Neurodata Without Borders (NWB) format is available at DANDI archive (https://doi.org/​10.48324/​dandi.​000232/​0.​240510.​2038)."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         }
       ]
     },
@@ -846,7 +872,8 @@
             }
           ],
           "claimed_name": "A Brain-wide Circuit Model of Heat-Evoked Swimming Behavior in Larval Zebrafish",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": false
         },
         {
           "doi": "10.1101/2022.08.31.506108",
@@ -863,7 +890,8 @@
                 "We imaged a total of 750 planes across 25 larval zebrafish that expressed the nuclear calcium indicator H2B:GCaMP6s39 in all neurons and the excitatory neuron marker vglut2a-mCherry40 in all glutamatergic neurons."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         },
         {
           "doi": "10.7554/elife.83289",
@@ -880,7 +908,8 @@
                 "Raw experimental data has been deposited to DANDI: https://dandiarchive.org/dandiset/000235/0.230316.1600 ; https://dandiarchive.org/dandiset/000236/0.230316.2031 ; https://dandiarchive.org/dandiset/000237/0.230316.1655 ; https://dandiarchive.org/dandiset/000238/0.230316.1519 ."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         }
       ]
     },
@@ -915,7 +944,8 @@
             }
           ],
           "claimed_name": "A mesoscale connectome of the mouse isocortex",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         },
         {
           "doi": "10.1016/j.neuroimage.2022.119735",
@@ -932,7 +962,8 @@
                 "Here we contribute to changing the status quo by making our dataset freely available through the DANDI Archive ( https://dandiarchive.org/ ) – a data sharing platform designed to accommodate neurophysiology, electrophysiology, opto-physiology and behavioral time-series data."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         }
       ]
     },
@@ -966,7 +997,8 @@
             }
           ],
           "claimed_name": "A spinal organoid-like assembly of spinal cord neurons for motor control",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -1002,7 +1034,8 @@
             }
           ],
           "claimed_name": "CaMPARI3: an improved integrator for calcium imaging with high contrast and sensitivity",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -1038,7 +1071,8 @@
             }
           ],
           "claimed_name": "Signature morphoelectric properties of diverse GABAergic interneurons in the human neocortex",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -1073,7 +1107,8 @@
             }
           ],
           "claimed_name": "A Comparison of Electrophysiological Properties of Mouse and Human Layer 5 Cortical Pyramidal Neurons",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         },
         {
           "doi": "10.1093/gigascience/giac108",
@@ -1090,7 +1125,8 @@
                 "These datasets are made available in the Neurodata Without Borders (NWB) ( RRID:SCR_015242 ) electrophysiology data format via the Distributed Archives for Neurophysiology Data Integration (DANDI) data archive."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         }
       ]
     },
@@ -1125,7 +1161,8 @@
             }
           ],
           "claimed_name": "Electrophysiological and transcriptomic features of human cortical cell types in the aging brain",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         },
         {
           "doi": "10.1093/gigascience/giac108",
@@ -1142,7 +1179,8 @@
                 "These datasets are made available in the Neurodata Without Borders (NWB) ( RRID:SCR_015242 ) electrophysiology data format via the Distributed Archives for Neurophysiology Data Integration (DANDI) data archive."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         }
       ]
     },
@@ -1177,7 +1215,8 @@
             }
           ],
           "claimed_name": "Excitatory and inhibitory neural dynamics jointly tune motion detection",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -1205,7 +1244,8 @@
             }
           ],
           "claimed_name": "The temporal pattern of stimulation influences dopamine release and single-unit activity in the nucleus accumbens",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -1240,7 +1280,8 @@
             }
           ],
           "claimed_name": "Integrated morphoelectric and transcriptomic classification of cortical GABAergic cells",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -1276,7 +1317,8 @@
             }
           ],
           "claimed_name": "A Large-Scale Survey of Multi-layer Tuning Properties in Mouse and Macaque Visual Cortex Using Three-Photon Microscopy",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -1316,7 +1358,8 @@
             }
           ],
           "claimed_name": "Mesolimbic dopamine release conveys causal associations",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": true
         }
       ]
     },
@@ -1355,7 +1398,8 @@
             }
           ],
           "claimed_name": "Functionalized GCaMP calcium indicators for faster and more sensitive imaging",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -1390,7 +1434,8 @@
             }
           ],
           "claimed_name": "Characterization of the electrochemical impedance of iridium oxide and ruthenium oxide microelectrodes",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -1425,7 +1470,8 @@
             }
           ],
           "claimed_name": "Guide to the construction and use of an adaptive optics two-photon microscope with direct wavefront sensing",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -1460,7 +1506,8 @@
             }
           ],
           "claimed_name": "A Discrete Sensory Component Can Drive Rapid Locomotion Roll-Off during Zebrafish Phototaxis",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         },
         {
           "doi": "10.1371/journal.pcbi.1013134",
@@ -1476,7 +1523,8 @@
                 "Raw experimental data has been deposited to DANDI in NWB format: Plaid Experiments https://doi.org/10.48324/dandi.000888/0.241014.2127 . Replay Experiments https://doi.org/10.48324/dandi.000889/0.241014.2127 . Plaid hyperparameter set https://doi.org/10.48324/dandi.000485/0.241014.2127 . Replay hyperparameter set https://doi.org/10.48324/dandi.000486/0.241014.2127 ."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         }
       ]
     },
@@ -1511,7 +1559,8 @@
             }
           ],
           "claimed_name": "A Brain-wide Circuit Model of Heat-Evoked Swimming Behavior in Larval Zebrafish",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         },
         {
           "doi": "10.1371/journal.pcbi.1013134",
@@ -1528,7 +1577,8 @@
                 "The analysis code was written while transitioning to using NWB for behavioral data. The code therefore does not load the NWB files deposited at DANDI but instead loads the raw experimental data files created by our setup."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         }
       ]
     },
@@ -1563,7 +1613,8 @@
             }
           ],
           "claimed_name": "A change in behavioral state switches the pattern of motor output that underlies rhythmic head and orofacial movements",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -1597,7 +1648,8 @@
             }
           ],
           "claimed_name": "NeuroPAL: A Multicolor Atlas for Whole-Brain Neuronal Identification in C. elegans",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": true
         },
         {
           "doi": "10.1101/2024.04.28.591397",
@@ -1614,7 +1666,8 @@
                 "Datasets from various labs were converted to the NWB standardized file format using the ndx-multichannel-volume extension presented in this work. These files were then uploaded to the DANDI archive where they are now publicly accessible for data streaming, download, or online visualization."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         }
       ]
     },
@@ -1649,7 +1702,8 @@
             }
           ],
           "claimed_name": "Human brain mapping with multithousand-channel PtNRGrids resolves spatiotemporal dynamics",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": true
         }
       ]
     },
@@ -1685,7 +1739,8 @@
             }
           ],
           "claimed_name": "Comparative transcriptomics reveals human-specific cortical features",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -1729,7 +1784,8 @@
             }
           ],
           "claimed_name": "Activity map of a cortico-cerebellar loop underlying motor planning",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": true
         }
       ]
     },
@@ -1765,7 +1821,8 @@
             }
           ],
           "claimed_name": "A hierarchical predictive code for natural movies in the mouse visual cortex",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -1813,7 +1870,8 @@
             }
           ],
           "claimed_name": "Working Memory of Multi-Object Scenes in Primate Frontal Cortex",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -1858,7 +1916,8 @@
             }
           ],
           "claimed_name": "A large-scale neural dataset from the macaque ventral visual pathway during free viewing",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -1904,7 +1963,8 @@
             }
           ],
           "claimed_name": "Neurofeedback training can modulate task-relevant memory replay rate in rats",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": true
         },
         {
           "doi": "10.7554/elife.90944.3.sa1",
@@ -1921,7 +1981,8 @@
                 "All raw neurophysiology and behavioral data used for this study are publicly available on the DANDI Archive (https://dandiarchive.org/dandiset/000115 and https://dandiarchive.org/dandiset/000629)."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         },
         {
           "doi": "10.7554/elife.90944.3",
@@ -1939,7 +2000,8 @@
                 "All raw neurophysiology and behavioral data used for this study are publicly available on the DANDI Archive ( https://dandiarchive.org/dandiset/000115 and https://dandiarchive.org/dandiset/000629 )."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": true
         }
       ]
     },
@@ -1975,7 +2037,8 @@
             }
           ],
           "claimed_name": "Comparative transcriptomics reveals human-specific cortical features",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -2005,7 +2068,8 @@
             }
           ],
           "claimed_name": "Frontal traumatic brain injury induces chronic, task-relevant changes in regional and inter-regional LFP oscillations during a probabilistic reversal learning task",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -2033,7 +2097,8 @@
             }
           ],
           "claimed_name": "Integrated platform for multiscale molecular imaging and phenotyping of the human brain",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -2070,7 +2135,8 @@
             }
           ],
           "claimed_name": "A hierarchy of visual and spatial representations across the mouse brain",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -2104,7 +2170,8 @@
             }
           ],
           "claimed_name": "Whole-brain calcium imaging with cell-type identification in semi-restrained C. elegans",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         },
         {
           "doi": "10.1016/j.crmeth.2024.100964",
@@ -2121,7 +2188,8 @@
                 "Datasets from various labs were converted to the NWB standardized file format using the ndx-multichannel-volume extension presented in this work. These files were then uploaded to the DANDI archive where they are now publicly accessible for data streaming, download, or online visualization."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         },
         {
           "doi": "10.1101/2024.04.28.591397",
@@ -2138,7 +2206,8 @@
                 "Data and associated metadata were uploaded to the DANDI archive [RRID:SCR_017571] using the Python command line tool (https://doi.org/10.5281/zenodo.3692138). The data were first converted into the NWB format (https://doi.org/10.1101/2021.03.13.435173) and organized into a BIDS-like (https://doi.org/10.1038/sdata.2016.44) structure."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         }
       ]
     },
@@ -2173,7 +2242,8 @@
             }
           ],
           "claimed_name": "A neural circuit for the suppression of thermotaxis by light",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         },
         {
           "doi": "10.1016/j.cub.2025.09.053",
@@ -2190,7 +2260,8 @@
                 "Constant temperature behavior 18 °C This study https://doi.org/10.48324/dandi.000698/0.250814.1912"
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         }
       ]
     },
@@ -2225,7 +2296,8 @@
             }
           ],
           "claimed_name": "A brain-wide circuit model of heat-evoked behavioral transformations in larval zebrafish",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         },
         {
           "doi": "10.1016/j.cub.2025.09.053",
@@ -2242,7 +2314,8 @@
                 "Each experiment consisted either of a gradient ranging from 18 °C to 26 °C (“cold regime”), a gradient ranging from 24 °C to 32 °C (“hot regime”) or a uniform temperature profile in which the temperature was set to a fixed value between 16 °C and 34 °C, probing every 2 °C for a total of 10 different uniform temperature conditions."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         }
       ]
     },
@@ -2277,7 +2350,8 @@
             }
           ],
           "claimed_name": "A modular effector system for the zebrafish brain",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         },
         {
           "doi": "10.1016/j.cub.2025.09.053",
@@ -2294,7 +2368,8 @@
                 "Each experiment consisted either of a gradient ranging from 18 °C to 26 °C (“cold regime”), a gradient ranging from 24 °C to 32 °C (“hot regime”) or a uniform temperature profile in which the temperature was set to a fixed value between 16 °C and 34 °C, probing every 2 °C for a total of 10 different uniform temperature conditions."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         }
       ]
     },
@@ -2329,7 +2404,8 @@
             }
           ],
           "claimed_name": "A Brain-wide Circuit Model of Heat-Evoked Swimming Behavior in Larval Zebrafish",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": false
         },
         {
           "doi": "10.1016/j.cub.2025.09.053",
@@ -2346,7 +2422,8 @@
                 "Constant temperature behavior 28 °C This study https://doi.org/10.48324/dandi.000703/0.250814.1914"
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         }
       ]
     },
@@ -2381,7 +2458,8 @@
             }
           ],
           "claimed_name": "A modular effector system for the zebrafish brain",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         },
         {
           "doi": "10.1016/j.cub.2025.09.053",
@@ -2398,7 +2476,8 @@
                 "For each experiment, a single larval zebrafish was introduced into each swim lane and images were acquired with custom written software (C# Microsoft, United States) and custom tracking algorithms were used to find the position and heading direction of the fish as previously described 24 over the course of a 30-minute experiment."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         }
       ]
     },
@@ -2433,7 +2512,8 @@
             }
           ],
           "claimed_name": "A Brain-wide Circuit Model of Heat-Evoked Swimming Behavior in Larval Zebrafish",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": false
         },
         {
           "doi": "10.1016/j.cub.2025.09.053",
@@ -2450,7 +2530,8 @@
                 "Each experiment consisted either of a gradient ranging from 18 °C to 26 °C (“cold regime”), a gradient ranging from 24 °C to 32 °C (“hot regime”) or a uniform temperature profile in which the temperature was set to a fixed value between 16 °C and 34 °C, probing every 2 °C for a total of 10 different uniform temperature conditions."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         }
       ]
     },
@@ -2485,7 +2566,8 @@
             }
           ],
           "claimed_name": "A Brain-wide Circuit Model of Heat-Evoked Swimming Behavior in Larval Zebrafish",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         },
         {
           "doi": "10.1016/j.cub.2025.09.053",
@@ -2502,7 +2584,8 @@
                 "All behavioral and neural data are publicly available and have been deposited at DANDI archive and Zenodo. All original code is publicly available at GitHub."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         }
       ]
     },
@@ -2537,7 +2620,8 @@
             }
           ],
           "claimed_name": "A neural circuit for the suppression of thermotaxis in zebrafish",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         },
         {
           "doi": "10.1016/j.cub.2025.09.053",
@@ -2553,7 +2637,8 @@
                 "All behavioral and neural data are publicly available and have been deposited at DANDI archive and Zenodo. All original code is publicly available at GitHub."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         }
       ]
     },
@@ -2588,7 +2673,8 @@
             }
           ],
           "claimed_name": "Laminar coding properties of visual object representations in the mouse neocortex across multiple contexts",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -2625,7 +2711,8 @@
             }
           ],
           "claimed_name": "Distributed cortical coding of visual stimuli and behavioral targets during a visual change-detection task",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -2659,7 +2746,8 @@
             }
           ],
           "claimed_name": "NeuroPAL: A Multicolor Atlas for Whole-Brain Neuronal Identification in C. elegans",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": true
         }
       ]
     },
@@ -2704,7 +2792,8 @@
             }
           ],
           "claimed_name": "Optimizing cloud-native data access for the Neurodata Without Borders ecosystem",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -2740,7 +2829,8 @@
             }
           ],
           "claimed_name": "Conserved and divergent gene expression and cell types in primate cortex",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -2776,7 +2866,8 @@
             }
           ],
           "claimed_name": "A multimodal taxonomy of cell types across the human cerebral cortex",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -2812,7 +2903,8 @@
             }
           ],
           "claimed_name": "Brain-wide representations of behavior spanning multiple timescales and states in C. elegans",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": true
         },
         {
           "doi": "10.1101/2024.04.28.591397",
@@ -2829,7 +2921,8 @@
                 "Datasets from various labs were converted to the NWB standardized file format using the ndx-multichannel-volume extension presented in this work. These files were then uploaded to the DANDI archive where they are now publicly accessible for data streaming, download, or online visualization."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         }
       ]
     },
@@ -2864,7 +2957,8 @@
             }
           ],
           "claimed_name": "A shared neural code for odor identity and intensity in the mouse olfactory bulb",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -2909,7 +3003,8 @@
             }
           ],
           "claimed_name": "An electroencephalogram microdisplay to visualize neuronal activity on the brain surface",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": true
         }
       ]
     },
@@ -2945,7 +3040,8 @@
             }
           ],
           "claimed_name": "A multimodal taxonomy of cell types across the human cerebral cortex",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -2981,7 +3077,8 @@
             }
           ],
           "claimed_name": "Hippocampal theta phase precession supports memory formation and retrieval of naturalistic experience in humans",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": true
         },
         {
           "doi": "10.1038/s41562-024-01983-9",
@@ -2999,7 +3096,8 @@
                 "The data that support the findings of this study are deposited at the DANDI Archive ( https://dandiarchive.org/dandiset/000940 )."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": true
         }
       ]
     },
@@ -3029,7 +3127,8 @@
             }
           ],
           "claimed_name": "High-performance brain-to-text communication via handwriting",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -3076,7 +3175,8 @@
             }
           ],
           "claimed_name": "Mapping model units to visual neurons reveals population code for social behavior",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -3120,7 +3220,8 @@
             }
           ],
           "claimed_name": "Ultra-high density electrodes improve detection, yield, and cell type specificity of brain recordings",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         },
         {
           "doi": "10.1016/j.neuron.2025.08.030",
@@ -3137,7 +3238,8 @@
                 "To make recordings with imposed probe motion in head-fixed mice (n = 2 mice, n = 6 sessions), we automated the probe motion through manipulators (Sensapex Inc., uMP-4) using the Sensapex API via Matlab."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         }
       ]
     },
@@ -3165,7 +3267,8 @@
             }
           ],
           "claimed_name": "Engineering luminopsins with improved coupling efficiencies",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": true
         }
       ]
     },
@@ -3195,7 +3298,8 @@
             }
           ],
           "claimed_name": "Long-wavelength traveling waves of vasomotion modulate the perfusion of cortex",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         },
         {
           "doi": "10.1016/j.neuron.2024.04.034",
@@ -3212,7 +3316,8 @@
                 "These data sets made use of wild type mice (47 trials in 4 mice)."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": true
         }
       ]
     },
@@ -3252,7 +3357,8 @@
             }
           ],
           "claimed_name": "Prefrontal-Hippocampal Reactivation during Learning Is Required for Memory Consolidation",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         },
         {
           "doi": "10.1523/eneuro.0336-24.2025",
@@ -3269,7 +3375,8 @@
                 "The data supporting the findings of this study are available in the Dandi Archive under the accession number DANDI ID#: 000978. The dataset includes all relevant recordings and metadata from the experiments described in this paper."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         }
       ]
     },
@@ -3299,7 +3406,8 @@
             }
           ],
           "claimed_name": "Characterization of neuron action potential triggering using sine-wave electrostimulation at varying frequencies",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -3334,7 +3442,8 @@
             }
           ],
           "claimed_name": "Causal evidence of a line attractor encoding an affective state",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": true
         }
       ]
     },
@@ -3369,7 +3478,8 @@
             }
           ],
           "claimed_name": "Progressive alterations in electrophysiological and epileptic network properties during the development of temporal lobe epilepsy in rats",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": false
         },
         {
           "doi": "10.1038/s41597-025-05023-7",
@@ -3386,7 +3496,8 @@
                 "All data were converted into NWB files and released on the DANDI Archive (10.48324/dandi.001044/0.240905.0159) 29 , which is supported by the BRAIN Initiative for publishing and sharing neurophysiology data."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         }
       ]
     },
@@ -3416,7 +3527,8 @@
             }
           ],
           "claimed_name": "Neural population dynamics in songbird RA and HVC during learned motor-vocal behavior",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -3450,7 +3562,8 @@
             }
           ],
           "claimed_name": "Deep brain stimulation of the medial forebrain bundle and medial prefrontal cortex induces distinct patterns of neural activity in the nucleus accumbens",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -3482,7 +3595,8 @@
             }
           ],
           "claimed_name": "NeuroTask: A Benchmark Dataset for Multi-Task, Multi-Session, and Multi-Subject Neural Analysis",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -3514,7 +3628,8 @@
             }
           ],
           "claimed_name": "NeuroTask: A Benchmark Dataset for Multi-Task, Multi-Session, and Multi-Subject Neural Analysis",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -3546,7 +3661,8 @@
             }
           ],
           "claimed_name": "NeuroTask: A Benchmark Dataset for Multi-Task, Multi-Session, and Multi-Subject Neural Analysis",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -3578,7 +3694,8 @@
             }
           ],
           "claimed_name": "NeuroTask: A Benchmark Dataset for Multi-Task, Multi-Session, and Multi-Subject Neural Analysis",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -3614,7 +3731,8 @@
             }
           ],
           "claimed_name": "Marmosets represent a repertoire of naturalistic reaching movements in motor cortex",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         },
         {
           "doi": "10.1038/s41467-024-54343-6",
@@ -3630,7 +3748,8 @@
                 "The data generated using monkey MG in this study have been deposited in the DANDI Archive under accession code https://dandiarchive.org/dandiset/001062 ."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         }
       ]
     },
@@ -3660,7 +3779,8 @@
             }
           ],
           "claimed_name": "Broken time reversal symmetry in motion detection",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         },
         {
           "doi": "10.1073/pnas.2410768122",
@@ -3677,7 +3797,8 @@
                 "Behavioral data have been deposited in DANDI ( https://doi.org/10.48324/dandi.001063/0.250125.0601 ) ( 56 )."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         }
       ]
     },
@@ -3707,7 +3828,8 @@
             }
           ],
           "claimed_name": "Broken time reversal symmetry in motion detection",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -3742,7 +3864,8 @@
             }
           ],
           "claimed_name": "The substantia nigra pars reticulata is a key node for the control of temporal lobe seizures",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         },
         {
           "doi": "10.1371/journal.pone.0307906",
@@ -3759,7 +3882,8 @@
                 "Original data are available on the public Dandi repository: Devergnas, Annaelle (2024) SN recording during Temporal lobe seizures (Version 0.240621.2139) [Data set]. DANDI archive. https://doi.org/10.48324/dandi.001069/0.240621.2139"
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         }
       ]
     },
@@ -3787,7 +3911,8 @@
             }
           ],
           "claimed_name": "LITMUS: A Large-scale, In-silico, Truth-known Motor Unit Simulation benchmark for evaluating EMG decomposition",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -3822,7 +3947,8 @@
             }
           ],
           "claimed_name": "Embodied Neural Visuomotor Circuits in Neuromechanical Simulations and a Zebrafish Robot",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         },
         {
           "doi": "10.1126/scirobotics.adv4408",
@@ -3839,7 +3965,8 @@
                 "Raw and processed two-photon microscopy data for all experiments are publicly available at https://dandiarchive.org/dandiset/001076."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         }
       ]
     },
@@ -3874,7 +4001,8 @@
             }
           ],
           "claimed_name": "Encoding of female mating dynamics by a hypothalamic line attractor",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": true
         }
       ]
     },
@@ -3911,7 +4039,8 @@
             }
           ],
           "claimed_name": "Cortical acetylcholine dynamics are predicted by cholinergic axon activity and behavior state",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         },
         {
           "doi": "10.1016/j.celrep.2024.114808",
@@ -3928,7 +4057,8 @@
                 "Fluorescence data have been deposited at the DANDI archive and are publicly available as of the date of publication."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": true
         }
       ]
     },
@@ -3966,7 +4096,8 @@
             }
           ],
           "claimed_name": "Aberrant striatal firing mediates impulsive decision-making in a mouse model of Parkinson’s disease",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         },
         {
           "doi": "10.1093/brain/awaf312",
@@ -3983,7 +4114,8 @@
                 "Raw in vivo electrophysiology datasets have been deposited in DANDI (https://dandiarchive.org/dandiset/001177) and are publicly available as of publication."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         }
       ]
     },
@@ -4018,7 +4150,8 @@
             }
           ],
           "claimed_name": "Stimulus-specific hypothalamic encoding of a persistent defensive state",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": true
         }
       ]
     },
@@ -4063,7 +4196,8 @@
             }
           ],
           "claimed_name": "A combinatorial neural code for long-term motor memory",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": true
         }
       ]
     },
@@ -4098,7 +4232,8 @@
             }
           ],
           "claimed_name": "Transcranial focused ultrasound evokes cell-type-specific responses in the cortical-thalamic pathway",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -4133,7 +4268,8 @@
             }
           ],
           "claimed_name": "Adaptation to visual sparsity enhances responses to isolated stimuli",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         },
         {
           "doi": "10.1016/j.cub.2024.10.053",
@@ -4150,7 +4286,8 @@
                 "The raw data is available as a Dandi repository: https://dandiarchive.org/dandiset/001205."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": true
         }
       ]
     },
@@ -4187,7 +4324,8 @@
             }
           ],
           "claimed_name": "Neurovascular Coupling over Cortical Brain Areas and Resting State Network Connectivity With and Without Rigidified Carotid Artery",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -4224,7 +4362,8 @@
             }
           ],
           "claimed_name": "Neurovascular impulse response function (IRF) during spontaneous activity differentially reflects intrinsic neuromodulation across cortical regions",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": true
         }
       ]
     },
@@ -4259,7 +4398,8 @@
             }
           ],
           "claimed_name": "Individualized Target Selection of Closed-loop Electrical Stimulation for the Treatment of Spontaneous Temporal Lobe Epilepsy",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": true
         }
       ]
     },
@@ -4295,7 +4435,8 @@
             }
           ],
           "claimed_name": "Spike sorting biases and information loss in a detailed cortical model",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": true
         }
       ]
     },
@@ -4323,7 +4464,8 @@
             }
           ],
           "claimed_name": "Depth-resolved polarization-sensitive optical coherence tomography for mapping human cortical fiber orientation",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -4351,7 +4493,8 @@
             }
           ],
           "claimed_name": "IronTract: A groundwork for in vivo histology of the human brain",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -4388,7 +4531,8 @@
             }
           ],
           "claimed_name": "Preliminary Results of Neuromorphic Controller Design and a Parkinson's Disease Dataset Building for Closed-Loop Deep Brain Stimulation",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": true
         }
       ]
     },
@@ -4416,7 +4560,8 @@
             }
           ],
           "claimed_name": "Cortical circuits for the integration of short-latency auditory pathways",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         },
         {
           "doi": "10.1038/s41467-025-61020-9",
@@ -4432,7 +4577,8 @@
                 "All data generated in this study have been deposited to the DANDI (Distributed Archives for Neurophysiology Data Integration) Archive and can be accessed at (10.48324/dandi.001344/0.250521.2349, 10.48324/dandi.001345/0.250521.2344, 10.48324/dandi.001346/0.250521.2344, 10.48324/dandi.001353/0.250521.2344, 10.48324/dandi.001419/0.250521.2343, 10.48324/dandi.001420/0.250521.2343, and 10.48324/dandi.001421/0.250521.2343)."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         }
       ]
     },
@@ -4460,7 +4606,8 @@
             }
           ],
           "claimed_name": "Cortical circuits for the integration of short-latency auditory pathways",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         },
         {
           "doi": "10.1038/s41467-025-61020-9",
@@ -4476,7 +4623,8 @@
                 "All data generated in this study have been deposited to the DANDI (Distributed Archives for Neurophysiology Data Integration) Archive and can be accessed at (10.48324/dandi.001344/0.250521.2349, 10.48324/dandi.001345/0.250521.2344, 10.48324/dandi.001346/0.250521.2344, 10.48324/dandi.001353/0.250521.2344, 10.48324/dandi.001419/0.250521.2343, 10.48324/dandi.001420/0.250521.2343, and 10.48324/dandi.001421/0.250521.2343)."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         }
       ]
     },
@@ -4512,7 +4660,8 @@
             }
           ],
           "claimed_name": "Conserved and divergent gene expression and cell types across primate cortex",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -4548,7 +4697,8 @@
             }
           ],
           "claimed_name": "A multimodal cell census and atlas of the mammalian primary motor cortex",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -4576,7 +4726,8 @@
             }
           ],
           "claimed_name": "Cortical circuits for the integration of short-latency auditory pathways",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         },
         {
           "doi": "10.1038/s41467-025-61020-9",
@@ -4592,7 +4743,8 @@
                 "All data generated in this study have been deposited to the DANDI (Distributed Archives for Neurophysiology Data Integration) Archive and can be accessed at (10.48324/dandi.001344/0.250521.2349, 10.48324/dandi.001345/0.250521.2344, 10.48324/dandi.001346/0.250521.2344, 10.48324/dandi.001353/0.250521.2344, 10.48324/dandi.001419/0.250521.2343, 10.48324/dandi.001420/0.250521.2343, and 10.48324/dandi.001421/0.250521.2343)."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         }
       ]
     },
@@ -4627,7 +4779,8 @@
             }
           ],
           "claimed_name": "Self-Organizing Neural Networks in Organoids Reveal Principles of Forebrain Circuit Assembly",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -4663,7 +4816,8 @@
             }
           ],
           "claimed_name": "Large-scale calcium imaging in the motor cortex of rhesus macaques during a reaching task",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -4699,7 +4853,8 @@
             }
           ],
           "claimed_name": "Cerebral Blood Flow is Modulated by Astrocytic cAMP Elevation Independently of IP3R2-Mediated Ca2+ Signaling in Mice",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         },
         {
           "doi": "10.1073/pnas.2422069122",
@@ -4715,7 +4870,8 @@
                 "All data are uploaded on the DANDI repository ( 76 ): https://dandiarchive.org/dandiset/001414 ."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         }
       ]
     },
@@ -4751,7 +4907,8 @@
             }
           ],
           "claimed_name": "A short-latency thalamo-cortical pathway to the secondary auditory cortex",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         },
         {
           "doi": "10.1038/s41467-025-61020-9",
@@ -4767,7 +4924,8 @@
                 "All data generated in this study have been deposited to the DANDI (Distributed Archives for Neurophysiology Data Integration) Archive and can be accessed at (10.48324/dandi.001344/0.250521.2349, 10.48324/dandi.001345/0.250521.2344, 10.48324/dandi.001346/0.250521.2344, 10.48324/dandi.001353/0.250521.2344, 10.48324/dandi.001419/0.250521.2343, 10.48324/dandi.001420/0.250521.2343, and 10.48324/dandi.001421/0.250521.2343)."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         }
       ]
     },
@@ -4802,7 +4960,8 @@
             }
           ],
           "claimed_name": "Cortical circuits for the integration of short-latency auditory pathways",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         },
         {
           "doi": "10.1038/s41467-025-61020-9",
@@ -4818,7 +4977,8 @@
                 "All data generated in this study have been deposited to the DANDI (Distributed Archives for Neurophysiology Data Integration) Archive and can be accessed at (10.48324/dandi.001344/0.250521.2349, 10.48324/dandi.001345/0.250521.2344, 10.48324/dandi.001346/0.250521.2344, 10.48324/dandi.001353/0.250521.2344, 10.48324/dandi.001419/0.250521.2343, 10.48324/dandi.001420/0.250521.2343, and 10.48324/dandi.001421/0.250521.2343)."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         }
       ]
     },
@@ -4853,7 +5013,8 @@
             }
           ],
           "claimed_name": "Indole-3-propionic acid prevents postoperative delirium-like behavior by maintaining hippocampal neural dynamics in aged mice",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -4888,7 +5049,8 @@
             }
           ],
           "claimed_name": "Aging-associated decrease of PGC-1α promotes pain chronification",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": true
         }
       ]
     },
@@ -4916,7 +5078,8 @@
             }
           ],
           "claimed_name": "A low-cost, open-source system for 3D tracking of freely moving mice",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -4955,7 +5118,8 @@
             }
           ],
           "claimed_name": "Evidence accumulation from experience and observation in the cingulate cortex",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": true
         }
       ]
     },
@@ -4985,7 +5149,8 @@
             }
           ],
           "claimed_name": "Old Rats Persistently Switch between Allocentric and Procedural Strategies across Learning of the Morris Water Maze",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -5013,7 +5178,8 @@
             }
           ],
           "claimed_name": "Deep learning-based segmentation of peripheral nerve images with AxonDeepSeg",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -5041,7 +5207,8 @@
             }
           ],
           "claimed_name": "AxonDeepSeg: automatic axon and myelin segmentation from microscopy data using convolutional neural networks",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -5077,7 +5244,8 @@
             }
           ],
           "claimed_name": "Classification of Neocortical Neurons by Morphological and Electrophysiological Properties Exposes a Continuum of Functional Types",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -5113,7 +5281,8 @@
             }
           ],
           "claimed_name": "Integrated multimodal cell atlas of twenty-five human brain areas",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -5149,7 +5318,8 @@
             }
           ],
           "claimed_name": "Comparative transcriptomics reveals human-specific cortical features",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -5185,7 +5355,8 @@
             }
           ],
           "claimed_name": "Representation of predictable and unpredictable odor sequences in the mouse hippocampus",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -5220,7 +5391,8 @@
             }
           ],
           "claimed_name": "A neural circuit for the suppression of pain by a competing need",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -5250,7 +5422,8 @@
             }
           ],
           "claimed_name": "Plasma membrane polarization dynamics of CHO cells during 1 μs pulses: Effects of cell size and electric field strength",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -5280,7 +5453,8 @@
             }
           ],
           "claimed_name": "Plasma membrane recovery of cells following 1-μs electroporation pulse",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -5310,7 +5484,8 @@
             }
           ],
           "claimed_name": "Comparison of FluoVolt and Di-8-ANEPPS Responses to Plasma Membrane Polarization by Nanosecond Electric Pulses",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -5340,7 +5515,8 @@
             }
           ],
           "claimed_name": "Characterization of plasma membrane recovery in cells after 1-μs electroporation using strobe fluorescence microscopy",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -5379,7 +5555,8 @@
             }
           ],
           "claimed_name": "Contextual gating of whisker-evoked responses by frontal cortex supports flexible decision making",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -5407,7 +5584,8 @@
             }
           ],
           "claimed_name": "A multimodal dataset of neural activity and gene expression in the mouse visual cortex",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -5445,7 +5623,8 @@
             }
           ],
           "claimed_name": "Neurovascular impulse response function (IRF) during spontaneous activity differentially reflects intrinsic neuromodulation across cortical regions",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         },
         {
           "doi": "10.1038/s41593-026-02239-7",
@@ -5462,7 +5641,8 @@
                 "To test this hypothesis, we used optical imaging to measure norepinephrine (NE) or acetylcholine (ACh), calcium (Ca 2+ ) activity of cortical neurons and hemodynamics in cerebral cortex in awake mice."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         }
       ]
     },
@@ -5496,7 +5676,8 @@
             }
           ],
           "claimed_name": "Distinct subpopulations of ventral pallidal cholinergic projection neurons encode valence of olfactory stimuli",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": true
         }
       ]
     },
@@ -5524,7 +5705,8 @@
             }
           ],
           "claimed_name": "Fast wide-field volumetric n-photon imaging of whole-mouse-brain dynamics at subcellular resolution",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -5556,7 +5738,8 @@
             }
           ],
           "claimed_name": "Mesolimbic dopamine ramps reflect environmental timescales",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         },
         {
           "doi": "10.7554/elife.98666.3",
@@ -5573,7 +5756,8 @@
                 "We first measured mesolimbic dopamine release in the nucleus accumbens core using a dopamine sensor (dLight1.3b; Patriarchi et al., 2018 ) in an auditory cue-reward task."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": true
         },
         {
           "doi": "10.7554/elife.98666",
@@ -5590,7 +5774,8 @@
                 "The following dataset was generated: Floeder J 2025 Floeder et al (2025) Mesolimbic dopamine ramps reflect environmental timescales DANDI 10.48324/dandi.001552/0.250828.1728."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": true
         }
       ]
     },
@@ -5625,7 +5810,8 @@
             }
           ],
           "claimed_name": "Cortical state dynamics and behavioral transitions are altered in a mouse model of Rett syndrome",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -5660,7 +5846,8 @@
             }
           ],
           "claimed_name": "improv: A software platform for real-time and adaptive neuroscience experiments",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": true
         },
         {
           "doi": "10.1038/s41467-025-64856-3",
@@ -5676,7 +5863,8 @@
                 "All new imaging data generated in this study have been deposited in the DANDI database under accession code https://dandiarchive.org/dandiset/001569 and can be downloaded directly."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": true
         }
       ]
     },
@@ -5716,7 +5904,8 @@
             }
           ],
           "claimed_name": "Disruption of theta-timescale spiking impairs learning but spares hippocampal replay",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -5755,7 +5944,8 @@
             }
           ],
           "claimed_name": "Evolution of thermosensory circuits in Drosophila",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -5791,7 +5981,8 @@
             }
           ],
           "claimed_name": "A multimodal cell census and atlas of the adult human brain",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -5836,7 +6027,8 @@
             }
           ],
           "claimed_name": "Contralesional activity reflects compensation, while brainstem detour pathways support skilled motor recovery after stroke",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": true
         }
       ]
     },
@@ -5874,7 +6066,8 @@
             }
           ],
           "claimed_name": "A shared neural code for prediction and production of sequences in the visual cortex",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -5909,7 +6102,8 @@
             }
           ],
           "claimed_name": "Parametrizing alternating current stimulation for neuromodulation",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -5947,7 +6141,8 @@
             }
           ],
           "claimed_name": "EMUsort: A software for high-density EMG decomposition and its application to treadmill locomotion",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         },
         {
           "doi": "10.64898/2026.01.06.697952",
@@ -5964,7 +6159,8 @@
                 "The full original electromyography recordings and synchronized motion tracking data used to generate the rat simulation are stored as a single DANDI Archive (DANDI:001688/0.251231.0329; ( O’Connell & Wang, 2025 ))."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         },
         {
           "doi": "10.7554/elife.110417",
@@ -5981,7 +6177,8 @@
                 "During treadmill sessions, EMG signals were recorded using an Open Ephys Acquisition Board along with Intan RHD 16-Channel Bipolar-Input Recording Headstages (RHD2216)."
               ]
             }
-          ]
+          ],
+          "title_in_dandiset": false
         }
       ]
     },
@@ -6013,7 +6210,8 @@
             }
           ],
           "claimed_name": "Loss of oxytocin receptor function disrupts neural signatures of pair bonding and fidelity in the nucleus accumbens",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -6047,7 +6245,8 @@
             }
           ],
           "claimed_name": "A cell atlas of the primate insular cortex",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -6081,7 +6280,8 @@
             }
           ],
           "claimed_name": "Cellular architecture and local microcircuits of the primate insular cortex",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -6118,7 +6318,8 @@
             }
           ],
           "claimed_name": "LSD-induced changes in brain-wide functional connectivity and neural dynamics persist 24 hours after administration",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -6153,7 +6354,8 @@
             }
           ],
           "claimed_name": "Dopamine and glutamate regulate striatal acetylcholine in decision-making",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -6188,7 +6390,8 @@
             }
           ],
           "claimed_name": "A shared neural code for expectations and sensory errors in visual cortex",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -6223,7 +6426,8 @@
             }
           ],
           "claimed_name": "A neural circuit for the flexible control of persistent behavioral states",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -6258,7 +6462,8 @@
             }
           ],
           "claimed_name": "Single neuron diversity supports area functional specialization along the visual cortical pathways",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": true
         }
       ]
     },
@@ -6286,7 +6491,8 @@
             }
           ],
           "claimed_name": "A multimodal dataset of cellular-resolution activity and gene expression in the mouse visual cortex",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -6314,7 +6520,8 @@
             }
           ],
           "claimed_name": "A conserved motor cortical mechanism for recovery of movement after stroke",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -6342,7 +6549,8 @@
             }
           ],
           "claimed_name": "Deep brain stimulation induces white matter remodeling and functional changes to brain-wide networks",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -6380,7 +6588,8 @@
             }
           ],
           "claimed_name": "Synchrony within Aβ mechanoreceptor subtypes governs signal propagation to primary somatosensory cortex",
-          "name_matches": false
+          "name_matches": false,
+          "title_in_dandiset": false
         }
       ]
     },
@@ -6415,7 +6624,8 @@
             }
           ],
           "claimed_name": "Early and Late Phases of Sensory-Evoked Olfactory Bulb Inhibition Are Mediated by Parallel Local Circuits: Attenuation of Fast Tufted Cell Axo-dendritic Inputs to Granule Cells by Adenosine A1 Receptors",
-          "name_matches": true
+          "name_matches": true,
+          "title_in_dandiset": true
         }
       ]
     }
