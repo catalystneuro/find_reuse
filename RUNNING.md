@@ -136,6 +136,13 @@ citing an unrelated work. Those four accounted for 917 spurious links. Each
 entry records the reasoning, so they can be revisited when DANDI's own metadata
 changes.
 
+Where DANDI names no paper, a model picked one, and most of its picks are DOIs
+of some other paper. Rediscovery searches only from the picks a person
+confirmed, which are recorded in
+`primary_paper_confirmation/confirmed_primary_papers.json`. A dandiset whose pick
+nobody confirmed is left out. See
+[primary_paper_confirmation/README.md](primary_paper_confirmation/README.md).
+
 `src/indirect_pipeline/validate_description_dois.py` reads a dandiset's
 description and decides whether a DOI scraped from it describes the dataset or
 is cited for some other reason. Only the former is admitted. Verdicts are cached

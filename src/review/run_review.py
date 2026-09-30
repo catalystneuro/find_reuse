@@ -536,6 +536,7 @@ const originLabel = o => ({
   'dcite:IsPublishedIn':  'published in',
   description:            'in description',
   override:               'hand-set',
+  confirmed:              'confirmed in review',
   llm_identified:         'LLM-identified \\u2014 verify',
   unknown:                'unknown',
 }[o] || o);
