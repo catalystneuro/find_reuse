@@ -34,7 +34,6 @@ and every candidate paper. For each paper:
   (`name_matches`)
 - `direct_primary`: the direct pathway classified the paper PRIMARY, with the
   passages naming the dandiset as the authors' own deposit
-- `reviewer_primary`: a reuse reviewer called the paper primary
 
 ## `confirmed_primary_papers.json`
 

@@ -9,8 +9,7 @@ with the case for each:
   * the model's pick, with the title the model gave it beside the title the
     DOI actually resolves to, since most picks are DOIs of some other paper;
   * papers the direct pathway classified PRIMARY, with the passages that name
-    the dandiset as the authors' own deposit;
-  * papers a reuse reviewer called primary.
+    the dandiset as the authors' own deposit.
 
 A dandiset can have several primary papers, so the card asks about each paper
 rather than for one answer.
@@ -35,7 +34,6 @@ import requests
 from src.review import paper_metadata
 from src.review.build_candidates import PAPER_METADATA_CACHE, RESULTS_FILE
 from src.review.primary_papers import CANDIDATES_FILE
-from src.review.reviewers import reviews_paths
 
 REPO = Path(__file__).resolve().parents[2]
 DIRECT_CLASSIFICATIONS_FILE = REPO / 'output/fulltext_direct_openalex.json'
@@ -62,20 +60,6 @@ def direct_primaries(classifications: list[dict]) -> dict[str, list[dict]]:
     for record in classifications:
         if record['classification'] == 'PRIMARY':
             by_dandiset[record['dandiset_id']].append(record)
-    return by_dandiset
-
-
-def reviewer_primaries(review_files: list[Path]) -> dict[str, list[dict]]:
-    """The papers reuse reviewers called primary, keyed by dandiset."""
-    by_dandiset = defaultdict(list)
-    for path in review_files:
-        saved = json.loads(path.read_text())
-        for doi, dandisets in saved['reviews'].items():
-            for dandiset, review in dandisets.items():
-                if review['call'] == 'primary':
-                    by_dandiset[dandiset].append({
-                        'doi': doi, 'reviewer': saved['reviewer'],
-                        'note': review.get('note', '')})
     return by_dandiset
 
 
@@ -112,7 +96,7 @@ def same_title(claimed: str, title: str) -> bool:
 
 
 def build_cards(records: list[dict], direct: dict[str, list[dict]],
-                reviewed: dict[str, list[dict]], dandisets: dict[str, dict],
+                dandisets: dict[str, dict],
                 papers: dict[str, dict | None]) -> list[dict]:
     """
     One card per dandiset, its candidate papers ordered model's pick first.
@@ -155,10 +139,6 @@ def build_cards(records: list[dict], direct: dict[str, list[dict]],
                 'quotes': [quote['quote']
                            for quote in classification['evidence_quotes']],
             })
-        for call in reviewed.get(dandiset, []):
-            candidate(call['doi'])['sources'].append({
-                'kind': 'reviewer_primary', 'reviewer': call['reviewer'],
-                'note': call['note']})
 
         cards.append({
             'dandiset': dandiset,
@@ -172,8 +152,7 @@ def build_cards(records: list[dict], direct: dict[str, list[dict]],
     return sorted(cards, key=lambda card: card['dandiset'])
 
 
-def candidate_dois(records: list[dict], direct: dict[str, list[dict]],
-                   reviewed: dict[str, list[dict]]) -> set[str]:
+def candidate_dois(records: list[dict], direct: dict[str, list[dict]]) -> set[str]:
     """Every DOI a card will put forward, so all of them are resolved at once."""
     dois = set()
     for record in records:
@@ -181,7 +160,6 @@ def candidate_dois(records: list[dict], direct: dict[str, list[dict]],
         dois |= {relation['doi'] for relation in record['paper_relations']
                  if relation['relation'] == 'llm_identified'}
         dois |= {c['citing_doi'] for c in direct.get(dandiset, [])}
-        dois |= {call['doi'] for call in reviewed.get(dandiset, [])}
     return dois
 
 
@@ -204,8 +182,7 @@ def main():
             f'one discovered before it.')
     direct = direct_primaries(
         json.loads(args.direct_file.read_text())['classifications'])
-    reviewed = reviewer_primaries(reviews_paths())
-    papers = paper_metadata.resolve(candidate_dois(records, direct, reviewed),
+    papers = paper_metadata.resolve(candidate_dois(records, direct),
                                     PAPER_METADATA_CACHE)
 
     dandisets = {}
@@ -214,7 +191,7 @@ def main():
         dandisets[record['dandiset_id']] = describe_dandiset(fetch_dandiset_metadata(
             record['dandiset_id'], record['dandiset_version']))
 
-    cards = build_cards(records, direct, reviewed, dandisets, papers)
+    cards = build_cards(records, direct, dandisets, papers)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps({'dandisets': cards}, indent=2,
                                       ensure_ascii=False) + '\n')

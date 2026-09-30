@@ -118,3 +118,16 @@ class TestBuild:
 
     def test_offers_every_call(self):
         assert 'const CALLS = ["primary", "not_primary", "unsure"];' in R.build([CARD])
+
+
+class TestNarrowCounts:
+    def test_counts_cards_with_a_direct_primary_and_with_a_mismatched_pick(self):
+        mismatched = {**CARD, 'candidates': [{
+            'doi': '10.1/pick', 'claimed_name': 'Another paper', 'name_matches': False,
+            'sources': [{'kind': 'llm_identified'}]}]}
+        matched = {**CARD, 'candidates': [{
+            'doi': '10.1/pick', 'claimed_name': 'Same paper', 'name_matches': True,
+            'sources': [{'kind': 'llm_identified'}]}]}
+
+        assert R.narrow_counts([CARD, mismatched, matched]) == {
+            'direct': 1, 'mismatch': 1}

@@ -34,22 +34,13 @@ def direct_classifications():
          'citing_doi': '10.1/own-deposit', 'confidence': 9,
          'reasoning': 'The authors deposited these data.',
          'evidence_quotes': [{'quote': 'Data are available at DANDI 001414.'}]},
+        {'classification': 'PRIMARY', 'dandiset_id': '001414',
+         'citing_doi': '10.1/unregistered', 'confidence': 7,
+         'reasoning': 'A deposit note.', 'evidence_quotes': []},
         {'classification': 'REUSE', 'dandiset_id': '001414',
          'citing_doi': '10.1/reuser', 'confidence': 8, 'reasoning': 'Reanalysed.',
          'evidence_quotes': []},
     ]
-
-
-@pytest.fixture
-def review_files(tmp_path):
-    """One reuse reviewer's file, with one primary call among other calls."""
-    path = tmp_path / 'ada' / 'ada-reviews.json'
-    path.parent.mkdir()
-    path.write_text(json.dumps({'reviewer': 'ada', 'reviews': {
-        '10.1/reviewer-found': {'001414': {'call': 'primary', 'note': 'Their data.'}},
-        '10.1/reuser': {'001414': {'call': 'reuse'}},
-    }}))
-    return [path]
 
 
 @pytest.fixture
@@ -61,7 +52,7 @@ def papers():
             'authors': ['Howard-Spink'], 'year': 2024},
         '10.1/own-deposit': {'title': 'Astrocytic cAMP and blood flow',
                              'authors': ['Doe', 'Roe'], 'year': 2025},
-        '10.1/reviewer-found': None,
+        '10.1/unregistered': None,
     }
 
 
@@ -82,13 +73,8 @@ class TestDirectPrimaries:
     def test_keeps_only_primary_calls_by_dandiset(self, direct_classifications):
         primaries = B.direct_primaries(direct_classifications)
 
-        assert [c['citing_doi'] for c in primaries['001414']] == ['10.1/own-deposit']
-
-
-class TestReviewerPrimaries:
-    def test_keeps_only_primary_calls_by_dandiset(self, review_files):
-        assert B.reviewer_primaries(review_files) == {'001414': [
-            {'doi': '10.1/reviewer-found', 'reviewer': 'ada', 'note': 'Their data.'}]}
+        assert [c['citing_doi'] for c in primaries['001414']] == [
+            '10.1/own-deposit', '10.1/unregistered']
 
 
 class TestDescribeDandiset:
@@ -115,11 +101,10 @@ class TestSameTitle:
 
 class TestBuildCards:
     @pytest.fixture
-    def card(self, corpus_records, direct_classifications, review_files, papers,
-             dandisets):
+    def card(self, corpus_records, direct_classifications, papers, dandisets):
         records = B.llm_identified_dandisets(corpus_records)
         [card] = B.build_cards(records, B.direct_primaries(direct_classifications),
-                               B.reviewer_primaries(review_files), dandisets, papers)
+                               dandisets, papers)
         return card
 
     def test_describes_the_dandiset(self, card):
@@ -133,7 +118,7 @@ class TestBuildCards:
 
     def test_puts_the_models_pick_first_then_the_other_candidates(self, card):
         assert [c['doi'] for c in card['candidates']] == [
-            '10.1101/2024.11.25.625128', '10.1/own-deposit', '10.1/reviewer-found']
+            '10.1101/2024.11.25.625128', '10.1/own-deposit', '10.1/unregistered']
 
     def test_shows_the_models_name_beside_the_real_title(self, card):
         pick = card['candidates'][0]
@@ -160,9 +145,8 @@ class TestBuildCards:
 
 class TestCandidateDois:
     def test_names_every_paper_a_card_puts_forward(
-            self, corpus_records, direct_classifications, review_files):
+            self, corpus_records, direct_classifications):
         records = B.llm_identified_dandisets(corpus_records)
 
-        assert B.candidate_dois(records, B.direct_primaries(direct_classifications),
-                                B.reviewer_primaries(review_files)) == {
-            '10.1101/2024.11.25.625128', '10.1/own-deposit', '10.1/reviewer-found'}
+        assert B.candidate_dois(records, B.direct_primaries(direct_classifications)) == {
+            '10.1101/2024.11.25.625128', '10.1/own-deposit', '10.1/unregistered'}

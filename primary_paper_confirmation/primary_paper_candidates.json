@@ -1615,19 +1615,6 @@
               ]
             }
           ]
-        },
-        {
-          "doi": "10.1016/j.crmeth.2024.100964",
-          "title": "Unifying community whole-brain imaging datasets enables robust neuron identification and reveals determinants of neuron position in C. elegans",
-          "citation": "Sprague et al., 2025",
-          "resolves": true,
-          "sources": [
-            {
-              "kind": "reviewer_primary",
-              "reviewer": "pauladkisson",
-              "note": "This paper harmonized data from various sources and stored it on the DANDI Archive, which makes it a primary source rather than a re-user."
-            }
-          ]
         }
       ]
     },
@@ -2841,19 +2828,6 @@
                 "In Table 1 we present a summary of the data we aggregated and harmonized into a corpus: 108 worms from six datasets acquired by five different labs, each with segmented neurons and human-labeled identities.",
                 "Datasets from various labs were converted to the NWB standardized file format using the ndx-multichannel-volume extension presented in this work. These files were then uploaded to the DANDI archive where they are now publicly accessible for data streaming, download, or online visualization."
               ]
-            }
-          ]
-        },
-        {
-          "doi": "10.1016/j.crmeth.2024.100964",
-          "title": "Unifying community whole-brain imaging datasets enables robust neuron identification and reveals determinants of neuron position in C. elegans",
-          "citation": "Sprague et al., 2025",
-          "resolves": true,
-          "sources": [
-            {
-              "kind": "reviewer_primary",
-              "reviewer": "pauladkisson",
-              "note": "This paper harmonized data from various sources and stored it on the DANDI Archive, which makes it a primary source rather than a re-user."
             }
           ]
         }
