@@ -1,3 +1,329 @@
 {
-  "dandisets": {}
+  "dandisets": {
+    "000020": {
+      "calls": {
+        "10.1016/j.cell.2020.09.057": "primary"
+      }
+    },
+    "000108": {
+      "calls": {
+        "10.1126/science.aat5066": "not_primary",
+        "10.1126/science.adh9979": "primary",
+        "10.3389/fnins.2022.871228": "primary"
+      }
+    },
+    "000167": {
+      "calls": {
+        "10.1016/j.neuron.2021.01.013": "not_primary",
+        "10.1523/jneurosci.0381-24.2024": "not_primary",
+        "10.1371/journal.pbio.3002206": "primary"
+      }
+    },
+    "000223": {
+      "calls": {
+        "10.1101/2022.02.08.479535": "not_primary",
+        "10.1088/1741-2552/ac8765": "primary"
+      }
+    },
+    "000230": {
+      "calls": {
+        "10.1016/j.crmeth.2022.100221": "primary"
+      }
+    },
+    "000232": {
+      "calls": {
+        "10.7554/eLife.92620": "primary",
+        "10.7554/elife.92620.3.sa1": "not_primary"
+      }
+    },
+    "000237": {
+      "calls": {
+        "10.1101/2022.08.31.506108": "not_primary",
+        "10.7554/elife.83289": "primary",
+        "10.1016/j.neuron.2018.04.013": "not_primary"
+      }
+    },
+    "000244": {
+      "calls": {
+        "10.1016/j.neuron.2022.09.014": "not_primary",
+        "10.1016/j.neuroimage.2022.119735": "primary"
+      }
+    },
+    "000292": {
+      "calls": {
+        "10.1093/gigascience/giac108": "primary",
+        "10.1523/ENEURO.0465-22.2023": "not_primary"
+      }
+    },
+    "000293": {
+      "calls": {
+        "10.1093/gigascience/giac108": "primary",
+        "10.1038/s42003-021-02517-z": "not_primary"
+      }
+    },
+    "000351": {
+      "calls": {
+        "10.1126/science.abq6740": "primary"
+      }
+    },
+    "000485": {
+      "calls": {
+        "10.1016/j.neuron.2018.04.013": "not_primary",
+        "10.1371/journal.pcbi.1013134": "primary"
+      }
+    },
+    "000486": {
+      "calls": {
+        "10.1371/journal.pcbi.1013134": "primary",
+        "10.1016/j.neuron.2019.07.012": "not_primary"
+      }
+    },
+    "000541": {
+      "calls": {
+        "10.1101/2024.04.28.591397": "not_primary",
+        "10.1101/2020.07.07.192120": "primary",
+        "10.1016/j.cell.2020.12.012": "primary"
+      },
+      "note": "The title of this paper is listed in the Dandiset description."
+    },
+    "000572": {
+      "calls": {
+        "10.1038/s41593-023-01453-x": "primary"
+      }
+    },
+    "000620": {
+      "calls": {
+        "10.64898/2026.01.27.702062": "primary"
+      }
+    },
+    "000628": {
+      "calls": {
+        "10.1038/s41593-024-01631-5": "primary"
+      }
+    },
+    "000629": {
+      "calls": {
+        "10.7554/elife.90944.3.sa1": "not_primary",
+        "10.7554/elife.90944.3": "primary",
+        "10.7554/elife.90944": "not_primary"
+      }
+    },
+    "000692": {
+      "calls": {
+        "10.1101/2023.12.18.572251": "not_primary",
+        "10.1016/j.crmeth.2024.100964": "not_primary",
+        "10.1101/2024.04.28.591397": "not_primary",
+        "10.1038/nature06292": "primary"
+      },
+      "note": "The link to the Nature article in the description corresponds to this paper DOI."
+    },
+    "000698": {
+      "calls": {
+        "10.1016/j.cub.2025.09.053": "primary",
+        "10.1016/j.cub.2024.07.032": "not_primary"
+      }
+    },
+    "000701": {
+      "calls": {
+        "10.1016/j.cub.2024.07.032": "not_primary",
+        "10.1016/j.cub.2025.09.053": "primary"
+      }
+    },
+    "000702": {
+      "calls": {
+        "10.1016/j.neuron.2024.04.011": "not_primary",
+        "10.1016/j.cub.2025.09.053": "primary"
+      }
+    },
+    "000703": {
+      "calls": {
+        "10.1016/j.cub.2025.09.053": "primary",
+        "10.1016/j.neuron.2018.04.013": "not_primary"
+      }
+    },
+    "000705": {
+      "calls": {
+        "10.1016/j.cub.2025.09.053": "primary",
+        "10.1016/j.neuron.2024.04.018": "not_primary"
+      }
+    },
+    "000706": {
+      "calls": {
+        "10.1016/j.cub.2025.09.053": "primary",
+        "10.1016/j.neuron.2018.04.013": "not_primary"
+      }
+    },
+    "000707": {
+      "calls": {
+        "10.1016/j.neuron.2018.01.045": "not_primary",
+        "10.1016/j.cub.2025.09.053": "primary"
+      }
+    },
+    "000708": {
+      "calls": {
+        "10.1016/j.cub.2025.09.053": "primary",
+        "10.1016/j.cub.2024.07.085": "not_primary"
+      }
+    },
+    "000776": {
+      "calls": {
+        "10.1016/j.cell.2023.07.035": "primary",
+        "10.1101/2024.04.28.591397": "not_primary"
+      }
+    },
+    "000932": {
+      "calls": {
+        "10.1126/scitranslmed.adj7257": "primary"
+      }
+    },
+    "000940": {
+      "calls": {
+        "10.1101/2023.06.05.543539": "not_primary",
+        "10.1038/s41562-024-01983-9": "primary"
+      }
+    },
+    "000951": {
+      "calls": {
+        "10.1038/s41586-024-07451-8": "primary"
+      }
+    },
+    "000957": {
+      "calls": {
+        "10.1016/j.neuron.2025.08.030": "primary",
+        "10.1101/2023.08.23.554527": "not_primary"
+      }
+    },
+    "000970": {
+      "calls": {
+        "10.1016/j.neuron.2024.04.014": "not_primary",
+        "10.1016/j.neuron.2024.04.034": "primary"
+      }
+    },
+    "000978": {
+      "calls": {
+        "10.1523/eneuro.0336-24.2025": "primary",
+        "10.1016/j.neuron.2019.03.015": "not_primary"
+      }
+    },
+    "001044": {
+      "calls": {
+        "10.1038/s41597-025-05023-7": "primary",
+        "10.1016/j.yebeh.2023.109120": "primary"
+      }
+    },
+    "001062": {
+      "calls": {
+        "10.1038/s41467-024-54343-6": "primary",
+        "10.1101/2024.05.24.595793": "not_primary"
+      }
+    },
+    "001063": {
+      "calls": {
+        "10.1073/pnas.2410768122": "primary",
+        "10.1101/2024.05.15.594396": "not_primary"
+      }
+    },
+    "001069": {
+      "calls": {
+        "10.1371/journal.pone.0307906": "primary",
+        "10.1093/brain/awad160": "not_primary"
+      }
+    },
+    "001076": {
+      "calls": {
+        "10.1126/scirobotics.adv4408": "primary",
+        "10.1101/2024.05.10.593593": "not_primary"
+      }
+    },
+    "001176": {
+      "calls": {
+        "10.1016/j.celrep.2024.114808": "primary",
+        "10.1101/2024.08.26.609765": "not_primary"
+      }
+    },
+    "001177": {
+      "calls": {
+        "10.1093/brain/awaf312": "primary",
+        "10.1093/brain/awae312": "not_primary"
+      }
+    },
+    "001188": {
+      "calls": {
+        "10.1038/s41586-024-08193-3": "primary"
+      }
+    },
+    "001205": {
+      "calls": {
+        "10.1016/j.cub.2024.09.060": "not_primary",
+        "10.1016/j.cub.2024.10.053": "primary"
+      }
+    },
+    "001345": {
+      "calls": {
+        "10.15139/s3/vmuw9s": "not_primary",
+        "10.1038/s41467-025-61020-9": "primary"
+      }
+    },
+    "001346": {
+      "calls": {
+        "10.1038/s41467-025-61020-9": "primary",
+        "10.1016/j.cub.2024.12.046": "not_primary"
+      }
+    },
+    "001353": {
+      "calls": {
+        "10.1038/s41467-025-61020-9": "primary",
+        "10.15139/s3/vmuw9s": "not_primary"
+      }
+    },
+    "001414": {
+      "calls": {
+        "10.1073/pnas.2422069122": "primary",
+        "10.1101/2024.11.25.625128": "not_primary"
+      }
+    },
+    "001419": {
+      "calls": {
+        "10.1038/s41467-025-61020-9": "primary",
+        "10.1016/j.neuron.2024.12.008": "not_primary"
+      }
+    },
+    "001421": {
+      "calls": {
+        "10.1038/s41467-025-61020-9": "primary",
+        "10.1016/j.neuron.2024.11.011": "not_primary"
+      }
+    },
+    "001543": {
+      "calls": {
+        "10.1038/s41593-026-02239-7": "primary",
+        "10.1101/2024.12.16.628761": "not_primary"
+      }
+    },
+    "001552": {
+      "calls": {
+        "10.7554/elife.98666.3": "primary",
+        "10.7554/elife.98666": "not_primary",
+        "10.1101/2024.05.28.596283": "not_primary"
+      }
+    },
+    "001569": {
+      "calls": {
+        "10.1101/2021.02.22.432006": "primary",
+        "10.1038/s41467-025-64856-3": "primary"
+      }
+    },
+    "001635": {
+      "calls": {
+        "10.21203/rs.3.rs-8154397/v1": "primary"
+      }
+    },
+    "001688": {
+      "calls": {
+        "10.64898/2026.01.06.697952": "not_primary",
+        "10.7554/elife.110417": "primary",
+        "10.1101/2024.06.14.599102": "not_primary"
+      }
+    }
+  }
 }
