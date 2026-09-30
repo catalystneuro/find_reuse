@@ -40,10 +40,12 @@ and every candidate paper. For each paper:
 ```json
 {"dandisets": {
   "000020": {"calls": {"10.1016/j.cell.2020.09.057": "primary"},
-             "note": "Named in the data availability statement."}}}
+             "notes": {"10.1016/j.cell.2020.09.057":
+                       "Named in the data availability statement."}}}}
 ```
 
-Each call is `primary`, `not_primary` or `unsure`. A dandiset can have several
+Each call is `primary`, `not_primary` or `unsure`, and each paper can carry a
+note. A dandiset can have several
 primary papers. A paper added by DOI during review is called `primary`.
 
 `scripts/rediscover_citing_papers.py` applies the file through

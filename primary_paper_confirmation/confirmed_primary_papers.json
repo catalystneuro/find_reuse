@@ -84,7 +84,9 @@
         "10.1101/2020.07.07.192120": "primary",
         "10.1016/j.cell.2020.12.012": "primary"
       },
-      "note": "The title of this paper is listed in the Dandiset description."
+      "notes": {
+        "10.1101/2020.07.07.192120": "The title of this paper is listed in the Dandiset description."
+      }
     },
     "000572": {
       "calls": {
@@ -115,7 +117,9 @@
         "10.1101/2024.04.28.591397": "not_primary",
         "10.1038/nature06292": "primary"
       },
-      "note": "The link to the Nature article in the description corresponds to this paper DOI."
+      "notes": {
+        "10.1038/nature06292": "The link to the Nature article in the description corresponds to this paper DOI."
+      }
     },
     "000698": {
       "calls": {

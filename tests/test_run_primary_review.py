@@ -69,11 +69,11 @@ class TestPrimaryReviewServer:
 
         post_save(url, {'dandisets': {'001414': {
             'calls': {'10.1/own-deposit': 'primary', '10.1/pick': 'not_primary'},
-            'note': 'From the data availability statement.'}}})
+            'notes': {'10.1/own-deposit': 'From the data availability statement.'}}}})
 
         assert json.loads(save_path.read_text()) == {'dandisets': {'001414': {
             'calls': {'10.1/own-deposit': 'primary', '10.1/pick': 'not_primary'},
-            'note': 'From the data availability statement.'}}}
+            'notes': {'10.1/own-deposit': 'From the data availability statement.'}}}}
 
     def test_load_returns_what_save_wrote(self, session):
         url, _ = session
@@ -94,13 +94,14 @@ class TestPrimaryReviewServer:
 class TestReviewedOnly:
     def test_drops_dandisets_nothing_was_said_about(self):
         assert R.reviewed_only({
-            '000002': {'calls': {}, 'note': ''},
-            '001414': {'calls': {'10.1/a': 'unsure'}, 'note': ''},
+            '000002': {'calls': {}, 'notes': {'10.1/b': '  '}},
+            '001414': {'calls': {'10.1/a': 'unsure'}, 'notes': {}},
         }) == {'001414': {'calls': {'10.1/a': 'unsure'}}}
 
     def test_keeps_a_note_with_no_calls(self):
-        assert R.reviewed_only({'000002': {'calls': {}, 'note': 'Search later.'}}) == {
-            '000002': {'calls': {}, 'note': 'Search later.'}}
+        assert R.reviewed_only({'000002': {'calls': {}, 'notes': {
+            '10.1/b': 'Search later.'}}}) == {
+            '000002': {'calls': {}, 'notes': {'10.1/b': 'Search later.'}}}
 
     def test_sorts_by_dandiset(self):
         reviewed = R.reviewed_only({'001414': {'calls': {'10.1/a': 'primary'}},
@@ -131,3 +132,14 @@ class TestNarrowCounts:
 
         assert R.narrow_counts([CARD, mismatched, matched]) == {
             'direct': 1, 'mismatch': 1}
+
+
+class TestAttachPaperTexts:
+    def test_marks_the_candidates_whose_text_is_cached(self, paper_cache):
+        card = {**CARD, 'candidates': [
+            {**CARD['candidates'][0]},
+            {'doi': '10.1/not-fetched', 'sources': []}]}
+
+        R.attach_paper_texts([card], paper_cache)
+
+        assert [c['has_text'] for c in card['candidates']] == [True, False]
