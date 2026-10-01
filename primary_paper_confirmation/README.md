@@ -64,10 +64,13 @@ A dandiset nobody has reviewed is therefore not searched at all.
 ## Clearing stale classifications
 
 Cached classifications are keyed by citing paper and dandiset, not by the paper
-the pair cites. A pair that rediscovery reaches through a different paper would
-be answered from the cache with the old paper in its prompt. Once, on each
-machine that holds a classification cache, copy the corpus before rediscovering,
-then delete those entries:
+the pair cites. After rediscovery, a pair reached through a different paper
+would be answered from the cache with the old paper in its prompt, and a pair no
+longer reached at all would still have its answer carried into the output by
+`--reclassify` or `--retry-errors`. The clearing step compares the corpus from
+before rediscovery with the one after and deletes the cached answers for both,
+so the old corpus has to be copied before rediscovery overwrites it. Once, on
+each machine that holds a classification cache:
 
 ```bash
 cp output/all_dandiset_papers_refreshed.json output/all_dandiset_papers_refreshed.before.json

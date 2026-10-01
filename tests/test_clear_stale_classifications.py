@@ -30,13 +30,14 @@ def new():
                   ('10.1/new', '000768', '10.1/right'))
 
 
-class TestChangedPairs:
-    def test_finds_only_pairs_in_both_that_cite_another_paper(self, old, new):
-        assert C.changed_pairs(old, new) == [('10.1/both', '000768')]
+class TestStalePairs:
+    def test_finds_pairs_dropped_or_citing_another_paper(self, old, new):
+        assert C.stale_pairs(old, new) == [('10.1/both', '000768'),
+                                           ('10.1/gone', '000768')]
 
 
 class TestDeleteCached:
-    def test_deletes_the_changed_pairs_cache_entries_only(self, tmp_path):
+    def test_deletes_the_stale_pairs_cache_entries_only(self, tmp_path):
         for doi in ('10.1/both', '10.1/same'):
             cache_path(tmp_path, doi, '000768').write_text('{}')
 
