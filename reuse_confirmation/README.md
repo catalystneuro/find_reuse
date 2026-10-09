@@ -239,6 +239,13 @@ file already has to do, since a paper reusing three datasets is three pairs.
 
 Both files are written by `src.review.merge_reviews`.
 
+## `review_findings.md`
+
+What the reviews say about where the classifier goes wrong, and the pipeline
+changes that follow from it. Written by hand from the tables that
+`src.review.analyze_reviews` prints, so it is as current as the last time
+somebody ran that and updated it.
+
 ## All of it is committed
 
 The reviews because they are irreplaceable, the assignments because they record
