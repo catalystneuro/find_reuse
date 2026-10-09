@@ -1096,6 +1096,29 @@ class TestBuildWorklist:
              'dandiset_name': 'second', 'primary_paper_doi': '10.1/primary-four'},
         ]
 
+    def test_a_doi_that_is_not_a_paper_is_never_asked_about(self, tmp_path):
+        work = self.build(tmp_path, [
+            {'dandiset_id': '000003', 'dandiset_name': 'only',
+             'citing_papers': [
+                 {'doi': '10.7554/elife.89421.1.sa2', 'title': 'Reviewer #1',
+                  'cited_paper_doi': '10.1/primary'},
+                 {'doi': '10.17605/osf.io/pbu8x', 'title': 'A registration',
+                  'cited_paper_doi': '10.1/primary'},
+                 {'doi': '10.7554/elife.89421', 'title': 'The paper',
+                  'cited_paper_doi': '10.1/primary'}]},
+        ])
+        assert [item['doi'] for item in work] == ['10.7554/elife.89421']
+
+    def test_a_direct_pair_on_a_review_doi_is_never_asked_about(self, tmp_path):
+        from src.shared import run_fulltext_classification as R
+        path = tmp_path / 'direct.json'
+        path.write_text(json.dumps({'classifications': [
+            {'citing_doi': '10.7554/elife.90944.2.sa3', 'dandiset_id': '000115'},
+            {'citing_doi': '10.7554/elife.90944', 'dandiset_id': '000115'}]}))
+
+        assert [item['doi'] for item in R.build_direct_worklist(path)] == [
+            '10.7554/elife.90944']
+
     def test_paper_citing_one_dandiset_yields_one_pair(self, tmp_path):
         work = self.build(tmp_path, [
             {'dandiset_id': '000003', 'dandiset_name': 'only',
