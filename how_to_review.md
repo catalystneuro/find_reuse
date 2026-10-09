@@ -104,6 +104,13 @@ mark it and move on.** When it is not enough, open the citing paper, the cited
 paper or the dataset from the links on the card. If a paper is paywalled, **Raw
 Text** is the copy we fetched.
 
+Where a quote cites a reference by number, as in `[28]`, the entry for that
+number is shown under the quote. An entry marked **paper text** was read from
+the reference list of the text the quote came from. One marked **Crossref** is
+from the list the publisher deposited, which is occasionally numbered one off
+from the article, so check the paper when the entry looks unrelated to the
+quote.
+
 Review without AI assistance. Read the card, the paper, its code and the
 dataset yourself, and write the note from what you found there. These reviews
 are the ground truth the classifier is measured against, so every call rests on
