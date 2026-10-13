@@ -74,36 +74,62 @@ authors published the dataset or reused it.
 
 ## Running it
 
-Discovery for the indirect pathway, which re-queries OpenAlex for citing papers:
+The steps run in this order, because each reads what the one before it wrote.
+The indirect pathway searches from each dandiset's primary papers, so those have
+to be settled before it runs.
 
-```bash
-python scripts/rediscover_citing_papers.py --workers 8
-```
+1. Discover direct-pathway papers, which name a dandiset identifier outright:
 
-OpenAlex enforces a daily quota and answers a spent one with a `Retry-After`
-measured in hours. The script checks before starting and aborts rather than
-produce a silently truncated result.
+   ```bash
+   python -m src.direct_pipeline.find_reuse --discover \
+       --max-results 1000 --archives "DANDI Archive" --deduplicate \
+       -o output/results_dandi_openalex.json
+   ```
 
-Discovery for the direct pathway:
+2. Classify them. PRIMARY calls here are evidence for which paper describes a
+   dandiset:
 
-```bash
-python -m src.direct_pipeline.find_reuse --discover \
-    --max-results 1000 --archives "DANDI Archive" --deduplicate \
-    -o output/results_dandi_openalex.json
-```
+   ```bash
+   python -m src.shared.run_fulltext_classification --mode direct \
+       --results-file output/results_dandi_openalex.json \
+       --cache-dir .fulltext_direct_cache \
+       -o output/fulltext_direct_openalex.json --limit 2000 --workers 24
+   ```
 
-Classification, indirect then direct:
+3. Collect each dandiset's primary papers from its DANDI metadata, and have a
+   model pick one where the metadata names none:
 
-```bash
-python -m src.shared.run_fulltext_classification \
-    --results-file output/all_dandiset_papers_refreshed.json \
-    --limit 40000 --workers 96
+   ```bash
+   python -m src.indirect_pipeline.dandi_primary_papers --citations \
+       -o output/dandi_primary_papers_results.json
+   python -m src.direct_pipeline.find_missing_papers --workers 8
+   python -m src.direct_pipeline.merge_paper_sources -o output/all_dandiset_papers.json
+   ```
 
-python -m src.shared.run_fulltext_classification --mode direct \
-    --results-file output/results_dandi_openalex.json \
-    --cache-dir .fulltext_direct_cache \
-    -o output/fulltext_direct_openalex.json --limit 2000 --workers 24
-```
+4. Confirm the model's picks by hand. See
+   [primary_paper_confirmation/README.md](primary_paper_confirmation/README.md).
+
+   ```bash
+   python -m src.review.build_primary_candidates
+   python -m src.review.run_primary_review
+   ```
+
+5. Discover indirect-pathway papers, which cite a confirmed or declared primary
+   paper, and classify them:
+
+   ```bash
+   python scripts/rediscover_citing_papers.py --workers 8
+
+   python -m src.shared.run_fulltext_classification \
+       --results-file output/all_dandiset_papers_refreshed.json \
+       --limit 40000 --workers 96
+   ```
+
+   OpenAlex enforces a daily quota and answers a spent one with a `Retry-After`
+   measured in hours. The rediscovery script checks before starting and aborts
+   rather than produce a silently truncated result.
+
+6. Confirm reuse by hand: see [how_to_review.md](how_to_review.md).
 
 `--limit` counts (paper, dandiset) pairs, and the corpus currently holds about
 28,000 of them, so keep the limit above that: the output file is written from
@@ -124,9 +150,6 @@ python scripts/build_reuse_report_docx.py -o ~/Desktop/dandi_reuse_report.docx
 It recomputes its figures from the classification outputs, so it cannot drift
 from the data.
 
-Checking those classifications by hand is its own job, with its own page and its
-own answer files: see [how_to_review.md](how_to_review.md).
-
 ## Corrections you should know about
 
 `config/primary_paper_overrides.json` corrects the primary paper attributed to
@@ -135,6 +158,13 @@ as a candidate reuse of that dandiset, so a wrong primary paper adds every paper
 citing an unrelated work. Those four accounted for 917 spurious links. Each
 entry records the reasoning, so they can be revisited when DANDI's own metadata
 changes.
+
+Where DANDI names no paper, a model picked one, and most of its picks are DOIs
+of some other paper. Rediscovery searches only from the picks a person
+confirmed, which are recorded in
+`primary_paper_confirmation/confirmed_primary_papers.json`. A dandiset whose pick
+nobody confirmed is left out. See
+[primary_paper_confirmation/README.md](primary_paper_confirmation/README.md).
 
 `src/indirect_pipeline/validate_description_dois.py` reads a dandiset's
 description and decides whether a DOI scraped from it describes the dataset or

@@ -48,6 +48,8 @@ from src.indirect_pipeline.openalex import (
     _fetch_full_text_only,
 )
 from src.direct_pipeline.find_reuse import ArchiveFinder
+from src.review.primary_papers import (apply_confirmed_primary_papers,
+                                       load_confirmed)
 
 SRC = REPO / 'output/all_dandiset_papers.json'
 DISCOVERY = REPO / 'output/all_dandiset_papers_discovered.json'
@@ -74,8 +76,12 @@ def openalex_is_available(session) -> bool:
     return False
 
 
-def run_discovery() -> dict:
-    data = json.loads(SRC.read_text())
+def run_discovery(source: Path) -> dict:
+    data = json.loads(source.read_text())
+    # A model's pick of a dandiset's paper is searched from only once a
+    # reviewer has confirmed it.
+    data['results'] = apply_confirmed_primary_papers(data['results'],
+                                                     load_confirmed())
     results = data['results']
 
     known = {p['doi'] for r in results for p in r.get('citing_papers', [])
@@ -112,6 +118,8 @@ def cached(doi: str) -> bool:
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--source', type=Path, default=SRC,
+                        help='The corpus whose primary papers discovery searches from.')
     parser.add_argument('--workers', type=int, default=8)
     parser.add_argument('--discovery-only', action='store_true',
                         help='Stop after discovery, before fetching any text.')
@@ -123,7 +131,7 @@ def main():
         print(f"reusing saved discovery from {DISCOVERY.name}", file=sys.stderr)
         data = json.loads(DISCOVERY.read_text())
     else:
-        data = run_discovery()
+        data = run_discovery(args.source)
 
     results = data['results']
     known = set(data.get('_discovery', {}).get('known_before', []))

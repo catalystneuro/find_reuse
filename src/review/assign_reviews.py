@@ -50,7 +50,7 @@ PATHWAYS = ('indirect', 'direct')
 # round is cut on when what needs checking is the pairing rather than the reuse.
 PAPER_LINKS = ('dcite:IsDescribedBy', 'dcite:Describes', 'dcite:IsSupplementTo',
                'dcite:IsPublishedIn', 'description', 'override',
-               'llm_identified', 'unknown')
+               'confirmed', 'llm_identified', 'unknown')
 
 # The ones a person put in the metadata, which is the cut the card already draws
 # and the one worth naming in a word. What is left over is not its complement:
@@ -298,10 +298,10 @@ def main():
                              'the round to cut when what needs checking is the '
                              'pairing itself: DANDI named no paper, so a model '
                              'picked one. "declared" is the shorthand for the '
-                             'rest of the DataCite relations, the description '
-                             'and an override -- the ones a person put in the '
-                             'metadata. Direct pairs have no cited paper and '
-                             'match none of these. '
+                             'rest of the DataCite relations, the description, '
+                             'an override and a paper confirmed in primary-paper '
+                             'review -- the ones a person stands behind. Direct '
+                             'pairs have no cited paper and match none of these. '
                              f'One of: {", ".join([DECLARED, *PAPER_LINKS])}.')
     parser.add_argument('--dandi-source', choices=['possible', 'evidenced'],
                         help='Where the data came from. "possible" keeps pairs '
