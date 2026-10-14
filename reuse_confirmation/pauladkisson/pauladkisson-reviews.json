@@ -279,12 +279,12 @@
         "call": "reuse"
       },
       "000129": {
-        "note": "This paper clearly reused data from Makin et al. 2018. Technically, that paper is associated with two DANDI sets: 000129 and 001055. However, 001055 NeuroTask is a benchmark that integrates six other datasets, likely including 000129, making that DANDI set the appropriate reference here. ",
-        "call": "reuse"
+        "note": "This paper clearly reused data from Makin et al. 2018. Technically, that paper is associated with two DANDI sets: 000129 and 001055, making this call Ambiguous Reuse.",
+        "call": "ambiguous_reuse"
       },
       "001055": {
-        "note": "This paper clearly reused data from Makin et al. 2018. Technically, that paper is associated with two DANDI sets: 000129 and 001055. However, 001055 NeuroTask is a benchmark that integrates six other datasets, likely including 000129, making that DANDI set the appropriate reference here. ",
-        "call": "neither"
+        "note": "This paper clearly reused data from Makin et al. 2018. Technically, that paper is associated with two DANDI sets: 000129 and 001055, making this call Ambiguous Reuse.",
+        "call": "ambiguous_reuse"
       }
     },
     "10.1038/s41467-024-53232-2": {
@@ -343,7 +343,8 @@
         "note": "This paper definitely used data from DANDISET 000128. It is possible that they used other MC_Maze datasets, but not likely (and not evidenced). "
       },
       "000129": {
-        "call": "reuse"
+        "call": "ambiguous_reuse",
+        "note": "This paper clearly reused data from Makin et al. 2018. Technically, that paper is associated with two DANDI sets: 000129 and 001055, making this call Ambiguous Reuse."
       }
     },
     "10.1101/2022.11.11.516161": {
@@ -706,7 +707,8 @@
     },
     "10.1038/s41551-023-01106-1": {
       "000129": {
-        "call": "reuse"
+        "call": "ambiguous_reuse",
+        "note": "This paper clearly reused data from Makin et al. 2018. Technically, that paper is associated with two DANDI sets: 000129 and 001055, making this call Ambiguous Reuse."
       }
     },
     "10.1038/s41562-024-01983-9": {
@@ -866,8 +868,8 @@
     },
     "10.1038/s41598-021-98021-9": {
       "000129": {
-        "note": "This paper definitely reused data from non-human primate reaching with multi-channel sensory-motor cortex electrophysiology, but it looks like they got it from Zenodo rather than DANDI.",
-        "call": "reuse"
+        "note": "This paper clearly reused data from Makin et al. 2018. Technically, that paper is associated with two DANDI sets: 000129 and 001055, making this call Ambiguous Reuse.",
+        "call": "ambiguous_reuse"
       }
     },
     "10.1038/s41598-024-53907-2": {
@@ -929,12 +931,14 @@
     },
     "10.1088/1741-2552/accece": {
       "000129": {
-        "call": "reuse"
+        "call": "ambiguous_reuse",
+        "note": "This paper clearly reused data from Makin et al. 2018. Technically, that paper is associated with two DANDI sets: 000129 and 001055, making this call Ambiguous Reuse."
       }
     },
     "10.1088/1741-2552/ad038d": {
       "000129": {
-        "call": "reuse"
+        "call": "ambiguous_reuse",
+        "note": "This paper clearly reused data from Makin et al. 2018. Technically, that paper is associated with two DANDI sets: 000129 and 001055, making this call Ambiguous Reuse."
       }
     },
     "10.1088/1742-5468/abffd5": {
@@ -984,7 +988,8 @@
     },
     "10.1101/2021.09.03.458628": {
       "000129": {
-        "call": "reuse"
+        "call": "ambiguous_reuse",
+        "note": "This paper clearly reused data from Makin et al. 2018. Technically, that paper is associated with two DANDI sets: 000129 and 001055, making this call Ambiguous Reuse."
       }
     },
     "10.1101/2021.09.10.459775": {
@@ -1095,12 +1100,14 @@
     },
     "10.1101/2023.01.10.523472": {
       "000129": {
-        "call": "reuse"
+        "call": "ambiguous_reuse",
+        "note": "This paper clearly reused data from Makin et al. 2018. Technically, that paper is associated with two DANDI sets: 000129 and 001055, making this call Ambiguous Reuse."
       }
     },
     "10.1101/2023.03.13.532479": {
       "000129": {
-        "call": "reuse"
+        "call": "ambiguous_reuse",
+        "note": "This paper clearly reused data from Makin et al. 2018. Technically, that paper is associated with two DANDI sets: 000129 and 001055, making this call Ambiguous Reuse."
       }
     },
     "10.1101/2023.03.21.533548": {
@@ -1415,7 +1422,8 @@
     },
     "10.1109/access.2022.3159225": {
       "000129": {
-        "call": "reuse"
+        "call": "ambiguous_reuse",
+        "note": "This paper clearly reused data from Makin et al. 2018. Technically, that paper is associated with two DANDI sets: 000129 and 001055, making this call Ambiguous Reuse."
       }
     },
     "10.1109/embc48229.2022.9871085": {
@@ -1430,11 +1438,12 @@
     },
     "10.1109/jsen.2024.3487021": {
       "000129": {
-        "call": "reuse"
+        "call": "ambiguous_reuse",
+        "note": "This paper clearly reused data from Makin et al. 2018. Technically, that paper is associated with two DANDI sets: 000129 and 001055, making this call Ambiguous Reuse."
       },
       "001055": {
-        "note": "This DANDI set shares a primary paper with DANDI set 000129, which I am calling the reused DANDI set for this citing paper. ",
-        "call": "neither"
+        "call": "ambiguous_reuse",
+        "note": "This paper clearly reused data from Makin et al. 2018. Technically, that paper is associated with two DANDI sets: 000129 and 001055, making this call Ambiguous Reuse."
       }
     },
     "10.1126/science.adk8261": {
@@ -1558,7 +1567,8 @@
     },
     "10.21203/rs.3.rs-4102129": {
       "000129": {
-        "call": "reuse"
+        "call": "ambiguous_reuse",
+        "note": "This paper clearly reused data from Makin et al. 2018. Technically, that paper is associated with two DANDI sets: 000129 and 001055, making this call Ambiguous Reuse."
       }
     },
     "10.21203/rs.3.rs-5731906": {
@@ -1609,11 +1619,12 @@
     },
     "10.3390/brainsci15030221": {
       "000129": {
-        "call": "reuse"
+        "call": "ambiguous_reuse",
+        "note": "This paper clearly reused data from Makin et al. 2018. Technically, that paper is associated with two DANDI sets: 000129 and 001055, making this call Ambiguous Reuse."
       },
       "001055": {
-        "note": "This paper only reused data from one source, which is cited in the paper that corresponds to Dandiset 000129.",
-        "call": "neither"
+        "call": "ambiguous_reuse",
+        "note": "This paper clearly reused data from Makin et al. 2018. Technically, that paper is associated with two DANDI sets: 000129 and 001055, making this call Ambiguous Reuse."
       }
     },
     "10.3390/e25071026": {
@@ -1730,7 +1741,8 @@
     },
     "10.7554/elife.87881": {
       "000129": {
-        "call": "reuse"
+        "call": "ambiguous_reuse",
+        "note": "This paper clearly reused data from Makin et al. 2018. Technically, that paper is associated with two DANDI sets: 000129 and 001055, making this call Ambiguous Reuse."
       }
     },
     "10.7554/elife.87881.3.sa3": {
