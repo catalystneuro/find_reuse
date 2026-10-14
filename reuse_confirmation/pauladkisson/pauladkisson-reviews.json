@@ -532,10 +532,11 @@
     },
     "10.1101/2023.03.02.530774": {
       "000008": {
-        "call": "reuse"
+        "call": "reuse",
+        "note": "This paper names Dandiset 000008 by name, indicating that it reused that Dandiset rather than 000035. "
       },
       "000035": {
-        "note": "This paper reused data from Dandiset 000008. ",
+        "note": "This paper names Dandiset 000008 by name, indicating that it reused that Dandiset rather than 000035.",
         "call": "neither"
       }
     },
@@ -562,12 +563,12 @@
     },
     "10.1007/s12264-022-00983-x": {
       "000008": {
-        "call": "reuse",
-        "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035). Since Dandiset 000008 shares its title with the cited paper, I am making the somewhat arbitrary call that that one will count for the reuse. "
+        "call": "ambiguous_reuse",
+        "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035)."
       },
       "000035": {
-        "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035). Since Dandiset 000008 shares its title with the cited paper, I am making the somewhat arbitrary call that that one will count for the reuse. ",
-        "call": "neither"
+        "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035).",
+        "call": "ambiguous_reuse"
       }
     },
     "10.1016/j.cell.2022.02.006": {
@@ -606,11 +607,12 @@
     },
     "10.1016/j.envint.2026.110151": {
       "000008": {
-        "call": "reuse"
+        "call": "ambiguous_reuse",
+        "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035)."
       },
       "000035": {
         "note": "This paper definitely reused data from Scala et al. (2021), but it is shared with Dandiset 000008. Since Dandiset 000008 has a title that matches the paper, I am attributing the reuse to that Dandiset instead of 000035.",
-        "call": "neither"
+        "call": "ambiguous_reuse"
       }
     },
     "10.1016/j.isci.2023.107808": {
@@ -665,7 +667,8 @@
     },
     "10.1016/j.patter.2023.100847": {
       "000035": {
-        "call": "reuse"
+        "call": "ambiguous_reuse",
+        "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035)."
       }
     },
     "10.1016/j.pneurobio.2024.102672": {
@@ -681,10 +684,12 @@
     },
     "10.1038/s41467-023-39424-2": {
       "000008": {
-        "call": "reuse"
+        "call": "ambiguous_reuse",
+        "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035)."
       },
       "000035": {
-        "call": "reuse"
+        "call": "ambiguous_reuse",
+        "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035)."
       }
     },
     "10.1038/s41467-024-55315-6": {
@@ -885,12 +890,12 @@
     },
     "10.1038/s42256-023-00663-z": {
       "000008": {
-        "call": "reuse",
-        "note": "This paper definitely reused data from Scala et al. (2021), but it is shared with Dandiset 000008. Since Dandiset 000008 has a title that matches the paper, I am attributing the reuse to that Dandiset instead of 000035."
+        "call": "ambiguous_reuse",
+        "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035)."
       },
       "000035": {
-        "note": "This paper definitely reused data from Scala et al. (2021), but it is shared with Dandiset 000008. Since Dandiset 000008 has a title that matches the paper, I am attributing the reuse to that Dandiset instead of 000035.",
-        "call": "neither"
+        "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035).",
+        "call": "ambiguous_reuse"
       }
     },
     "10.1038/s43588-025-00911-9": {
@@ -990,7 +995,8 @@
     },
     "10.1101/2021.10.10.463703": {
       "000008": {
-        "call": "reuse"
+        "call": "ambiguous_reuse",
+        "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035)."
       }
     },
     "10.1101/2021.10.30.466617": {
@@ -1027,11 +1033,12 @@
     },
     "10.1101/2022.05.19.492525": {
       "000008": {
-        "call": "reuse"
+        "call": "ambiguous_reuse",
+        "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035)."
       },
       "000035": {
-        "note": "This paper definitely reused data from Scala et al. (2021), but it is shared with Dandiset 000008. Since Dandiset 000008 has a title that matches the paper, I am attributing the reuse to that Dandiset instead of 000035.",
-        "call": "neither"
+        "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035).",
+        "call": "ambiguous_reuse"
       }
     },
     "10.1101/2022.06.10.495710": {
@@ -1061,12 +1068,12 @@
     },
     "10.1101/2022.10.15.512388": {
       "000008": {
-        "note": "This paper definitely reused data from Scala et al. (2021), but it is shared with Dandiset 000008. Since Dandiset 000008 has a title that matches the paper, I am attributing the reuse to that Dandiset instead of 000035.",
-        "call": "reuse"
+        "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035).",
+        "call": "ambiguous_reuse"
       },
       "000035": {
-        "note": "This paper definitely reused data from Scala et al. (2021), but it is shared with Dandiset 000008. Since Dandiset 000008 has a title that matches the paper, I am attributing the reuse to that Dandiset instead of 000035.",
-        "call": "neither"
+        "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035).",
+        "call": "ambiguous_reuse"
       }
     },
     "10.1101/2022.12.06.519376": {
@@ -1317,28 +1324,28 @@
     },
     "10.1101/2025.03.25.645208": {
       "000008": {
-        "note": "This paper definitely reused data from Scala et al. (2021), but it is shared with Dandiset 000008. Since Dandiset 000008 has a title that matches the paper, I am attributing the reuse to that Dandiset instead of 000035.",
-        "call": "reuse"
+        "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035).",
+        "call": "ambiguous_reuse"
       },
       "000035": {
-        "note": "This paper definitely reused data from Scala et al. (2021), but it is shared with Dandiset 000008. Since Dandiset 000008 has a title that matches the paper, I am attributing the reuse to that Dandiset instead of 000035.",
-        "call": "neither"
+        "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035).",
+        "call": "ambiguous_reuse"
       }
     },
     "10.1371/journal.pcbi.1014106": {
       "000008": {
-        "note": "This paper definitely reused data from Scala et al. (2021), but it is shared with Dandiset 000008. Since Dandiset 000008 has a title that matches the paper, I am attributing the reuse to that Dandiset instead of 000035.",
-        "call": "reuse"
+        "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035).",
+        "call": "ambiguous_reuse"
       },
       "000035": {
-        "note": "This paper definitely reused data from Scala et al. (2021), but it is shared with Dandiset 000008. Since Dandiset 000008 has a title that matches the paper, I am attributing the reuse to that Dandiset instead of 000035.",
-        "call": "neither"
+        "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035).",
+        "call": "ambiguous_reuse"
       }
     },
     "10.64898/2026.03.05.709819": {
       "000008": {
-        "note": "This paper definitely reused data from Scala et al. (2021), but it is shared with Dandiset 000008. Since Dandiset 000008 has a title that matches the paper, I am attributing the reuse to that Dandiset instead of 000035.",
-        "call": "reuse"
+        "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035).",
+        "call": "ambiguous_reuse"
       }
     },
     "10.1101/2025.04.25.650191": {
