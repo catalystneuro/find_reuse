@@ -244,16 +244,20 @@
         "call": "reuse"
       },
       "000128": {
-        "call": "reuse"
+        "call": "reuse",
+        "note": "This paper lists all eight empirical datasets by name, making it clear that it used data from all of the Dandisets in the MC Maze family, including 000128 specifically."
       },
       "000138": {
-        "call": "reuse"
+        "call": "reuse",
+        "note": "This paper lists all eight empirical datasets by name, making it clear that it used data from all of the Dandisets in the MC Maze family, including 000138 specifically."
       },
       "000139": {
-        "call": "reuse"
+        "call": "reuse",
+        "note": "This paper lists all eight empirical datasets by name, making it clear that it used data from all of the Dandisets in the MC Maze family, including 000139 specifically."
       },
       "000140": {
-        "call": "reuse"
+        "call": "reuse",
+        "note": "This paper lists all eight empirical datasets by name, making it clear that it used data from all of the Dandisets in the MC Maze family, including 000140 specifically."
       }
     },
     "10.7554/elife.89421.1.sa2": {
