@@ -31,8 +31,9 @@ from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
 
+from src.direct_pipeline.deduplicate_preprints import published_versions
 from src.review import paper_metadata
-from src.shared.run_fulltext_classification import primary_paper_index
+from src.shared.run_fulltext_classification import is_paper, primary_paper_index
 
 # What it takes for a passage to be talking about DANDI at all.
 DANDI_MARKER = re.compile(r'dandiarchive\.org|10\.48324|\bDANDI\b|dandiset', re.I)
@@ -112,7 +113,7 @@ def corpus_papers(results_path: Path) -> tuple[dict, dict, dict, dict]:
     return paper_titles, dandiset_names, declared, origins
 
 
-def merge_by_pair(inputs: list[str]) -> dict:
+def merge_by_pair(inputs: list[str], published: dict | None = None) -> dict:
     """
     One row per (paper, dataset), which is the unit the classifier answers about.
 
@@ -123,17 +124,36 @@ def merge_by_pair(inputs: list[str]) -> dict:
 
     Only the fields something downstream reads are kept: what review shows, and
     what a round is cut on.
+
+    A pair on a DOI that is not a paper is left out. So is a pair on a preprint
+    whose published version was classified for the same dandiset, whatever that
+    classification was: the published paper is the version that counts, and
+    keeping both has one paper reviewed and counted twice. `published` maps a
+    preprint's DOI to the DOI it was published under.
     """
     loaded = [json.loads(Path(p).read_text()) for p in inputs]
     known = {r['citing_doi'] for d in loaded for r in d['classifications']}
+    published = {preprint.lower(): doi.lower()
+                 for preprint, doi in (published or {}).items()}
+    # An ERROR says nothing about the published version, so it does not stand
+    # in for one.
+    classified = {(canonical_doi(r['citing_doi'], known).lower(),
+                   r.get('dandiset_id') or '')
+                  for d in loaded for r in d['classifications']
+                  if r.get('classification') != 'ERROR'}
 
     merged: dict = {}
     for data in loaded:
         for r in data['classifications']:
-            if r.get('classification') != 'REUSE':
+            if r.get('classification') != 'REUSE' or not is_paper(r['citing_doi']):
                 continue
             doi = canonical_doi(r['citing_doi'], known)
             dandiset = r.get('dandiset_id') or ''
+            final = (published.get(r['citing_doi'].lower())
+                     or published.get(doi.lower()))
+            if final and canonical_doi(final, known) != doi.lower() and (
+                    canonical_doi(final, known), dandiset) in classified:
+                continue
             row = merged.setdefault((doi, dandiset), {
                 'doi': doi, 'dandiset': dandiset, 'fetched_doi': '',
                 'title': '', 'reasoning': '', 'quotes': [], 'source_quotes': [],
@@ -340,9 +360,10 @@ def attach_paper_metadata(rows: list[dict], cache_path: Path) -> None:
 
 def build_candidates(inputs: list[str], results_path: Path,
                      direct_results_path: Path,
-                     paper_metadata_cache: Path) -> list[dict]:
+                     paper_metadata_cache: Path,
+                     published: dict | None = None) -> list[dict]:
     """Every REUSE pair, carrying everything review and assignment need."""
-    rows = [finalize(row) for row in merge_by_pair(inputs).values()]
+    rows = [finalize(row) for row in merge_by_pair(inputs, published).values()]
     rows.sort(key=lambda r: (r['doi'], r['dandiset']))
     attach_dandiset_names(rows, results_path)
     attach_missing_titles(rows, direct_results_path)
@@ -435,8 +456,12 @@ def main():
                         help='Direct discovery output, for the titles it kept.')
     args = parser.parse_args()
 
+    reuse_dois = {r['citing_doi'] for path in args.input
+                  for r in json.loads(Path(path).read_text())['classifications']
+                  if r.get('classification') == 'REUSE'}
     pairs = build_candidates(args.input, Path(args.results_file),
-                             Path(args.direct_results_file), PAPER_METADATA_CACHE)
+                             Path(args.direct_results_file), PAPER_METADATA_CACHE,
+                             published_versions(reuse_dois))
     changed = write_candidates(pairs, args.input, CANDIDATES_FILE)
 
     indirect = sum(1 for p in pairs if p['pathway'] == 'indirect')

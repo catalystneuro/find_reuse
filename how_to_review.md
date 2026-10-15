@@ -29,6 +29,11 @@ python -m src.review.build_candidates \
     -i output/fulltext_direct_openalex.json
 ```
 
+The list leaves out pairs on a DOI that is not a paper (an eLife review or
+assessment, an OSF registration) and pairs on a preprint whose published version
+was classified for the same dandiset. Preprints are matched to their published
+versions through bioRxiv and OpenAlex, cached in `.preprint_doi_map.json`.
+
 ## 3. Assign a round
 
 A new reviewer goes into `reuse_confirmation/reviewers.json` first, or they

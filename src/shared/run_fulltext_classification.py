@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import concurrent.futures
 import json
+import re
 import sys
 import threading
 import time
@@ -101,6 +102,18 @@ def select_with_full_text(work: list[dict], limit: int, paper_cache: str,
     return keep
 
 
+# A DOI minted for something published alongside a paper, which discovery
+# returns as if it were one: an eLife assessment, review or author response
+# (.sa0 to .sa3), or an OSF registration. Reviewers rejected every pair built
+# on one.
+NOT_A_PAPER = re.compile(r'\.sa\d+$|^10\.17605/osf\.io/', re.I)
+
+
+def is_paper(doi: str) -> bool:
+    """Whether a DOI names a paper, as far as its form can say."""
+    return not NOT_A_PAPER.search(doi)
+
+
 def build_worklist(results_path: Path) -> list[dict]:
     """
     Build the worklist: one item per (citing paper, dandiset) pair.
@@ -124,7 +137,7 @@ def build_worklist(results_path: Path) -> list[dict]:
         dandiset_id = ds.get('dandiset_id', '')
         for paper in ds.get('citing_papers', []):
             doi = paper.get('doi')
-            if not doi or (doi, dandiset_id) in seen:
+            if not doi or not is_paper(doi) or (doi, dandiset_id) in seen:
                 continue
             seen.add((doi, dandiset_id))
             work.append({
@@ -154,7 +167,7 @@ def build_direct_worklist(path: Path) -> list[dict]:
         # old label so the two methods can be compared.
         for entry in data['classifications']:
             doi = entry.get('citing_doi')
-            if not doi:
+            if not doi or not is_paper(doi):
                 continue
             work.append({
                 'doi': doi,
@@ -171,7 +184,7 @@ def build_direct_worklist(path: Path) -> list[dict]:
         # pattern-matching artifact rather than assuming the reference is real.
         for entry in data.get('results', []):
             doi = entry.get('doi')
-            if not doi:
+            if not doi or not is_paper(doi):
                 continue
             for archive, info in (entry.get('archives') or {}).items():
                 if archive != DIRECT_ARCHIVE:

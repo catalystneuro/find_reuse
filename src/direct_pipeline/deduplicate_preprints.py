@@ -24,11 +24,15 @@ import requests
 
 CACHE_FILE = Path(".preprint_doi_map.json")
 
+# bioRxiv and medRxiv moved from 10.1101 to 10.64898 in late 2025.
+BIORXIV_PREFIXES = ("10.1101/", "10.64898/")
+
 
 def is_preprint_doi(doi):
     """Check if a DOI is from a preprint server."""
     doi_lower = doi.lower()
-    return ("10.1101/" in doi_lower or "arxiv" in doi_lower
+    return (any(prefix in doi_lower for prefix in BIORXIV_PREFIXES)
+            or "arxiv" in doi_lower
             or "10.21203/" in doi_lower or "10.2139/" in doi_lower)
 
 
@@ -59,7 +63,7 @@ def resolve_preprint_doi(preprint_doi, session, cache):
     doi_lower = preprint_doi.lower()
 
     # bioRxiv / medRxiv API
-    if "10.1101/" in doi_lower:
+    if any(prefix in doi_lower for prefix in BIORXIV_PREFIXES):
         for server in ["biorxiv", "medrxiv"]:
             try:
                 resp = session.get(
@@ -100,6 +104,28 @@ def resolve_preprint_doi(preprint_doi, session, cache):
 
     cache[preprint_doi] = published_doi
     return published_doi
+
+
+def published_versions(dois):
+    """Map each preprint among `dois` to its published DOI, where it has one.
+
+    Preprints not yet in the cache are looked up and the cache is saved, so a
+    second call for the same DOIs makes no requests.
+    """
+    cache = _load_doi_cache()
+    missing = sorted(doi for doi in set(dois)
+                     if is_preprint_doi(doi) and doi not in cache)
+    if missing:
+        session = requests.Session()
+        session.headers.update({"User-Agent": "FindReuse/1.0"})
+        try:
+            for i, doi in enumerate(missing, 1):
+                print(f"Resolving preprint {i}/{len(missing)}: {doi}", file=sys.stderr)
+                resolve_preprint_doi(doi, session, cache)
+                time.sleep(0.05)
+        finally:
+            _save_doi_cache(cache)
+    return {doi: cache[doi] for doi in dois if cache.get(doi)}
 
 
 def deduplicate(classifications, dry_run=False):

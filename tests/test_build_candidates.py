@@ -384,6 +384,91 @@ class TestAttachDandisetNames:
         assert rows[0]['dandiset_name'] == ''
 
 
+class TestNotAPaper:
+    def test_an_elife_review_is_not_a_candidate(self, tmp_path):
+        path = tmp_path / 'c.json'
+        path.write_text(json.dumps({'classifications': [
+            classification('10.7554/elife.89421.1.sa2', '000128', 'a passage'),
+            classification('10.7554/elife.89421', '000128', 'a passage'),
+        ]}))
+
+        assert list(B.merge_by_pair([str(path)])) == [('10.7554/elife.89421', '000128')]
+
+    def test_an_osf_registration_is_not_a_candidate(self, tmp_path):
+        path = tmp_path / 'c.json'
+        path.write_text(json.dumps({'classifications': [
+            classification('10.17605/osf.io/pbu8x', '001075', 'a passage'),
+        ]}))
+
+        assert B.merge_by_pair([str(path)]) == {}
+
+
+class TestPublishedPreprints:
+    """A preprint gives way to its published version where both were classified."""
+
+    PUBLISHED = {'10.1101/2023.03.01.530616': '10.1038/S41593-024-01626-2'}
+
+    def merged(self, tmp_path, *classifications):
+        path = tmp_path / 'c.json'
+        path.write_text(json.dumps({'classifications': list(classifications)}))
+        return sorted(B.merge_by_pair([str(path)], self.PUBLISHED))
+
+    def test_the_published_version_is_the_one_kept(self, tmp_path):
+        assert self.merged(
+            tmp_path,
+            classification('10.1101/2023.03.01.530616', '000128', 'a passage'),
+            classification('10.1038/s41593-024-01626-2', '000128', 'a passage'),
+        ) == [('10.1038/s41593-024-01626-2', '000128')]
+
+    def test_a_published_version_that_only_mentions_still_decides(self, tmp_path):
+        assert self.merged(
+            tmp_path,
+            classification('10.1101/2023.03.01.530616', '000128', 'a passage'),
+            classification('10.1038/s41593-024-01626-2', '000128', 'a passage',
+                           classification='MENTION'),
+        ) == []
+
+    def test_a_preprint_stands_where_its_published_version_was_not_classified(
+            self, tmp_path):
+        assert self.merged(
+            tmp_path,
+            classification('10.1101/2023.03.01.530616', '000128', 'a passage'),
+            classification('10.1038/s41593-024-01626-2', '000409', 'a passage'),
+        ) == [('10.1038/s41593-024-01626-2', '000409'),
+              ('10.1101/2023.03.01.530616', '000128')]
+
+    def test_a_failed_classification_does_not_stand_in_for_the_published_version(
+            self, tmp_path):
+        assert self.merged(
+            tmp_path,
+            classification('10.1101/2023.03.01.530616', '000128', 'a passage'),
+            classification('10.1038/s41593-024-01626-2', '000128', 'a passage',
+                           classification='ERROR'),
+        ) == [('10.1101/2023.03.01.530616', '000128')]
+
+    def test_a_preprint_published_as_a_versioned_article_gives_way_to_it(
+            self, tmp_path):
+        path = tmp_path / 'c.json'
+        path.write_text(json.dumps({'classifications': [
+            classification('10.1101/2023.04.05.535396', '000128', 'a passage'),
+            classification('10.7554/elife.89421.3', '000128', 'a passage'),
+        ]}))
+
+        merged = B.merge_by_pair(
+            [str(path)], {'10.1101/2023.04.05.535396': '10.7554/eLife.89421.3'})
+
+        assert list(merged) == [('10.7554/elife.89421', '000128')]
+
+    def test_without_a_map_every_preprint_stands(self, tmp_path):
+        path = tmp_path / 'c.json'
+        path.write_text(json.dumps({'classifications': [
+            classification('10.1101/2023.03.01.530616', '000128', 'a passage'),
+            classification('10.1038/s41593-024-01626-2', '000128', 'a passage'),
+        ]}))
+
+        assert len(B.merge_by_pair([str(path)])) == 2
+
+
 class TestVersionedPreprints:
     """A preprint's versions count once, and each is still reachable."""
 
