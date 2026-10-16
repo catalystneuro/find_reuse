@@ -43,6 +43,7 @@ warnings.filterwarnings('ignore')
 from tqdm import tqdm
 
 from src.indirect_pipeline.openalex import (
+    OpenAlexError,
     _make_openalex_session,
     find_citing_papers,
     _fetch_full_text_only,
@@ -98,6 +99,10 @@ def run_discovery(source: Path) -> dict:
         result['citing_papers'] = []          # force a fresh answer
         try:
             find_citing_papers(result, session, max_citing_papers_per_dandiset=999)
+        except OpenAlexError:
+            # A refused request means the quota or the key is the problem, and
+            # every dataset after this one would be cut short the same way.
+            raise
         except Exception as e:
             errors += 1
             print(f"  discovery failed for {result.get('dandiset_id')}: {e}",

@@ -30,6 +30,7 @@ from tqdm import tqdm
 
 from fetch_paper import PaperFetcher
 from src.archives import ADAPTERS
+from src.indirect_pipeline.openalex import mount_openalex_key
 
 
 # Project root: three levels up from src/direct_pipeline/find_reuse.py
@@ -169,6 +170,7 @@ class ArchiveFinder:
         self.session.headers.update({
             'User-Agent': 'ArchiveFinder/1.0 (https://github.com/dandi; mailto:ben.dichter@catalystneuro.com)'
         })
+        mount_openalex_key(self.session)
 
         # Set cache directories
         if cache_dir:
