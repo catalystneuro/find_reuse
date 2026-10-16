@@ -26,7 +26,13 @@ Create `.env` in `find_reuse` with your own keys:
 
 ```
 OPENROUTER_API_KEY=sk-or-v1-...
+OPENALEX_API_KEY=...
 ```
+
+Discovery needs the OpenAlex key. Without one, OpenAlex gives every caller on
+an IP address a shared budget of $0.10 a day and refuses requests past it, so
+a discovery pass would stop on its first dataset. Keys are free at
+https://openalex.org/settings/api.
 
 The classifier reads `OPENROUTER_API_KEY` for the pinned model slug, and
 `DEEPSEEK_API_KEY` if you point it at DeepSeek's own API instead. Nothing in the

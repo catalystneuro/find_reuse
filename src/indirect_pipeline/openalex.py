@@ -14,9 +14,63 @@ from pathlib import Path
 from typing import Optional
 
 import requests
+from requests.adapters import HTTPAdapter
 from tqdm import tqdm
 
+REPO = Path(__file__).resolve().parents[2]
+OPENALEX = 'https://api.openalex.org/'
+
 PREPRINT_CACHE_DIR = Path('.preprint_cache')
+
+
+class OpenAlexError(RuntimeError):
+    """OpenAlex did not answer, so what it would have returned is unknown."""
+
+
+def get_openalex_api_key() -> str:
+    """
+    Read OPENALEX_API_KEY from the environment or the repository's .env.
+
+    Without a key, OpenAlex gives every caller on an IP address one shared
+    budget of $0.10 a day and answers past it with 401, which is far too little
+    for a discovery pass. Keys are free at https://openalex.org/settings/api.
+    """
+    key = os.environ.get('OPENALEX_API_KEY')
+    env_file = REPO / '.env'
+    if not key and env_file.exists():
+        for line in env_file.read_text().splitlines():
+            if line.startswith('OPENALEX_API_KEY='):
+                key = line.split('=', 1)[1].strip().strip('"').strip("'")
+                break
+    if not key:
+        raise OpenAlexError(
+            'OPENALEX_API_KEY is not set. Get a free key at '
+            'https://openalex.org/settings/api and add it to .env.')
+    return key
+
+
+class OpenAlexKeyAdapter(HTTPAdapter):
+    """
+    Adds the API key to each request it sends.
+
+    Mounted on the OpenAlex prefix only, because the same sessions also call
+    Crossref, Semantic Scholar, Europe PMC and publishers, which should not be
+    sent the key.
+    """
+
+    def __init__(self, api_key: str, **kwargs):
+        self.api_key = api_key
+        super().__init__(**kwargs)
+
+    def send(self, request, **kwargs):
+        request.prepare_url(request.url, {'api_key': self.api_key})
+        return super().send(request, **kwargs)
+
+
+def mount_openalex_key(session: requests.Session, **adapter_kwargs) -> None:
+    """Send the API key with every request this session makes to OpenAlex."""
+    session.mount(OPENALEX,
+                  OpenAlexKeyAdapter(get_openalex_api_key(), **adapter_kwargs))
 ALTERNATE_DOI_CACHE_FILE = Path('.alternate_doi_cache.json')
 
 
@@ -29,17 +83,21 @@ def get_openalex_paper_data(session: requests.Session, doi: str) -> Optional[dic
 
     try:
         resp = session.get(url, timeout=10)
-        if resp.status_code == 200:
-            data = resp.json()
-            return {
-                'publication_date': data.get('publication_date'),
-                'cited_by_count': data.get('cited_by_count', 0),
-                'openalex_id': data.get('id'),
-            }
-    except requests.RequestException:
-        pass
-
-    return None
+    except requests.RequestException as e:
+        raise OpenAlexError(f'OpenAlex request failed for {doi_clean}: {e}') from e
+    if resp.status_code == 404:
+        return None
+    if resp.status_code != 200:
+        # A refused request is not a paper OpenAlex lacks, and treating it as one
+        # would leave the dataset with no citing papers and no sign of why.
+        raise OpenAlexError(
+            f'OpenAlex returned HTTP {resp.status_code} for {doi_clean}')
+    data = resp.json()
+    return {
+        'publication_date': data.get('publication_date'),
+        'cited_by_count': data.get('cited_by_count', 0),
+        'openalex_id': data.get('id'),
+    }
 
 
 def _get_preprint_cache_path(doi: str) -> Path:
@@ -221,16 +279,11 @@ def get_citing_papers(
         try:
             resp = session.get(url, timeout=30)
             if resp.status_code != 200:
-                # Retries are already exhausted by this point. Returning the
-                # pages gathered so far is the only option, but it must not look
-                # like a complete result.
-                print(
-                    f"  WARNING: OpenAlex returned HTTP {resp.status_code} for "
-                    f"cites:{openalex_id}; citing-paper list is TRUNCATED at "
-                    f"{len(citing_papers)}",
-                    file=sys.stderr, flush=True,
-                )
-                break
+                # Retries are already exhausted by this point. The pages gathered
+                # so far are an incomplete list that would look complete.
+                raise OpenAlexError(
+                    f"OpenAlex returned HTTP {resp.status_code} for "
+                    f"cites:{openalex_id} after {len(citing_papers)} papers")
 
             data = resp.json()
             results = data.get('results', [])
@@ -264,13 +317,9 @@ def get_citing_papers(
             cursor = meta.get('next_cursor')
 
         except requests.RequestException as e:
-            print(
-                f"  WARNING: OpenAlex request failed for cites:{openalex_id} "
-                f"({type(e).__name__}); citing-paper list is TRUNCATED at "
-                f"{len(citing_papers)}",
-                file=sys.stderr, flush=True,
-            )
-            break
+            raise OpenAlexError(
+                f"OpenAlex request failed for cites:{openalex_id} after "
+                f"{len(citing_papers)} papers ({type(e).__name__})") from e
 
     return citing_papers
 
@@ -375,7 +424,6 @@ def _make_openalex_session() -> requests.Session:
     and the caller cannot tell a genuinely short result from a throttled one.
     Two consecutive discovery runs disagreed by 1,321 DOIs before this was added.
     """
-    from requests.adapters import HTTPAdapter
     from urllib3.util.retry import Retry
 
     class _CappedRetry(Retry):
@@ -417,6 +465,7 @@ def _make_openalex_session() -> requests.Session:
     adapter = HTTPAdapter(max_retries=retry)
     session.mount('https://', adapter)
     session.mount('http://', adapter)
+    mount_openalex_key(session, max_retries=retry)
     return session
 
 
