@@ -53,6 +53,7 @@ import requests
 
 from fetch_paper import TextCache
 
+from src.review import bibliography
 from src.review.build_candidates import CANDIDATES_FILE
 from src.review.reviewers import (REUSE_CONFIRMATION_DIR, REVIEWERS_FILE,
                                   assignment_path, assignment_paths,
@@ -214,6 +215,15 @@ CSS = PALETTE + """
   figure.q.not_found{border-left-color:var(--bad)}
   figure.q blockquote{margin:0;font-family:var(--serif);font-size:15px;line-height:1.55}
   figure.q figcaption{margin-top:7px}
+  /* What a bracketed number in the quote points at, set small under it so the
+     quote stays the thing being read. */
+  figure.q .refs{list-style:none;margin:7px 0 0;padding:0;font-size:12.5px;
+                 line-height:1.45;color:var(--muted)}
+  figure.q .refs li{display:flex;gap:8px;align-items:baseline;margin-top:3px}
+  figure.q .refs .n{flex:none;font-family:var(--mono);font-size:11.5px;color:var(--ink)}
+  figure.q .refs a{color:var(--accent);text-decoration:none;word-break:break-all}
+  figure.q .refs a:hover{text-decoration:underline}
+  figure.q .refs .origin{margin-left:4px;font-size:9.5px;padding:1px 6px}
   .tier{display:inline-flex;align-items:center;font-family:var(--mono);font-size:10.5px;
         letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;border-radius:5px;
         font-weight:600}
@@ -717,9 +727,33 @@ function datasetPanel(r){
     </div>`;
 }
 
+// A reference entry usually ends in its DOI, which is the quickest way to the
+// paper it names.
+const linkDois = s => s.replace(/\\b10\\.\\d{4,9}\\/[^\\s<>"]*[^\\s<>".,;)\\]]/g, doi =>
+  `<a href="https://doi.org/${encodeURI(doi)}" target="_blank"
+      rel="noopener">${doi}</a>`);
+
+// Where an entry was read from. The paper's own list is numbered as the quote
+// is; Crossref's is the list the publisher deposited, which usually is.
+const REF_SOURCES = {
+  text: ['paper text', 'From the reference list in the fetched text'],
+  crossref: ['Crossref', 'From the reference list deposited with Crossref, '
+                         + 'whose numbering can differ from the article\\u2019s'],
+};
+
+function refLine(ref){
+  const [label, title] = REF_SOURCES[ref.source];
+  return `<li><span class="n">[${ref.n}]</span>
+      <span>${linkDois(esc(ref.entry))}
+        <span class="origin" title="${esc(title)}">${label}</span></span></li>`;
+}
+
 function quoteBlock(q){
+  const refs = (q.refs || []).length
+    ? `<ol class="refs">${q.refs.map(refLine).join('')}</ol>` : '';
   return `<figure class="q ${q.tier}">
       <blockquote>&ldquo;${esc(q.q)}&rdquo;</blockquote>
+      ${refs}
       <figcaption><span class="tier ${q.tier}">${tierLabel(q.tier)}</span></figcaption>
     </figure>`;
 }
@@ -1534,6 +1568,44 @@ def attach_paper_texts(rows: list[dict], cache_dir: Path) -> None:
                                          and cache.get(row['cited_doi']))
 
 
+def attach_references(rows: list[dict], cache_dir: Path,
+                      references_cache: Path = bibliography.REFERENCES_CACHE) -> None:
+    """
+    Put the reference a quote cites by number under the quote.
+
+    The paper's own reference list answers where the fetched text has one.
+    Crossref is asked only about the papers whose text leaves a cited number
+    unanswered, which is most of them the first time and none of them after,
+    and its entries are kept only where the text numbers them the same way.
+    """
+    cache = text_cache(cache_dir)
+    cited: dict[str, set] = {}
+    for row in rows:
+        for quoted in row['quotes']:
+            cited.setdefault(row['fetched_doi'], set()).update(
+                bibliography.cited_numbers(quoted['q']))
+
+    texts = {doi: tuple((cache.get(doi) or ('', ''))[:2])
+             for doi, numbers in cited.items() if numbers}
+    own = {doi: bibliography.text_entries(bibliography.own_text(text, source))
+           for doi, (text, source) in texts.items()}
+    asked = {doi for doi, entries in own.items() if cited[doi] - set(entries)}
+    deposited = bibliography.resolve(asked, references_cache)
+    deposited = {
+        doi: bibliography.checked(
+            deposited[doi],
+            bibliography.own_text(*texts[doi], deposited[doi]))
+        for doi in asked if deposited.get(doi)}
+
+    for row in rows:
+        doi = row['fetched_doi']
+        for quoted in row['quotes']:
+            refs = bibliography.lookup(bibliography.cited_numbers(quoted['q']),
+                                       own.get(doi, {}), deposited.get(doi, []))
+            if refs:
+                quoted['refs'] = refs
+
+
 def quotes_by_pair(rows: list[dict]) -> dict:
     """
     The passages to mark in a paper's text, for each pair asked about it.
@@ -1806,6 +1878,7 @@ def main():
     mine = assignment_pairs(args.reviewer)
     rows = all_pairs()
     attach_paper_texts(rows, Path(args.paper_cache))
+    attach_references(rows, Path(args.paper_cache))
     serve(rows, args.reviewer, args.port,
           paper_cache=Path(args.paper_cache), mine=mine)
 

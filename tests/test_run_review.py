@@ -231,6 +231,94 @@ class TestAttachPaperTexts:
         assert rows[0]['has_text'] is True
 
 
+NUMBERED_TEXT = (
+    'We reanalysed the recordings [2].\n\nReferences\n\n'
+    '[1] Makin JG, et al. Superior arm-movement decoding. J Neural Eng. 2018.\n\n'
+    '[2] Churchland MM, et al. Neural population dynamics during reaching. '
+    'Nature. 2012.\n\n'
+    '[3] Siletti K, et al. Transcriptomic diversity. Science. 2023.\n')
+
+
+FIRST = ('Steinmetz NA, et al. Neuropixels 2.0: A miniaturized high-density '
+         'probe for stable, long-term brain recordings. Science. 2021.')
+SECOND = ('Paulk AC, et al. Large-scale neural recordings with single neuron '
+          'resolution using Neuropixels probes in human cortex. Nat Neurosci. 2022.')
+
+# A reference list run together in one paragraph, which does not parse.
+CONFERENCE_TEXT = (
+    'deposited by the original authors [2]\n\nREFERENCES [1] N. A. Steinmetz '
+    'et al., "Neuropixels 2.0: A miniaturized high-density probe for stable, '
+    'long-term brain recordings," Science, 2021. [2] A. C. Paulk et al., '
+    '"Large-scale neural recordings with single neuron resolution using '
+    'Neuropixels probes in human cortex," Nat. Neurosci., 2022.')
+
+
+class TestAttachReferences:
+    def quoting(self, doi, passage):
+        return [{'doi': doi, 'fetched_doi': doi, 'dandiset': '000070',
+                 'quotes': [{'q': passage, 'tier': 'exact'}]}]
+
+    def test_puts_the_entry_from_the_papers_own_list_under_the_quote(
+            self, paper_cache, tmp_path):
+        R.TextCache(paper_cache).put('10.1/numbered', NUMBERED_TEXT, 'unpaywall', True)
+        rows = self.quoting('10.1/numbered', 'We reanalysed the recordings [2].')
+
+        R.attach_references(rows, paper_cache, tmp_path / 'references.json')
+
+        assert rows[0]['quotes'][0]['refs'] == [{
+            'n': 2, 'source': 'text',
+            'entry': 'Churchland MM, et al. Neural population dynamics during '
+                     'reaching. Nature. 2012.'}]
+
+    def test_asks_crossref_where_the_text_has_no_list_that_parses(
+            self, paper_cache, tmp_path):
+        R.TextCache(paper_cache).put('10.1/citer', CONFERENCE_TEXT, 'ncbi_pmc', True)
+        references = tmp_path / 'references.json'
+        references.write_text(json.dumps({'10.1/citer': [FIRST, SECOND]}))
+        rows = self.quoting('10.1/citer', 'deposited by the original authors [2]')
+
+        R.attach_references(rows, paper_cache, references)
+
+        assert rows[0]['quotes'][0]['refs'] == [
+            {'n': 2, 'entry': SECOND, 'source': 'crossref'}]
+
+    def test_withholds_a_crossref_entry_the_text_numbers_differently(
+            self, paper_cache, tmp_path):
+        R.TextCache(paper_cache).put('10.1/citer', CONFERENCE_TEXT, 'ncbi_pmc', True)
+        references = tmp_path / 'references.json'
+        references.write_text(json.dumps({'10.1/citer': [SECOND, FIRST]}))
+        rows = self.quoting('10.1/citer', 'deposited by the original authors [2]')
+
+        R.attach_references(rows, paper_cache, references)
+
+        assert 'refs' not in rows[0]['quotes'][0]
+
+    def test_withholds_crossref_where_there_is_no_text_to_check_it_against(
+            self, paper_cache, tmp_path):
+        references = tmp_path / 'references.json'
+        references.write_text(json.dumps({'10.1/citer': [FIRST, SECOND]}))
+        rows = self.quoting('10.1/citer', 'deposited by the original authors [2]')
+
+        R.attach_references(rows, paper_cache, references)
+
+        assert 'refs' not in rows[0]['quotes'][0]
+
+    def test_a_quote_that_cites_no_number_is_left_as_it_was(
+            self, paper_cache, tmp_path):
+        rows = self.quoting('10.1/citer', 'deposited by the original authors')
+
+        R.attach_references(rows, paper_cache, tmp_path / 'references.json')
+
+        assert rows[0]['quotes'] == [
+            {'q': 'deposited by the original authors', 'tier': 'exact'}]
+        assert not (tmp_path / 'references.json').exists()
+
+    def test_the_card_shows_an_entry_under_its_quote(self):
+        page = R.build([row()], 'Ada')
+
+        assert '<ol class="refs">${q.refs.map(refLine).join(\'\')}</ol>' in page
+
+
 class TestQuotesByPair:
     def test_keyed_by_the_doi_the_card_asks_for_the_text_by(self):
         rows = [{'doi': '10.21203/rs.3.rs-8080516', 'dandiset': '000776',
