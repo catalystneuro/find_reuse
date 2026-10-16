@@ -239,6 +239,20 @@ NUMBERED_TEXT = (
     '[3] Siletti K, et al. Transcriptomic diversity. Science. 2023.\n')
 
 
+FIRST = ('Steinmetz NA, et al. Neuropixels 2.0: A miniaturized high-density '
+         'probe for stable, long-term brain recordings. Science. 2021.')
+SECOND = ('Paulk AC, et al. Large-scale neural recordings with single neuron '
+          'resolution using Neuropixels probes in human cortex. Nat Neurosci. 2022.')
+
+# A reference list run together in one paragraph, which does not parse.
+CONFERENCE_TEXT = (
+    'deposited by the original authors [2]\n\nREFERENCES [1] N. A. Steinmetz '
+    'et al., "Neuropixels 2.0: A miniaturized high-density probe for stable, '
+    'long-term brain recordings," Science, 2021. [2] A. C. Paulk et al., '
+    '"Large-scale neural recordings with single neuron resolution using '
+    'Neuropixels probes in human cortex," Nat. Neurosci., 2022.')
+
+
 class TestAttachReferences:
     def quoting(self, doi, passage):
         return [{'doi': doi, 'fetched_doi': doi, 'dandiset': '000070',
@@ -256,16 +270,38 @@ class TestAttachReferences:
             'entry': 'Churchland MM, et al. Neural population dynamics during '
                      'reaching. Nature. 2012.'}]
 
-    def test_asks_crossref_where_the_text_has_no_list(self, paper_cache, tmp_path):
+    def test_asks_crossref_where_the_text_has_no_list_that_parses(
+            self, paper_cache, tmp_path):
+        R.TextCache(paper_cache).put('10.1/citer', CONFERENCE_TEXT, 'ncbi_pmc', True)
         references = tmp_path / 'references.json'
-        references.write_text(json.dumps({
-            '10.1/citer': ['First A. 2001.', 'Second B. 2002.']}))
+        references.write_text(json.dumps({'10.1/citer': [FIRST, SECOND]}))
         rows = self.quoting('10.1/citer', 'deposited by the original authors [2]')
 
         R.attach_references(rows, paper_cache, references)
 
         assert rows[0]['quotes'][0]['refs'] == [
-            {'n': 2, 'entry': 'Second B. 2002.', 'source': 'crossref'}]
+            {'n': 2, 'entry': SECOND, 'source': 'crossref'}]
+
+    def test_withholds_a_crossref_entry_the_text_numbers_differently(
+            self, paper_cache, tmp_path):
+        R.TextCache(paper_cache).put('10.1/citer', CONFERENCE_TEXT, 'ncbi_pmc', True)
+        references = tmp_path / 'references.json'
+        references.write_text(json.dumps({'10.1/citer': [SECOND, FIRST]}))
+        rows = self.quoting('10.1/citer', 'deposited by the original authors [2]')
+
+        R.attach_references(rows, paper_cache, references)
+
+        assert 'refs' not in rows[0]['quotes'][0]
+
+    def test_withholds_crossref_where_there_is_no_text_to_check_it_against(
+            self, paper_cache, tmp_path):
+        references = tmp_path / 'references.json'
+        references.write_text(json.dumps({'10.1/citer': [FIRST, SECOND]}))
+        rows = self.quoting('10.1/citer', 'deposited by the original authors [2]')
+
+        R.attach_references(rows, paper_cache, references)
+
+        assert 'refs' not in rows[0]['quotes'][0]
 
     def test_a_quote_that_cites_no_number_is_left_as_it_was(
             self, paper_cache, tmp_path):

@@ -1574,7 +1574,8 @@ def attach_references(rows: list[dict], cache_dir: Path,
 
     The paper's own reference list answers where the fetched text has one.
     Crossref is asked only about the papers whose text leaves a cited number
-    unanswered, which is most of them the first time and none of them after.
+    unanswered, which is most of them the first time and none of them after,
+    and its entries are kept only where the text numbers them the same way.
     """
     cache = text_cache(cache_dir)
     cited: dict[str, set] = {}
@@ -1583,11 +1584,17 @@ def attach_references(rows: list[dict], cache_dir: Path,
             cited.setdefault(row['fetched_doi'], set()).update(
                 bibliography.cited_numbers(quoted['q']))
 
-    own = {doi: bibliography.text_entries((cache.get(doi) or ('',))[0])
-           for doi, numbers in cited.items() if numbers}
-    deposited = bibliography.resolve(
-        {doi for doi, entries in own.items() if cited[doi] - set(entries)},
-        references_cache)
+    texts = {doi: tuple((cache.get(doi) or ('', ''))[:2])
+             for doi, numbers in cited.items() if numbers}
+    own = {doi: bibliography.text_entries(bibliography.own_text(text, source))
+           for doi, (text, source) in texts.items()}
+    asked = {doi for doi, entries in own.items() if cited[doi] - set(entries)}
+    deposited = bibliography.resolve(asked, references_cache)
+    deposited = {
+        doi: bibliography.checked(
+            deposited[doi],
+            bibliography.own_text(*texts[doi], deposited[doi]))
+        for doi in asked if deposited.get(doi)}
 
     for row in rows:
         doi = row['fetched_doi']

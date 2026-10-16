@@ -63,6 +63,71 @@ class TestTextEntries:
         assert B.text_entries('We reanalysed the recordings (Churchland 2012).') == {}
 
 
+# A conference paper whose text has its reference list run together in one
+# paragraph, so it does not parse, and which Crossref holds in another order.
+ARTICLE = (
+    'We validate our approach on two human Neuropixels recordings [ 2 ] and a '
+    'mouse recording [ 1 ].\n\n'
+    'REFERENCES [1] N. A. Steinmetz et al., "Neuropixels 2.0: A miniaturized '
+    'high-density probe for stable, long-term brain recordings," Science, vol. '
+    '372, 2021. [2] A. C. Paulk et al., "Large-scale neural recordings with '
+    'single neuron resolution using Neuropixels probes in human cortex," Nat. '
+    'Neurosci., vol. 25, 2022. [3] J. Jun et al., "Real-time spike sorting '
+    'platform for high-density extracellular probes with ground-truth '
+    'validation and drift correction," bioRxiv, 2017.')
+
+STEINMETZ = ('Steinmetz NA, et al. Neuropixels 2.0: A miniaturized high-density '
+             'probe for stable, long-term brain recordings. Science. 2021.')
+PAULK = ('Paulk AC, et al. Large-scale neural recordings with single neuron '
+         'resolution using Neuropixels probes in human cortex. Nat Neurosci. 2022.')
+JUN = ('Jun JJ, et al. Real-time spike sorting platform for high-density '
+       'extracellular probes with ground-truth validation and drift correction. '
+       'bioRxiv. 2017.')
+
+
+class TestChecked:
+    def test_keeps_the_entries_the_article_numbers_the_same_way(self):
+        assert B.text_entries(ARTICLE) == {}
+        assert B.checked([STEINMETZ, PAULK, JUN], ARTICLE) == [STEINMETZ, PAULK, JUN]
+
+    def test_blanks_the_entries_the_article_numbers_differently(self):
+        assert B.checked([JUN, PAULK, STEINMETZ], ARTICLE) == ['', PAULK, '']
+
+    def test_blanks_a_list_one_off_from_the_article(self):
+        extra = ('Kilosort authors. Solving the spike sorting problem with '
+                 'Kilosort. Nature Methods. 2024.')
+
+        assert B.checked([extra, STEINMETZ, PAULK, JUN], ARTICLE) == ['', '', '', '']
+
+    def test_blanks_an_entry_the_text_does_not_hold(self):
+        assert B.checked([STEINMETZ, PAULK], 'We reanalysed [2].') == ['', '']
+
+
+class TestOwnText:
+    def test_sets_aside_the_list_the_fetcher_appended(self):
+        text = (f'We reanalysed the recordings [2].\n\nA title\n\n'
+                f'[1] {STEINMETZ}\n\n[2] {PAULK}')
+
+        assert B.own_text(text, 'europe_pmc+crossref') == (
+            'We reanalysed the recordings [2].\n\nA title')
+
+    def test_sets_aside_an_appended_entry_written_without_its_number(self):
+        text = f'We reanalysed the recordings [2].\n\n{STEINMETZ}\n\n{PAULK}'
+
+        assert B.own_text(text, 'ncbi_pmc+crossref', [STEINMETZ, PAULK]) == (
+            'We reanalysed the recordings [2].')
+
+    def test_without_its_own_list_the_appended_copy_confirms_nothing(self):
+        text = f'We reanalysed the recordings [2].\n\n[1] {STEINMETZ}\n\n[2] {PAULK}'
+
+        assert B.checked([STEINMETZ, PAULK], text) == [STEINMETZ, PAULK]
+        assert B.checked([STEINMETZ, PAULK],
+                         B.own_text(text, 'europe_pmc+crossref')) == ['', '']
+
+    def test_a_text_crossref_added_nothing_to_is_left_whole(self):
+        assert B.own_text(REFERENCE_LIST, 'unpaywall') == REFERENCE_LIST
+
+
 class TestTidy:
     def test_an_entry_is_one_line(self):
         assert B.tidy('Churchland MM,\n  Cunningham JP.\nNature.') == (

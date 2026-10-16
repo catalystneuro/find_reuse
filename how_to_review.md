@@ -107,9 +107,9 @@ Text** is the copy we fetched.
 Where a quote cites a reference by number, as in `[28]`, the entry for that
 number is shown under the quote. An entry marked **paper text** was read from
 the reference list of the text the quote came from. One marked **Crossref** is
-from the list the publisher deposited, which is occasionally numbered one off
-from the article, so check the paper when the entry looks unrelated to the
-quote.
+from the list the publisher deposited, and is shown only where the paper's own
+text has the same entry under the same number. A cited number with no entry
+under it could not be checked, so look it up in the paper.
 
 Review without AI assistance. Read the card, the paper, its code and the
 dataset yourself, and write the note from what you found there. These reviews
