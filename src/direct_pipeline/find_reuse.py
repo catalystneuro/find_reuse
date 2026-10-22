@@ -192,6 +192,15 @@ class ArchiveFinder:
             cache_dir=self.cache_dir,
         )
 
+    def close(self):
+        """Release the calling thread's browser and the HTTP sessions.
+
+        The fetcher keeps one Playwright browser per thread, and a browser can
+        only be closed from the thread that launched it.
+        """
+        self.fetcher.close()
+        self.session.close()
+
     def is_preprint_doi(self, doi: str) -> bool:
         """Check if a DOI is from a preprint server (bioRxiv/medRxiv)."""
         return PaperFetcher.is_preprint_doi(doi)
