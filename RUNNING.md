@@ -159,6 +159,43 @@ python scripts/build_reuse_report_docx.py -o ~/Desktop/dandi_reuse_report.docx
 It recomputes its figures from the classification outputs, so it cannot drift
 from the data.
 
+## Evaluating a new model
+
+Before switching the classifier to a new model, score it against what reviewers
+decided:
+
+```bash
+python -m src.review.eval_models run --model anthropic/claude-haiku-5.5 --effort high
+python -m src.review.eval_models report
+```
+
+`run` classifies the quick tier of the frozen eval set (`model_eval/eval_set.json`,
+200 pairs) into a cache of its own, so the production cache is untouched and a
+repeat run costs nothing. It estimates the cost from OpenRouter's prices first and
+refuses past `--max-cost` (default $10). `--tier full` scores all 769 pairs. Each
+run appends a row to `model_eval/results.jsonl`; commit it so the table travels
+with the repository.
+
+What the columns mean:
+
+- **recall**: share of reviewer-confirmed reuse the model calls REUSE. A miss is
+  never reviewed, so it drops out of the count for good.
+- **FP rate**: share of pairs reviewers rejected that the model still calls REUSE.
+  Each one costs a reviewer's time.
+- **precision**: share of REUSE calls a reviewer would confirm, weighted to the
+  full set's mix, so quick and full figures compare.
+- **neg->REUSE**: pairs the production model called MENTION or NEITHER that this
+  model calls REUSE. Reviewers have not seen these. Each is a miss or a false
+  positive, and `run` lists them so a reviewer can say which.
+
+Reviewers only see pairs the production classifier called REUSE, so the eval set
+cannot show reuse that classifier missed. Adding reviewer calls on the pairs a new
+model disagrees about, then rebuilding with `build --force`, is how it learns to.
+Scores from different eval-set versions are not comparable.
+
+`score --from-output <classifications.json> --label ...` scores results that
+already exist, such as the production run, without calling a model.
+
 ## Corrections you should know about
 
 `config/primary_paper_overrides.json` corrects the primary paper attributed to
