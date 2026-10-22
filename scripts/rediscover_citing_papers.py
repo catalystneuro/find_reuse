@@ -26,8 +26,9 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import concurrent.futures
 import json
+import os
+import queue
 import sys
 import threading
 import time
@@ -157,53 +158,80 @@ def main():
     print(f"{len(to_fetch):,} DOIs have no cache entry, fetching with "
           f"{args.workers} workers", file=sys.stderr, flush=True)
 
-    local = threading.local()
+    # Each worker owns one finder, and with it a Playwright browser, which only
+    # the thread that launched it can close. Workers close their own finder
+    # before they return, rather than leaving pool threads' browsers to be
+    # collected from whichever thread happens to run the finalizer.
+    todo = queue.Queue()
+    for doi in to_fetch:
+        todo.put(doi)
+    done = queue.Queue()
 
-    def finder_for_thread():
-        if not hasattr(local, 'finder'):
-            local.finder = ArchiveFinder(verbose=False, use_cache=True, cache_dir=CACHE)
-        return local.finder
-
-    def fetch_one(doi):
+    def worker():
+        finder = None
         try:
-            return doi, _fetch_full_text_only(finder_for_thread(), doi,
-                                              sleep_when_live=True)
-        except Exception as e:
-            return doi, {'text': None, 'source': None, 'text_length': 0,
-                         'has_full_text': False, 'text_status': 'unavailable',
-                         'error': f'{type(e).__name__}: {e}'}
+            finder = ArchiveFinder(verbose=False, use_cache=True, cache_dir=CACHE)
+            while True:
+                try:
+                    doi = todo.get_nowait()
+                except queue.Empty:
+                    return
+                try:
+                    info = _fetch_full_text_only(finder, doi, sleep_when_live=True)
+                except Exception as e:
+                    info = {'text': None, 'source': None, 'text_length': 0,
+                            'has_full_text': False, 'text_status': 'unavailable',
+                            'error': f'{type(e).__name__}: {e}'}
+                done.put((doi, info))
+        finally:
+            if finder is not None:
+                finder.close()
+            done.put(None)  # this worker has exited, whether or not it failed
 
     fetched, status_counts = {}, Counter()
     started = time.time()
-    with concurrent.futures.ThreadPoolExecutor(max_workers=args.workers) as ex:
-        futures = [ex.submit(fetch_one, d) for d in to_fetch]
-        for fut in tqdm(concurrent.futures.as_completed(futures),
-                        total=len(futures), desc='Fetching text', file=sys.stderr):
-            doi, info = fut.result()
+    threads = [threading.Thread(target=worker, daemon=True)
+               for _ in range(min(args.workers, len(to_fetch)))]
+    for t in threads:
+        t.start()
+    running = len(threads)
+    with tqdm(total=len(to_fetch), desc='Fetching text', file=sys.stderr) as bar:
+        while running:
+            item = done.get()
+            if item is None:
+                running -= 1
+                continue
+            doi, info = item
             fetched[doi] = info
             status_counts[info['text_status']] += 1
+            bar.update()
+    for t in threads:
+        t.join()
     elapsed = time.time() - started
 
     finder = ArchiveFinder(verbose=False, use_cache=True, cache_dir=CACHE)
     corpus_counts, new_counts = Counter(), Counter()
     new_set = set(new_dois)
-    for result in results:
-        for paper in result.get('citing_papers', []):
-            doi = paper.get('doi')
-            if not doi:
-                paper.update(text_status='unavailable', has_full_text=False)
-                corpus_counts['no_doi'] += 1
-                continue
-            info = fetched.get(doi) or _fetch_full_text_only(finder, doi)
-            paper['text_source'] = info.get('source')
-            paper['text_length'] = info.get('text_length', 0)
-            paper['has_full_text'] = info.get('has_full_text', False)
-            paper['text_status'] = info.get('text_status', 'unavailable')
-            if info.get('error'):
-                paper['text_error'] = info['error']
-            corpus_counts[paper['text_status']] += 1
-            if doi in new_set:
-                new_counts[paper['text_status']] += 1
+    try:
+        for result in results:
+            for paper in result.get('citing_papers', []):
+                doi = paper.get('doi')
+                if not doi:
+                    paper.update(text_status='unavailable', has_full_text=False)
+                    corpus_counts['no_doi'] += 1
+                    continue
+                info = fetched.get(doi) or _fetch_full_text_only(finder, doi)
+                paper['text_source'] = info.get('source')
+                paper['text_length'] = info.get('text_length', 0)
+                paper['has_full_text'] = info.get('has_full_text', False)
+                paper['text_status'] = info.get('text_status', 'unavailable')
+                if info.get('error'):
+                    paper['text_error'] = info['error']
+                corpus_counts[paper['text_status']] += 1
+                if doi in new_set:
+                    new_counts[paper['text_status']] += 1
+    finally:
+        finder.close()
 
     data.pop('_discovery', None)
     DST.write_text(json.dumps(data, indent=2))
@@ -227,3 +255,10 @@ def main():
 
 if __name__ == '__main__':
     main()
+    # Everything is on disk by now. The 2026-10-16 run reached this point and
+    # then never exited, holding up the classification step chained after it
+    # for five days; the cause did not reproduce. Exit without waiting on
+    # whatever was left running.
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(0)

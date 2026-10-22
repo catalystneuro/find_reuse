@@ -21,6 +21,9 @@ python -m playwright install chromium
 
 Playwright is used for bioRxiv, medRxiv and publisher pages that render their
 content with JavaScript. Without it the pipeline still runs, and coverage drops.
+On macOS the browser lives in `~/Library/Caches/ms-playwright`, which the
+system empties when disk runs low, and the fetcher then skips those sources
+without saying so. Rerun the install before a long fetch.
 
 Create `.env` in `find_reuse` with your own keys:
 
