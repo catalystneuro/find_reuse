@@ -17,24 +17,17 @@
     "",
     "Applied by apply_primary_paper_overrides() in dandi_primary_papers.py."
   ],
-  "000253": {
+  "000039": {
     "replace": [
-      "10.1101/2024.10.02.616378"
+      "10.7554/elife.55130"
     ],
     "reason": [
-      "DANDI registers this as IsSupplementTo 10.1038/s41586-020-03171-x, the",
-      "Siegle et al. 2021 Visual Coding survey. That paper describes the Allen",
-      "Brain Observatory platform, not the Global/Local Oddball experiment held",
-      "in this dandiset, and it is very widely cited. Attributing its citations",
-      "to 000253 pulled in 54 papers of which 48 named the Allen Institute and",
-      "none mentioned OpenScope or the oddball paradigm at all; their own quotes",
-      "describe using Visual Coding data through the AllenSDK.",
-      "",
-      "The replacement is the paper that points at this dandiset rather than the",
-      "other way round: its data availability statement reads 'All mouse data",
-      "used in this work are openly available through the DANDI Archive",
-      "(dandiset id: 000253)'. It has appeared under several titles and is also",
-      "indexed as PMC11741236; revisit if it acquires a journal DOI."
+      "No primary paper reached the corpus. DANDI links the paper in",
+      "relatedResource, but by a URL without a DOI or with a non-paper resource",
+      "type, so the pipeline skipped it: \"VIP interneurons in mouse primary",
+      "visual cortex selectively enhance responses to weak but specific",
+      "stimuli\" (2020). Contributors who are also authors: Millman, Dan, Vries,",
+      "Saskia de. Found by exact title match, 2026-10-22."
     ]
   },
   "000049": {
@@ -55,6 +48,184 @@
       "will not cover it, which is correct: there is nothing to cite."
     ]
   },
+  "000219": {
+    "replace": [
+      "10.7554/elife.78116"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. DANDI links the paper in",
+      "relatedResource, but by a URL without a DOI or with a non-paper resource",
+      "type, so the pipeline skipped it: \"The rapid developmental rise of",
+      "somatic inhibition disengages hippocampal dynamics from self-motion\"",
+      "(2022). Contributors who are also authors: Cossart, Rosa, Dard, Robin,",
+      "Picardo, Michel. Found by exact title match, 2026-10-22."
+    ]
+  },
+  "000221": {
+    "replace": [
+      "10.1016/j.cell.2022.02.006"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The description names the paper by",
+      "its exact title as the source of the data; The dandiset is named with",
+      "the exact title of the paper: \"A midbrain-thalamus-cortex circuit",
+      "reorganizes cortical dynamics to initiate movement\" (2022). Contributors",
+      "who are also authors: Chen, Susu, Inagaki, Hidehiko, Svoboda, Karel.",
+      "Found by exact title match, 2026-10-22."
+    ]
+  },
+  "000251": {
+    "replace": [
+      "10.1016/j.cell.2020.11.013"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The description names the paper by",
+      "its exact title as the source of the data; The dandiset is named with",
+      "the exact title of the paper: \"A Unified Framework for Dopamine Signals",
+      "across Timescales\" (2020). Contributors who are also authors: Bech, Pol,",
+      "Gershman, Samuel, Kim, HyungGoo, Li, Yulong, Malik, Athar, Mikhael,",
+      "John, Sun, Fangmiao, Uchida, Naoshige, Zhang, Yajun. Other versions of",
+      "the same paper, not used: 10.1093/neuros/nyaa447_604. Found by exact",
+      "title match, 2026-10-22."
+    ]
+  },
+  "000253": {
+    "replace": [
+      "10.1101/2024.10.02.616378"
+    ],
+    "reason": [
+      "DANDI registers this as IsSupplementTo 10.1038/s41586-020-03171-x, the",
+      "Siegle et al. 2021 Visual Coding survey. That paper describes the Allen",
+      "Brain Observatory platform, not the Global/Local Oddball experiment held",
+      "in this dandiset, and it is very widely cited. Attributing its citations",
+      "to 000253 pulled in 54 papers of which 48 named the Allen Institute and",
+      "none mentioned OpenScope or the oddball paradigm at all; their own quotes",
+      "describe using Visual Coding data through the AllenSDK.",
+      "",
+      "The replacement is the paper that points at this dandiset rather than the",
+      "other way round: its data availability statement reads 'All mouse data",
+      "used in this work are openly available through the DANDI Archive",
+      "(dandiset id: 000253)'. It has appeared under several titles and is also",
+      "indexed as PMC11741236; revisit if it acquires a journal DOI."
+    ]
+  },
+  "000341": {
+    "replace": [
+      "10.1126/sciadv.ade4511"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The dandiset is named with the",
+      "exact title of the paper: \"Temporal disparity of action potentials",
+      "triggered in axon initial segments and distal axons in the neocortex\"",
+      "(2023). Contributors who are also authors: Rózsa, Márton, Tóth, Martin.",
+      "Found by exact title match, 2026-10-22."
+    ]
+  },
+  "000398": {
+    "replace": [
+      "10.1002/adfm.202112045"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The dandiset is named with the",
+      "exact title of the paper: \"Scalable Thousand Channel Penetrating",
+      "Microneedle Arrays on Flex for Multimodal and Large Area Coverage",
+      "BrainMachine Interfaces\" (2022). Contributors who are also authors:",
+      "Azzazy, Farid, Bourhis, Andrew M., Cleary, Daniel R., Hossain, Lorraine,",
+      "Lee, Keundong, Lee, Sang Heon, Oh, Hongseok, Ro, Yun Goo, Tanaka,",
+      "Atsunori, Tchoe, Youngbin, Thunemann, Martin, Tonsfeldt, Karen J.. Found",
+      "by exact title match, 2026-10-22."
+    ]
+  },
+  "000454": {
+    "replace": [
+      "10.1101/2023.01.24.525307"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The dandiset is named with the",
+      "exact title of the paper: \"Guide to the construction and use of an",
+      "adaptive optics two-photon microscope with direct wavefront sensing\"",
+      "(2023). Contributors who are also authors: Broginni, Thomas, Liu, Rui,",
+      "Thunemann, Martin, Yao, Pantong. Found by exact title match, 2026-10-22."
+    ]
+  },
+  "000465": {
+    "replace": [
+      "10.1126/scitranslmed.abj1441"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The description names the paper by",
+      "its exact title as the source of the data; The dandiset is named with",
+      "the exact title of the paper: \"Human brain mapping with multithousand-",
+      "channel PtNRGrids resolves spatiotemporal dynamics\" (2022). Contributors",
+      "who are also authors: Tchoe, Youngbin. Found by exact title match,",
+      "2026-10-22."
+    ]
+  },
+  "000473": {
+    "replace": [
+      "10.1038/s41593-023-01367-8"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The dandiset is named with the",
+      "exact title of the paper: \"Esr1+ hypothalamic-habenula neurons shape",
+      "aversive states\" (2023). Contributors who are also authors: Calvigioni,",
+      "Daniela, Csillag, Veronika, Fuzik, Janos, Graziano, Marta, Jung, Felix,",
+      "Lazaridis, Iakovos, Le Merre, Pierre, Lentini, Antonio, Nikolakopoulou,",
+      "Ifigeneia, Ortiz, Cantin, Slashcheva, Marina, Weglage, Moritz. Found by",
+      "exact title match, 2026-10-22."
+    ]
+  },
+  "000547": {
+    "replace": [
+      "10.1098/rsif.2023.0288"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The description names the paper by",
+      "its exact title as the source of the data; The dandiset is named with",
+      "the exact title of the paper: \"Perivascular pumping of cerebrospinal",
+      "fluid in the brain with a valve mechanism\" (2023). Contributors who are",
+      "also authors: Gan, Yiming, Kelley, Douglas, Nedergaard, Maiken, Thomas,",
+      "John. Found by exact title match, 2026-10-22."
+    ]
+  },
+  "000578": {
+    "replace": [
+      "10.1101/2024.04.11.589095"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The dandiset is named with the",
+      "exact title of the paper: \"Neural Correlates of Individual Facial",
+      "Recognition in a Social Wasp\" (2024). Contributors who are also authors:",
+      "Freiwald, Winrich, Jernigan, Christopher M, Sheehan, Michael J. Found by",
+      "exact title match, 2026-10-22."
+    ]
+  },
+  "000624": {
+    "replace": [
+      "10.1016/j.cub.2023.08.041"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The dandiset is named with the",
+      "exact title of the paper: \"A brainstem circuit for the expression of",
+      "defensive facial reactions in rat\" (2023). Contributors who are also",
+      "authors: Demers, Maxime, Fassihi, Arash, Kleinfeld, David, Moore,",
+      "Jeffrey D.. Found by exact title match, 2026-10-22."
+    ]
+  },
+  "000634": {
+    "replace": [
+      "10.3390/ijms241310921"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. DANDI links the paper in",
+      "relatedResource, but by a URL without a DOI or with a non-paper resource",
+      "type, so the pipeline skipped it: \"Control of the Electroporation",
+      "Efficiency of Nanosecond Pulses by Swinging the Electric Field Vector",
+      "Direction\" (2023). Contributors who are also authors: Kim, Vitalii,",
+      "Pakhomov, Andrei, Semenov, Iurii. Found by exact title match,",
+      "2026-10-22."
+    ]
+  },
   "000711": {
     "remove": [
       "10.1101/2023.02.14.528085",
@@ -68,6 +239,86 @@
       "dataset, which is the opposite of a describing paper: treating them as",
       "primaries attributes every citation of a downstream user to this",
       "dandiset. They accounted for 60 citing papers."
+    ]
+  },
+  "000714": {
+    "replace": [
+      "10.7554/elife.60321"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The description names the paper by",
+      "its exact title as the source of the data: \"Graphical-model framework",
+      "for automated annotation of cell identities in dense cellular images\"",
+      "(2021). Contributors who are also authors: Chaudhary, Shivesh, Lee, Sol",
+      "Ah, Li, Yueyi, Lu, Hang, Patel, Dhaval S. Found by exact title match,",
+      "2026-10-22."
+    ]
+  },
+  "000891": {
+    "replace": [
+      "10.1126/science.adn1011"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The dandiset is named with the",
+      "exact title of the paper: \"Oxygen imaging of hypoxic pockets in the",
+      "mouse cerebral cortex\" (2024). Contributors who are also authors:",
+      "Asiminas, Antonios, Beinlich, Felix R.M., Bojarowska, Zuzanna, Gehrig,",
+      "Lukas, Graber, Michael H., Hirase, Hajime , Nedergaard, Maiken, Plá,",
+      "Virginia , Sigurdsson, Björn , Timmel, Vincenzo, Untiet, Verena. Found",
+      "by exact title match, 2026-10-22."
+    ]
+  },
+  "001065": {
+    "replace": [
+      "10.1016/j.celrep.2024.114718"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. DANDI links the paper in",
+      "relatedResource, but by a URL without a DOI or with a non-paper resource",
+      "type, so the pipeline skipped it: \"Areal specializations in the morpho-",
+      "electric and transcriptomic properties of primate layer 5",
+      "extratelencephalic projection neurons\" (2024). Contributors who are also",
+      "authors: Kalmbach, Brian, Sawchuk, Scott. Found by exact title match,",
+      "2026-10-22."
+    ]
+  },
+  "001131": {
+    "replace": [
+      "10.1016/j.cell.2024.08.015"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The description names the paper by",
+      "its exact title as the source of the data; The dandiset is named with",
+      "the exact title of the paper: \"A line attractor encoding a persistent",
+      "internal state requires neuropeptide signaling\" (2024). Contributors who",
+      "are also authors: Nair, Aditya. Found by exact title match, 2026-10-22."
+    ]
+  },
+  "001171": {
+    "replace": [
+      "10.1101/2024.09.23.614487"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The dandiset is named \"Data for:\"",
+      "the exact title of the paper: \"Whisker deprivation triggers a distinct",
+      "form of cortical homeostatic plasticity that is impaired in the Fmr1 KO\"",
+      "(2024). Contributors who are also authors: Lakhani, Alishah. Found by",
+      "exact title match, 2026-10-22."
+    ]
+  },
+  "001184": {
+    "replace": [
+      "10.1038/s41467-025-58688-4"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The description names the paper by",
+      "its exact title as the source of the data; The dandiset is named with",
+      "the exact title of the paper: \"Brain-wide microstrokes affect the",
+      "stability of memory circuits in the hippocampus\" (2025). Contributors",
+      "who are also authors: Heiser, Hendrik, Wahl, Anna-Sophia. Other versions",
+      "of the same paper, not used: 10.1101/2024.09.17.612757,",
+      "10.5167/uzh-291219, 10.21203/rs.3.rs-5102494/v1. Found by exact title",
+      "match, 2026-10-22."
     ]
   },
   "001201": {
@@ -85,6 +336,408 @@
       "'Reference for the origin of the data' is a defensible primary for a",
       "re-annotated derivative; and 001051, whose single preprint appears to be",
       "the first publication of the data."
+    ]
+  },
+  "001210": {
+    "replace": [
+      "10.1117/1.nph.12.s1.s14606"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The description names the paper by",
+      "its exact title as the source of the data: \"Neurovascular coupling over",
+      "cortical brain areas and resting state network connectivity with and",
+      "without rigidified carotid artery\" (2025). Contributors who are also",
+      "authors: Bakker, Marleen. Found by exact title match, 2026-10-22."
+    ]
+  },
+  "001245": {
+    "replace": [
+      "10.48550/arxiv.2407.06244"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. DANDI links the paper in",
+      "relatedResource, but by a URL without a DOI or with a non-paper resource",
+      "type, so the pipeline skipped it: \"Neural population dynamics in",
+      "songbird RA and HVC during learned motor-vocal behavior\" (2024).",
+      "Contributors who are also authors: Arneodo, Ezequiel Matias, Gentner,",
+      "Timothy Q., Gilja, Vikash, Tostado-Marcos, Pablo. Found by exact title",
+      "match, 2026-10-22."
+    ]
+  },
+  "001259": {
+    "replace": [
+      "10.64898/2026.08.02.742317"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The dandiset is named with the",
+      "exact title of the paper: \"A shared cortical manifold links sensory",
+      "error to motor planning\" (2026). Contributors who are also authors:",
+      "Schneider, David, Zempolich, Grant. Found by exact title match,",
+      "2026-10-22."
+    ]
+  },
+  "001260": {
+    "replace": [
+      "10.1038/s41593-025-02190-z"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The dandiset is named with the",
+      "exact title of the paper: \"A prefrontal cortex map based on single-",
+      "neuron activity\" (2026). Contributors who are also authors: Carlén,",
+      "Marie, Guyon, Nicolas, Heining, Katharina, Jung, Felix, Le Merre,",
+      "Pierre, Moysiadou, Eleni, Park, Hyunsoo, Slashcheva, Marina, Yahya, Ram.",
+      "Found by exact title match, 2026-10-22."
+    ]
+  },
+  "001281": {
+    "replace": [
+      "10.7554/elife.100390"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The dandiset is named with the",
+      "exact title of the paper: \"Electrophysiology and morphology of human",
+      "cortical supragranular pyramidal cells in a wide age range\" (2025).",
+      "Contributors who are also authors: Szöts, Ildikó, Tóth, Martin. Found by",
+      "exact title match, 2026-10-22."
+    ]
+  },
+  "001290": {
+    "replace": [
+      "10.1038/s41592-025-02614-5"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. DANDI links the paper in",
+      "relatedResource, but by a URL without a DOI or with a non-paper resource",
+      "type, so the pipeline skipped it: \"DREDge: robust motion correction for",
+      "high-density extracellular recordings across species\" (2025).",
+      "Contributors who are also authors: Raghavan, Ramanujan T., Windolf,",
+      "Charlie. Found by exact title match, 2026-10-22."
+    ]
+  },
+  "001349": {
+    "replace": [
+      "10.1016/j.isci.2025.112104"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. DANDI links the paper in",
+      "relatedResource, but by a URL without a DOI or with a non-paper resource",
+      "type, so the pipeline skipped it; The dandiset is named with the exact",
+      "title of the paper: \"From initial formation to developmental refinement:",
+      "GABAergic inputs shape neuronal subnetworks in the primary somatosensory",
+      "cortex\" (2025). Contributors who are also authors: Huang, Jui-Yen, Lu,",
+      "Hui-Chen. Other versions of the same paper, not used:",
+      "10.2139/ssrn.4998554. Found by exact title match, 2026-10-22."
+    ]
+  },
+  "001363": {
+    "replace": [
+      "10.1038/s41378-026-01391-1"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The description names the paper by",
+      "its exact title as the source of the data: \"High pressure transcranial",
+      "focused ultrasound stimulation induces parameter-dependent cell-type",
+      "specific effects\" (2026). Contributors who are also authors: Gao, Huan,",
+      "He, Bin, Lee, Keunhyung, Ramachandran, Sandhya, Yeh, Kelly, Yu, Kai.",
+      "Found by exact title match, 2026-10-22."
+    ]
+  },
+  "001366": {
+    "replace": [
+      "10.1177/0271678x251386182"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The dandiset is named with the",
+      "exact title of the paper: \"Comparison of approaches for surface vessel",
+      "diameter and pulsatility quantification\" (2025). Contributors who are",
+      "also authors: Boster, Kimberly A. S., Ghanizada, Hashmat, Huang, Qinwen,",
+      "Kelley, Douglas H. , Nedergaard, Maiken , Ranjan, Aditya, Wong, Devin",
+      "T.. Found by exact title match, 2026-10-22."
+    ]
+  },
+  "001431": {
+    "replace": [
+      "10.1038/s41467-025-62069-2"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The description names the paper by",
+      "its exact title as the source of the data: \"Temporal coding carries more",
+      "stable cortical visual representations than firing rate over time\"",
+      "(2025). Contributors who are also authors: He, Fei, Luan, Lan, Patel,",
+      "Saumil, Tolias, Andreas S, Xie, Chong, Zhu, Hanlin, Zolotavin, Pavlo.",
+      "Found by exact title match, 2026-10-22."
+    ]
+  },
+  "001460": {
+    "replace": [
+      "10.1038/s41592-025-02849-2"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The description names the paper by",
+      "its exact title as the source of the data: \"Spatiotemporal focusing",
+      "enables all-optical in situ histology of heterogeneous tissue\" (2025).",
+      "Contributors who are also authors: Friedman, Beth, Huang, Sincheng, Ji,",
+      "Xiang, Kleinfeld, David. Found by exact title match, 2026-10-22."
+    ]
+  },
+  "001514": {
+    "replace": [
+      "10.1016/j.isci.2025.113089"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The dandiset is named with the",
+      "exact title of the paper: \"Collateralization patterns of principal",
+      "basolateral amygdala neurons delineate distinct output streams\" (2025).",
+      "Contributors who are also authors: Huerta, Icnelia, Kim, Ian T, Paré,",
+      "Denis, Urena, Osmalyn, Yamamoto, Ryo. Found by exact title match,",
+      "2026-10-22."
+    ]
+  },
+  "001537": {
+    "replace": [
+      "10.1177/0271678x251353141"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The dandiset is named with the",
+      "exact title of the paper: \"Capillaries susceptible to frequent stall",
+      "dynamics revealed by comparing OCT and bessel-2PM measurements\" (2025).",
+      "Contributors who are also authors: Kelley, Shannon, Long, Emily, Tang,",
+      "Rockwell. Found by exact title match, 2026-10-22."
+    ]
+  },
+  "001541": {
+    "replace": [
+      "10.1364/boe.570754"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The dandiset is named with the",
+      "exact title of the paper: \"Mapping of blood flow and slow speckle tissue",
+      "dynamics using laser speckle contrast imaging\" (2025). Contributors who",
+      "are also authors: Boas, David, Cheng, Xiaojun, Erdener, Sefik Evren,",
+      "Liu, Bingxue, Long, Emily, Postnov, Dmitry, Simkulet, Matthew, Tang,",
+      "Rockwell, Yaqoob, Zahid. Found by exact title match, 2026-10-22."
+    ]
+  },
+  "001634": {
+    "replace": [
+      "10.7554/elife.109375"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The dandiset is named with the",
+      "exact title of the paper: \"Disruption of theta-timescale spiking impairs",
+      "learning but spares hippocampal replay\" (2026). Contributors who are",
+      "also authors: Bray, Samuel. Other versions of the same paper, not used:",
+      "10.1101/2025.09.15.675587. Found by exact title match, 2026-10-22."
+    ]
+  },
+  "001689": {
+    "replace": [
+      "10.1016/j.neuroimage.2025.121676"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The description names the paper by",
+      "its exact title as the source of the data; The dandiset is named with",
+      "the exact title of the paper: \"Assessing chance in neuro-vascular",
+      "interactions\" (2025). Contributors who are also authors: Aksenov,",
+      "Daniil. Found by exact title match, 2026-10-22."
+    ]
+  },
+  "001700": {
+    "replace": [
+      "10.1038/s41467-026-76876-8"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The dandiset is named with the",
+      "exact title of the paper: \"Loss of oxytocin receptor function disrupts",
+      "neural signatures of pair bonding and fidelity in the nucleus accumbens\"",
+      "(2026). Contributors who are also authors: Hoglen, Nerissa, Long,",
+      "Kimberly, Manoli, Devanand. Found by exact title match, 2026-10-22."
+    ]
+  },
+  "001750": {
+    "replace": [
+      "10.1038/s41556-026-02009-4"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. DANDI links the paper in",
+      "relatedResource, but by a URL without a DOI or with a non-paper resource",
+      "type, so the pipeline skipped it: \"An atlas of primate insular cortex",
+      "reveals a signal-processing strategy in von Economo neurons\" (2026).",
+      "Contributors who are also authors: Jing, Junzhan, Liu, Rui-Feng. Found",
+      "by exact title match, 2026-10-22."
+    ]
+  },
+  "001790": {
+    "replace": [
+      "10.1177/0271678x261492627"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The dandiset is named with the",
+      "exact title of the paper: \"Visual gamma stimulation causes prolonged",
+      "enhancement of low-frequency blood flow oscillations across superficial",
+      "cortical regions in mice\" (2026). Contributors who are also authors:",
+      "Tang, Rockwell. Found by exact title match, 2026-10-22."
+    ]
+  },
+  "001827": {
+    "replace": [
+      "10.1088/1741-2552/ae7765"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The dandiset is named with the",
+      "exact title of the paper: \"Direct delivery of modulated kilohertz",
+      "frequency waveforms enable simultaneous electrical stimulation and",
+      "recording with minimal-artifact\" (2026). Contributors who are also",
+      "authors: none listed in common (the contributor is the paper author,",
+      "spelled differently). Found by exact title match, 2026-10-22."
+    ]
+  },
+  "001832": {
+    "replace": [
+      "10.64898/2026.06.17.732978"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The dandiset is named with the",
+      "exact title of the paper: \"Cholinergic interneuron control of GABAergic",
+      "circuits targeting spiny projection neurons is disrupted in parkinsonian",
+      "models\" (2026). Contributors who are also authors: Assous, Maxime,",
+      "Belal, Marziyeh, Clarke, Vernon R.J., Dauer, William, Guven, Elif B.,",
+      "Li, Jay, Tepper, James, Tkatch, Tatiana, Xie, Zhong. Found by exact",
+      "title match, 2026-10-22."
+    ]
+  },
+  "001836": {
+    "replace": [
+      "10.64898/2026.05.26.727951"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The description names the paper by",
+      "its exact title as the source of the data; The dandiset is named with",
+      "the exact title of the paper: \"Naturalistic behavior and self-generated",
+      "neural activity predictive of self-correction\" (2026). Contributors who",
+      "are also authors: Frank, Loren, Gu, Shijie, Liu, Cheng. Found by exact",
+      "title match, 2026-10-22."
+    ]
+  },
+  "001843": {
+    "replace": [
+      "10.1021/acssensors.5c04244"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The dandiset is named with the",
+      "exact title of the paper: \"An Ultraresponsive Green Biosensor for Robust",
+      "in Vivo Imaging of Synaptic Zinc Dynamics\" (2026). Contributors who are",
+      "also authors: Kumar, Manoj. Found by exact title match, 2026-10-22."
+    ]
+  },
+  "001848": {
+    "replace": [
+      "10.1038/s41467-026-74869-1"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The dandiset is named with the",
+      "exact title of the paper: \"Complementary roles of cell-type-specific",
+      "plasticity in shaping neocortical dynamics for learning action timing\"",
+      "(2026). Contributors who are also authors: Inagaki, Hidehiko. Found by",
+      "exact title match, 2026-10-22."
+    ]
+  },
+  "001850": {
+    "replace": [
+      "10.21203/rs.3.rs-9510258/v1"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The dandiset is named with the",
+      "exact title of the paper: \"3D µEFPocket for Multimodal Communications",
+      "with Brain Organoids\" (2026). Contributors who are also authors: Cuevas,",
+      "Miguel, Wang, Yihang, Yin, Maya. Found by exact title match, 2026-10-22."
+    ]
+  },
+  "001851": {
+    "replace": [
+      "10.1101/2025.09.29.679272"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The description names the paper by",
+      "its exact title as the source of the data: \"A multi-muscular, redundant",
+      "strategy for free-flight roll stability\" (2025). Contributors who are",
+      "also authors: Cohen, Itai, Ludlow, Brianna, Teoh, Han Kheng, Whitehead,",
+      "Samuel C. Found by exact title match, 2026-10-22."
+    ]
+  },
+  "001865": {
+    "replace": [
+      "10.64898/2026.03.29.715097"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The dandiset is named with the",
+      "exact title of the paper: \"Inferring norepinephrine dynamics from",
+      "partial observations reveals the temporal structure of elevations during",
+      "arousal\" (2026). Contributors who are also authors: NEYHART, ERIN ,",
+      "Reimer, Jacob. Found by exact title match, 2026-10-22."
+    ]
+  },
+  "001867": {
+    "replace": [
+      "10.1016/j.cell.2026.05.046"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The description names the paper by",
+      "its exact title as the source of the data: \"A disinhibitory basal",
+      "forebrain-to-cortex projection supports sustained attention\" (2026).",
+      "Contributors who are also authors: Li, Shujing. Found by exact title",
+      "match, 2026-10-22."
+    ]
+  },
+  "001869": {
+    "replace": [
+      "10.1016/j.cub.2026.07.077"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The dandiset is named with the",
+      "exact title of the paper: \"Unique neural activity states predict action",
+      "selection in response to visual threat\" (2026). Contributors who are",
+      "also authors: Brezovec, Bella, Choi, Minseung, Clandinin, Thomas, Hao,",
+      "Alex, Su, Sharon, Wang, Yandan, Zucker-Scharff, Ilana. Other versions of",
+      "the same paper, not used: 10.2139/ssrn.5778452. Found by exact title",
+      "match, 2026-10-22."
+    ]
+  },
+  "001958": {
+    "replace": [
+      "10.64898/2026.08.29.748029"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The description names the paper by",
+      "its exact title as the source of the data: \"A cognitive representation",
+      "in primary visual cortex modulated by vision\" (2026). Contributors who",
+      "are also authors: Lee, Kyu Hyun. Found by exact title match, 2026-10-22."
+    ]
+  },
+  "002009": {
+    "replace": [
+      "10.1016/j.celrep.2026.117990"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The dandiset is named with the",
+      "exact title of the paper: \"Locus coeruleus activation transforms",
+      "cortical taste representations\" (2026). Contributors who are also",
+      "authors: Fan, Will, Sciolino, Natale, To, Paula. Other versions of the",
+      "same paper, not used: 10.64898/2026.06.02.729661. Found by exact title",
+      "match, 2026-10-22."
+    ]
+  },
+  "002020": {
+    "replace": [
+      "10.1101/2025.01.14.630383"
+    ],
+    "reason": [
+      "No primary paper reached the corpus. The description names the paper by",
+      "its exact title as the source of the data: \"Self-organization of high-",
+      "dimensional geometry of neural activity in culture\" (2025). Contributors",
+      "who are also authors: Akita, Dai, Kawahara, Yuta, Nakamuta, Asahi,",
+      "Takahashi, Hirokazu, Teramae, Jun-nosuke, Zhang, He. Found by exact",
+      "title match, 2026-10-22."
     ]
   }
 }
