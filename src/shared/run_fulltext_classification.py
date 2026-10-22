@@ -104,9 +104,9 @@ def select_with_full_text(work: list[dict], limit: int, paper_cache: str,
 
 # A DOI minted for something published alongside a paper, which discovery
 # returns as if it were one: an eLife assessment, review or author response
-# (.sa0 to .sa3), or an OSF registration. Reviewers rejected every pair built
-# on one.
-NOT_A_PAPER = re.compile(r'\.sa\d+$|^10\.17605/osf\.io/', re.I)
+# (.sa0 to .sa3), an OSF registration, or a NEMAR dataset record. Reviewers
+# rejected every pair built on one.
+NOT_A_PAPER = re.compile(r'\.sa\d+$|^10\.17605/osf\.io/|^10\.82901/nemar\.', re.I)
 
 
 def is_paper(doi: str) -> bool:

@@ -402,6 +402,14 @@ class TestNotAPaper:
 
         assert B.merge_by_pair([str(path)]) == {}
 
+    def test_a_nemar_dataset_record_is_not_a_candidate(self, tmp_path):
+        path = tmp_path / 'c.json'
+        path.write_text(json.dumps({'classifications': [
+            classification('10.82901/nemar.nm000357', '000623', 'a passage'),
+        ]}))
+
+        assert B.merge_by_pair([str(path)]) == {}
+
 
 class TestPublishedPreprints:
     """A preprint gives way to its published version where both were classified."""
