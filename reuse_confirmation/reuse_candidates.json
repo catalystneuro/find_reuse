@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-10-22T14:35:03+00:00",
+  "generated_at": "2026-10-22T16:15:12+00:00",
   "inputs": [
     {
       "path": "output/fulltext_classifications.json",
-      "sha256": "4aa39c55abaa1017ca12a267225d2eaf77d00454d4cefd90b45c3b623b98aa64",
-      "classifications": 22182,
-      "reuse": 1395,
+      "sha256": "62ecd09672c9f07d1c5e3ad38aed21a21562691f6f1ac3e96c5df5e7591cd542",
+      "classifications": 22183,
+      "reuse": 1400,
       "models": [
         "openai/gpt-5.6-luna"
       ],
@@ -21,9 +21,9 @@
     },
     {
       "path": "output/fulltext_direct_openalex.json",
-      "sha256": "b0aebf8419e67372cbdc0734321e92bedb47a0f30db254af64ff1a0991f3971a",
+      "sha256": "c76c4a6e0c49c8a8a791c01e832d87793b61fef23173ec24e7678ddbd4d20d56",
       "classifications": 443,
-      "reuse": 138,
+      "reuse": 143,
       "models": [
         "openai/gpt-5.6-luna"
       ],
@@ -31,7 +31,6 @@
         6
       ],
       "labels": [
-        "ERROR",
         "NEITHER",
         "PRIMARY",
         "REUSE"
@@ -5242,6 +5241,43 @@
       "cited_citation": "Carcea et al., 2021"
     },
     {
+      "doi": "10.1016/j.neuron.2022.12.016",
+      "dandiset": "000130",
+      "fetched_doi": "10.1016/j.neuron.2022.12.016",
+      "title": "Parametric control of flexible timing through low-dimensional neural manifolds",
+      "reasoning": "The paper explicitly analyzes DMFC neural population activity from the RSG paradigm and quantitatively compares the neural trajectories with its newly proposed model, going beyond a background citation. This constitutes a novel analysis of previously collected neurophysiological recordings, with overlapping authors from the source study indicating same-lab reuse. The paper identifies Zenodo as the repository for the electrophysiology data.",
+      "quotes": [
+        {
+          "q": "We analyzed neural population activity in the dorsomedial frontal cortex (DMFC) of monkeys performing the ‚ÄòReady‚ÄìSet‚ÄìGo‚Äô (RSG) task, a time interval reproduction task analogous to the MWG+Ctxt task but without a delay period 36 ; 40 .",
+          "tier": "punctuation_insensitive"
+        },
+        {
+          "q": "We analyzed DMFC population activity in this task, and compared it to the predictions of our low-rank networks, similar to Fig. 6 C left.",
+          "tier": "exact"
+        }
+      ],
+      "reused_neurophysiology": true,
+      "reused_modalities": [
+        "neurophysiology"
+      ],
+      "archives": [
+        "Zenodo"
+      ],
+      "reuse_types": [
+        "NOVEL_ANALYSIS"
+      ],
+      "pathway": "indirect",
+      "same_lab": true,
+      "dandi_reason": null,
+      "dandiset_name": "DMFC_RSG: macaque dorsomedial frontal cortex spiking activity during time interval reproduction task",
+      "cited_role": "Cited",
+      "cited_doi": "10.1016/j.neuron.2019.06.012",
+      "cited_title": "Bayesian Computation through Cortical Latent Dynamics",
+      "cited_source": "dcite:IsDescribedBy",
+      "shared_paper": null,
+      "cited_citation": "Sohn et al., 2019"
+    },
+    {
       "doi": "10.1016/j.neuron.2023.03.006",
       "dandiset": "000253",
       "fetched_doi": "10.1016/j.neuron.2023.03.006",
@@ -10187,6 +10223,72 @@
     },
     {
       "doi": "10.1038/s41583-026-01042-4",
+      "dandiset": "000363",
+      "fetched_doi": "10.1038/s41583-026-01042-4",
+      "title": "Large-scale electrophysiology at single-spike resolution",
+      "reasoning": "Although this is a review, it explicitly states that data were used to generate Fig. 5 and identifies the target DANDI DOI as one of the sources. The Chen et al. electrophysiology dataset was therefore reused for a cross-dataset comparison alongside several other large-scale recording datasets. The Chen dataset is associated with the same Allen Institute research group as the review authors.",
+      "quotes": [
+        {
+          "q": "The data used to generate the images in Fig. 5 are available at public, open repositories: https://doi.org/10.6084/m9.figshare.9598406 (Steinmetz et al. 12 ), https://doi.org/10.48324/dandi.000021/0.251116.2246 and https://doi.org/10.48324/dandi.000022/0.251116.2247 (Siegle et al. 15 ), https://doi.org/10.6084/m9.figshare.21365598 (Ottenheimer et al. 309 ), https://doi.org/10.48324/dandi.000363/0.231012.2129 (Chen et al. 13 ), https://doi.org/10.48324/dandi.001260/0.250911.0744 (Le Merre et al. 18 ), https://doi.org/10.48324/dandi.001326/0.250528.1957 (Kauvar et al. 310 ), https://doi.org/10.6084/m9.figshare.19493588 (Ye et al. 55 ), https://www.internationalbrainlab.com/brainwide-map (International Brain Laboratory (IBL) 19 ) and https://doi.org/10.48324/dandi.000713/0.240702.1725 (Bennett et al. 311 ).",
+          "tier": "exact"
+        }
+      ],
+      "reused_neurophysiology": true,
+      "reused_modalities": [
+        "neurophysiology"
+      ],
+      "archives": [
+        "DANDI Archive"
+      ],
+      "reuse_types": [
+        "AGGREGATION"
+      ],
+      "pathway": "direct",
+      "same_lab": true,
+      "dandi_reason": "names a DANDI identifier in its text",
+      "dandiset_name": "",
+      "cited_role": "",
+      "cited_doi": "",
+      "cited_title": "",
+      "cited_source": "",
+      "shared_paper": null,
+      "cited_citation": ""
+    },
+    {
+      "doi": "10.1038/s41583-026-01042-4",
+      "dandiset": "000713",
+      "fetched_doi": "10.1038/s41583-026-01042-4",
+      "title": "Large-scale electrophysiology at single-spike resolution",
+      "reasoning": "The paper explicitly identifies the 000713 DANDI deposit as a source of data used to generate Fig. 5, so this is reuse rather than a merely bibliographic mention. The figure aggregates publicly available datasets concerning distributed spiking activity, making neurophysiology the relevant reused modality and AGGREGATION the best reuse category. The supplied text does not show author overlap between Siegle or Steinmetz and Bennett et al., so this is treated as different-lab reuse.",
+      "quotes": [
+        {
+          "q": "The data used to generate the images in Fig. 5 are available at public, open repositories: https://doi.org/10.6084/m9.figshare.9598406 (Steinmetz et al. 12 ), https://doi.org/10.48324/dandi.000021/0.251116.2246 and https://doi.org/10.48324/dandi.000022/0.251116.2247 (Siegle et al. 15 ), https://doi.org/10.6084/m9.figshare.21365598 (Ottenheimer et al. 309 ), https://doi.org/10.48324/dandi.000363/0.231012.2129 (Chen et al. 13 ), https://doi.org/10.48324/dandi.001260/0.250911.0744 (Le Merre et al. 18 ), https://doi.org/10.48324/dandi.001326/0.250528.1957 (Kauvar et al. 310 ), https://doi.org/10.6084/m9.figshare.19493588 (Ye et al. 55 ), https://www.internationalbrainlab.com/brainwide-map (International Brain Laboratory (IBL) 19 ) and https://doi.org/10.48324/dandi.000713/0.240702.1725 (Bennett et al. 311 ).",
+          "tier": "exact"
+        }
+      ],
+      "reused_neurophysiology": true,
+      "reused_modalities": [
+        "neurophysiology"
+      ],
+      "archives": [
+        "DANDI Archive"
+      ],
+      "reuse_types": [
+        "AGGREGATION"
+      ],
+      "pathway": "direct",
+      "same_lab": false,
+      "dandi_reason": "names a DANDI identifier in its text",
+      "dandiset_name": "",
+      "cited_role": "",
+      "cited_doi": "",
+      "cited_title": "",
+      "cited_source": "",
+      "shared_paper": null,
+      "cited_citation": ""
+    },
+    {
+      "doi": "10.1038/s41583-026-01042-4",
       "dandiset": "001260",
       "fetched_doi": "10.1038/s41583-026-01042-4",
       "title": "Large-scale electrophysiology at single-spike resolution",
@@ -11215,6 +11317,48 @@
       "cited_source": "confirmed",
       "shared_paper": null,
       "cited_citation": "Gouwens et al., 2020"
+    },
+    {
+      "doi": "10.1038/s41586-025-08829-y",
+      "dandiset": "000402",
+      "fetched_doi": "10.1038/s41586-025-08829-y",
+      "title": "Foundation model of neural activity predicts response to new stimulus types",
+      "reasoning": "The paper explicitly used functional units from 13 MICrONS scans to train and apply its foundation model, rather than merely citing the dataset. It also used EM-linked anatomical cell-type annotations, supporting morphology as an additional reused modality. The primary purpose was machine-learning model training and transfer, and the overlapping MICrONS Consortium authors indicate same-lab reuse.",
+      "quotes": [
+        {
+          "q": "MICrONS data in Fig. 5 were collected as described in the accompanying Article 2 , and data in Fig. 2a were collected as described 18 . Data collection for all other figures is described below.",
+          "tier": "exact"
+        },
+        {
+          "q": "To predict brain areas from readout feature weights, we used all functional units in the MICrONS data from 13 scans that had readout feature weights in the model.",
+          "tier": "exact"
+        },
+        {
+          "q": "Cell types were obtained from CAVEclient initialized with ‘minnie65_public’ and table ‘aibs_metamodel_mtypes_v661_v2’.",
+          "tier": "exact"
+        }
+      ],
+      "reused_neurophysiology": true,
+      "reused_modalities": [
+        "neurophysiology",
+        "morphology"
+      ],
+      "archives": [
+        "MICrONS Explorer"
+      ],
+      "reuse_types": [
+        "ML_TRAINING"
+      ],
+      "pathway": "indirect",
+      "same_lab": true,
+      "dandi_reason": null,
+      "dandiset_name": "MICrONS Two Photon Functional Imaging",
+      "cited_role": "Cited",
+      "cited_doi": "10.1101/2021.07.28.454025",
+      "cited_title": "Functional connectomics spanning multiple areas of mouse visual cortex",
+      "cited_source": "dcite:IsDescribedBy",
+      "shared_paper": null,
+      "cited_citation": "The MICrONS Consortium et al., 2021"
     },
     {
       "doi": "10.1038/s41586-025-08840-3",
@@ -21855,41 +21999,6 @@
       "cited_citation": "Mallory et al., 2021"
     },
     {
-      "doi": "10.1101/2021.11.08.467806",
-      "dandiset": "000130",
-      "fetched_doi": "10.1101/2021.11.08.467806",
-      "title": "Parametric control of flexible timing through low-dimensional neural manifolds",
-      "reasoning": "The paper explicitly analyzes DMFC neural recordings from two monkeys and attributes them to the previously reported Sohn et al. and Meirhaeghe et al. recordings, which is direct data reuse rather than a background citation. The analyzed material is neural firing activity and population trajectories; the paper does not analyze recorded behavioral outputs or identify a repository. These recordings are used to test whether the trained RNN's predicted manifold and context-speed signatures appear in brain data, making SIMULATION the best primary-use category; overlapping authors indicate the same lab.",
-      "quotes": [
-        {
-          "q": "To test for the presence of these signatures in the brain, we analyzed neural activity recorded in the dorsomedial frontal cortex (DMFC) of two monkeys performing a time interval reproduction task analogous to the MWG+Ctxt task but without a delay period (Sohn et al., 2019; Meirhaeghe et al., 2021).",
-          "tier": "exact"
-        },
-        {
-          "q": "Details about the neural recordings can be found in Sohn et al. (2019) and Meirhaeghe et al. (2021). In summary, the data were obtained from acute recordings in the dorsomedial frontal cortex (DMFC; n=619 neurons in monkey G, n=542 in monkey H).",
-          "tier": "exact"
-        }
-      ],
-      "reused_neurophysiology": true,
-      "reused_modalities": [
-        "neurophysiology"
-      ],
-      "archives": [],
-      "reuse_types": [
-        "SIMULATION"
-      ],
-      "pathway": "indirect",
-      "same_lab": true,
-      "dandi_reason": null,
-      "dandiset_name": "DMFC_RSG: macaque dorsomedial frontal cortex spiking activity during time interval reproduction task",
-      "cited_role": "Cited",
-      "cited_doi": "10.1016/j.neuron.2019.06.012",
-      "cited_title": "Bayesian Computation through Cortical Latent Dynamics",
-      "cited_source": "dcite:IsDescribedBy",
-      "shared_paper": null,
-      "cited_citation": "Sohn et al., 2019"
-    },
-    {
       "doi": "10.1101/2021.11.23.469734",
       "dandiset": "000017",
       "fetched_doi": "10.1101/2021.11.23.469734",
@@ -25997,6 +26106,48 @@
         "citation": "Yemini et al., 2021"
       },
       "cited_citation": "Yemini et al., 2021"
+    },
+    {
+      "doi": "10.1101/2024.04.28.591397",
+      "dandiset": "000565",
+      "fetched_doi": "10.1101/2024.04.28.591397",
+      "title": "Unifying community-wide whole-brain imaging datasets enables robust automated neuron identification and reveals determinants of neuron positioning in C. elegans",
+      "reasoning": "Identifier 000565 is listed among the DANDI deposits comprising the multi-lab corpus, including data contributed by Adam Atanas and Steve Flavell, neither of whom is an author of this paper. The authors converted and analyzed these externally generated datasets together with other laboratories' recordings, using structural NeuroPAL volumes and neural-activity imaging for pooled atlas construction and analysis. Therefore, this is reuse from a different lab, with aggregation as the primary use.",
+      "quotes": [
+        {
+          "q": "In Table 1 we present a summary of the data we aggregated and harmonized into a corpus: 108 worms from six datasets acquired by five different labs, each with segmented neurons and human-labeled identities.",
+          "tier": "exact"
+        },
+        {
+          "q": "We thank Adam Atanas and Steve Flavell for contributing their datasets.",
+          "tier": "exact"
+        },
+        {
+          "q": "Datasets from various labs were converted to the NWB standardized file format using the ndx-multichannel-volume extension presented in this work. These files were then uploaded to the DANDI archive where they are now publicly accessible for data streaming, download, or online visualization.",
+          "tier": "exact"
+        }
+      ],
+      "reused_neurophysiology": true,
+      "reused_modalities": [
+        "neurophysiology",
+        "imaging"
+      ],
+      "archives": [
+        "DANDI Archive"
+      ],
+      "reuse_types": [
+        "AGGREGATION"
+      ],
+      "pathway": "direct",
+      "same_lab": false,
+      "dandi_reason": "names a DANDI identifier in its text",
+      "dandiset_name": "",
+      "cited_role": "",
+      "cited_doi": "",
+      "cited_title": "",
+      "cited_source": "",
+      "shared_paper": null,
+      "cited_citation": ""
     },
     {
       "doi": "10.1101/2024.04.28.591397",
@@ -31670,7 +31821,7 @@
       "dandiset": "000253",
       "fetched_doi": "10.1101/2025.07.31.667946",
       "title": "Ubiquitous predictive processing in the spectral domain of sensory cortex",
-      "reasoning": "The paper explicitly analyzes LFP recordings from the Allen OpenScope Global/Local Oddball dataset and identifies the corresponding DANDI dandiset 000253. It also uses recorded pupil/task data and histological laminar labels. This is a novel spectral-domain analysis of an existing dataset, performed by a group overlapping the original study’s authors.",
+      "reasoning": "The paper states that the Neuropixels dataset was obtained through the Allen/OpenScope infrastructure and identifies it as DANDI dandiset 000253, indicating analysis of an existing deposit rather than collection of the dataset for this paper. The authors reanalyzed laminar LFP recordings and associated pupil/task and histological layer information to ask a new spectral predictive-processing question, making NOVEL_ANALYSIS the best reuse category. Strong author overlap with the cited prior oddball data work supports classifying this as same-lab reuse.",
       "quotes": [
         {
           "q": "Through the Allen Institute’s OpenScope Brain Observatory, data in mice performing a visual oddball task during multi-area laminar recording was used to test predictive processing hypotheses in the spectral domain.",
@@ -31682,6 +31833,14 @@
         },
         {
           "q": "All mouse data used in this work are openly available through the DANDI Archive (dandiset id: 000253, doi: https://doi.org/10.48324/dandi.000253/0.240503.0152).",
+          "tier": "exact"
+        },
+        {
+          "q": "The Neuropixels data was acquired at the Allen Institute as part of the OpenScope project that allows the community to apply for observation on the Allen Brain Observatory platform (https://alleninstitute.org/division/mindscope/openscope/).",
+          "tier": "exact"
+        },
+        {
+          "q": "The Neuropixels dataset was obtained at the Allen Brain Observatory as part of the OpenScope program, which is operated by the Allen Institute, Neural Dynamics.",
           "tier": "exact"
         }
       ],
@@ -31697,16 +31856,16 @@
       "reuse_types": [
         "NOVEL_ANALYSIS"
       ],
-      "pathway": "indirect",
+      "pathway": "direct",
       "same_lab": true,
-      "dandi_reason": "names DANDI Archive as the source",
+      "dandi_reason": "names a DANDI identifier in its text",
       "dandiset_name": "Allen Institute Openscope - Global/Local Oddball project",
-      "cited_role": "Cited",
-      "cited_doi": "10.1038/s41586-020-03171-x",
-      "cited_title": "Survey of spiking in the mouse visual system reveals functional hierarchy",
-      "cited_source": "dcite:IsSupplementTo",
+      "cited_role": "",
+      "cited_doi": "",
+      "cited_title": "",
+      "cited_source": "",
       "shared_paper": null,
-      "cited_citation": "Siegle et al., 2021"
+      "cited_citation": ""
     },
     {
       "doi": "10.1101/2025.08.01.668071",
@@ -33860,7 +34019,7 @@
       "dandiset": "001075",
       "fetched_doi": "10.1103/6wgv-b9m6",
       "title": "Diverging network architecture of the C. elegans connectome and signaling network",
-      "reasoning": "The paper explicitly analyzes the signal propagation network derived from the Neural signal propagation atlas and provides the DANDI Archive accession for the dataset. It uses the resulting neural-activity signaling network for a new comparison of community structure, motifs, and rich-club organization against the anatomical connectome. The source study shares authors Sophie Dvali and Andrew M. Leifer with this paper, indicating reuse by the same lab.",
+      "reasoning": "The paper analyzes a previously constructed signal-propagation network from the cited atlas rather than reporting new recordings in this study, and it directs readers to the existing DANDI deposit. The reused data are activity measurements/functionally inferred connections generated through optogenetic stimulation and whole-brain calcium imaging. Dvali and Leifer also authored the cited signal-propagation atlas, so this is same-lab reuse for a novel network analysis.",
       "quotes": [
         {
           "q": "Here, we compare the network properties of the C. elegans connectome [11, 35, 36] –the network of chemical and electrical synapses of the brain– to a recently-constructed network map of neural signaling [27] of the genetically identical brain.",
@@ -33869,6 +34028,10 @@
         {
           "q": "The signal propagation network was experimentally measured via direct optogenetic activation and simultaneous whole-brain calcium imaging [27]. The signal propagation dataset can be found at https://dandiarchive.org/dandiset/001075/0.240920.1434[89].",
           "tier": "spacing_insensitive"
+        },
+        {
+          "q": "The signal propagation network was experimentally measured via direct optogenetic activation and simultaneous whole-brain calcium imaging [27].",
+          "tier": "normalized"
         }
       ],
       "reused_neurophysiology": true,
@@ -33881,16 +34044,16 @@
       "reuse_types": [
         "NOVEL_ANALYSIS"
       ],
-      "pathway": "indirect",
+      "pathway": "direct",
       "same_lab": true,
-      "dandi_reason": "names DANDI Archive as the source",
+      "dandi_reason": "names a DANDI identifier in its text",
       "dandiset_name": "Neural signal propagation atlas of Caenorhabditis elegans",
-      "cited_role": "Cited",
-      "cited_doi": "10.1038/s41586-023-06683-4",
-      "cited_title": "Neural signal propagation atlas of Caenorhabditis elegans",
-      "cited_source": "dcite:IsDescribedBy",
+      "cited_role": "",
+      "cited_doi": "",
+      "cited_title": "",
+      "cited_source": "",
       "shared_paper": null,
-      "cited_citation": "Randi et al., 2023"
+      "cited_citation": ""
     },
     {
       "doi": "10.1103/physreve.106.054313",
@@ -45511,6 +45674,43 @@
       "cited_citation": "International Brain Lab et al., 2023"
     },
     {
+      "doi": "10.64898/2025.12.20.695676",
+      "dandiset": "000409",
+      "fetched_doi": "10.64898/2025.12.20.695676",
+      "title": "Invariant activity sequences across the mouse brain",
+      "reasoning": "The paper analyzes chronic Neuropixels recordings and cites the Fabre et al. 2023 Zenodo release, indicating reuse of the associated electrophysiological dataset rather than a purely background citation. The recordings are used to investigate invariant population-activity sequences, a new scientific question, so the primary use is NOVEL_ANALYSIS. Carandini and Harris appear in both author lists, supporting same-lab reuse.",
+      "quotes": [
+        {
+          "q": "Chronic Neuropixels recordings in mouse visual cortex revealed that each neuron was coupled to the local population with a characteristic strength and delay.",
+          "tier": "exact"
+        },
+        {
+          "q": "Fabre, J. M. J. , van Beest, E. H. , Peters, A. J. , Carandini, M. & Harris, K. D. (Zenodo, 2023).",
+          "tier": "exact"
+        }
+      ],
+      "reused_neurophysiology": true,
+      "reused_modalities": [
+        "neurophysiology"
+      ],
+      "archives": [
+        "Zenodo"
+      ],
+      "reuse_types": [
+        "NOVEL_ANALYSIS"
+      ],
+      "pathway": "indirect",
+      "same_lab": true,
+      "dandi_reason": null,
+      "dandiset_name": "IBL - Brain Wide Map",
+      "cited_role": "Cited",
+      "cited_doi": "10.1101/2023.07.04.547681",
+      "cited_title": "A Brain-Wide Map of Neural Activity during Complex Behaviour",
+      "cited_source": "dcite:IsDescribedBy",
+      "shared_paper": null,
+      "cited_citation": "International Brain Lab et al., 2023"
+    },
+    {
       "doi": "10.64898/2025.12.31.697246",
       "dandiset": "000149",
       "fetched_doi": "10.64898/2025.12.31.697246",
@@ -53368,6 +53568,48 @@
       "cited_citation": "The MICrONS Consortium et al., 2021"
     },
     {
+      "doi": "10.82901/nemar.nm000357",
+      "dandiset": "000623",
+      "fetched_doi": "10.82901/nemar.nm000357",
+      "title": "Movie watching and recognition memory: depth-electrode macro iEEG from Keles et al. 2024 (DANDI 000623)",
+      "reasoning": "The text explicitly states that the macroelectrode field potentials were taken from the DANDI NWB files and converted into BrainVision/iEEG-BIDS format. It also converted trials, TTLs, movie-frame onsets, and response-related event information, supporting reuse of both neurophysiology and associated behavioral data. This is a same-lab data-format conversion and redistribution rather than a new scientific analysis, so it is categorized as OTHER.",
+      "quotes": [
+        {
+          "q": "This dataset is an iEEG-BIDS representation of the macroelectrode field potentials released by the authors in NWB format on the DANDI Archive:",
+          "tier": "exact"
+        },
+        {
+          "q": "Source: processing/ecephys/LFPmacro/ElectricalSeries of each NWB file (unit volts, conversion 1.0, offset 0, no channelconversion, regular 1000 Hz clock given by starting_time and rate). The values were written unchanged to BrainVision as float32 microvolts.",
+          "tier": "exact"
+        },
+        {
+          "q": "Events: every trial, TTL and movie-frame onset recomputed from the NWB with the 10 s pre-roll correction agrees with events.tsv within 1 microsecond (onsets are written with 6 decimals); no event falls outside the recording.",
+          "tier": "normalized"
+        }
+      ],
+      "reused_neurophysiology": true,
+      "reused_modalities": [
+        "neurophysiology",
+        "behavior"
+      ],
+      "archives": [
+        "DANDI Archive"
+      ],
+      "reuse_types": [
+        "OTHER"
+      ],
+      "pathway": "indirect",
+      "same_lab": true,
+      "dandi_reason": "names DANDI Archive as the source",
+      "dandiset_name": "Data for: Multimodal single-neuron, intracranial EEG, and fMRI brain responses during movie watching in human patients",
+      "cited_role": "Cited",
+      "cited_doi": "10.1038/s41597-024-03029-1",
+      "cited_title": "Multimodal single-neuron, intracranial EEG, and fMRI brain responses during movie watching in human patients",
+      "cited_source": "description",
+      "shared_paper": null,
+      "cited_citation": "Keles et al., 2024"
+    },
+    {
       "doi": "10.82901/nemar.nm000358",
       "dandiset": "000055",
       "fetched_doi": "10.82901/nemar.nm000358",
@@ -53408,6 +53650,43 @@
       "cited_source": "dcite:IsDescribedBy",
       "shared_paper": null,
       "cited_citation": "Peterson et al., 2021"
+    },
+    {
+      "doi": "10.82901/nemar.nm000367",
+      "dandiset": "000207",
+      "fetched_doi": "10.82901/nemar.nm000367",
+      "title": "Cognitive boundaries and theta phase precession: human microwire LFP during movie-clip encoding, scene recognition and time discrimination (Zheng et al. 2024, DANDI 000940)",
+      "reasoning": "The text explicitly links the current article to participants from the earlier study and identifies the previously published single-neuron recordings as Dandiset 000207. The theta-phase-precession work extends and analyzes that electrophysiological material alongside newly released field potentials, making this data reuse rather than a background citation. The wording \"we previously published\" and the overlapping authors indicate same-lab reuse for a novel analysis.",
+      "quotes": [
+        {
+          "q": "Relation to other releases: the article states that 19 of its 22 participants come from the 2022 study, \"for whom we previously published single-neuron but not field potential data\".",
+          "tier": "exact"
+        },
+        {
+          "q": "Those single-neuron data are on DANDI as Dandiset 000207 (spike times only, no continuous signal). This release (16 participants) is the first public release of the field potentials.",
+          "tier": "exact"
+        }
+      ],
+      "reused_neurophysiology": true,
+      "reused_modalities": [
+        "neurophysiology"
+      ],
+      "archives": [
+        "DANDI Archive"
+      ],
+      "reuse_types": [
+        "NOVEL_ANALYSIS"
+      ],
+      "pathway": "indirect",
+      "same_lab": true,
+      "dandi_reason": "names DANDI Archive as the source",
+      "dandiset_name": "Data for: Neurons detect cognitive boundaries to structure episodic memories in humans (Zheng et al., 2022, Nat Neuro in press)",
+      "cited_role": "Cited",
+      "cited_doi": "10.1038/s41593-022-01020-w",
+      "cited_title": "Neurons detect cognitive boundaries to structure episodic memories in humans",
+      "cited_source": "dcite:IsDescribedBy",
+      "shared_paper": null,
+      "cited_citation": "Zheng et al., 2022"
     },
     {
       "doi": "10.82901/nemar.nm000367",
