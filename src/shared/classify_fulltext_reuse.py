@@ -69,9 +69,11 @@ DEFAULT_PROVIDER = None
 # parameter. Left unset it runs at roughly the 'low' budget. Because the paper
 # itself is ~26k tokens and the thinking is a few hundred, raising this changes
 # the bill by about a tenth while giving the model materially more room on the
-# judgement calls that make up most of the disagreement between runs.
+# judgement calls that make up most of the disagreement between runs. 'high'
+# replaced 'max' as the default on 2026-10-22; results cached before then were
+# produced at 'max', and the cache does not record the effort.
 VALID_REASONING_EFFORTS = frozenset({'low', 'medium', 'high', 'max'})
-DEFAULT_REASONING_EFFORT = 'max'
+DEFAULT_REASONING_EFFORT = 'high'
 
 # The indirect pathway asks how a citing paper relates to a dataset it cites.
 VALID_CLASSIFICATIONS = frozenset({'REUSE', 'MENTION', 'NEITHER'})
