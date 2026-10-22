@@ -35,7 +35,7 @@ pack() {
     return
   fi
   echo "  packing $name ..."
-  tar czf "$OUT/$name" --exclude='.DS_Store' --exclude='*.tmp-*' "$@"
+  tar czhf "$OUT/$name" --exclude='.DS_Store' --exclude='*.tmp-*' "$@"
   echo "    $(du -h "$OUT/$name" | cut -f1)  $name"
 }
 
