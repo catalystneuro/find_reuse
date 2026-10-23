@@ -65,6 +65,9 @@
       },
       "000044": {
         "call": "reuse"
+      },
+      "000050": {
+        "call": "reuse"
       }
     },
     "10.1038/s41592-024-02232-7": {
@@ -296,6 +299,10 @@
     "10.1038/s41592-023-01964-2": {
       "000054": {
         "call": "reuse"
+      },
+      "000449": {
+        "note": "Voleti et al. 2019 is only cited in future work and not listed among the reused datasets.",
+        "call": "mention"
       }
     },
     "10.1038/s41593-024-01626-2": {
@@ -492,6 +499,10 @@
       "000021": {
         "note": "This paper clearly reused data from DANDI 0000 to 1, but likely actually accessed them through the Allen SDK. ",
         "call": "reuse"
+      },
+      "000020": {
+        "note": "This paper clearly reused data from the Allen Cell Types Database, but I don't know what the relationship is between that database and Dandiset 000020.",
+        "call": "unsure"
       }
     },
     "10.1038/s41467-024-51308-7": {
@@ -514,6 +525,9 @@
       "000140": {
         "note": "\"The data used in this study are available on DANDI (https://dandiarchive.org/dandiset/000070)\"",
         "call": "neither"
+      },
+      "000125": {
+        "call": "ambiguous_reuse"
       }
     },
     "10.1038/s41586-025-08929-9": {
@@ -574,6 +588,9 @@
       "000035": {
         "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035).",
         "call": "ambiguous_reuse"
+      },
+      "000020": {
+        "call": "reuse"
       }
     },
     "10.1016/j.cell.2022.02.006": {
@@ -601,6 +618,10 @@
       },
       "000139": {
         "note": "This paper definitely reused publicly available data from Churchland et al. (2012), which is a shared paper across all five MC_Maze Dandisets. However, they got their data from Dropbox, not DANDI. So it's unclear which Dandiset should count here.",
+        "call": "ambiguous_reuse"
+      },
+      "000125": {
+        "note": "This paper got their data from Dropbox and Dryad rather than DANDI.",
         "call": "ambiguous_reuse"
       }
     },
@@ -653,10 +674,18 @@
       "000678": {
         "note": "This paper reused data from Musall et al. 2023, citation number 26. It did NOT reuse data from Hulsey et al. 2024, citation number 20. ",
         "call": "neither"
+      },
+      "001172": {
+        "note": "This paper reused data from Musall et al. 2023 (https://doi.org/10.1038/s41593-022-01245-9) rather than Lohani et al. 2022. Lohani et al. is just a background mention in the discussion.",
+        "call": "mention"
       }
     },
     "10.1016/j.neuron.2025.10.026": {
       "000409": {
+        "call": "reuse"
+      },
+      "000149": {
+        "note": "This paper reuses data from IBL Brainwide Map and includes ephys data. Therefore, it reuses Dandiset 000149.",
         "call": "reuse"
       }
     },
@@ -668,12 +697,19 @@
     "10.1016/j.neuroscience.2026.02.010": {
       "000409": {
         "call": "reuse"
+      },
+      "000149": {
+        "note": "Abstract only. ",
+        "call": "neither"
       }
     },
     "10.1016/j.patter.2023.100847": {
       "000035": {
         "call": "ambiguous_reuse",
         "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035)."
+      },
+      "000020": {
+        "call": "reuse"
       }
     },
     "10.1016/j.pneurobio.2024.102672": {
@@ -739,6 +775,10 @@
       "000409": {
         "note": "This paper clearly reused data from IBL, but they got their data from the Figshare IBL release rather than DANDI. That makes it unclear whether they reused data from 000045 or 000409.",
         "call": "ambiguous_reuse"
+      },
+      "000149": {
+        "note": "This paper reuses data from the IBL brainwide map and includes ephys data indicating Dandiset 000149.",
+        "call": "ambiguous_reuse"
       }
     },
     "10.1038/s41592-022-01742-6": {
@@ -763,6 +803,10 @@
       "000409": {
         "note": "This paper clearly reused data from IBL, but they got their data from the Figshare IBL release rather than DANDI. That makes it unclear whether they reused data from 000045 or 000409.",
         "call": "ambiguous_reuse"
+      },
+      "000149": {
+        "note": "I did not see any specific mention of ephys data in this paper, making it ambiguous whether they used dandiset 000149 or 000045.",
+        "call": "ambiguous_reuse"
       }
     },
     "10.1038/s41592-026-03076-z": {
@@ -772,6 +816,9 @@
       },
       "000409": {
         "note": "This paper references the brain-wide map paper for their data reuse, indicating that they reused data from 000409 rather than 000045.",
+        "call": "reuse"
+      },
+      "000149": {
         "call": "reuse"
       }
     },
@@ -902,6 +949,10 @@
       "000035": {
         "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035).",
         "call": "ambiguous_reuse"
+      },
+      "000020": {
+        "note": "Abstract only. ",
+        "call": "neither"
       }
     },
     "10.1038/s43588-025-00911-9": {
@@ -1037,6 +1088,9 @@
     },
     "10.1101/2022.04.26.489628": {
       "000023": {
+        "call": "reuse"
+      },
+      "000020": {
         "call": "reuse"
       }
     },
@@ -1309,6 +1363,10 @@
     "10.1101/2024.12.09.627642": {
       "000017": {
         "call": "reuse"
+      },
+      "000149": {
+        "note": "This paper reused data from Dandiset 000017, not 000149. The BrainWide map paper is only a background mention.",
+        "call": "mention"
       }
     },
     "10.1101/2024.12.17.628936": {
@@ -1787,6 +1845,18 @@
       },
       "000955": {
         "call": "reuse"
+      },
+      "000166": {
+        "note": "This paper obtained their data from the PhysMap GitHub repository rather than Dandi.",
+        "call": "reuse"
+      },
+      "000173": {
+        "note": "This paper definitely reused data from Ramachandran et al. 2022, but ambiguous.",
+        "call": "ambiguous_reuse"
+      },
+      "000339": {
+        "note": "This paper definitely reused data from Ramachandran et al. 2022, but ambiguous.",
+        "call": "ambiguous_reuse"
       }
     },
     "10.1103/6wgv-b9m6": {
@@ -1820,6 +1890,186 @@
         "call": "reuse"
       },
       "000978": {
+        "call": "reuse"
+      }
+    },
+    "10.1002/epi4.70235": {
+      "001468": {
+        "note": "The only citation of the cited paper is in the intro, and the citing paper describes collecting their own data. ",
+        "call": "mention"
+      }
+    },
+    "10.1007/978-3-031-70638-7_2": {
+      "000050": {
+        "note": "Abstract only",
+        "call": "neither"
+      }
+    },
+    "10.1007/978-3-032-38398-3_20": {
+      "000129": {
+        "note": "This paper clearly reused data from Makin et al. 2018, but it's ambiguous which dandiset that refers to.",
+        "call": "ambiguous_reuse"
+      },
+      "001055": {
+        "note": "This paper clearly reused data from Makin et al. 2018, but it's ambiguous which dandiset that refers to.",
+        "call": "ambiguous_reuse"
+      }
+    },
+    "10.1007/s12021-025-09744-3": {
+      "000618": {
+        "note": "This paper reused data from SpikeForest, but not from Dandi.",
+        "call": "reuse"
+      }
+    },
+    "10.1016/j.bspc.2026.110855": {
+      "000618": {
+        "note": "This paper reused data from SpikeForest rather than from DANDI directly.",
+        "call": "reuse"
+      }
+    },
+    "10.1016/j.celrep.2021.109772": {
+      "000050": {
+        "note": "For figure S5, this paper reused data from the Allen Brain Institute visual coding, which corresponds to Dandiset 50, as well as 21, 22, 39, and  728.",
+        "call": "ambiguous_reuse"
+      }
+    },
+    "10.1016/j.celrep.2023.112318": {
+      "000039": {
+        "note": "For figure S5, this paper reused data from the Allen Brain Institute visual coding, which corresponds to Dandiset 50, as well as 21, 22, 39, and  728.",
+        "call": "ambiguous_reuse"
+      },
+      "000050": {
+        "note": "For figure S5, this paper reused data from the Allen Brain Institute visual coding, which corresponds to Dandiset 50, as well as 21, 22, 39, and  728.",
+        "call": "ambiguous_reuse"
+      }
+    },
+    "10.1016/j.compbiomed.2023.107783": {
+      "000020": {
+        "call": "reuse"
+      }
+    },
+    "10.1016/j.cub.2021.07.062": {
+      "000050": {
+        "note": "This paper used the Allen SDK to download data from the Visual Coding Project.",
+        "call": "ambiguous_reuse"
+      }
+    },
+    "10.1016/j.cub.2024.06.068": {
+      "000020": {
+        "call": "reuse"
+      }
+    },
+    "10.1016/j.cub.2025.10.006": {
+      "000541": {
+        "note": "This paper definitely reused data from the NeuroPAL dataset, but it is ambiguous which Dandiset.",
+        "call": "ambiguous_reuse"
+      },
+      "000715": {
+        "note": "This paper definitely reused data from the NeuroPAL dataset, but it is ambiguous which Dandiset.",
+        "call": "ambiguous_reuse"
+      }
+    },
+    "10.1016/j.ijforecast.2023.07.001": {
+      "000050": {
+        "note": "This paper reused data from the Allen Brain Observatory Visual Coding dataset.",
+        "call": "ambiguous_reuse"
+      }
+    },
+    "10.1016/j.isci.2026.117632": {
+      "000020": {
+        "call": "reuse"
+      }
+    },
+    "10.1016/j.neunet.2025.107688": {
+      "000402": {
+        "call": "reuse"
+      }
+    },
+    "10.1016/j.neuron.2022.12.013": {
+      "000219": {
+        "call": "reuse"
+      }
+    },
+    "10.1016/j.neuron.2022.12.016": {
+      "000130": {
+        "call": "reuse"
+      }
+    },
+    "10.1016/j.xpro.2023.102760": {
+      "000219": {
+        "note": "Rant: This paper states they analyze existing publicly available data with more details listed in the key resources table. But the only reference to publicly used data in the key resources table is \"NWB-formatted calcium imaging data\", source: DANDI, and identifier is an RRID that points to NWB.\n\nNow, elsewhere in the paper, they state, \"For complete details on the use and execution of this protocol, please refer to Dard et al.1 and Denis et al.2\", which links to the cited paper and therefore the Dandiset, so I think this is reuse. But the key resources table certainly doesn't have the necessary information to determine that.",
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41467-023-37392-1": {
+      "000020": {
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41467-025-58763-w": {
+      "000402": {
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41467-026-70354-x": {
+      "000020": {
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41467-026-74227-1": {
+      "000149": {
+        "note": "This paper reused data from IBL Brainwide Map and specifically mentioned ephys, indicating Dandiset 000149.",
+        "call": "reuse"
+      },
+      "000409": {
+        "note": "This paper reused data from IBL Brainwide Map and specifically mentioned ephys, indicating Dandiset 000149.",
+        "call": "neither"
+      }
+    },
+    "10.1038/s41586-026-10876-y": {
+      "000050": {
+        "call": "reuse"
+      },
+      "000166": {
+        "note": "This is not data reuse. This is just a figure panel reproduction, which is reprinted exactly.",
+        "call": "mention"
+      }
+    },
+    "10.1038/s41592-021-01285-2": {
+      "000050": {
+        "call": "reuse"
+      }
+    },
+    "10.1038/s42003-026-10144-9": {
+      "000149": {
+        "call": "reuse"
+      },
+      "000409": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2025.07.30.667641": {
+      "000409": {
+        "call": "reuse"
+      }
+    },
+    "10.1101/2025.08.30.673281": {
+      "000409": {
+        "call": "reuse"
+      }
+    },
+    "10.64898/2026.05.31.729124": {
+      "000409": {
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41592-025-02621-6": {
+      "000020": {
+        "call": "reuse"
+      }
+    },
+    "10.1038/s44303-024-00055-x": {
+      "000020": {
         "call": "reuse"
       }
     }
