@@ -5,6 +5,22 @@
         "10.1016/j.cell.2020.09.057": "primary"
       }
     },
+    "000021": {
+      "calls": {
+        "10.1038/s41586-020-03171-x": "primary"
+      },
+      "notes": {
+        "10.1038/s41586-020-03171-x": "Named in the data availability statement, with 000021 and 000022, as the deposit of the 58 passive viewing experiments."
+      }
+    },
+    "000022": {
+      "calls": {
+        "10.1038/s41586-020-03171-x": "primary"
+      },
+      "notes": {
+        "10.1038/s41586-020-03171-x": "Named in the data availability statement, with 000021 and 000022, as the deposit of the 58 passive viewing experiments."
+      }
+    },
     "000028": {
       "calls": {
         "10.1152/jn.00105.2020": "not_primary"
@@ -12,7 +28,10 @@
     },
     "000050": {
       "calls": {
-        "10.1038/s41593-019-0550-9": "primary"
+        "10.1038/s41593-019-0550-9": "not_primary"
+      },
+      "notes": {
+        "10.1038/s41593-019-0550-9": "Describes the Allen Brain Observatory Visual Coding 2P survey, which is DANDI:000728. The run-tuning experiments in 000050 were collected on the same pipeline but are not part of that survey."
       }
     },
     "000056": {
@@ -344,6 +363,14 @@
         "10.1016/j.neuron.2024.04.018": "not_primary"
       }
     },
+    "000711": {
+      "calls": {
+        "10.1101/2023.02.14.528085": "primary"
+      },
+      "notes": {
+        "10.1101/2023.02.14.528085": "Named in the data and materials availability statement by its versioned DOI, 10.48324/dandi.000711/0.231121.1730."
+      }
+    },
     "000713": {
       "calls": {
         "10.1038/s41586-023-06810-1": "not_primary"
@@ -357,6 +384,14 @@
     "000717": {
       "calls": {
         "10.1101/2024.04.18.590132": "not_primary"
+      }
+    },
+    "000728": {
+      "calls": {
+        "10.1038/s41593-019-0550-9": "primary"
+      },
+      "notes": {
+        "10.1038/s41593-019-0550-9": "Describes the Visual Coding 2P survey, the three_session A/B/C experiments. 000728 holds that survey's 1,518 experiments, all of which are in the Allen Brain Observatory API."
       }
     },
     "000768": {

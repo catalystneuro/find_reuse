@@ -41,6 +41,7 @@ sys.path.insert(0, str(REPO))
 import warnings
 warnings.filterwarnings('ignore')
 
+import requests
 from tqdm import tqdm
 
 from src.indirect_pipeline.openalex import (
@@ -51,7 +52,8 @@ from src.indirect_pipeline.openalex import (
 )
 from src.direct_pipeline.find_reuse import ArchiveFinder
 from src.review.primary_papers import (apply_confirmed_primary_papers,
-                                       load_confirmed)
+                                       dandiset_record, load_confirmed,
+                                       unlisted_confirmed_dandisets)
 
 SRC = REPO / 'output/all_dandiset_papers.json'
 DISCOVERY = REPO / 'output/all_dandiset_papers_discovered.json'
@@ -81,9 +83,15 @@ def openalex_is_available(session) -> bool:
 def run_discovery(source: Path) -> dict:
     data = json.loads(source.read_text())
     # A model's pick of a dandiset's paper is searched from only once a
-    # reviewer has confirmed it.
-    data['results'] = apply_confirmed_primary_papers(data['results'],
-                                                     load_confirmed())
+    # reviewer has confirmed it, and a paper confirmed for a dandiset the
+    # corpus never held brings that dandiset in.
+    confirmed = load_confirmed()
+    dandi = requests.Session()
+    added = [dandiset_record(dandiset, dandi)
+             for dandiset in unlisted_confirmed_dandisets(data['results'], confirmed)]
+    data['results'] = apply_confirmed_primary_papers(
+        sorted(data['results'] + added, key=lambda record: record['dandiset_id']),
+        confirmed)
     results = data['results']
 
     known = {p['doi'] for r in results for p in r.get('citing_papers', [])
