@@ -228,7 +228,6 @@
   },
   "000711": {
     "remove": [
-      "10.1101/2023.02.14.528085",
       "10.1101/2023.04.28.538575",
       "10.1101/2023.08.16.553635"
     ],
@@ -238,7 +237,9 @@
       "pre-prints using this dataset include:'. They are papers that USED the",
       "dataset, which is the opposite of a describing paper: treating them as",
       "primaries attributes every citation of a downstream user to this",
-      "dandiset. They accounted for 60 citing papers."
+      "dandiset. The first paper listed there, 10.1101/2023.02.14.528085, is",
+      "kept: its data availability statement names this dandiset as the",
+      "deposit of the data it reports, so it describes the data."
     ]
   },
   "000714": {
