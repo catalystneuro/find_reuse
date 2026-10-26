@@ -41,6 +41,7 @@ sys.path.insert(0, str(REPO))
 import warnings
 warnings.filterwarnings('ignore')
 
+from paper_text_fetcher import TextCache
 from tqdm import tqdm
 
 from src.indirect_pipeline.openalex import (
@@ -116,10 +117,10 @@ def run_discovery(source: Path) -> dict:
     return data
 
 
-def cached(doi: str) -> bool:
-    from paper_text_fetcher import cache_filename, legacy_cache_filename
-    return ((Path(CACHE) / cache_filename(doi)).exists()
-            or (Path(CACHE) / legacy_cache_filename(doi)).exists())
+def cached(cache: TextCache, doi: str) -> bool:
+    """Whether the fetcher would answer for this DOI from its cache."""
+    entry = cache.get(doi)
+    return bool(entry and entry[0])
 
 
 def main():
@@ -154,8 +155,9 @@ def main():
         print("stopping before fetch (--discovery-only)", file=sys.stderr)
         return
 
-    to_fetch = [d for d in sorted(current) if not cached(d)]
-    print(f"{len(to_fetch):,} DOIs have no cache entry, fetching with "
+    cache = TextCache(Path(CACHE))
+    to_fetch = [d for d in sorted(current) if not cached(cache, d)]
+    print(f"{len(to_fetch):,} DOIs have no usable cache entry, fetching with "
           f"{args.workers} workers", file=sys.stderr, flush=True)
 
     # Each worker owns one finder, and with it a Playwright browser, which only
