@@ -526,8 +526,8 @@
         "call": "reuse"
       },
       "000020": {
-        "note": "This paper clearly reused data from the Allen Cell Types Database, but I don't know what the relationship is between that database and Dandiset 000020.",
-        "call": "unsure"
+        "note": "This paper clearly reused data from the Allen Cell Types Database, which, as far as I can tell, does not correspond to Dandiset number 20.",
+        "call": "neither"
       }
     },
     "10.1038/s41467-024-51308-7": {
@@ -710,8 +710,8 @@
         "call": "reuse"
       },
       "000149": {
-        "note": "This paper reuses data from IBL Brainwide Map and includes ephys data. Therefore, it reuses Dandiset 000149.",
-        "call": "reuse"
+        "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409. ",
+        "call": "neither"
       }
     },
     "10.1016/j.neuron.2026.02.022": {
@@ -802,8 +802,8 @@
         "call": "ambiguous_reuse"
       },
       "000149": {
-        "note": "This paper reuses data from the IBL brainwide map and includes ephys data indicating Dandiset 000149.",
-        "call": "ambiguous_reuse"
+        "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409. ",
+        "call": "neither"
       }
     },
     "10.1038/s41592-022-01742-6": {
@@ -830,8 +830,8 @@
         "call": "ambiguous_reuse"
       },
       "000149": {
-        "note": "I did not see any specific mention of ephys data in this paper, making it ambiguous whether they used dandiset 000149 or 000045.",
-        "call": "ambiguous_reuse"
+        "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409. ",
+        "call": "neither"
       }
     },
     "10.1038/s41592-026-03076-z": {
@@ -844,7 +844,8 @@
         "call": "reuse"
       },
       "000149": {
-        "call": "reuse"
+        "call": "neither",
+        "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409. "
       }
     },
     "10.1101/2023.04.28.538703": {
@@ -878,7 +879,8 @@
         "call": "reuse"
       },
       "000149": {
-        "call": "ambiguous_reuse"
+        "call": "neither",
+        "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409. "
       }
     },
     "10.1101/2024.11.06.622308": {
@@ -891,8 +893,8 @@
         "call": "reuse"
       },
       "000149": {
-        "note": "This paper used the IBL brain-wide map dataset and includes ephys indicating 000149.",
-        "call": "reuse"
+        "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409. ",
+        "call": "neither"
       }
     },
     "10.1101/2025.05.12.653551": {
@@ -910,7 +912,8 @@
         "call": "reuse"
       },
       "000149": {
-        "call": "ambiguous_reuse"
+        "call": "neither",
+        "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409. "
       }
     },
     "10.64898/2025.12.15.694430": {
@@ -922,7 +925,8 @@
         "call": "mention"
       },
       "000149": {
-        "call": "ambiguous_reuse"
+        "call": "neither",
+        "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409. "
       }
     },
     "10.1038/s41593-022-01171-w": {
@@ -2100,8 +2104,8 @@
     },
     "10.1038/s41467-026-74227-1": {
       "000149": {
-        "note": "This paper reused data from IBL Brainwide Map and specifically mentioned ephys, indicating Dandiset 000149.",
-        "call": "reuse"
+        "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409. ",
+        "call": "neither"
       },
       "000409": {
         "note": "This paper reused data from IBL Brainwide Map and specifically mentioned ephys, indicating Dandiset 000149.",
@@ -2124,10 +2128,12 @@
     },
     "10.1038/s42003-026-10144-9": {
       "000149": {
-        "call": "reuse"
+        "call": "neither",
+        "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409."
       },
       "000409": {
-        "call": "reuse"
+        "call": "reuse",
+        "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409. "
       }
     },
     "10.1101/2025.07.30.667641": {
@@ -2145,13 +2151,16 @@
     },
     "10.1101/2025.08.30.673281": {
       "000409": {
-        "call": "ambiguous_reuse"
+        "call": "reuse",
+        "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409. "
       },
       "000045": {
-        "call": "ambiguous_reuse"
+        "call": "neither",
+        "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409. "
       },
       "000149": {
-        "call": "ambiguous_reuse"
+        "call": "neither",
+        "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409. "
       }
     },
     "10.64898/2026.05.31.729124": {
@@ -2159,7 +2168,8 @@
         "call": "reuse"
       },
       "000149": {
-        "call": "ambiguous_reuse"
+        "call": "neither",
+        "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409. "
       }
     },
     "10.1038/s41592-025-02621-6": {
@@ -2789,10 +2799,12 @@
     },
     "10.1371/journal.pcbi.1013335": {
       "000045": {
-        "call": "ambiguous_reuse"
+        "call": "neither",
+        "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409. "
       },
       "000409": {
-        "call": "ambiguous_reuse"
+        "call": "reuse",
+        "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409. "
       }
     },
     "10.1371/journal.pcbi.1013818": {
@@ -2900,10 +2912,12 @@
     },
     "10.64898/2026.09.18.752552": {
       "000045": {
-        "call": "ambiguous_reuse"
+        "call": "neither",
+        "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409. "
       },
       "000409": {
-        "call": "ambiguous_reuse"
+        "call": "reuse",
+        "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409. "
       }
     },
     "10.64898/2026.10.02.756298": {
