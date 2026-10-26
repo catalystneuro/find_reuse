@@ -5,6 +5,16 @@
         "10.1016/j.cell.2020.09.057": "primary"
       }
     },
+    "000021": {
+      "calls": {
+        "10.1038/s41586-020-03171-x": "primary"
+      }
+    },
+    "000022": {
+      "calls": {
+        "10.1038/s41586-020-03171-x": "primary"
+      }
+    },
     "000028": {
       "calls": {
         "10.1152/jn.00105.2020": "not_primary"
@@ -12,7 +22,10 @@
     },
     "000050": {
       "calls": {
-        "10.1038/s41593-019-0550-9": "primary"
+        "10.1038/s41593-019-0550-9": "not_primary"
+      },
+      "notes": {
+        "10.1038/s41593-019-0550-9": "This paper actually corresponds to Dandiset 000728."
       }
     },
     "000056": {
@@ -344,6 +357,14 @@
         "10.1016/j.neuron.2024.04.018": "not_primary"
       }
     },
+    "000711": {
+      "calls": {
+        "10.1101/2023.02.14.528085": "primary"
+      },
+      "notes": {
+        "10.1101/2023.02.14.528085": "This preprint is the first user of this Allen Institute visual behavior dataset and describes it in detail, making it the appropriate primary paper."
+      }
+    },
     "000713": {
       "calls": {
         "10.1038/s41586-023-06810-1": "not_primary"
@@ -357,6 +378,14 @@
     "000717": {
       "calls": {
         "10.1101/2024.04.18.590132": "not_primary"
+      }
+    },
+    "000728": {
+      "calls": {
+        "10.1038/s41593-019-0550-9": "primary"
+      },
+      "notes": {
+        "10.1038/s41593-019-0550-9": "This paper is the standard reference for the visual coding Ophys dataset."
       }
     },
     "000768": {
