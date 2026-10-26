@@ -462,7 +462,6 @@
         "note": "This online textbook actually uses data from Dandiset 000070 during the Churchland & Cunningham et al. 2012 lesson: https://nwb4edu.github.io/Lesson_5/02-RotationalDynamics.html."
       },
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
@@ -1989,7 +1988,6 @@
     },
     "10.1007/978-3-031-70638-7_2": {
       "000050": {
-        "note": "Abstract only",
         "call": "neither"
       }
     },
@@ -2017,7 +2015,6 @@
     },
     "10.1016/j.celrep.2021.109772": {
       "000050": {
-        "note": "For figure S5, this paper reused data from the Allen Brain Institute visual coding, which corresponds to Dandiset 50, as well as 21, 22, 39, and  728.",
         "call": "neither"
       }
     },
@@ -2027,7 +2024,6 @@
         "call": "ambiguous_reuse"
       },
       "000050": {
-        "note": "For figure S5, this paper reused data from the Allen Brain Institute visual coding, which corresponds to Dandiset 50, as well as 21, 22, 39, and  728.",
         "call": "neither"
       }
     },
@@ -2038,7 +2034,6 @@
     },
     "10.1016/j.cub.2021.07.062": {
       "000050": {
-        "note": "This paper used the Allen SDK to download data from the Visual Coding Project.",
         "call": "neither"
       }
     },
@@ -2059,7 +2054,6 @@
     },
     "10.1016/j.ijforecast.2023.07.001": {
       "000050": {
-        "note": "This paper reused data from the Allen Brain Observatory Visual Coding dataset.",
         "call": "neither"
       }
     },
@@ -2219,25 +2213,21 @@
     },
     "10.1038/s41593-021-00895-5": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1073/pnas.2105395118": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1093/pnasnexus/pgae078": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1101/2021.06.16.448730": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
@@ -2248,127 +2238,106 @@
     },
     "10.1101/2023.06.02.543483": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1101/2023.10.04.560900": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1101/2023.11.06.565918": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1101/2025.05.23.655705": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1101/2025.08.13.670197": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1111/biom.13626": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1371/journal.pcbi.1008548": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1371/journal.pcbi.1009832": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1371/journal.pcbi.1010653": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1371/journal.pcbi.1011506": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1371/journal.pcbi.1012355": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1523/eneuro.0051-23.2023": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1523/eneuro.0188-20.2021": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1523/eneuro.0280-21.2021": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1523/eneuro.0352-23.2024": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.3389/fncir.2025.1542332": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.52202/085713-4377": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.64898/2026.10.07.757489": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.7554/elife.51675": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.7554/elife.77907": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.7554/elife.85069": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
@@ -2500,145 +2469,121 @@
     },
     "10.1002/advs.202406224": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1007/978-3-031-70638-7_3": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1007/s00422-021-00906-5": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1016/j.cell.2021.03.042": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1016/j.isci.2024.111728": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Behavior dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1016/j.jmva.2024.105335": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1016/j.neuron.2025.11.005": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1038/s41467-022-29200-z": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1038/s41467-026-69068-x": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1038/s41593-025-02128-5": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1038/s42256-021-00342-x": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1093/bioinformatics/btae177": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1101/2021.01.04.425277": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1101/2021.03.24.436279": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1101/2021.06.18.448431": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1101/2022.05.24.493230": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1101/2022.09.05.506667": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1101/2024.06.24.600438": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1101/2024.08.13.607787": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1101/2024.10.24.620142": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1101/2025.08.01.668071": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1101/2025.08.08.669442": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1101/2025.10.21.683734": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1101/2025.10.29.685363": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
@@ -2649,139 +2594,116 @@
     },
     "10.1103/physreve.106.054313": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1109/access.2021.3081118": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1117/12.2677945": {
       "000050": {
-        "note": "Abstract only. ",
         "call": "neither"
       }
     },
     "10.1126/sciadv.abm4643": {
       "000050": {
-        "note": "This paper reused stimuli from the Allen Brain Observatory Visual Coding Project, which I'm not sure counts as reuse.",
         "call": "neither"
       }
     },
     "10.1371/journal.pbio.3001534": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1371/journal.pcbi.1009212": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1371/journal.pcbi.1010427": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1371/journal.pcbi.1010716": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1371/journal.pcbi.1013385": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1371/journal.pcbi.1014123": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1371/journal.pone.0356243": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1523/eneuro.0491-21.2022": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.1523/jneurosci.0051-21.2021": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.24072/pcjournal.30": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.3389/fncel.2023.1238777": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.3389/fnins.2021.797421": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.52202/079017-0364": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.7554/elife.100840": {
       "000050": {
-        "note": "This paper corresponds to the IBL dataset and just mentions the Allen Institute's parallel efforts to standardize their data procedure. ",
         "call": "neither"
       }
     },
     "10.7554/elife.64449": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.7554/elife.69068": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.7554/elife.73783": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.7554/elife.78606": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
     "10.7554/elife.82566": {
       "000050": {
-        "note": " this paper clearly reused data from the Allen Brain Observatory Visual Coding dataset, but unclear which one.",
         "call": "neither"
       }
     },
