@@ -2007,14 +2007,14 @@
     },
     "10.1007/s12021-025-09744-3": {
       "000618": {
-        "note": "This paper reused data from SpikeForest, but not from Dandi.",
+        "note": "This paper reused data from SpikeForest, paired kampff",
         "call": "reuse"
       }
     },
     "10.1016/j.bspc.2026.110855": {
       "000618": {
-        "note": "This paper reused data from SpikeForest rather than from DANDI directly.",
-        "call": "reuse"
+        "note": "This paper reused data from SpikeForest, SynthMonotrode, which is not on DANDI. ",
+        "call": "neither"
       }
     },
     "10.1016/j.celrep.2021.109772": {
@@ -2378,8 +2378,8 @@
     },
     "10.1088/1741-2552/adaa1c": {
       "000618": {
-        "note": "This paper definitely reused data from SpikeForest, although not sure which one.",
-        "call": "ambiguous_reuse"
+        "note": "This paper definitely reused data from SpikeForest, including kampff and boyden.",
+        "call": "reuse"
       }
     },
     "10.1088/1741-2552/ae5688": {
@@ -2420,8 +2420,8 @@
     },
     "10.1101/2021.04.23.441225": {
       "000034": {
-        "note": "This paper definitely reused data from SpikeForest, but unclear which one.",
-        "call": "ambiguous_reuse"
+        "call": "unsure",
+        "note": "This paper says they got their data from SpikeForest and lists SpikeInterface_synthetic, but SpikeInterface_synthetic is not one of the datasets named on the SpikeForest website or the paper. It could be Dandiset 000034, or it could be a completely fresh synthetic dataset generated de novo."
       }
     },
     "10.1101/2021.09.20.461152": {
@@ -2794,7 +2794,8 @@
     },
     "10.1145/3695053.3731067": {
       "000618": {
-        "call": "ambiguous_reuse"
+        "call": "reuse",
+        "note": "This paper reused the hybrid drift SI probe dataset, which is one of the datasets associated with Dandiset 000618. "
       }
     },
     "10.1371/journal.pcbi.1013335": {
