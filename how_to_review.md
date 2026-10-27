@@ -220,6 +220,28 @@ reuse is not attributable to it, and that belongs in the note. A sibling wearing
 the red verify chip is the weaker case — a model picked that paper for it, so the
 sharing may be nothing more than a bad guess.
 
+SpikeForest ([000618](https://dandiarchive.org/dandiset/000618)) is a benchmark
+of 13 ground-truth study sets
+([Magland et al. 2020](https://doi.org/10.7554/eLife.55167), Table 2), and only
+four of them are on DANDI, all in 000618. Papers usually say they took data
+"from SpikeForest" and name the study set, so the set decides the call. A paper
+that names any of these four reused 000618 and is **Reuse**:
+
+| Study set | Recordings | Folder in 000618 |
+|---|---|---|
+| PAIRED_BOYDEN | 19 | `sub-paired-boyden` |
+| PAIRED_ENGLISH | 29 | `sub-paired-english` |
+| PAIRED_KAMPFF | 15 | `sub-paired-kampff` |
+| SYNTH_JANELIA, later renamed HYBRID_JANELIA | 60 | `sub-hybrid-janelia` |
+
+A paper that names only the other nine is **Neither**, since none of them is on
+DANDI under any dandiset: PAIRED_CRCNS_HC1, PAIRED_MEA64C_YGER,
+PAIRED_MONOTRODE, SYNTH_BIONET, SYNTH_MAGLAND, SYNTH_MEAREC_NEURONEXUS,
+SYNTH_MEAREC_TETRODE, SYNTH_MONOTRODE, SYNTH_VISAPY and MANUAL_FRANKLAB.
+Names in papers vary (Paired-Boyden, Kampff, `hybrid_drift_siprobe`), so match
+on the lab or study. Put the set the paper named in the note. A paper that
+says it used SpikeForest but names no study set is **Unsure**.
+
 **Indirect** — the paper cited a dandiset's publication.
 
 | Label | When |
