@@ -838,7 +838,7 @@
     "10.1038/s41592-024-02319-1": {
       "000045": {
         "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409. ",
-        "call": "ambiguous_reuse"
+        "call": "neither"
       },
       "000409": {
         "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409. ",
