@@ -582,6 +582,10 @@ class TestOverview:
         page = R.build([row()], 'rly')
         assert 'id="search"' in page
 
+    def test_the_search_reads_the_note_as_it_stands(self):
+        page = R.build([row()], 'rly')
+        assert "r.searchText + ' ' + noteFor(r).toLowerCase()" in page
+
 
 class TestCitedPaperOrigin:
     """The chip is drawn in the browser, so what the page can be held to is
