@@ -731,10 +731,16 @@
     },
     "10.1016/j.neuroscience.2026.02.010": {
       "000409": {
-        "call": "reuse"
+        "call": "reuse",
+        "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409."
       },
       "000149": {
-        "call": "reuse"
+        "call": "neither",
+        "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409."
+      },
+      "000045": {
+        "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409.",
+        "call": "neither"
       }
     },
     "10.1016/j.patter.2023.100847": {
@@ -831,12 +837,12 @@
     },
     "10.1038/s41592-024-02319-1": {
       "000045": {
-        "note": "This paper clearly reused data from IBL, but they got their data from the Figshare IBL release rather than DANDI. That makes it unclear whether they reused data from 000045 or 000409.",
+        "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409. ",
         "call": "ambiguous_reuse"
       },
       "000409": {
-        "note": "This paper clearly reused data from IBL, but they got their data from the Figshare IBL release rather than DANDI. That makes it unclear whether they reused data from 000045 or 000409.",
-        "call": "ambiguous_reuse"
+        "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409. ",
+        "call": "reuse"
       },
       "000149": {
         "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409. ",
@@ -1189,15 +1195,16 @@
     },
     "10.1101/2022.10.15.512388": {
       "000008": {
-        "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035).",
-        "call": "ambiguous_reuse"
+        "call": "neither",
+        "note": "Preprint duplicate of 10.1038/s42256-023-00663-z"
       },
       "000035": {
-        "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035).",
-        "call": "ambiguous_reuse"
+        "note": "Preprint duplicate of 10.1038/s42256-023-00663-z",
+        "call": "neither"
       },
       "000020": {
-        "call": "reuse"
+        "call": "neither",
+        "note": "Preprint duplicate of 10.1038/s42256-023-00663-z"
       }
     },
     "10.1101/2022.12.06.519376": {
@@ -2419,12 +2426,12 @@
         "call": "neither"
       },
       "000129": {
-        "call": "neither",
-        "note": "This paper directly names Dandiset 000128."
+        "call": "ambiguous_reuse",
+        "note": "Ambiguous between Dandisets 001055 and 000129."
       },
       "001055": {
-        "note": "This paper directly names Dandiset 000128.",
-        "call": "neither"
+        "call": "ambiguous_reuse",
+        "note": "Ambiguous between Dandisets 001055 and 000129. "
       }
     },
     "10.1101/2021.04.23.441225": {
