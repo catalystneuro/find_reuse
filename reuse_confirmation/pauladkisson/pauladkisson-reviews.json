@@ -1949,12 +1949,12 @@
         "call": "reuse"
       },
       "000173": {
-        "note": "This paper definitely reused data from Ramachandran et al. 2022, but ambiguous.",
-        "call": "ambiguous_reuse"
+        "note": "This paper reused data from Ramachandran et al. 2022 via dandiset 000955.",
+        "call": "neither"
       },
       "000339": {
-        "note": "This paper definitely reused data from Ramachandran et al. 2022, but ambiguous.",
-        "call": "ambiguous_reuse"
+        "note": "This paper reused data from Ramachandran et al. 2022 via dandiset 000955.",
+        "call": "neither"
       }
     },
     "10.1103/6wgv-b9m6": {
