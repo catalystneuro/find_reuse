@@ -488,7 +488,8 @@ const controls = {
 const keyOf = r => r.doi + '\\t' + r.dandiset;
 const ROW_BY_KEY = new Map(ROWS.map(r => [keyOf(r), r]));
 // Searching is done over a string built once rather than over the fields each
-// time: this runs on every keystroke across every pair.
+// time: this runs on every keystroke across every pair. The note is the one
+// field written during the session, so it is read when the search is made.
 const searchTextOf = r => [r.doi, r.fetched_doi, r.title, r.dandiset,
                            r.dandiset_name, r.cited_doi, r.cited_title,
                            r.cited_citation]
@@ -650,9 +651,10 @@ const unasked = r => !isAdded(r) && !inRound(r);
 function matchesSearch(r){
   const query = controls.search.trim().toLowerCase();
   if (!query) return true;
+  const text = r.searchText + ' ' + noteFor(r).toLowerCase();
   return query.split(',').some(alternative => {
     const terms = alternative.split(/\\s+/).filter(Boolean);
-    return terms.length && terms.every(t => r.searchText.includes(t));
+    return terms.length && terms.every(t => text.includes(t));
   });
 }
 
