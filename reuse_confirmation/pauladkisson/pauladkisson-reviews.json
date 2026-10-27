@@ -392,23 +392,23 @@
     },
     "10.1101/2024.04.28.591397": {
       "000776": {
-        "note": "This paper harmonized data from various sources and stored it on the DANDI Archive, which makes it a primary source rather than a re-user.",
+        "note": "pre-print duplicate of 10.1016/j.crmeth.2024.100964",
         "call": "neither"
       },
       "000541": {
-        "note": "This paper harmonized data from various sources and stored it on the DANDI Archive, which makes it a primary source rather than a re-user.",
+        "note": "pre-print duplicate of 10.1016/j.crmeth.2024.100964",
         "call": "neither"
       },
       "000565": {
-        "note": "This paper harmonized data from various sources and stored it on the DANDI Archive, which makes it a primary source rather than a re-user.",
+        "note": "pre-print duplicate of 10.1016/j.crmeth.2024.100964",
         "call": "neither"
       },
       "000714": {
-        "note": "This paper harmonized data from various sources and stored it on the DANDI Archive, which makes it a primary source rather than a re-user.",
+        "note": "pre-print duplicate of 10.1016/j.crmeth.2024.100964",
         "call": "neither"
       },
       "000715": {
-        "note": "This paper harmonized data from various sources and stored it on the DANDI Archive, which makes it a primary source rather than a re-user.",
+        "note": "pre-print duplicate of 10.1016/j.crmeth.2024.100964",
         "call": "neither"
       }
     },
@@ -2033,8 +2033,7 @@
     },
     "10.1016/j.celrep.2023.112318": {
       "000039": {
-        "note": "For figure S5, this paper reused data from the Allen Brain Institute visual coding, which corresponds to Dandiset 50, as well as 21, 22, 39, and  728.",
-        "call": "ambiguous_reuse"
+        "call": "neither"
       },
       "000050": {
         "call": "neither"
