@@ -172,67 +172,20 @@ Not a paper. This is the author response to the reviews of doi: 10.7554/eLife.85
 Review DOIs from other publishers are the same case, and Crossref lists them
 all, eLife's included, with type `peer-review`.
 
-MC_Maze ([000128](https://dandiarchive.org/dandiset/000128)) and its Large,
-Medium and Small variants ([000138](https://dandiarchive.org/dandiset/000138),
-[000139](https://dandiarchive.org/dandiset/000139),
-[000140](https://dandiarchive.org/dandiset/000140)) share primary papers, and
-papers reanalysing them cite those papers or the Neural Latents Benchmark (NLB)
-rather than an identifier. The citation does not say which dandiset was used,
-but the rest of the paper usually does. Look for:
-
-* **Counts.** Each variant is a different recording session, so a reported
-  neuron, condition or trial count picks one out. These are from the NLB paper
-  ([Pei et al. 2021](https://arxiv.org/abs/2109.04463), Table 4).
-
-  | Dandiset | Variant | Neurons | Held-in | Held-out | Conditions | Training trials | Test trials |
-  |---|---|---|---|---|---|---|---|
-  | 000128 | MC_Maze | 182 | 137 | 45 | 108 | 2295 | 574 |
-  | 000138 | MC_Maze_Large | 162 | 122 | 40 | 27 | 500 | 100 |
-  | 000139 | MC_Maze_Medium | 152 | 114 | 38 | 27 | 250 | 100 |
-  | 000140 | MC_Maze_Small | 142 | 107 | 35 | 27 | 100 | 100 |
-
-  Table 4 lists the held-in and held-out units separately and gives no total.
-  **Neurons** is the two added together, verified independently of the paper by
-  counting the neurons in the sole training file each of these dandisets holds.
-
-* **The NLB leaderboard.** A paper that reports NLB results was usually
-  submitted to the [leaderboard](https://eval.ai/web/challenges/challenge-page/1256/leaderboard).
-  The "MC_Maze" leaderboards score 000128 only. The variants are scored only on
-  the "MC_Maze Scaling" leaderboards, in columns headed [500], [250] and [100].
-  A method listed on MC_Maze and on no MC_Maze Scaling leaderboard used 000128.
-  The leaderboards list public submissions only.
-* **Code and data availability.** Dataset names such as `mc_maze_large`, a
-  dandiset URL, or a download script in the paper's repository.
-
-Where the evidence identifies one dandiset, call that pair **Reuse** and its
-siblings on the same paper **Neither**, and put the evidence in the note on
-each, so whoever reads any one of them sees why. **Ambiguous Reuse** is for when
-none of this settles it: the data was reused, and nothing in the paper, its code
-or the leaderboard says which dandiset it came from. Say in the note what you
-checked.
-
-MC_RTT ([000129](https://dandiarchive.org/dandiset/000129)) and NeuroTask
-Random Target ([001055](https://dandiarchive.org/dandiset/001055)) both hold
-recordings from Makin et al. 2018
-([10.1088/1741-2552/aa9e95](https://doi.org/10.1088/1741-2552/aa9e95)), which
-O'Doherty et al. also released on Zenodo
-([10.5281/zenodo.583331](https://doi.org/10.5281/zenodo.583331),
-[10.5281/zenodo.788569](https://doi.org/10.5281/zenodo.788569)). Papers reusing
-these recordings usually cite the paper or the Zenodo record and name neither
-dandiset. Where the paper clearly reused the Makin et al. 2018 recordings and
-nothing in it says which dandiset, call both 000129 and 001055 **Ambiguous
-Reuse**, wherever the data was downloaded from. Where the paper names one of
-them, by identifier or as the NLB MC_RTT task, call that one **Reuse** and the
-other **Neither**.
-
 An amber **SHARED WITH N DANDISETS** chip on the dataset means other dandisets
 name the same paper, and the evidence box lists them with their own chips. The
-MC_Maze family is the case to have in mind: one paper describes four dandisets,
+[MC_Maze family](review_notes/mc_maze.md) is the case to have in mind: one paper describes four dandisets,
 so a work citing it has said nothing about which of the four it actually
 obtained. Where nothing in the paper identifies the dataset on the card, the
 reuse is not attributable to it, and that belongs in the note. A sibling wearing
 the red verify chip is the weaker case — a model picked that paper for it, so the
 sharing may be nothing more than a bad guess.
+
+Some dandisets need knowledge the card does not give, such as which study sets
+of a benchmark are on DANDI. That is kept in [review_notes/](review_notes/), one
+note per case, each listing the dandisets it applies to. Before a call on one of
+those dandisets, read its note. When you settle a case that the next reviewer
+would also have to work out, write a new note.
 
 **Indirect** — the paper cited a dandiset's publication.
 
