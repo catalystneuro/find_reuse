@@ -16,4 +16,5 @@ dandisets: ["000128", "000138", "000139", "000140"]
 ```
 
 A review call is filed under a paper DOI and a dandiset, so the notes behind a
-call are the ones whose `dandisets` include that dandiset.
+call are the ones whose `dandisets` include that dandiset. A note that applies
+to every dandiset has `dandisets: "all"`.
