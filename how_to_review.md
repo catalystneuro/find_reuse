@@ -172,82 +172,20 @@ Not a paper. This is the author response to the reviews of doi: 10.7554/eLife.85
 Review DOIs from other publishers are the same case, and Crossref lists them
 all, eLife's included, with type `peer-review`.
 
-MC_Maze ([000128](https://dandiarchive.org/dandiset/000128)) and its Large,
-Medium and Small variants ([000138](https://dandiarchive.org/dandiset/000138),
-[000139](https://dandiarchive.org/dandiset/000139),
-[000140](https://dandiarchive.org/dandiset/000140)) share primary papers, and
-papers reanalysing them cite those papers or the Neural Latents Benchmark (NLB)
-rather than an identifier. The citation does not say which dandiset was used,
-but the rest of the paper usually does. Look for:
-
-* **Counts.** Each variant is a different recording session, so a reported
-  neuron, condition or trial count picks one out. These are from the NLB paper
-  ([Pei et al. 2021](https://arxiv.org/abs/2109.04463), Table 4).
-
-  | Dandiset | Variant | Neurons | Held-in | Held-out | Conditions | Training trials | Test trials |
-  |---|---|---|---|---|---|---|---|
-  | 000128 | MC_Maze | 182 | 137 | 45 | 108 | 2295 | 574 |
-  | 000138 | MC_Maze_Large | 162 | 122 | 40 | 27 | 500 | 100 |
-  | 000139 | MC_Maze_Medium | 152 | 114 | 38 | 27 | 250 | 100 |
-  | 000140 | MC_Maze_Small | 142 | 107 | 35 | 27 | 100 | 100 |
-
-  Table 4 lists the held-in and held-out units separately and gives no total.
-  **Neurons** is the two added together, verified independently of the paper by
-  counting the neurons in the sole training file each of these dandisets holds.
-
-* **The NLB leaderboard.** A paper that reports NLB results was usually
-  submitted to the [leaderboard](https://eval.ai/web/challenges/challenge-page/1256/leaderboard).
-  The "MC_Maze" leaderboards score 000128 only. The variants are scored only on
-  the "MC_Maze Scaling" leaderboards, in columns headed [500], [250] and [100].
-  A method listed on MC_Maze and on no MC_Maze Scaling leaderboard used 000128.
-  The leaderboards list public submissions only.
-* **Code and data availability.** Dataset names such as `mc_maze_large`, a
-  dandiset URL, or a download script in the paper's repository.
-
-Where the evidence identifies one dandiset, call that pair **Reuse** and its
-siblings on the same paper **Neither**, and put the evidence in the note on
-each, so whoever reads any one of them sees why. **Ambiguous Reuse** is for when
-none of this settles it: the data was reused, and nothing in the paper, its code
-or the leaderboard says which dandiset it came from. Say in the note what you
-checked.
-
 An amber **SHARED WITH N DANDISETS** chip on the dataset means other dandisets
 name the same paper, and the evidence box lists them with their own chips. The
-MC_Maze family is the case to have in mind: one paper describes four dandisets,
+[MC_Maze family](review_notes/mc_maze.md) is the case to have in mind: one paper describes four dandisets,
 so a work citing it has said nothing about which of the four it actually
 obtained. Where nothing in the paper identifies the dataset on the card, the
 reuse is not attributable to it, and that belongs in the note. A sibling wearing
 the red verify chip is the weaker case — a model picked that paper for it, so the
 sharing may be nothing more than a bad guess.
 
-SpikeForest ([000618](https://dandiarchive.org/dandiset/000618)) is a benchmark
-of 13 ground-truth study sets
-([Magland et al. 2020](https://doi.org/10.7554/eLife.55167), Table 2), and only
-four of them are on DANDI, all in 000618. Papers usually say they took data
-"from SpikeForest" and name a study set or one of its studies, so that name
-decides the call. A paper that names any of these reused 000618 and is
-**Reuse**:
-
-| Study set | Studies | Recordings | Folder in 000618 |
-|---|---|---|---|
-| PAIRED_BOYDEN | `paired_boyden32c` | 19 | `sub-paired-boyden` |
-| PAIRED_ENGLISH | `paired_english` | 29 | `sub-paired-english` |
-| PAIRED_KAMPFF | `paired_kampff` | 15 | `sub-paired-kampff` |
-| SYNTH_JANELIA, later renamed HYBRID_JANELIA | `hybrid_drift_siprobe`, `hybrid_static_siprobe`, `hybrid_drift_tetrode`, `hybrid_static_tetrode` | 60 | `sub-hybrid-janelia` |
-
-A paper that names only the other nine is **Neither**, since none of them is on
-DANDI under any dandiset: PAIRED_CRCNS_HC1, PAIRED_MEA64C_YGER,
-PAIRED_MONOTRODE, SYNTH_BIONET, SYNTH_MAGLAND, SYNTH_MEAREC_NEURONEXUS,
-SYNTH_MEAREC_TETRODE, SYNTH_MONOTRODE, SYNTH_VISAPY and MANUAL_FRANKLAB.
-SYNTH_MONOTRODE's studies are named `neurocube_*`, and its two `neurocube_sim2`
-studies are the 95 Pedreira et al. 2012 simulations. PAIRED_MONOTRODE's studies, such as
-`paired_monotrode_boyden32c` and `paired_monotrode_kampff`, are single channels
-cut from the Boyden, Kampff, CRCNS and Yger recordings, and are not in 000618.
-Every study is listed under Recordings on the
-[SpikeForest site](https://spikeforest.flatironinstitute.org/), reached
-through "Original website".
-Put the set or study the paper named in the note. A paper that says it used
-SpikeForest but names no study set or study is **Unsure**.
+Some dandisets need knowledge the card does not give, such as which study sets
+of a benchmark are on DANDI. That is kept in [review_notes/](review_notes/), one
+note per case, each listing the dandisets it applies to. Before a call on one of
+those dandisets, read its note. When you settle a case that the next reviewer
+would also have to work out, write a new note.
 
 **Indirect** — the paper cited a dandiset's publication.
 
