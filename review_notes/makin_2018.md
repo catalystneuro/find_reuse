@@ -17,4 +17,6 @@ nothing in it says which dandiset, call both 000129 and 001055 **Ambiguous
 Reuse**, wherever the data was downloaded from, even if the paper uses more
 data than is available in either dandiset. Where the paper names one of
 them, by identifier or as the NLB MC_RTT task, call that one **Reuse** and the
-other **Neither**.
+other **Neither**. Where a paper cites only the Zenodo record and not
+the paper, such that only 000129 is a candidate, call 000129 Ambiguous
+Reuse and optionally say in the note that 001055 is not a candidate.
