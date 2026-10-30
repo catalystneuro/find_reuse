@@ -1,8 +1,10 @@
 """Tests for the list of reuse pairs a person still has to check."""
 
 import json
+import sys
 
 import pytest
+import requests
 
 import src.review.build_candidates as B
 
@@ -409,6 +411,85 @@ class TestNotAPaper:
         ]}))
 
         assert B.merge_by_pair([str(path)]) == {}
+
+
+def dandi_answering(monkeypatch, answers: dict):
+    """Have DANDI answer each dandiset's lookup with the given status and body."""
+    def get(url, **kwargs):
+        dandiset = url.rstrip('/').rsplit('/', 1)[-1]
+        status, body = answers[dandiset]
+        response = requests.Response()
+        response.status_code = status
+        response._content = json.dumps(body).encode()
+        response.url = url
+        return response
+    monkeypatch.setattr(B.requests, 'get', get)
+
+
+def version(assets: int, size: int = 0) -> dict:
+    return {'asset_count': assets, 'size': size}
+
+
+class TestDandisetsWithoutData:
+    def test_only_dandisets_with_no_assets_in_any_version_or_unknown_to_dandi(
+            self, monkeypatch):
+        dandi_answering(monkeypatch, {
+            '000125': (200, {'draft_version': version(0),
+                             'most_recent_published_version': None}),
+            '000070': (200, {'draft_version': version(0),
+                             'most_recent_published_version': version(12, 4096)}),
+            '001468': (200, {'draft_version': version(3, 2048),
+                             'most_recent_published_version': None}),
+            '123456': (404, {'detail': 'Not found.'}),
+        })
+
+        assert B.dandisets_without_data(
+            {'000125', '000070', '001468', '123456'}) == {'000125', '123456'}
+
+    def test_a_dandi_failure_stops_the_build(self, monkeypatch):
+        dandi_answering(monkeypatch, {'000125': (503, {})})
+
+        with pytest.raises(requests.HTTPError):
+            B.dandisets_without_data({'000125'})
+
+
+class TestPairsOnDandisetsWithoutData:
+    def test_only_the_pair_on_the_dandiset_without_data_is_left_out(self, tmp_path):
+        path = tmp_path / 'c.json'
+        path.write_text(json.dumps({'classifications': [
+            classification('10.1/citer', '000070', 'a passage'),
+            classification('10.1/citer', '000125', 'a passage'),
+        ]}))
+
+        merged = B.merge_by_pair([str(path)], without_data={'000125'})
+
+        assert list(merged) == [('10.1/citer', '000070')]
+
+    def test_main_leaves_out_what_dandi_holds_no_data_for(self, monkeypatch,
+                                                         tmp_path):
+        path = tmp_path / 'c.json'
+        path.write_text(json.dumps({'classifications': [
+            classification('10.1/citer', '000070', 'a passage'),
+            classification('10.1/citer', '000125', 'a passage'),
+            classification('10.1/other', '000153', 'a passage',
+                           classification='MENTION'),
+        ]}))
+        asked, built = [], []
+        monkeypatch.setattr(B, 'dandisets_without_data',
+                            lambda dandisets: asked.append(dandisets) or {'000125'})
+        monkeypatch.setattr(B, 'published_versions', lambda dois: {})
+        monkeypatch.setattr(
+            B, 'build_candidates',
+            lambda inputs, results, direct, cache, published, without_data:
+                built.append(sorted(B.merge_by_pair(inputs, published,
+                                                    without_data))) or [])
+        monkeypatch.setattr(B, 'write_candidates', lambda *args: False)
+        monkeypatch.setattr(sys, 'argv', ['build_candidates', '-i', str(path)])
+
+        B.main()
+
+        assert asked == [{'000070', '000125'}]
+        assert built == [[('10.1/citer', '000070')]]
 
 
 class TestPublishedPreprints:

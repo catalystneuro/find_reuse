@@ -31,6 +31,8 @@ from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
 
+import requests
+
 from src.direct_pipeline.deduplicate_preprints import published_versions
 from src.review import paper_metadata
 from src.shared.run_fulltext_classification import is_paper, primary_paper_index
@@ -43,6 +45,7 @@ CANDIDATES_FILE = REPO / 'reuse_confirmation/reuse_candidates.json'
 RESULTS_FILE = REPO / 'output/all_dandiset_papers_refreshed.json'
 DIRECT_RESULTS_FILE = REPO / 'output/results_dandi_openalex.json'
 PAPER_METADATA_CACHE = REPO / '.paper_metadata_cache.json'
+DANDI_API = 'https://api.dandiarchive.org/api'
 
 
 # Version suffixes. '/vN' is unambiguous. '.N' is not: 10.1002/brx2.47 and
@@ -113,7 +116,37 @@ def corpus_papers(results_path: Path) -> tuple[dict, dict, dict, dict]:
     return paper_titles, dandiset_names, declared, origins
 
 
-def merge_by_pair(inputs: list[str], published: dict | None = None) -> dict:
+def dandisets_without_data(dandisets: set[str],
+                           api_base: str = DANDI_API) -> set[str]:
+    """
+    The dandisets DANDI holds no data for.
+
+    A paper cannot have reused a dandiset with no files in it, so a pair on one
+    is a citation of the dandiset's paper and nothing more. That covers a
+    dandiset whose draft and most recent published version both have no assets,
+    and an identifier DANDI does not know at all, which is what a paper citing
+    the placeholder DOI in DANDI's citation template (10.80507/dandi.123456)
+    produces. Any other failure to answer raises, so that a dandiset is never
+    left out because the archive could not be reached.
+    """
+    without = set()
+    for dandiset in sorted(dandisets):
+        response = requests.get(f'{api_base}/dandisets/{dandiset}/', timeout=30)
+        if response.status_code == 404:
+            without.add(dandiset)
+            continue
+        response.raise_for_status()
+        record = response.json()
+        versions = [record.get(key) or {}
+                    for key in ('draft_version', 'most_recent_published_version')]
+        if not any(version.get('asset_count') or version.get('size')
+                   for version in versions):
+            without.add(dandiset)
+    return without
+
+
+def merge_by_pair(inputs: list[str], published: dict | None = None,
+                  without_data: set[str] | None = None) -> dict:
     """
     One row per (paper, dataset), which is the unit the classifier answers about.
 
@@ -129,7 +162,8 @@ def merge_by_pair(inputs: list[str], published: dict | None = None) -> dict:
     whose published version was classified for the same dandiset, whatever that
     classification was: the published paper is the version that counts, and
     keeping both has one paper reviewed and counted twice. `published` maps a
-    preprint's DOI to the DOI it was published under.
+    preprint's DOI to the DOI it was published under. A pair on a dandiset in
+    `without_data` is left out too, since there was nothing in it to reuse.
     """
     loaded = [json.loads(Path(p).read_text()) for p in inputs]
     known = {r['citing_doi'] for d in loaded for r in d['classifications']}
@@ -149,6 +183,8 @@ def merge_by_pair(inputs: list[str], published: dict | None = None) -> dict:
                 continue
             doi = canonical_doi(r['citing_doi'], known)
             dandiset = r.get('dandiset_id') or ''
+            if dandiset in (without_data or set()):
+                continue
             final = (published.get(r['citing_doi'].lower())
                      or published.get(doi.lower()))
             if final and canonical_doi(final, known) != doi.lower() and (
@@ -361,9 +397,11 @@ def attach_paper_metadata(rows: list[dict], cache_path: Path) -> None:
 def build_candidates(inputs: list[str], results_path: Path,
                      direct_results_path: Path,
                      paper_metadata_cache: Path,
-                     published: dict | None = None) -> list[dict]:
+                     published: dict | None = None,
+                     without_data: set[str] | None = None) -> list[dict]:
     """Every REUSE pair, carrying everything review and assignment need."""
-    rows = [finalize(row) for row in merge_by_pair(inputs, published).values()]
+    rows = [finalize(row)
+            for row in merge_by_pair(inputs, published, without_data).values()]
     rows.sort(key=lambda r: (r['doi'], r['dandiset']))
     attach_dandiset_names(rows, results_path)
     attach_missing_titles(rows, direct_results_path)
@@ -456,12 +494,18 @@ def main():
                         help='Direct discovery output, for the titles it kept.')
     args = parser.parse_args()
 
-    reuse_dois = {r['citing_doi'] for path in args.input
-                  for r in json.loads(Path(path).read_text())['classifications']
-                  if r.get('classification') == 'REUSE'}
+    reuse = [r for path in args.input
+             for r in json.loads(Path(path).read_text())['classifications']
+             if r.get('classification') == 'REUSE']
+    without_data = dandisets_without_data(
+        {r['dandiset_id'] for r in reuse if r.get('dandiset_id')})
+    if without_data:
+        print(f'Leaving out {len(without_data)} dandisets DANDI holds no data for: '
+              f'{", ".join(sorted(without_data))}')
     pairs = build_candidates(args.input, Path(args.results_file),
                              Path(args.direct_results_file), PAPER_METADATA_CACHE,
-                             published_versions(reuse_dois))
+                             published_versions({r['citing_doi'] for r in reuse}),
+                             without_data)
     changed = write_candidates(pairs, args.input, CANDIDATES_FILE)
 
     indirect = sum(1 for p in pairs if p['pathway'] == 'indirect')
