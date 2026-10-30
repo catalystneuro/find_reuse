@@ -57,6 +57,10 @@
       "000140": {
         "call": "neither",
         "note": "The unit count (n = 90 + 92 = 182) is consistent only with MC_Maze, not MC_Maze_Large/Medium/Small, which have 162/152/142 neurons."
+      },
+      "000125": {
+        "note": "Empty dandiset cannot be reused",
+        "call": "neither"
       }
     },
     "10.1088/1741-2552/ad1787": {
@@ -202,6 +206,10 @@
       "000006": {
         "call": "reuse",
         "note": "https://nwb4edu.github.io/Lesson_2/02-Visualizing_Recordings.html"
+      },
+      "000125": {
+        "note": "Empty dandiset cannot be reused",
+        "call": "neither"
       }
     },
     "10.3389/fnins.2026.1714738": {
@@ -215,6 +223,10 @@
       },
       "000070": {
         "call": "reuse"
+      },
+      "000125": {
+        "note": "Empty dandiset cannot be reused",
+        "call": "neither"
       }
     },
     "10.3390/e24020152": {
@@ -338,6 +350,10 @@
       "000130": {
         "call": "mention",
         "note": "\"Highly similar maze, random target, area 2 and DMFC datasets have been made publicly available in a standardized format through the NLB13, although those are different recording sessions from the specific sessions used in this paper. We encourage readers to use the NLB sessions to reproduce results and compare to available benchmark numbers. The specific maze and random target sessions used in this paper are already available at https://dandiarchive.org/dandiset/000070/ and https://doi.org/10.5281/zenodo.3854034, respectively. We have not made the specific area 2 and DMFC sessions available because they are not standardized, but we can make them available upon reasonable request.\""
+      },
+      "000125": {
+        "note": "Empty dandiset cannot be reused",
+        "call": "neither"
       }
     },
     "10.1038/s41593-025-02183-y": {
@@ -826,6 +842,10 @@
       },
       "000140": {
         "call": "neither"
+      },
+      "000125": {
+        "note": "Empty dandiset cannot be reused",
+        "call": "neither"
       }
     },
     "10.1038/s41593-023-01471-9": {
@@ -1262,6 +1282,10 @@
       },
       "000140": {
         "call": "neither"
+      },
+      "000125": {
+        "note": "Empty dandiset cannot be reused",
+        "call": "neither"
       }
     },
     "10.1101/2023.12.22.572441": {
@@ -1474,8 +1498,8 @@
     },
     "10.1101/2025.05.16.654598": {
       "001130": {
-        "note": "\"A subset of these recordings were reported previously, with a different scientific question and analysis approach10,13.\" Ref 10 is Ryan et al., which corresponds to DANDI:001130.",
-        "call": "reuse"
+        "note": "\"A subset of these recordings were reported previously, with a different scientific question and analysis approach10,13.\" Ref 10 is Ryan et al., which corresponds to DANDI:001130. However, DANDI:001130 is an empty dandiset, which cannot be reused, so marking as Neither.",
+        "call": "neither"
       }
     },
     "10.1101/2025.07.22.666242": {
@@ -1534,6 +1558,10 @@
       "000140": {
         "note": "\"We further evaluated contextual LFADS on the “Maze dataset” [23], in which a monkey performed straight and curved reaches while sitting in front of a computer screen (Figure 3A,B).\" It seems like the original dataset was used and not the NLB subset, but it is not clear.",
         "call": "ambiguous_reuse"
+      },
+      "000125": {
+        "note": "Empty dandiset cannot be reused",
+        "call": "neither"
       }
     },
     "10.1101/2025.11.10.687558": {
@@ -1774,6 +1802,10 @@
       "000140": {
         "note": "\"The dataset from the research conducted by Churchland et al. (2012), pertains to the collection of neural signals extracted from two rhesus monkeys, identified as J and N, during their performance of the center-and-out task to eight directions.\" DANDI:000070 has all data from Churchland et al maze dataset, whereas the NLB MC_Maze datasets have only one session for benchmarking.",
         "call": "neither"
+      },
+      "000125": {
+        "note": "Empty dandiset cannot be reused",
+        "call": "neither"
       }
     },
     "10.3390/e23070922": {
@@ -1845,6 +1877,10 @@
       },
       "000140": {
         "note": "\"We study monkey J, as analyzed in the main text of Sussillo et al. [27]; simultaneous neural recordings\n395 from M1 and PMd are from Churchland et al. [6] and will be used for comparison in the next section.\" \"We used the dataset from Churchland et al. [6], as reanalyzed by Sussillo et al. [27], consisting of trial1340 averaged neural and EMG recordings from monkey J performing B = 27 reaching movements.\" Churchland et al is DANDI:000070. No evidence that they used the NLB versions.",
+        "call": "neither"
+      },
+      "000125": {
+        "note": "Empty dandiset cannot be reused",
         "call": "neither"
       }
     },
@@ -1952,12 +1988,182 @@
       "000140": {
         "note": "\"In Figure 1, we showed data from two primate datasets that were made available to us by Mark Churchland, Matthew Kaufman and Krishna Shenoy. Details of animal care, surgery, electrophysiological recordings, and behavioral task have been reported previously in Churchland et al. (2012); Kaufman et al. (2014) (see in particular the details associated with the J and N “array” datasets). The subjects of this study, J and N, were two adult male macaque monkeys (Macaca mulatta). \" This is DANDI:000070. There is no evidence that the NLB versions were used.",
         "call": "neither"
+      },
+      "000125": {
+        "note": "Empty dandiset cannot be reused",
+        "call": "neither"
       }
     },
     "10.7554/elife.96718": {
       "000044": {
         "note": "\"To further investigate synchronous ensembles across different datasets, we analyzed publicly available hippocampal recordings ‘hc-11’ from the CRCNS repository (Grosmark and Buzsáki, 2016; Grosmark et al., 2016), where rats navigated novel mazes for water rewards (see Method).\" hc-11 is DANDI:000044",
         "call": "reuse"
+      }
+    },
+    "10.1002/epi4.70235": {
+      "001468": {
+        "note": "Empty dandiset cannot be reused",
+        "call": "neither"
+      }
+    },
+    "10.1002/hipo.70030": {
+      "001463": {
+        "note": "Empty dandiset cannot be reused",
+        "call": "neither"
+      }
+    },
+    "10.1016/j.celrep.2026.116991": {
+      "000125": {
+        "note": "Empty dandiset cannot be reused",
+        "call": "neither"
+      }
+    },
+    "10.1016/j.xpro.2025.103659": {
+      "000153": {
+        "note": "Empty dandiset cannot be reused",
+        "call": "neither"
+      }
+    },
+    "10.1038/s41467-024-51308-7": {
+      "000125": {
+        "note": "Empty dandiset cannot be reused",
+        "call": "neither"
+      }
+    },
+    "10.1038/s41592-023-01964-2": {
+      "000449": {
+        "note": "Empty dandiset cannot be reused",
+        "call": "neither"
+      }
+    },
+    "10.1038/s41593-025-02168-x": {
+      "001283": {
+        "note": "Empty dandiset cannot be reused",
+        "call": "neither"
+      }
+    },
+    "10.1038/s41597-024-03775-2": {
+      "123456": {
+        "note": "DANDI:123456 does not exist. The paper cites the placeholder DOI from DANDI's citation template (10.80507/dandi.123456/0.123456.1234). The paper actually used DANDI:000026 (not neurophysiology), so marking this pair as Neither.",
+        "call": "neither"
+      }
+    },
+    "10.1038/s41598-024-53907-2": {
+      "000125": {
+        "note": "Empty dandiset cannot be reused",
+        "call": "neither"
+      }
+    },
+    "10.1038/s43588-023-00439-w": {
+      "000476": {
+        "note": "Empty dandiset cannot be reused",
+        "call": "neither"
+      }
+    },
+    "10.1088/1741-2552/ad0651": {
+      "000125": {
+        "note": "Empty dandiset cannot be reused",
+        "call": "neither"
+      }
+    },
+    "10.1093/brain/awad259": {
+      "000153": {
+        "note": "Empty dandiset cannot be reused",
+        "call": "neither"
+      }
+    },
+    "10.1101/2023.03.26.23287702": {
+      "000153": {
+        "note": "Empty dandiset cannot be reused",
+        "call": "neither"
+      }
+    },
+    "10.1101/2023.09.11.557230": {
+      "000125": {
+        "note": "Empty dandiset cannot be reused",
+        "call": "neither"
+      }
+    },
+    "10.1101/2024.11.25.625180": {
+      "000125": {
+        "note": "Empty dandiset cannot be reused",
+        "call": "neither"
+      }
+    },
+    "10.1101/2025.05.07.652644": {
+      "001283": {
+        "note": "Empty dandiset cannot be reused",
+        "call": "neither"
+      }
+    },
+    "10.1101/2025.11.11.686428": {
+      "000125": {
+        "note": "Empty dandiset cannot be reused",
+        "call": "neither"
+      }
+    },
+    "10.1109/ner61569.2025.11588934": {
+      "000359": {
+        "note": "Empty dandiset cannot be reused",
+        "call": "neither"
+      }
+    },
+    "10.1111/epi.18462": {
+      "000153": {
+        "note": "Empty dandiset cannot be reused",
+        "call": "neither"
+      }
+    },
+    "10.21203/rs.3.rs-10058744": {
+      "001286": {
+        "note": "Empty dandiset cannot be reused",
+        "call": "neither"
+      },
+      "001287": {
+        "note": "Empty dandiset cannot be reused",
+        "call": "neither"
+      }
+    },
+    "10.3171/2023.7.jns23885": {
+      "000359": {
+        "note": "Empty dandiset cannot be reused",
+        "call": "neither"
+      }
+    },
+    "10.3390/brainsci16080866": {
+      "001286": {
+        "note": "Empty dandiset cannot be reused",
+        "call": "neither"
+      }
+    },
+    "10.3390/e25071026": {
+      "000125": {
+        "note": "Empty dandiset cannot be reused",
+        "call": "neither"
+      }
+    },
+    "10.51628/001c.27358": {
+      "000125": {
+        "note": "Empty dandiset cannot be reused",
+        "call": "neither"
+      }
+    },
+    "10.52202/079017-0430": {
+      "000125": {
+        "note": "Empty dandiset cannot be reused",
+        "call": "neither"
+      }
+    },
+    "10.64898/2026.03.25.714179": {
+      "000125": {
+        "note": "Empty dandiset cannot be reused",
+        "call": "neither"
+      }
+    },
+    "10.64898/2026.04.04.716466": {
+      "001287": {
+        "note": "Empty dandiset cannot be reused",
+        "call": "neither"
       }
     }
   },
