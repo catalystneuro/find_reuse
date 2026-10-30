@@ -248,11 +248,12 @@
     },
     "10.7554/elife.89421": {
       "001055": {
-        "note": "Some/all of the dandisets used (NLB on DANDI) were repackaged into DANDI:001055, but this paper did not use data from DANDI:001055. ",
-        "call": "ambiguous_reuse"
+        "note": "Some/all of the dandisets used (NLB on DANDI) were repackaged into DANDI:001055, but this paper did not use data from DANDI:001055. The paper names MC_RTT (DANDI:000129), so marking as Neither.",
+        "call": "neither"
       },
       "000129": {
-        "call": "reuse"
+        "call": "reuse",
+        "note": "The data availability section lists \"MC_RTT: https://dandiarchive.org/dandiset/000129\" and says \"Useful functions for loading the DANDI datasets are available at https://github.com/neurallatents/nlb_tools\"."
       },
       "000128": {
         "call": "reuse"
@@ -269,15 +270,16 @@
     },
     "10.7554/elife.93060": {
       "000129": {
-        "call": "reuse"
+        "call": "reuse",
+        "note": "\"We also analyzed data made available through the Neural Latents Benchmark (NLB) (Pei et al., 2021). In two different tasks, monkeys needed to perform movements along a screen. In a random target task, the monkeys had to point at a randomly generated target position on a screen, with a successive target point generated once the previous one was reached (Makin et al., 2018).\". The paper's codebase (https://github.com/frschu/Aligned-and-oblique-dynamics-in-recurrent-neural-networks/blob/main/notebooks/experimental_data_download.ipynb) downloads \"mc_rtt\" as dataset_id 000129."
       },
       "000139": {
         "call": "neither",
         "note": "The paper's codebase references \"nlb-mc_maze_large\" (DANDI:000138), and the Figure 7 \"NLB maze\" bar number of neurons = 162 is consistent only with MC_Maze_Large, not MC_Maze_Medium."
       },
       "001055": {
-        "note": "Used Makin et al data that was downloaded from DANDI:000129 (MC_RTT) repackaged into DANDI:001055",
-        "call": "ambiguous_reuse"
+        "note": "Used Makin et al data that was downloaded from DANDI:000129 (MC_RTT) repackaged into DANDI:001055. The paper names the NLB random target task, so marking as Neither.",
+        "call": "neither"
       },
       "000138": {
         "note": "The paper's codebase references \"nlb-mc_maze_large\" (DANDI:000138), and the Figure 7 \"NLB maze\" bar number of neurons = 162 is consistent only with MC_Maze_Large.",
