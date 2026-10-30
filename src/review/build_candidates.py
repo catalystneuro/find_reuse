@@ -31,10 +31,9 @@ from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
 
-import requests
-
 from src.direct_pipeline.deduplicate_preprints import published_versions
 from src.review import paper_metadata
+from src.shared.dandisets import dandisets_with_data
 from src.shared.run_fulltext_classification import is_paper, primary_paper_index
 
 # What it takes for a passage to be talking about DANDI at all.
@@ -45,7 +44,6 @@ CANDIDATES_FILE = REPO / 'reuse_confirmation/reuse_candidates.json'
 RESULTS_FILE = REPO / 'output/all_dandiset_papers_refreshed.json'
 DIRECT_RESULTS_FILE = REPO / 'output/results_dandi_openalex.json'
 PAPER_METADATA_CACHE = REPO / '.paper_metadata_cache.json'
-DANDI_API = 'https://api.dandiarchive.org/api'
 
 
 # Version suffixes. '/vN' is unambiguous. '.N' is not: 10.1002/brx2.47 and
@@ -116,33 +114,22 @@ def corpus_papers(results_path: Path) -> tuple[dict, dict, dict, dict]:
     return paper_titles, dandiset_names, declared, origins
 
 
-def dandisets_without_data(dandisets: set[str],
-                           api_base: str = DANDI_API) -> set[str]:
+def dandisets_without_data(dandisets: set[str]) -> set[str]:
     """
-    The dandisets DANDI holds no data for.
+    The dandisets among these that DANDI holds no data for.
 
     A paper cannot have reused a dandiset with no files in it, so a pair on one
     is a citation of the dandiset's paper and nothing more. That covers a
     dandiset whose draft and most recent published version both have no assets,
-    and an identifier DANDI does not know at all, which is what a paper citing
-    the placeholder DOI in DANDI's citation template (10.80507/dandi.123456)
-    produces. Any other failure to answer raises, so that a dandiset is never
-    left out because the archive could not be reached.
+    and an identifier DANDI does not list publicly: one still under embargo, or
+    one it never issued, which is what a paper citing the placeholder DOI in
+    DANDI's citation template (10.80507/dandi.123456) produces. The discovery
+    stages leave these out too, and this covers whatever reaches the
+    classification outputs regardless, such as a dandiset emptied after it was
+    mined. A listing DANDI fails to give raises, so that a dandiset is never left
+    out because the archive could not be reached.
     """
-    without = set()
-    for dandiset in sorted(dandisets):
-        response = requests.get(f'{api_base}/dandisets/{dandiset}/', timeout=30)
-        if response.status_code == 404:
-            without.add(dandiset)
-            continue
-        response.raise_for_status()
-        record = response.json()
-        versions = [record.get(key) or {}
-                    for key in ('draft_version', 'most_recent_published_version')]
-        if not any(version.get('asset_count') or version.get('size')
-                   for version in versions):
-            without.add(dandiset)
-    return without
+    return set(dandisets) - dandisets_with_data()
 
 
 def merge_by_pair(inputs: list[str], published: dict | None = None,

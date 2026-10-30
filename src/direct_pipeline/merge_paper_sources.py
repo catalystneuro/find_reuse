@@ -22,6 +22,8 @@ from pathlib import Path
 
 import requests
 
+from src.shared.dandisets import holds_data
+
 
 def main():
     parser = argparse.ArgumentParser(description="Merge formal and LLM paper associations")
@@ -53,6 +55,7 @@ def main():
     session.headers.update({"User-Agent": "MergePaperSources/1.0"})
 
     added = 0
+    empty = 0
     for did, entry in sorted(llm_found.items()):
         doi = entry["doi"]
 
@@ -77,6 +80,12 @@ def main():
             version = "draft"
             version_name = draft_version.get("name", "")
         else:
+            continue
+
+        # A dandiset with no data in it cannot have been reused, so the paper a
+        # model picked for it is not mined for citing papers.
+        if not holds_data(ds):
+            empty += 1
             continue
 
         formal_results[did] = {
@@ -105,7 +114,7 @@ def main():
         }
         added += 1
 
-    print(f"Added {added} LLM entries", file=sys.stderr)
+    print(f"Added {added} LLM entries ({empty} skipped, no data)", file=sys.stderr)
     print(f"Total: {len(formal_results)} dandisets", file=sys.stderr)
 
     # Write merged output

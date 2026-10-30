@@ -4,7 +4,6 @@ import json
 import sys
 
 import pytest
-import requests
 
 import src.review.build_candidates as B
 
@@ -411,46 +410,6 @@ class TestNotAPaper:
         ]}))
 
         assert B.merge_by_pair([str(path)]) == {}
-
-
-def dandi_answering(monkeypatch, answers: dict):
-    """Have DANDI answer each dandiset's lookup with the given status and body."""
-    def get(url, **kwargs):
-        dandiset = url.rstrip('/').rsplit('/', 1)[-1]
-        status, body = answers[dandiset]
-        response = requests.Response()
-        response.status_code = status
-        response._content = json.dumps(body).encode()
-        response.url = url
-        return response
-    monkeypatch.setattr(B.requests, 'get', get)
-
-
-def version(assets: int, size: int = 0) -> dict:
-    return {'asset_count': assets, 'size': size}
-
-
-class TestDandisetsWithoutData:
-    def test_only_dandisets_with_no_assets_in_any_version_or_unknown_to_dandi(
-            self, monkeypatch):
-        dandi_answering(monkeypatch, {
-            '000125': (200, {'draft_version': version(0),
-                             'most_recent_published_version': None}),
-            '000070': (200, {'draft_version': version(0),
-                             'most_recent_published_version': version(12, 4096)}),
-            '001468': (200, {'draft_version': version(3, 2048),
-                             'most_recent_published_version': None}),
-            '123456': (404, {'detail': 'Not found.'}),
-        })
-
-        assert B.dandisets_without_data(
-            {'000125', '000070', '001468', '123456'}) == {'000125', '123456'}
-
-    def test_a_dandi_failure_stops_the_build(self, monkeypatch):
-        dandi_answering(monkeypatch, {'000125': (503, {})})
-
-        with pytest.raises(requests.HTTPError):
-            B.dandisets_without_data({'000125'})
 
 
 class TestPairsOnDandisetsWithoutData:
