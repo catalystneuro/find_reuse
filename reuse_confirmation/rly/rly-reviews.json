@@ -11,12 +11,12 @@
         "call": "reuse"
       },
       "000008": {
-        "note": "The paper cites \"Raw electrophysiological traces from human29 and mouse32 Patch-seq experiments were obtained from DANDI (dataset IDs: 000209 and 000020)\" but does not include DANDI:000008 in that list. It does say it reused data from Scala et al. (2019), which says 'Electrophysiological recordings are available at https://dandiarchive.org/dandiset/000008 (main data set) and https://dandiarchive.org/dandiset/000035 (physiological temperature) in NWB format.\" So I think it is likely that they used the DANDI:000008 dataset from another source. ",
-        "call": "reuse"
+        "note": "The paper cites \"Raw electrophysiological traces from human29 and mouse32 Patch-seq experiments were obtained from DANDI (dataset IDs: 000209 and 000020)\" but does not include DANDI:000008 in that list. It does say it reused data from Scala et al. (2019), which says 'Electrophysiological recordings are available at https://dandiarchive.org/dandiset/000008 (main data set) and https://dandiarchive.org/dandiset/000035 (physiological temperature) in NWB format.\" So they likely used DANDI:000008, DANDI:000035, or both, possibly from another source.",
+        "call": "ambiguous_reuse"
       },
       "000035": {
-        "note": "The paper cites \"Raw electrophysiological traces from human29 and mouse32 Patch-seq experiments were obtained from DANDI (dataset IDs: 000209 and 000020)\" but does not include DANDI:000008 in that list. It does say it reused data from Scala et al. (2019), which says 'Electrophysiological recordings are available at https://dandiarchive.org/dandiset/000008 (main data set) and https://dandiarchive.org/dandiset/000035 (physiological temperature) in NWB format.\" So I think it is likely that they used the DANDI:000008 dataset from another source. ",
-        "call": "reuse"
+        "note": "The paper cites \"Raw electrophysiological traces from human29 and mouse32 Patch-seq experiments were obtained from DANDI (dataset IDs: 000209 and 000020)\" but does not include DANDI:000035 in that list. It does say it reused data from Scala et al. (2019), which says 'Electrophysiological recordings are available at https://dandiarchive.org/dandiset/000008 (main data set) and https://dandiarchive.org/dandiset/000035 (physiological temperature) in NWB format.\" So they likely used DANDI:000008, DANDI:000035, or both, possibly from another source.",
+        "call": "ambiguous_reuse"
       },
       "000209": {
         "call": "reuse",
@@ -66,6 +66,14 @@
       },
       "000139": {
         "call": "neither",
+        "note": "The paper says \"MC Maze\" (ambiguous) and cites the \"MC Maze Small\" dataset as [30] in the references. The paper also mentions 107 neurons, which uniquely matches the number of held-in neurons in MC_Maze_Small when looking across the counts of held-in/held-out/total in the four maze datasets. Also, with AI help, I computed ISI in various ways: using mean of per-unit ISIs or pooled mean, and using held-in, held-out, and all neurons for all four maze datasets. The pooled mean on held-in neurons from MC Maze Small was the only combination that matched the reported 221.9 ms."
+      },
+      "000138": {
+        "call": "neither",
+        "note": "The paper says \"MC Maze\" (ambiguous) and cites the \"MC Maze Small\" dataset as [30] in the references. The paper also mentions 107 neurons, which uniquely matches the number of held-in neurons in MC_Maze_Small when looking across the counts of held-in/held-out/total in the four maze datasets. Also, with AI help, I computed ISI in various ways: using mean of per-unit ISIs or pooled mean, and using held-in, held-out, and all neurons for all four maze datasets. The pooled mean on held-in neurons from MC Maze Small was the only combination that matched the reported 221.9 ms."
+      },
+      "000140": {
+        "call": "reuse",
         "note": "The paper says \"MC Maze\" (ambiguous) and cites the \"MC Maze Small\" dataset as [30] in the references. The paper also mentions 107 neurons, which uniquely matches the number of held-in neurons in MC_Maze_Small when looking across the counts of held-in/held-out/total in the four maze datasets. Also, with AI help, I computed ISI in various ways: using mean of per-unit ISIs or pooled mean, and using held-in, held-out, and all neurons for all four maze datasets. The pooled mean on held-in neurons from MC Maze Small was the only combination that matched the reported 221.9 ms."
       }
     },
@@ -241,7 +249,7 @@
     "10.7554/elife.89421": {
       "001055": {
         "note": "Some/all of the dandisets used (NLB on DANDI) were repackaged into DANDI:001055, but this paper did not use data from DANDI:001055. ",
-        "call": "neither"
+        "call": "ambiguous_reuse"
       },
       "000129": {
         "call": "reuse"
@@ -269,7 +277,11 @@
       },
       "001055": {
         "note": "Used Makin et al data that was downloaded from DANDI:000129 (MC_RTT) repackaged into DANDI:001055",
-        "call": "neither"
+        "call": "ambiguous_reuse"
+      },
+      "000138": {
+        "note": "The paper's codebase references \"nlb-mc_maze_large\" (DANDI:000138), and the Figure 7 \"NLB maze\" bar number of neurons = 162 is consistent only with MC_Maze_Large.",
+        "call": "reuse"
       }
     },
     "10.1016/j.crmeth.2024.100791": {
@@ -363,14 +375,14 @@
     },
     "10.1101/2023.04.05.535396": {
       "000129": {
-        "note": "Duplicate paper. This is the preprint of doi:10.7554/elife.89421.3",
-        "call": "reuse"
+        "note": "This preprint has been published as doi: 10.7554/elife.89421, which is a separate candidate, so marking it as Neither.",
+        "call": "neither"
       }
     },
     "10.1101/2023.08.23.554148": {
       "000055": {
-        "note": "Duplicate paper. This is the preprint of doi:10.1016/j.patter.2024.101047",
-        "call": "reuse"
+        "note": "This preprint has been published as doi: 10.1016/j.patter.2024.101047, which is a separate candidate, so marking it as Neither.",
+        "call": "neither"
       }
     },
     "10.1101/2024.04.28.591397": {
@@ -513,19 +525,31 @@
     },
     "10.1101/2023.04.17.532851": {
       "000021": {
-        "note": "This preprint was published in Nature Communications as doi: 10.1038/s41467-023-37844-8. Authors likely downloaded the Visual Coding Neuropixels dataset via the AllenSDK, but it is also available on DANDI as DANDI:000021.",
-        "call": "reuse"
+        "note": "This preprint was published in Nature Communications as doi: 10.1038/s41467-023-37844-8 which is a separate candidate, so marking as Neither.",
+        "call": "neither"
       }
     },
     "10.1101/2023.10.02.560574": {
       "000020": {
-        "note": "This preprint was published in Nature Computational Science as doi: 10.1038/s43588-024-00683-8.",
-        "call": "reuse"
+        "note": "This preprint was published in Nature Computational Science as doi: 10.1038/s43588-024-00683-8 which is a separate candidate, so marking as Neither.",
+        "call": "neither"
       }
     },
     "10.1101/2025.06.30.662469": {
       "000248": {
-        "note": "The latest version of this preprint, doi: 10.1101/2025.06.30.662469v2 no longer uses DANDI:000248. Instead, it uses DANDI:000021, DANDI:000713, and DANDI:000728, which I have not added. The key should really be 10.1101/2025.06.30.662469v1.",
+        "note": "The latest version of this preprint, doi: 10.1101/2025.06.30.662469v2 no longer uses DANDI:000248. Instead, it uses DANDI:000021, DANDI:000713, and DANDI:000728, which I have added as separate pairs, so marking as Neither.",
+        "call": "neither"
+      },
+      "000021": {
+        "note": "The latest version of this preprint, doi: 10.1101/2025.06.30.662469v2 uses DANDI:000021 instead of DANDI:000248.",
+        "call": "reuse"
+      },
+      "000713": {
+        "note": "The latest version of this preprint, doi: 10.1101/2025.06.30.662469v2 uses DANDI:000713 instead of DANDI:000248.",
+        "call": "reuse"
+      },
+      "000728": {
+        "note": "The latest version of this preprint, doi: 10.1101/2025.06.30.662469v2 uses DANDI:000728 instead of DANDI:000248.",
         "call": "reuse"
       }
     },
@@ -605,8 +629,8 @@
     },
     "10.1016/j.cell.2024.02.036": {
       "000127": {
-        "note": "The paper reuses data from the cited paper Chowdhury et al., 2020. However, DANDI:000127 is a limited subset of the dataset used for benchmarking. There is no mention of whether the data were downloaded from DANDI or are associated with NLB. The Zenodo URL is the authors depositing the data they reused from Chowdhury et al., 2020, not a reference to an existing dataset. This is likely not a reuse of DANDI:000127, but it is unclear. ",
-        "call": "unsure"
+        "note": "The paper reuses data from the cited paper Chowdhury et al., 2020. However, DANDI:000127 is a limited subset of the dataset used for benchmarking. There is no mention of whether the data were downloaded from DANDI or are associated with NLB. The Zenodo URL is the authors depositing the data they reused from Chowdhury et al., 2020, not a reference to an existing dataset. This is likely not a reuse of DANDI:000127 directly, but it is the same dataset. ",
+        "call": "ambiguous_reuse"
       }
     },
     "10.1016/j.celrep.2023.112254": {
@@ -631,8 +655,8 @@
         "call": "neither"
       },
       "001055": {
-        "call": "unsure",
-        "note": "[10.1016/j.celrep.2025.115338](https://doi.org/10.1016/j.celrep.2025.115338) reuses data from https://zenodo.org/records/583331 from O'Dougherty et al, 2017, and focuses on one session: loco_20170213_02. It seems that all subjects and sessions from the Zenodo dataset were repackaged into DANDI:001055, unlike the NLB dandiset, but it's unclear how the data may have been cut or transformed to form the NeuroTask benchmark. I marked it as Unsure."
+        "call": "ambiguous_reuse",
+        "note": "[10.1016/j.celrep.2025.115338](https://doi.org/10.1016/j.celrep.2025.115338) reuses data from https://zenodo.org/records/583331 from O'Dougherty et al, 2017, and focuses on one session: loco_20170213_02. It seems that all subjects and sessions from the Zenodo dataset were repackaged into DANDI:001055, unlike the NLB dandiset, but it's unclear how the data may have been cut or transformed to form the NeuroTask benchmark."
       }
     },
     "10.1016/j.crmeth.2021.100101": {
@@ -674,7 +698,7 @@
     "10.1016/j.neuron.2021.08.025": {
       "000130": {
         "note": "The paper reuses a dataset from their lab from Sohn et al., 2019. A sample of this dataset is used in DANDI:000130.",
-        "call": "unsure"
+        "call": "ambiguous_reuse"
       }
     },
     "10.1016/j.neuron.2022.03.010": {
@@ -841,11 +865,11 @@
       },
       "000129": {
         "note": "Data accessed from Zenodo. Reuses data from https://zenodo.org/records/3854034. \"We analyzed the data for the first seven sessions for which the wideband activity was also available (sessions 20160622/01 to 20160921/01).\" DANDI:000129 has a limited subset (1 session) of the Zenodo dataset for benchmarking.",
-        "call": "neither"
+        "call": "ambiguous_reuse"
       },
       "001055": {
         "note": "Data accessed from Zenodo. Reuses data from https://zenodo.org/records/3854034. \"We analyzed the data for the first seven sessions for which the wideband activity was also available (sessions 20160622/01 to 20160921/01).\" The NeuroTask benchmark, DANDI:001055, has data from both subjects and multiple sessions per subject, so it is likely that NeuroTask repackages the entire dataset, unlike the NLB dandiset.",
-        "call": "unsure"
+        "call": "ambiguous_reuse"
       }
     },
     "10.1038/s41593-025-02128-5": {
@@ -949,7 +973,7 @@
       },
       "001055": {
         "note": "\"The primate reaching dataset [32] selected for this paper was recorded from the brains of two macaque monkeys, Indy and Loco.\" Ref 32 is Makin J G, O’Doherty J E, Cardoso M M and Sabes P N 2018 Superior arm-movement decoding from cortex with a new, unsupervised-learning algorithm J. Neural Eng. 15 026010.  The NeuroTask benchmark, DANDI:001055, has data from both subjects and multiple sessions per subject, so it is likely that NeuroTask repackages the entire dataset, unlike the NLB dandiset.",
-        "call": "unsure"
+        "call": "ambiguous_reuse"
       }
     },
     "10.1101/2020.06.30.181065": {
@@ -1022,13 +1046,13 @@
     "10.1101/2021.11.08.467806": {
       "000130": {
         "note": "\"For Figure 5, details about the neural recordings related to the RSG task (compared with MWG + Ctxt task) can be found in36 and.40 In summary, the data were obtained from acute recordings in the dorsomedial frontal cortex (DMFC; n = 619 neurons in monkey G, n = 542 in monkey H).\" Ref 36: \"Sohn, H. ∙ Narain, D. ∙ Meirhaeghe, N. ...Bayesian Computation through Cortical Latent Dynamics Neuron. 2019; 103:934-947.e5\" DANDI:000130 has only one session of the Zenodo dataset for benchmarking",
-        "call": "neither"
+        "call": "ambiguous_reuse"
       }
     },
     "10.1101/2021.12.10.472161": {
       "000127": {
         "note": "\"We used a combination of previously recorded data in which three rhesus macaques performed a planar, centre-out reaching task while seated, using a two-link planar manipulandum.\" \"We used 6 experimental sessions across three monkeys; two sessions contain data that has been previously published [64], and the rest will be published alongside this study.\" Data available on Dryad. DANDI:000127 has only one session of the Dryad dataset for benchmarking",
-        "call": "neither"
+        "call": "ambiguous_reuse"
       }
     },
     "10.1101/2022.02.03.479040": {
@@ -1099,20 +1123,8 @@
     },
     "10.1101/2022.12.04.519043": {
       "000397": {
-        "note": "\"We validate DREDge on two human Neuropixels recordings [6] and a mouse recording [2] from two separate research groups.\" Ref 6 is DANDI:000397. Data is also available on Figshare, and the dataset authors are authors on this paper, so source is unknown. Note this preprint has been published as doi: 10.1038/s41592-025-02614-5. Published paper says \"Human data are available for download at Dryad (https://doi.org/10.5061/dryad.d2547d840) and DANDI (https://dandiarchive.org/dandiset/000397) from MGH13 and at Dryad (https://doi.org/10.7272/Q6ST7N3B) from the UCSF14. IBL data for the reproducible electrophysiology experiment are publicly available and can be downloaded via AWS Open Data at https://registry.opendata.aws/ibl-reproducible-ephys/ or by following the instructions under Data at https://www.internationalbrainlab.com/repro-ephys/ and using the tag 2022_Q2_IBL_et_al_RepeatedSite35. The NP1 and NP2 imposed motion datasets here (dataset 1) can be downloaded at Figshare (https://doi.org/10.6084/m9.figshare.14024495.v1)6. The NP Ultra imposed motion datasets are available at DANDI (https://dandiarchive.org/dandiset/000957/)36. Neuroseeker recordings in ketamine–xylazine-anesthetized rat data are available on G-node (https://gin.g-node.org/UlbertLab/High_Resolution_Cortical_Spikes/) and described in a data descriptor record42. The NP1-NHP insertion datasets are available at DANDI (https://dandiarchive.org/dandiset/001282/) and the fast-motion NHP dataset of Extended Data Fig. 3 is available at DANDI (https://dandiarchive.org/dandiset/001290/).\"",
-        "call": "reuse"
-      },
-      "000957": {
-        "call": "reuse",
-        "note": "\"Human data are available for download at Dryad (https://doi.org/10.5061/dryad.d2547d840) and DANDI (https://dandiarchive.org/dandiset/000397) from MGH13 and at Dryad (https://doi.org/10.7272/Q6ST7N3B) from the UCSF14. IBL data for the reproducible electrophysiology experiment are publicly available and can be downloaded via AWS Open Data at https://registry.opendata.aws/ibl-reproducible-ephys/ or by following the instructions under Data at https://www.internationalbrainlab.com/repro-ephys/ and using the tag 2022_Q2_IBL_et_al_RepeatedSite35. The NP1 and NP2 imposed motion datasets here (dataset 1) can be downloaded at Figshare (https://doi.org/10.6084/m9.figshare.14024495.v1)6. The NP Ultra imposed motion datasets are available at DANDI (https://dandiarchive.org/dandiset/000957/)36. Neuroseeker recordings in ketamine–xylazine-anesthetized rat data are available on G-node (https://gin.g-node.org/UlbertLab/High_Resolution_Cortical_Spikes/) and described in a data descriptor record42. The NP1-NHP insertion datasets are available at DANDI (https://dandiarchive.org/dandiset/001282/) and the fast-motion NHP dataset of Extended Data Fig. 3 is available at DANDI (https://dandiarchive.org/dandiset/001290/).\""
-      },
-      "001282": {
-        "call": "reuse",
-        "note": "\"Human data are available for download at Dryad (https://doi.org/10.5061/dryad.d2547d840) and DANDI (https://dandiarchive.org/dandiset/000397) from MGH13 and at Dryad (https://doi.org/10.7272/Q6ST7N3B) from the UCSF14. IBL data for the reproducible electrophysiology experiment are publicly available and can be downloaded via AWS Open Data at https://registry.opendata.aws/ibl-reproducible-ephys/ or by following the instructions under Data at https://www.internationalbrainlab.com/repro-ephys/ and using the tag 2022_Q2_IBL_et_al_RepeatedSite35. The NP1 and NP2 imposed motion datasets here (dataset 1) can be downloaded at Figshare (https://doi.org/10.6084/m9.figshare.14024495.v1)6. The NP Ultra imposed motion datasets are available at DANDI (https://dandiarchive.org/dandiset/000957/)36. Neuroseeker recordings in ketamine–xylazine-anesthetized rat data are available on G-node (https://gin.g-node.org/UlbertLab/High_Resolution_Cortical_Spikes/) and described in a data descriptor record42. The NP1-NHP insertion datasets are available at DANDI (https://dandiarchive.org/dandiset/001282/) and the fast-motion NHP dataset of Extended Data Fig. 3 is available at DANDI (https://dandiarchive.org/dandiset/001290/).\""
-      },
-      "001290": {
-        "call": "reuse",
-        "note": "\"Human data are available for download at Dryad (https://doi.org/10.5061/dryad.d2547d840) and DANDI (https://dandiarchive.org/dandiset/000397) from MGH13 and at Dryad (https://doi.org/10.7272/Q6ST7N3B) from the UCSF14. IBL data for the reproducible electrophysiology experiment are publicly available and can be downloaded via AWS Open Data at https://registry.opendata.aws/ibl-reproducible-ephys/ or by following the instructions under Data at https://www.internationalbrainlab.com/repro-ephys/ and using the tag 2022_Q2_IBL_et_al_RepeatedSite35. The NP1 and NP2 imposed motion datasets here (dataset 1) can be downloaded at Figshare (https://doi.org/10.6084/m9.figshare.14024495.v1)6. The NP Ultra imposed motion datasets are available at DANDI (https://dandiarchive.org/dandiset/000957/)36. Neuroseeker recordings in ketamine–xylazine-anesthetized rat data are available on G-node (https://gin.g-node.org/UlbertLab/High_Resolution_Cortical_Spikes/) and described in a data descriptor record42. The NP1-NHP insertion datasets are available at DANDI (https://dandiarchive.org/dandiset/001282/) and the fast-motion NHP dataset of Extended Data Fig. 3 is available at DANDI (https://dandiarchive.org/dandiset/001290/).\""
+        "note": "This preprint has been published as doi: 10.1109/icassp49357.2023.10095487, which is a separate candidate, so marking it as Neither.",
+        "call": "neither"
       }
     },
     "10.1038/s42256-024-00886-8": {
@@ -1123,8 +1135,8 @@
     },
     "10.1101/2022.12.07.22283227": {
       "000147": {
-        "note": "\"Data from participant N performing this task was previously analyzed in [46]. Data from participant J have not\nbeen reported previously.\" Ref 46 is \"Guan C, Aflalo T, Zhang C, Rosario E R, Pouratian N and Andersen R A 2021 Preserved motor\nrepresentations after paralysis BioRxiv\" which is the paper associated with DANDI:000147. This appears to be an unlinked preprint of paper doi: 10.1088/1741-2552/acd3b1",
-        "call": "reuse"
+        "note": "\"Data from participant N performing this task was previously analyzed in [46]. Data from participant J have not\nbeen reported previously.\" Ref 46 is \"Guan C, Aflalo T, Zhang C, Rosario E R, Pouratian N and Andersen R A 2021 Preserved motor\nrepresentations after paralysis BioRxiv\" which is the paper associated with DANDI:000147. This appears to be an unlinked preprint of paper doi: 10.1088/1741-2552/acd3b1, which is a separate candidate.",
+        "call": "neither"
       }
     },
     "10.1101/2023.01.01.522410": {
@@ -1142,23 +1154,23 @@
     "10.1101/2023.04.03.535429": {
       "000070": {
         "note": "\"In Figure 1, we showed data from two primate datasets that were made available to us by Mark Churchland, Matthew Kaufman, and Krishna Shenoy. Details of animal care, surgery, electrophysiological recordings, and behavioral task have been reported previously in Churchland et al., 2012; Kaufman et al., 2014 (see in particular the details associated with the J and N ‘array’ datasets). The subjects of this study, J and N, were two adult male macaque monkeys (Macaca mulatta).\" DANDI:000070 is Churchland et al., 2012 with subjects Jenkins and Nitschke. ",
-        "call": "reuse"
+        "call": "ambiguous_reuse"
       },
       "000128": {
         "note": "\"In Figure 1, we showed data from two primate datasets that were made available to us by Mark Churchland, Matthew Kaufman, and Krishna Shenoy. Details of animal care, surgery, electrophysiological recordings, and behavioral task have been reported previously in Churchland et al., 2012; Kaufman et al., 2014 (see in particular the details associated with the J and N ‘array’ datasets). The subjects of this study, J and N, were two adult male macaque monkeys (Macaca mulatta).\" DANDI:000070 is Churchland et al., 2012 with subjects Jenkins and Nitschke. There is no reference to the NLB datasets.",
-        "call": "neither"
+        "call": "ambiguous_reuse"
       },
       "000138": {
         "note": "\"In Figure 1, we showed data from two primate datasets that were made available to us by Mark Churchland, Matthew Kaufman, and Krishna Shenoy. Details of animal care, surgery, electrophysiological recordings, and behavioral task have been reported previously in Churchland et al., 2012; Kaufman et al., 2014 (see in particular the details associated with the J and N ‘array’ datasets). The subjects of this study, J and N, were two adult male macaque monkeys (Macaca mulatta).\" DANDI:000070 is Churchland et al., 2012 with subjects Jenkins and Nitschke. There is no reference to the NLB datasets.",
-        "call": "neither"
+        "call": "ambiguous_reuse"
       },
       "000139": {
         "note": "\"In Figure 1, we showed data from two primate datasets that were made available to us by Mark Churchland, Matthew Kaufman, and Krishna Shenoy. Details of animal care, surgery, electrophysiological recordings, and behavioral task have been reported previously in Churchland et al., 2012; Kaufman et al., 2014 (see in particular the details associated with the J and N ‘array’ datasets). The subjects of this study, J and N, were two adult male macaque monkeys (Macaca mulatta).\" DANDI:000070 is Churchland et al., 2012 with subjects Jenkins and Nitschke. There is no reference to the NLB datasets.",
-        "call": "neither"
+        "call": "ambiguous_reuse"
       },
       "000140": {
         "note": "\"In Figure 1, we showed data from two primate datasets that were made available to us by Mark Churchland, Matthew Kaufman, and Krishna Shenoy. Details of animal care, surgery, electrophysiological recordings, and behavioral task have been reported previously in Churchland et al., 2012; Kaufman et al., 2014 (see in particular the details associated with the J and N ‘array’ datasets). The subjects of this study, J and N, were two adult male macaque monkeys (Macaca mulatta).\" DANDI:000070 is Churchland et al., 2012 with subjects Jenkins and Nitschke. There is no reference to the NLB datasets.",
-        "call": "neither"
+        "call": "ambiguous_reuse"
       }
     },
     "10.1101/2023.06.18.545503": {
@@ -1191,12 +1203,12 @@
     },
     "10.1101/2023.08.16.553602": {
       "000128": {
-        "note": "\"To address the first aim, we train the continuous learning algorithm on two different datasets consisting of neural and kinematic data from non-human primates performing reaching tasks [29, 30].\" \"[29]\nPerich M G, Lawlor P N, Kording K P, Miller L E and (CRCNS) 2018 Extracellular neural recordings from macaque primary and dorsal premotor motor cortex during a sequential reaching task\nGo to reference in article\nCrossref\nGoogle Scholar\n[30]\nChurchland M and Kaufman M 2022 Mc maze small: macaque primary motor and dorsal premotor cortex spiking activity during delayed reaching [data set] DANDI archive\" Preprint for DOI: 10.1088/1741-2552/ad1787",
+        "note": "\"To address the first aim, we train the continuous learning algorithm on two different datasets consisting of neural and kinematic data from non-human primates performing reaching tasks [29, 30].\" \"[29]\nPerich M G, Lawlor P N, Kording K P, Miller L E and (CRCNS) 2018 Extracellular neural recordings from macaque primary and dorsal premotor motor cortex during a sequential reaching task\nGo to reference in article\nCrossref\nGoogle Scholar\n[30]\nChurchland M and Kaufman M 2022 Mc maze small: macaque primary motor and dorsal premotor cortex spiking activity during delayed reaching [data set] DANDI archive\" Preprint for DOI: 10.1088/1741-2552/ad1787, which is a separate candidate.",
         "call": "neither"
       },
       "000140": {
-        "note": "\"To address the first aim, we train the continuous learning algorithm on two different datasets consisting of neural and kinematic data from non-human primates performing reaching tasks [29, 30].\" \"[29]\nPerich M G, Lawlor P N, Kording K P, Miller L E and (CRCNS) 2018 Extracellular neural recordings from macaque primary and dorsal premotor motor cortex during a sequential reaching task\nGo to reference in article\nCrossref\nGoogle Scholar\n[30]\nChurchland M and Kaufman M 2022 Mc maze small: macaque primary motor and dorsal premotor cortex spiking activity during delayed reaching [data set] DANDI archive\" Preprint for DOI: 10.1088/1741-2552/ad1787",
-        "call": "reuse"
+        "note": "\"To address the first aim, we train the continuous learning algorithm on two different datasets consisting of neural and kinematic data from non-human primates performing reaching tasks [29, 30].\" \"[29]\nPerich M G, Lawlor P N, Kording K P, Miller L E and (CRCNS) 2018 Extracellular neural recordings from macaque primary and dorsal premotor motor cortex during a sequential reaching task\nGo to reference in article\nCrossref\nGoogle Scholar\n[30]\nChurchland M and Kaufman M 2022 Mc maze small: macaque primary motor and dorsal premotor cortex spiking activity during delayed reaching [data set] DANDI archive\" Preprint for DOI: 10.1088/1741-2552/ad1787, which is a separate candidate.",
+        "call": "neither"
       }
     },
     "10.1101/2023.09.12.557442": {
@@ -1223,16 +1235,8 @@
     },
     "10.1101/2023.10.24.563768": {
       "000397": {
-        "note": "\"We validate DREDge on two human Neuropixels recordings [6] and a mouse recording [2] from two separate research groups.\" Ref 6 is DANDI:000397. Data is also available on Figshare, and the dataset authors are authors on this paper, so source is unknown. Note this preprint has been published as doi: 10.1038/s41592-025-02614-5. Published paper says \"Human data are available for download at Dryad (https://doi.org/10.5061/dryad.d2547d840) and DANDI (https://dandiarchive.org/dandiset/000397) from MGH13 and at Dryad (https://doi.org/10.7272/Q6ST7N3B) from the UCSF14. IBL data for the reproducible electrophysiology experiment are publicly available and can be downloaded via AWS Open Data at https://registry.opendata.aws/ibl-reproducible-ephys/ or by following the instructions under Data at https://www.internationalbrainlab.com/repro-ephys/ and using the tag 2022_Q2_IBL_et_al_RepeatedSite35. The NP1 and NP2 imposed motion datasets here (dataset 1) can be downloaded at Figshare (https://doi.org/10.6084/m9.figshare.14024495.v1)6. The NP Ultra imposed motion datasets are available at DANDI (https://dandiarchive.org/dandiset/000957/)36. Neuroseeker recordings in ketamine–xylazine-anesthetized rat data are available on G-node (https://gin.g-node.org/UlbertLab/High_Resolution_Cortical_Spikes/) and described in a data descriptor record42. The NP1-NHP insertion datasets are available at DANDI (https://dandiarchive.org/dandiset/001282/) and the fast-motion NHP dataset of Extended Data Fig. 3 is available at DANDI (https://dandiarchive.org/dandiset/001290/).\"",
-        "call": "reuse"
-      },
-      "001282": {
-        "call": "reuse",
-        "note": "\"We validate DREDge on two human Neuropixels recordings [6] and a mouse recording [2] from two separate research groups.\" Ref 6 is DANDI:000397. Data is also available on Figshare, and the dataset authors are authors on this paper, so source is unknown. Note this preprint has been published as doi: 10.1038/s41592-025-02614-5. Published paper says \"Human data are available for download at Dryad (https://doi.org/10.5061/dryad.d2547d840) and DANDI (https://dandiarchive.org/dandiset/000397) from MGH13 and at Dryad (https://doi.org/10.7272/Q6ST7N3B) from the UCSF14. IBL data for the reproducible electrophysiology experiment are publicly available and can be downloaded via AWS Open Data at https://registry.opendata.aws/ibl-reproducible-ephys/ or by following the instructions under Data at https://www.internationalbrainlab.com/repro-ephys/ and using the tag 2022_Q2_IBL_et_al_RepeatedSite35. The NP1 and NP2 imposed motion datasets here (dataset 1) can be downloaded at Figshare (https://doi.org/10.6084/m9.figshare.14024495.v1)6. The NP Ultra imposed motion datasets are available at DANDI (https://dandiarchive.org/dandiset/000957/)36. Neuroseeker recordings in ketamine–xylazine-anesthetized rat data are available on G-node (https://gin.g-node.org/UlbertLab/High_Resolution_Cortical_Spikes/) and described in a data descriptor record42. The NP1-NHP insertion datasets are available at DANDI (https://dandiarchive.org/dandiset/001282/) and the fast-motion NHP dataset of Extended Data Fig. 3 is available at DANDI (https://dandiarchive.org/dandiset/001290/).\""
-      },
-      "001290": {
-        "call": "reuse",
-        "note": "\"We validate DREDge on two human Neuropixels recordings [6] and a mouse recording [2] from two separate research groups.\" Ref 6 is DANDI:000397. Data is also available on Figshare, and the dataset authors are authors on this paper, so source is unknown. Note this preprint has been published as doi: 10.1038/s41592-025-02614-5. Published paper says \"Human data are available for download at Dryad (https://doi.org/10.5061/dryad.d2547d840) and DANDI (https://dandiarchive.org/dandiset/000397) from MGH13 and at Dryad (https://doi.org/10.7272/Q6ST7N3B) from the UCSF14. IBL data for the reproducible electrophysiology experiment are publicly available and can be downloaded via AWS Open Data at https://registry.opendata.aws/ibl-reproducible-ephys/ or by following the instructions under Data at https://www.internationalbrainlab.com/repro-ephys/ and using the tag 2022_Q2_IBL_et_al_RepeatedSite35. The NP1 and NP2 imposed motion datasets here (dataset 1) can be downloaded at Figshare (https://doi.org/10.6084/m9.figshare.14024495.v1)6. The NP Ultra imposed motion datasets are available at DANDI (https://dandiarchive.org/dandiset/000957/)36. Neuroseeker recordings in ketamine–xylazine-anesthetized rat data are available on G-node (https://gin.g-node.org/UlbertLab/High_Resolution_Cortical_Spikes/) and described in a data descriptor record42. The NP1-NHP insertion datasets are available at DANDI (https://dandiarchive.org/dandiset/001282/) and the fast-motion NHP dataset of Extended Data Fig. 3 is available at DANDI (https://dandiarchive.org/dandiset/001290/).\""
+        "note": "This preprint has been published as doi: 10.1038/s41592-025-02614-5, which is a separate candidate, so marking it as Neither.",
+        "call": "neither"
       }
     },
     "10.1101/2023.10.30.564831": {
@@ -1248,7 +1252,7 @@
     "10.1101/2023.12.05.570033": {
       "000070": {
         "note": "\"The monkey datasets have been deposited on Dryad by Gallego Juan.\" Dryad link points to https://datadryad.org/dataset/doi:10.5061/dryad.xd2547dkt  - Local field potentials reflect cortical population dynamics in a region-specific and frequency-dependent manner. This preprint has 6 versions. The first appears to have used Monkey N data from DANDI:000070 but the most recent version (v6) no longer cites it.",
-        "call": "unsure"
+        "call": "neither"
       },
       "000128": {
         "note": "\"The monkey datasets have been deposited on Dryad by Gallego Juan.\" Dryad link points to https://datadryad.org/dataset/doi:10.5061/dryad.xd2547dkt  - Local field potentials reflect cortical population dynamics in a region-specific and frequency-dependent manner. This preprint has 6 versions. The first appears to have used Monkey N data from DANDI:000070 but the most recent version (v6) no longer cites it.",
@@ -1272,24 +1276,24 @@
     },
     "10.1101/2024.02.07.579412": {
       "000070": {
-        "note": "\"1) Neuronal data analysis: We analyzed the recordings\nfrom a monkey’s MC during reaching [5] and spikes data from\nour model. As for the monkey data, we extracted the activity of\n202 neurons in eight straight reach conditions.\" ref 5 is Churchland et al., 2012, which is stored in DANDI:000070",
-        "call": "reuse"
+        "note": "\"1) Neuronal data analysis: We analyzed the recordings\nfrom a monkey’s MC during reaching [5] and spikes data from\nour model. As for the monkey data, we extracted the activity of\n202 neurons in eight straight reach conditions.\" ref 5 is Churchland et al., 2012, which is stored in DANDI:000070. Unclear where the data came from and whether an NLB MC_Maze dataset was used or DANDI:000070.",
+        "call": "ambiguous_reuse"
       },
       "000128": {
-        "note": "\"1) Neuronal data analysis: We analyzed the recordings\nfrom a monkey’s MC during reaching [5] and spikes data from\nour model. As for the monkey data, we extracted the activity of\n202 neurons in eight straight reach conditions.\" ref 5 is Churchland et al., 2012, which is stored in DANDI:000070",
-        "call": "neither"
+        "note": "\"1) Neuronal data analysis: We analyzed the recordings\nfrom a monkey’s MC during reaching [5] and spikes data from\nour model. As for the monkey data, we extracted the activity of\n202 neurons in eight straight reach conditions.\" ref 5 is Churchland et al., 2012, which is stored in DANDI:000070. Unclear where the data came from and whether an NLB MC_Maze dataset was used or DANDI:000070.",
+        "call": "ambiguous_reuse"
       },
       "000138": {
-        "note": "\"1) Neuronal data analysis: We analyzed the recordings\nfrom a monkey’s MC during reaching [5] and spikes data from\nour model. As for the monkey data, we extracted the activity of\n202 neurons in eight straight reach conditions.\" ref 5 is Churchland et al., 2012, which is stored in DANDI:000070",
-        "call": "neither"
+        "note": "\"1) Neuronal data analysis: We analyzed the recordings\nfrom a monkey’s MC during reaching [5] and spikes data from\nour model. As for the monkey data, we extracted the activity of\n202 neurons in eight straight reach conditions.\" ref 5 is Churchland et al., 2012, which is stored in DANDI:000070. Unclear where the data came from and whether an NLB MC_Maze dataset was used or DANDI:000070.",
+        "call": "ambiguous_reuse"
       },
       "000139": {
-        "note": "\"1) Neuronal data analysis: We analyzed the recordings\nfrom a monkey’s MC during reaching [5] and spikes data from\nour model. As for the monkey data, we extracted the activity of\n202 neurons in eight straight reach conditions.\" ref 5 is Churchland et al., 2012, which is stored in DANDI:000070",
-        "call": "neither"
+        "note": "\"1) Neuronal data analysis: We analyzed the recordings\nfrom a monkey’s MC during reaching [5] and spikes data from\nour model. As for the monkey data, we extracted the activity of\n202 neurons in eight straight reach conditions.\" ref 5 is Churchland et al., 2012, which is stored in DANDI:000070. Unclear where the data came from and whether an NLB MC_Maze dataset was used or DANDI:000070.",
+        "call": "ambiguous_reuse"
       },
       "000140": {
-        "note": "\"1) Neuronal data analysis: We analyzed the recordings\nfrom a monkey’s MC during reaching [5] and spikes data from\nour model. As for the monkey data, we extracted the activity of\n202 neurons in eight straight reach conditions.\" ref 5 is Churchland et al., 2012, which is stored in DANDI:000070",
-        "call": "neither"
+        "note": "\"1) Neuronal data analysis: We analyzed the recordings\nfrom a monkey’s MC during reaching [5] and spikes data from\nour model. As for the monkey data, we extracted the activity of\n202 neurons in eight straight reach conditions.\" ref 5 is Churchland et al., 2012, which is stored in DANDI:000070. Unclear where the data came from and whether an NLB MC_Maze dataset was used or DANDI:000070.",
+        "call": "ambiguous_reuse"
       }
     },
     "10.1101/2024.02.29.582822": {
@@ -1307,7 +1311,7 @@
     "10.1101/2024.04.19.590082": {
       "000129": {
         "note": "\"The monkey-reach dataset by O’Doherty et al.40 has been deposited at https://zenodo.org/records/583331 and is publicly available as of the date of publication. The DOI is listed in the key resources table.\" \"Neural and behavioral data from a male Rhesus macaque monkey (Macaca mulatta) who performed self-paced reaches were recorded and made publicly available by O’Doherty et al.40 \" dataset DOI: https://doi.org/10.5281/zenodo.788569 . \"We focus only on one session, ‘loco_20170213_02‘,\" The DANDI session subject is Indy. Accessed from Zenodo. DANDI:000129 has only one session of the Zenodo dataset for benchmarking",
-        "call": "neither"
+        "call": "ambiguous_reuse"
       }
     },
     "10.1101/2024.05.29.596499": {
@@ -1369,11 +1373,11 @@
     "10.1101/2024.10.28.620662": {
       "000008": {
         "note": "\"The real-world datasets spanned\ndifferent biological and technical scales: (1) a neural circuits dataset that includes neuron electrical activities\nrecorded from 32–64 intracranial recording sites across medial temporal lobe regions, measured using depth\nelectrodes, with their spatial positions recorded to map time delays and signal transmission pathways [5];\nand (2) a Patch-seq dataset from mouse motor cortex that combines electrophysiological recordings with\nsingle-cell gene expression profiles [12].\" No references to temperature control. Ref 5 is \"Ece Boran, Tommaso Fedele, Peter Klaver, Peter Hilfiker, Lennart Stieglitz, Thomas Grunwald, and\nJohannes Sarnthein. “Persistent hippocampal neural firing and hippocampal-cortical coupling predict\nverbal working memory load”. In: Science advances 5.3 (2019), eaav3687.\" Ref 12 is Scala et al. Source unknown.",
-        "call": "reuse"
+        "call": "ambiguous_reuse"
       },
       "000035": {
         "note": "\"The real-world datasets spanned\ndifferent biological and technical scales: (1) a neural circuits dataset that includes neuron electrical activities\nrecorded from 32–64 intracranial recording sites across medial temporal lobe regions, measured using depth\nelectrodes, with their spatial positions recorded to map time delays and signal transmission pathways [5];\nand (2) a Patch-seq dataset from mouse motor cortex that combines electrophysiological recordings with\nsingle-cell gene expression profiles [12].\" No references to temperature control. \n\nRef 5 is \"Ece Boran, Tommaso Fedele, Peter Klaver, Peter Hilfiker, Lennart Stieglitz, Thomas Grunwald, and Johannes Sarnthein. \"Persistent hippocampal neural firing and hippocampal-cortical coupling predict verbal working memory load\": In: Science advances 5.3 (2019), eaav3687.\" Ref 12 is Scala et al. Source unknown.",
-        "call": "unsure"
+        "call": "ambiguous_reuse"
       },
       "000574": {
         "note": "\"The real-world datasets spanned\ndifferent biological and technical scales: (1) a neural circuits dataset that includes neuron electrical activities\nrecorded from 32–64 intracranial recording sites across medial temporal lobe regions, measured using depth\nelectrodes, with their spatial positions recorded to map time delays and signal transmission pathways [5];\nand (2) a Patch-seq dataset from mouse motor cortex that combines electrophysiological recordings with\nsingle-cell gene expression profiles [12].\" No references to temperature control. \n\nRef 5 is \"Ece Boran, Tommaso Fedele, Peter Klaver, Peter Hilfiker, Lennart Stieglitz, Thomas Grunwald, and Johannes Sarnthein. \"Persistent hippocampal neural firing and hippocampal-cortical coupling predict verbal working memory load\": In: Science advances 5.3 (2019), eaav3687.\" Ref 12 is Scala et al. Source unknown.",
@@ -1757,23 +1761,23 @@
     "10.3389/fnins.2025.1551656": {
       "000070": {
         "note": "\"The dataset from the research conducted by Churchland et al. (2012), pertains to the collection of neural signals extracted from two rhesus monkeys, identified as J and N, during their performance of the center-and-out task to eight directions.\" DANDI:000070 has all data from Churchland et al maze dataset, whereas the NLB MC_Maze datasets have only one session for benchmarking.",
-        "call": "reuse"
+        "call": "ambiguous_reuse"
       },
       "000128": {
         "note": "\"The dataset from the research conducted by Churchland et al. (2012), pertains to the collection of neural signals extracted from two rhesus monkeys, identified as J and N, during their performance of the center-and-out task to eight directions.\" DANDI:000070 has all data from Churchland et al maze dataset, whereas the NLB MC_Maze datasets have only one session for benchmarking.",
-        "call": "neither"
+        "call": "ambiguous_reuse"
       },
       "000138": {
         "note": "\"The dataset from the research conducted by Churchland et al. (2012), pertains to the collection of neural signals extracted from two rhesus monkeys, identified as J and N, during their performance of the center-and-out task to eight directions.\" DANDI:000070 has all data from Churchland et al maze dataset, whereas the NLB MC_Maze datasets have only one session for benchmarking.",
-        "call": "neither"
+        "call": "ambiguous_reuse"
       },
       "000139": {
         "note": "\"The dataset from the research conducted by Churchland et al. (2012), pertains to the collection of neural signals extracted from two rhesus monkeys, identified as J and N, during their performance of the center-and-out task to eight directions.\" DANDI:000070 has all data from Churchland et al maze dataset, whereas the NLB MC_Maze datasets have only one session for benchmarking.",
-        "call": "neither"
+        "call": "ambiguous_reuse"
       },
       "000140": {
         "note": "\"The dataset from the research conducted by Churchland et al. (2012), pertains to the collection of neural signals extracted from two rhesus monkeys, identified as J and N, during their performance of the center-and-out task to eight directions.\" DANDI:000070 has all data from Churchland et al maze dataset, whereas the NLB MC_Maze datasets have only one session for benchmarking.",
-        "call": "neither"
+        "call": "ambiguous_reuse"
       }
     },
     "10.3390/e23070922": {
@@ -1791,7 +1795,7 @@
     "10.3390/s21196372": {
       "000129": {
         "note": "\"Publicly available datasets were analyzed in this study. This data can be found here: https://zenodo.org/record/583331 (accessed on 1 September 2020) for monkey Indy and https://gin.g-node.org/INT/multielectrode_grasp (accessed on 1 September 2020) for monkey N.\" https://zenodo.org/records/583331 is O'Dougherty et al, 2017, v1. DANDI:000129 has only one session of the Zenodo dataset for benchmarking",
-        "call": "neither"
+        "call": "ambiguous_reuse"
       }
     },
     "10.3390/s24144679": {
@@ -1829,23 +1833,23 @@
     "10.64898/2026.03.02.708943": {
       "000070": {
         "note": "\"We study monkey J, as analyzed in the main text of Sussillo et al. [27]; simultaneous neural recordings\n395 from M1 and PMd are from Churchland et al. [6] and will be used for comparison in the next section.\" \"We used the dataset from Churchland et al. [6], as reanalyzed by Sussillo et al. [27], consisting of trial1340 averaged neural and EMG recordings from monkey J performing B = 27 reaching movements.\" Churchland et al is DANDI:000070. No evidence that they used the NLB versions.",
-        "call": "reuse"
+        "call": "ambiguous_reuse"
       },
       "000128": {
         "note": "\"We study monkey J, as analyzed in the main text of Sussillo et al. [27]; simultaneous neural recordings\n395 from M1 and PMd are from Churchland et al. [6] and will be used for comparison in the next section.\" \"We used the dataset from Churchland et al. [6], as reanalyzed by Sussillo et al. [27], consisting of trial1340 averaged neural and EMG recordings from monkey J performing B = 27 reaching movements.\" Churchland et al is DANDI:000070. No evidence that they used the NLB versions.",
-        "call": "neither"
+        "call": "ambiguous_reuse"
       },
       "000138": {
         "note": "\"We study monkey J, as analyzed in the main text of Sussillo et al. [27]; simultaneous neural recordings\n395 from M1 and PMd are from Churchland et al. [6] and will be used for comparison in the next section.\" \"We used the dataset from Churchland et al. [6], as reanalyzed by Sussillo et al. [27], consisting of trial1340 averaged neural and EMG recordings from monkey J performing B = 27 reaching movements.\" Churchland et al is DANDI:000070. No evidence that they used the NLB versions.",
-        "call": "neither"
+        "call": "ambiguous_reuse"
       },
       "000139": {
         "note": "\"We study monkey J, as analyzed in the main text of Sussillo et al. [27]; simultaneous neural recordings\n395 from M1 and PMd are from Churchland et al. [6] and will be used for comparison in the next section.\" \"We used the dataset from Churchland et al. [6], as reanalyzed by Sussillo et al. [27], consisting of trial1340 averaged neural and EMG recordings from monkey J performing B = 27 reaching movements.\" Churchland et al is DANDI:000070. No evidence that they used the NLB versions.",
-        "call": "neither"
+        "call": "ambiguous_reuse"
       },
       "000140": {
         "note": "\"We study monkey J, as analyzed in the main text of Sussillo et al. [27]; simultaneous neural recordings\n395 from M1 and PMd are from Churchland et al. [6] and will be used for comparison in the next section.\" \"We used the dataset from Churchland et al. [6], as reanalyzed by Sussillo et al. [27], consisting of trial1340 averaged neural and EMG recordings from monkey J performing B = 27 reaching movements.\" Churchland et al is DANDI:000070. No evidence that they used the NLB versions.",
-        "call": "neither"
+        "call": "ambiguous_reuse"
       }
     },
     "10.64898/2026.03.31.715474": {
@@ -1935,29 +1939,53 @@
     "10.7554/elife.89131": {
       "000070": {
         "note": "\"In Figure 1, we showed data from two primate datasets that were made available to us by Mark Churchland, Matthew Kaufman and Krishna Shenoy. Details of animal care, surgery, electrophysiological recordings, and behavioral task have been reported previously in Churchland et al. (2012); Kaufman et al. (2014) (see in particular the details associated with the J and N “array” datasets). The subjects of this study, J and N, were two adult male macaque monkeys (Macaca mulatta). \" This is DANDI:000070. There is no evidence that the NLB versions were used.",
-        "call": "reuse"
+        "call": "ambiguous_reuse"
       },
       "000128": {
         "note": "\"In Figure 1, we showed data from two primate datasets that were made available to us by Mark Churchland, Matthew Kaufman and Krishna Shenoy. Details of animal care, surgery, electrophysiological recordings, and behavioral task have been reported previously in Churchland et al. (2012); Kaufman et al. (2014) (see in particular the details associated with the J and N “array” datasets). The subjects of this study, J and N, were two adult male macaque monkeys (Macaca mulatta). \" This is DANDI:000070. There is no evidence that the NLB versions were used.",
-        "call": "neither"
+        "call": "ambiguous_reuse"
       },
       "000138": {
         "note": "\"In Figure 1, we showed data from two primate datasets that were made available to us by Mark Churchland, Matthew Kaufman and Krishna Shenoy. Details of animal care, surgery, electrophysiological recordings, and behavioral task have been reported previously in Churchland et al. (2012); Kaufman et al. (2014) (see in particular the details associated with the J and N “array” datasets). The subjects of this study, J and N, were two adult male macaque monkeys (Macaca mulatta). \" This is DANDI:000070. There is no evidence that the NLB versions were used.",
-        "call": "neither"
+        "call": "ambiguous_reuse"
       },
       "000139": {
         "note": "\"In Figure 1, we showed data from two primate datasets that were made available to us by Mark Churchland, Matthew Kaufman and Krishna Shenoy. Details of animal care, surgery, electrophysiological recordings, and behavioral task have been reported previously in Churchland et al. (2012); Kaufman et al. (2014) (see in particular the details associated with the J and N “array” datasets). The subjects of this study, J and N, were two adult male macaque monkeys (Macaca mulatta). \" This is DANDI:000070. There is no evidence that the NLB versions were used.",
-        "call": "neither"
+        "call": "ambiguous_reuse"
       },
       "000140": {
         "note": "\"In Figure 1, we showed data from two primate datasets that were made available to us by Mark Churchland, Matthew Kaufman and Krishna Shenoy. Details of animal care, surgery, electrophysiological recordings, and behavioral task have been reported previously in Churchland et al. (2012); Kaufman et al. (2014) (see in particular the details associated with the J and N “array” datasets). The subjects of this study, J and N, were two adult male macaque monkeys (Macaca mulatta). \" This is DANDI:000070. There is no evidence that the NLB versions were used.",
-        "call": "neither"
+        "call": "ambiguous_reuse"
       }
     },
     "10.7554/elife.96718": {
       "000044": {
         "note": "\"To further investigate synchronous ensembles across different datasets, we analyzed publicly available hippocampal recordings ‘hc-11’ from the CRCNS repository (Grosmark and Buzsáki, 2016; Grosmark et al., 2016), where rats navigated novel mazes for water rewards (see Method).\" hc-11 is DANDI:000044",
         "call": "reuse"
+      }
+    },
+    "10.1038/s43588-024-00683-8": {
+      "000020": {
+        "note": "\"The inhibitory Patch-seq transcriptomic dataset is available at https://dandiarchive.org/dandiset/000020/.\"",
+        "call": "reuse"
+      }
+    },
+    "10.1038/s41592-025-02614-5": {
+      "000397": {
+        "note": "\"We validate DREDge on two human Neuropixels recordings [6] and a mouse recording [2] from two separate research groups.\" Ref 6 is DANDI:000397. Data is also available on Figshare, and the dataset authors are authors on this paper, so source is unknown. Paper says \"Human data are available for download at Dryad (https://doi.org/10.5061/dryad.d2547d840) and DANDI (https://dandiarchive.org/dandiset/000397) from MGH13 and at Dryad (https://doi.org/10.7272/Q6ST7N3B) from the UCSF14. IBL data for the reproducible electrophysiology experiment are publicly available and can be downloaded via AWS Open Data at https://registry.opendata.aws/ibl-reproducible-ephys/ or by following the instructions under Data at https://www.internationalbrainlab.com/repro-ephys/ and using the tag 2022_Q2_IBL_et_al_RepeatedSite35. The NP1 and NP2 imposed motion datasets here (dataset 1) can be downloaded at Figshare (https://doi.org/10.6084/m9.figshare.14024495.v1)6. The NP Ultra imposed motion datasets are available at DANDI (https://dandiarchive.org/dandiset/000957/)36. Neuroseeker recordings in ketamine–xylazine-anesthetized rat data are available on G-node (https://gin.g-node.org/UlbertLab/High_Resolution_Cortical_Spikes/) and described in a data descriptor record42. The NP1-NHP insertion datasets are available at DANDI (https://dandiarchive.org/dandiset/001282/) and the fast-motion NHP dataset of Extended Data Fig. 3 is available at DANDI (https://dandiarchive.org/dandiset/001290/).\"",
+        "call": "reuse"
+      },
+      "000957": {
+        "note": "\"We validate DREDge on two human Neuropixels recordings [6] and a mouse recording [2] from two separate research groups.\" Ref 6 is DANDI:000397. Data is also available on Figshare, and the dataset authors are authors on this paper, so source is unknown. Paper says \"Human data are available for download at Dryad (https://doi.org/10.5061/dryad.d2547d840) and DANDI (https://dandiarchive.org/dandiset/000397) from MGH13 and at Dryad (https://doi.org/10.7272/Q6ST7N3B) from the UCSF14. IBL data for the reproducible electrophysiology experiment are publicly available and can be downloaded via AWS Open Data at https://registry.opendata.aws/ibl-reproducible-ephys/ or by following the instructions under Data at https://www.internationalbrainlab.com/repro-ephys/ and using the tag 2022_Q2_IBL_et_al_RepeatedSite35. The NP1 and NP2 imposed motion datasets here (dataset 1) can be downloaded at Figshare (https://doi.org/10.6084/m9.figshare.14024495.v1)6. The NP Ultra imposed motion datasets are available at DANDI (https://dandiarchive.org/dandiset/000957/)36. Neuroseeker recordings in ketamine–xylazine-anesthetized rat data are available on G-node (https://gin.g-node.org/UlbertLab/High_Resolution_Cortical_Spikes/) and described in a data descriptor record42. The NP1-NHP insertion datasets are available at DANDI (https://dandiarchive.org/dandiset/001282/) and the fast-motion NHP dataset of Extended Data Fig. 3 is available at DANDI (https://dandiarchive.org/dandiset/001290/).\"",
+        "call": "reuse"
+      },
+      "001282": {
+        "call": "reuse",
+        "note": "\"We validate DREDge on two human Neuropixels recordings [6] and a mouse recording [2] from two separate research groups.\" Ref 6 is DANDI:000397. Data is also available on Figshare, and the dataset authors are authors on this paper, so source is unknown. Paper says \"Human data are available for download at Dryad (https://doi.org/10.5061/dryad.d2547d840) and DANDI (https://dandiarchive.org/dandiset/000397) from MGH13 and at Dryad (https://doi.org/10.7272/Q6ST7N3B) from the UCSF14. IBL data for the reproducible electrophysiology experiment are publicly available and can be downloaded via AWS Open Data at https://registry.opendata.aws/ibl-reproducible-ephys/ or by following the instructions under Data at https://www.internationalbrainlab.com/repro-ephys/ and using the tag 2022_Q2_IBL_et_al_RepeatedSite35. The NP1 and NP2 imposed motion datasets here (dataset 1) can be downloaded at Figshare (https://doi.org/10.6084/m9.figshare.14024495.v1)6. The NP Ultra imposed motion datasets are available at DANDI (https://dandiarchive.org/dandiset/000957/)36. Neuroseeker recordings in ketamine–xylazine-anesthetized rat data are available on G-node (https://gin.g-node.org/UlbertLab/High_Resolution_Cortical_Spikes/) and described in a data descriptor record42. The NP1-NHP insertion datasets are available at DANDI (https://dandiarchive.org/dandiset/001282/) and the fast-motion NHP dataset of Extended Data Fig. 3 is available at DANDI (https://dandiarchive.org/dandiset/001290/).\""
+      },
+      "001290": {
+        "call": "reuse",
+        "note": "\"We validate DREDge on two human Neuropixels recordings [6] and a mouse recording [2] from two separate research groups.\" Ref 6 is DANDI:000397. Data is also available on Figshare, and the dataset authors are authors on this paper, so source is unknown. Paper says \"Human data are available for download at Dryad (https://doi.org/10.5061/dryad.d2547d840) and DANDI (https://dandiarchive.org/dandiset/000397) from MGH13 and at Dryad (https://doi.org/10.7272/Q6ST7N3B) from the UCSF14. IBL data for the reproducible electrophysiology experiment are publicly available and can be downloaded via AWS Open Data at https://registry.opendata.aws/ibl-reproducible-ephys/ or by following the instructions under Data at https://www.internationalbrainlab.com/repro-ephys/ and using the tag 2022_Q2_IBL_et_al_RepeatedSite35. The NP1 and NP2 imposed motion datasets here (dataset 1) can be downloaded at Figshare (https://doi.org/10.6084/m9.figshare.14024495.v1)6. The NP Ultra imposed motion datasets are available at DANDI (https://dandiarchive.org/dandiset/000957/)36. Neuroseeker recordings in ketamine–xylazine-anesthetized rat data are available on G-node (https://gin.g-node.org/UlbertLab/High_Resolution_Cortical_Spikes/) and described in a data descriptor record42. The NP1-NHP insertion datasets are available at DANDI (https://dandiarchive.org/dandiset/001282/) and the fast-motion NHP dataset of Extended Data Fig. 3 is available at DANDI (https://dandiarchive.org/dandiset/001290/).\""
       }
     }
   },
@@ -1985,11 +2013,6 @@
         "dandiset_name": "20211223_AIBS_Patchseq_human"
       }
     },
-    "10.1038/s43588-025-00915-5": {
-      "000409": {
-        "dandiset_name": "IBL - Brain Wide Map"
-      }
-    },
     "10.1101/2020.09.24.311118": {
       "000021": {
         "dandiset_name": "Allen Institute - Visual Coding - Neuropixels (Brain Observatory 1.1 Stimulus Set)"
@@ -2000,17 +2023,6 @@
         "dandiset_name": "Long-term recordings of motor and premotor cortical spiking activity during reaching in monkeys"
       }
     },
-    "10.1101/2022.12.04.519043": {
-      "000957": {
-        "dandiset_name": "Neuropixels Ultra Probe Imposed Motion Dataset"
-      },
-      "001282": {
-        "dandiset_name": "Neuropixels 1.0-NHP insertion datasets"
-      },
-      "001290": {
-        "dandiset_name": "Neuropixels pulsation datasets"
-      }
-    },
     "10.1101/2023.08.08.551978": {
       "000044": {
         "dandiset_name": "Diversity in neural firing dynamics supports both rigid and learned hippocampal sequences"
@@ -2019,14 +2031,6 @@
     "10.1101/2023.09.12.557442": {
       "000939": {
         "dandiset_name": "Large-scale recordings of head direction cells in mouse postsubiculum"
-      }
-    },
-    "10.1101/2023.10.24.563768": {
-      "001282": {
-        "dandiset_name": "Neuropixels 1.0-NHP insertion datasets"
-      },
-      "001290": {
-        "dandiset_name": "Neuropixels pulsation datasets"
       }
     },
     "10.1101/2024.06.24.600438": {
@@ -2045,6 +2049,25 @@
       },
       "000022": {
         "dandiset_name": "Allen Institute - Visual Coding - Neuropixels (Functional Connectivity Stimulus Set)"
+      }
+    },
+    "10.1038/s41592-025-02614-5": {
+      "001282": {
+        "dandiset_name": "Neuropixels 1.0-NHP insertion datasets"
+      },
+      "001290": {
+        "dandiset_name": "Neuropixels pulsation datasets"
+      }
+    },
+    "10.1101/2025.06.30.662469": {
+      "000021": {
+        "dandiset_name": "Allen Institute - Visual Coding - Neuropixels (Brain Observatory 1.1 Stimulus Set)"
+      },
+      "000713": {
+        "dandiset_name": "Allen Institute - Visual Behavior - Neuropixels"
+      },
+      "000728": {
+        "dandiset_name": "Allen Institute - Visual Coding - Optical Physiology"
       }
     }
   }
