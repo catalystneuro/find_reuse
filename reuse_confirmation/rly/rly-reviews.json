@@ -653,12 +653,12 @@
     },
     "10.1016/j.celrep.2025.115338": {
       "000129": {
-        "note": "The paper cites https://zenodo.org/records/583331 from O'Dougherty et al, 2017, and focuses on one session: loco_20170213_02, which is not the session in DANDI:000129, which has a limited subset of the Zenodo dataset for benchmarking",
+        "note": "The paper cites https://zenodo.org/records/583331 from O'Dougherty et al, 2017, and focuses on one session: loco_20170213_02, which is not the session in DANDI:000129, which has a limited subset of the Zenodo dataset for benchmarking. Per the Makin et al. 2018 review note, marking both 000129 and 001055 as Ambiguous Reuse.",
         "call": "ambiguous_reuse"
       },
       "001055": {
         "call": "ambiguous_reuse",
-        "note": "[10.1016/j.celrep.2025.115338](https://doi.org/10.1016/j.celrep.2025.115338) reuses data from https://zenodo.org/records/583331 from O'Dougherty et al, 2017, and focuses on one session: loco_20170213_02. It seems that all subjects and sessions from the Zenodo dataset were repackaged into DANDI:001055, unlike the NLB dandiset, but it's unclear how the data may have been cut or transformed to form the NeuroTask benchmark."
+        "note": "[10.1016/j.celrep.2025.115338](https://doi.org/10.1016/j.celrep.2025.115338) reuses data from https://zenodo.org/records/583331 from O'Dougherty et al, 2017, and focuses on one session: loco_20170213_02. It seems that all subjects and sessions from the Zenodo dataset were repackaged into DANDI:001055, unlike the NLB dandiset, but it's unclear how the data may have been cut or transformed to form the NeuroTask benchmark. Per the Makin et al. 2018 review note, marking both 000129 and 001055 as Ambiguous Reuse."
       }
     },
     "10.1016/j.crmeth.2021.100101": {
@@ -970,11 +970,11 @@
     },
     "10.1088/2634-4386/ae6728": {
       "000129": {
-        "note": "\"The primate reaching dataset [32] selected for this paper was recorded from the brains of two macaque monkeys, Indy and Loco.\" Ref 32 is Makin J G, O’Doherty J E, Cardoso M M and Sabes P N 2018 Superior arm-movement decoding from cortex with a new, unsupervised-learning algorithm J. Neural Eng. 15 026010. DANDI:000129 has a single session of the Zenodo dataset for benchmarking.",
+        "note": "\"The primate reaching dataset [32] selected for this paper was recorded from the brains of two macaque monkeys, Indy and Loco.\" Ref 32 is Makin J G, O’Doherty J E, Cardoso M M and Sabes P N 2018 Superior arm-movement decoding from cortex with a new, unsupervised-learning algorithm J. Neural Eng. 15 026010. DANDI:000129 has a single session of the Zenodo dataset for benchmarking. Per the Makin et al. 2018 review note, marking both 000129 and 001055 as Ambiguous Reuse.",
         "call": "ambiguous_reuse"
       },
       "001055": {
-        "note": "\"The primate reaching dataset [32] selected for this paper was recorded from the brains of two macaque monkeys, Indy and Loco.\" Ref 32 is Makin J G, O’Doherty J E, Cardoso M M and Sabes P N 2018 Superior arm-movement decoding from cortex with a new, unsupervised-learning algorithm J. Neural Eng. 15 026010.  The NeuroTask benchmark, DANDI:001055, has data from both subjects and multiple sessions per subject, so it is likely that NeuroTask repackages the entire dataset, unlike the NLB dandiset.",
+        "note": "\"The primate reaching dataset [32] selected for this paper was recorded from the brains of two macaque monkeys, Indy and Loco.\" Ref 32 is Makin J G, O’Doherty J E, Cardoso M M and Sabes P N 2018 Superior arm-movement decoding from cortex with a new, unsupervised-learning algorithm J. Neural Eng. 15 026010.  The NeuroTask benchmark, DANDI:001055, has data from both subjects and multiple sessions per subject, so it is likely that NeuroTask repackages the entire dataset, unlike the NLB dandiset. Per the Makin et al. 2018 review note, marking both 000129 and 001055 as Ambiguous Reuse.",
         "call": "ambiguous_reuse"
       }
     },
@@ -1225,7 +1225,7 @@
     },
     "10.1101/2023.09.18.558113": {
       "000129": {
-        "note": "\" In particular, we focus evaluation on a publicly available monkey dataset, where\nthe subjects performed self-paced reaching to random targets generated on a 2D screen (Random\nTarget Task, RTT) [46], and unpublished human clinical BCI datasets. RTT data contains both sorted\nand unsorted activity from two monkeys over 47 sessions (∼20K seconds per monkey). RTT is\nideal for assessing data scaling as it features long, near-hourly sessions of a challenging task where\ndecoding accuracy increases with data [47]. For comparison, in the Maze NLB task, which uses cued\npreparation and movement periods, decoding performance saturates by 500 trials [14]. Since RTT is\ncontinuous, we split each session into 1s trials in keeping with NLB [14].\" ref 47: \"Joseph G Makin, Joseph E O’Doherty, Mariana M B Cardoso, and Philip N Sabes. Superior arm-movement\ndecoding from cortex with a new, unsupervised-learning algorithm. Journal of Neural Engineering, 15\n(2):026010, Apr 2018. ISSN 1741-2560, 1741-2552. doi: 10.1088/1741-2552/aa9e95. URL https:\n//iopscience.iop.org/article/10.1088/1741-2552/aa9e95.\" 46 is \"Joseph E. O’Doherty, Mariana M. B. Cardoso, Joseph G. Makin, and Philip N. Sabes. Nonhuman\nprimate reaching with multichannel sensorimotor cortex electrophysiology, May 2017. URL https:\n//doi.org/10.5281/zenodo.788569.\" DANDI:000129 has only one session of the Zenodo dataset for benchmarking",
+        "note": "\" In particular, we focus evaluation on a publicly available monkey dataset, where\nthe subjects performed self-paced reaching to random targets generated on a 2D screen (Random\nTarget Task, RTT) [46], and unpublished human clinical BCI datasets. RTT data contains both sorted\nand unsorted activity from two monkeys over 47 sessions (∼20K seconds per monkey). RTT is\nideal for assessing data scaling as it features long, near-hourly sessions of a challenging task where\ndecoding accuracy increases with data [47]. For comparison, in the Maze NLB task, which uses cued\npreparation and movement periods, decoding performance saturates by 500 trials [14]. Since RTT is\ncontinuous, we split each session into 1s trials in keeping with NLB [14].\" ref 47: \"Joseph G Makin, Joseph E O’Doherty, Mariana M B Cardoso, and Philip N Sabes. Superior arm-movement\ndecoding from cortex with a new, unsupervised-learning algorithm. Journal of Neural Engineering, 15\n(2):026010, Apr 2018. ISSN 1741-2560, 1741-2552. doi: 10.1088/1741-2552/aa9e95. URL https:\n//iopscience.iop.org/article/10.1088/1741-2552/aa9e95.\" 46 is \"Joseph E. O’Doherty, Mariana M. B. Cardoso, Joseph G. Makin, and Philip N. Sabes. Nonhuman\nprimate reaching with multichannel sensorimotor cortex electrophysiology, May 2017. URL https:\n//doi.org/10.5281/zenodo.788569.\" DANDI:000129 has only one session of the Zenodo dataset for benchmarking. Per the Makin et al. 2018 review note, marking as Ambiguous Reuse. DANDI:001055 is not a candidate for this paper.",
         "call": "ambiguous_reuse"
       }
     },
