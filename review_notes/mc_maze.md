@@ -1,5 +1,5 @@
 ---
-dandisets: ["000128", "000138", "000139", "000140"]
+dandisets: ["000070", "000128", "000138", "000139", "000140"]
 ---
 
 # MC_Maze
@@ -42,3 +42,12 @@ each, so whoever reads any one of them sees why. **Ambiguous Reuse** is for when
 none of this settles it: the data was reused, and nothing in the paper, its code
 or the leaderboard says which dandiset it came from. Say in the note what you
 checked.
+
+One more dandiset shares one of these papers. Churchland et al. 2012
+([10.1038/nature11129](https://doi.org/10.1038/nature11129)) is named by the
+four MC_Maze dandisets and also by
+[000070](https://dandiarchive.org/dandiset/000070), Neural population dynamics
+during reaching. Churchland et al. 2010
+([10.1016/j.neuron.2010.09.015](https://doi.org/10.1016/j.neuron.2010.09.015))
+is named by the MC_Maze dandisets only. The counts and leaderboard above pick
+out one MC_Maze dandiset but do not tell 000070 apart from them.
