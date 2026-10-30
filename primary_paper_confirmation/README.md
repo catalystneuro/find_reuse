@@ -55,6 +55,8 @@ primary papers. A paper added by DOI during review is called `primary`.
 `scripts/rediscover_citing_papers.py` applies the file through
 `apply_confirmed_primary_papers` in `src/review/primary_papers.py`:
 
+- a dandiset with a paper called `primary` but no record in the corpus is
+  added, with its name and dates from DANDI;
 - every `llm_identified` relation is removed;
 - each paper called `primary` is added as `relation: confirmed`;
 - a dandiset left with no paper is dropped from the corpus.

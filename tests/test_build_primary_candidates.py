@@ -164,6 +164,40 @@ class TestBuildCards:
     def test_cites_a_resolved_paper(self, card):
         assert card['candidates'][1]['citation'] == 'Doe & Roe, 2025'
 
+    def test_a_dandiset_no_model_picked_for_shows_the_direct_papers(
+            self, direct_classifications, papers, dandisets):
+        named = {'dandiset_id': '001414', 'dandiset_name': 'Cerebral blood flow and cAMP',
+                 'dandiset_url': 'https://dandiarchive.org/dandiset/001414/draft',
+                 'dandiset_version': 'draft', 'contact_person': 'Doe, Jane',
+                 'dandiset_created': '2025-04-01T12:00:00Z', 'paper_relations': []}
+
+        [card] = B.build_cards([named], B.direct_primaries(direct_classifications),
+                               dandisets, papers)
+
+        assert [(c['doi'], [s['kind'] for s in c['sources']])
+                for c in card['candidates']] == [
+            ('10.1/own-deposit', ['direct_primary']),
+            ('10.1/unregistered', ['direct_primary'])]
+
+
+class TestMergeCards:
+    def test_an_added_card_goes_in_among_the_others(self):
+        existing = [{'dandiset': '000050', 'candidates': ['kept']},
+                    {'dandiset': '000768', 'candidates': ['kept']}]
+        added = [{'dandiset': '000728', 'candidates': []}]
+
+        assert B.merge_cards(existing, added) == [
+            {'dandiset': '000050', 'candidates': ['kept']},
+            {'dandiset': '000728', 'candidates': []},
+            {'dandiset': '000768', 'candidates': ['kept']}]
+
+    def test_an_added_card_replaces_its_dandisets_old_one(self):
+        existing = [{'dandiset': '000050', 'candidates': ['old']}]
+        added = [{'dandiset': '000050', 'candidates': ['new']}]
+
+        assert B.merge_cards(existing, added) == [
+            {'dandiset': '000050', 'candidates': ['new']}]
+
 
 class TestCandidateDois:
     def test_names_every_paper_a_card_puts_forward(

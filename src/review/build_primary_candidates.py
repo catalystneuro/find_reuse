@@ -19,8 +19,14 @@ rather than for one answer.
 
 Writes primary_paper_confirmation/primary_paper_candidates.json.
 
+`--add` puts cards for the named dandisets into the existing file instead,
+whether or not a model picked a paper for them, and leaves its other cards as
+they are. A named dandiset's card holds what the direct pathway put forward,
+and the reviewer can add any other paper by DOI.
+
 Usage:
     python -m src.review.build_primary_candidates
+    python -m src.review.build_primary_candidates --add 000728 000711
 """
 
 from __future__ import annotations
@@ -36,7 +42,7 @@ import requests
 
 from src.review import paper_metadata
 from src.review.build_candidates import PAPER_METADATA_CACHE, RESULTS_FILE
-from src.review.primary_papers import CANDIDATES_FILE
+from src.review.primary_papers import CANDIDATES_FILE, dandiset_record
 
 REPO = Path(__file__).resolve().parents[2]
 DIRECT_CLASSIFICATIONS_FILE = REPO / 'output/fulltext_direct_openalex.json'
@@ -165,6 +171,13 @@ def build_cards(records: list[dict], direct: dict[str, list[dict]],
     return sorted(cards, key=lambda card: card['dandiset'])
 
 
+def merge_cards(existing: list[dict], added: list[dict]) -> list[dict]:
+    """The existing cards with the added ones in, an added card replacing its dandiset's old one."""
+    cards = {card['dandiset']: card for card in existing}
+    cards.update({card['dandiset']: card for card in added})
+    return [cards[dandiset] for dandiset in sorted(cards)]
+
+
 def candidate_dois(records: list[dict], direct: dict[str, list[dict]]) -> set[str]:
     """Every DOI a card will put forward, so all of them are resolved at once."""
     dois = set()
@@ -184,15 +197,25 @@ def main():
                         default=DIRECT_CLASSIFICATIONS_FILE,
                         help='The direct pathway\'s classifications.')
     parser.add_argument('-o', '--output', type=Path, default=CANDIDATES_FILE)
+    parser.add_argument('--add', nargs='+', metavar='DANDISET', default=[],
+                        help='Add cards for these dandisets to the existing '
+                             'output, whether or not a model picked a paper '
+                             'for them, and leave its other cards as they are.')
     args = parser.parse_args()
 
-    records = llm_identified_dandisets(
-        json.loads(args.results_file.read_text())['results'])
-    if not records:
-        raise SystemExit(
-            f'{args.results_file} holds no model-picked papers. A corpus '
-            f'rediscovered after review has had them replaced; build from '
-            f'one discovered before it.')
+    if args.add:
+        session = requests.Session()
+        records = [dandiset_record(dandiset, session) for dandiset in args.add]
+        existing = json.loads(args.output.read_text())['dandisets']
+    else:
+        records = llm_identified_dandisets(
+            json.loads(args.results_file.read_text())['results'])
+        if not records:
+            raise SystemExit(
+                f'{args.results_file} holds no model-picked papers. A corpus '
+                f'rediscovered after review has had them replaced; build from '
+                f'one discovered before it.')
+        existing = []
     direct = direct_primaries(
         json.loads(args.direct_file.read_text())['classifications'])
     papers = paper_metadata.resolve(candidate_dois(records, direct),
@@ -204,7 +227,7 @@ def main():
         dandisets[record['dandiset_id']] = describe_dandiset(fetch_dandiset_metadata(
             record['dandiset_id'], record['dandiset_version']))
 
-    cards = build_cards(records, direct, dandisets, papers)
+    cards = merge_cards(existing, build_cards(records, direct, dandisets, papers))
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps({'dandisets': cards}, indent=2,
                                       ensure_ascii=False) + '\n')
