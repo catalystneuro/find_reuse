@@ -1,5 +1,5 @@
 ---
-dandisets: ["000021", "000022", "000039", "000049", "000050", "000711", "000728"]
+dandisets: ["000021", "000022", "000039", "000049", "000050", "000711", "000713", "000728"]
 ---
 
 # Allen Brain Observatory
@@ -16,7 +16,9 @@ paper says it analysed tells which dandiset it used:
 | Neuropixels or electrophysiology data from Visual Coding, with the "Brain Observatory 1.1" stimulus set or 32 mice | [000021](https://dandiarchive.org/dandiset/000021) | Visual Coding - Neuropixels |
 | The same, with the "Functional Connectivity" stimulus set or 26 mice | [000022](https://dandiarchive.org/dandiset/000022) | Visual Coding - Neuropixels |
 | Visual Coding Neuropixels with no stimulus set or count that settles it | 000021 and 000022, **Ambiguous Reuse** | Visual Coding - Neuropixels |
-| The change detection task, or "Visual Behavior" 2P data | [000711](https://dandiarchive.org/dandiset/000711) | Visual Behavior - 2P |
+| Two-photon or calcium imaging data from Visual Behavior | [000711](https://dandiarchive.org/dandiset/000711) | Visual Behavior - 2P |
+| Neuropixels or electrophysiology data from Visual Behavior | [000713](https://dandiarchive.org/dandiset/000713) | Visual Behavior - Neuropixels |
+| Visual Behavior or the change detection task, with no modality | 000711 and 000713, **Ambiguous Reuse** | Visual Behavior |
 
 A paper that says only "Visual Coding" or "Allen Brain Observatory", with no
 modality, is **Ambiguous Reuse** across 000728, 000021 and 000022. de Vries et al.
