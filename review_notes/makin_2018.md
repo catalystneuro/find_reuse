@@ -14,6 +14,7 @@ O'Doherty et al. also released on Zenodo
 these recordings usually cite the paper or the Zenodo record and name neither
 dandiset. Where the paper clearly reused the Makin et al. 2018 recordings and
 nothing in it says which dandiset, call both 000129 and 001055 **Ambiguous
-Reuse**, wherever the data was downloaded from. Where the paper names one of
+Reuse**, wherever the data was downloaded from, even if the paper uses more
+data than is available in either dandiset. Where the paper names one of
 them, by identifier or as the NLB MC_RTT task, call that one **Reuse** and the
 other **Neither**.
