@@ -33,11 +33,7 @@ The list leaves out pairs on a DOI that is not a paper (an eLife review or
 assessment, an OSF registration) and pairs on a preprint whose published version
 was classified for the same dandiset. Preprints are matched to their published
 versions through bioRxiv and OpenAlex, cached in `.preprint_doi_map.json`. It
-also leaves out pairs on a dandiset DANDI holds no data for: one with no assets
-in its draft or its most recent published version, or an identifier DANDI does
-not list publicly (one under embargo, or one it never issued). Building the
-list reads DANDI's dandiset listing, and stops if DANDI does not answer. The
-discovery steps in [RUNNING.md](RUNNING.md) leave these dandisets out as well.
+also leaves out pairs on a dandiset that holds no data on DANDI.
 
 ## 3. Assign a round
 
