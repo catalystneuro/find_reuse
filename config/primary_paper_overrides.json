@@ -268,6 +268,19 @@
       "by exact title match, 2026-10-22."
     ]
   },
+  "000955": {
+    "replace": [
+      "10.1088/1741-2552/ac889f"
+    ],
+    "reason": [
+      "This dandiset registers no relatedResource, so no primary paper reached",
+      "the corpus. HIPPIE (10.1038/s41467-026-76939-w) cites Ramachandran et al.",
+      "2022 for the data it took from this dandiset: \"(dandiset 000955) 33\" in",
+      "its methods and \"accession code 000955 33\" in its data availability",
+      "statement. Same group as 000173 and 000339, which DANDI links to the same",
+      "paper. Added 2026-10-27."
+    ]
+  },
   "001065": {
     "replace": [
       "10.1016/j.celrep.2024.114718"
