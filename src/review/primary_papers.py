@@ -24,6 +24,8 @@ CONFIRMED_FILE = PRIMARY_PAPER_CONFIRMATION_DIR / 'confirmed_primary_papers.json
 
 CALLS = ('primary', 'not_primary', 'unsure')
 
+DANDI_API = 'https://api.dandiarchive.org/api'
+
 
 def load_confirmed(path: Path = CONFIRMED_FILE) -> dict:
     """Every reviewed dandiset's calls, keyed by dandiset."""
@@ -45,6 +47,35 @@ def confirmed_relation(doi: str) -> dict:
         'resource_type': None,
         'doi': doi,
         'source': 'review',
+    }
+
+
+def unlisted_confirmed_dandisets(results: list[dict], confirmed: dict) -> list[str]:
+    """The dandisets a reviewer confirmed a paper for that have no record in the corpus."""
+    listed = {record['dandiset_id'] for record in results}
+    return sorted(dandiset for dandiset, review in confirmed.items()
+                  if confirmed_dois(review) and dandiset not in listed)
+
+
+def dandiset_record(dandiset: str, session) -> dict:
+    """A corpus record with no papers yet, built from what DANDI holds for the dandiset."""
+    response = session.get(f'{DANDI_API}/dandisets/{dandiset}/', timeout=30)
+    response.raise_for_status()
+    info = response.json()
+    published = info['most_recent_published_version']
+    version = published['version'] if published else 'draft'
+    name = (published or info['draft_version'])['name']
+    return {
+        'dandiset_id': dandiset,
+        'dandiset_name': name,
+        'dandiset_version': version,
+        'dandiset_url': f'https://dandiarchive.org/dandiset/{dandiset}/{version}',
+        'dandiset_doi': None,
+        'dandiset_created': info['created'],
+        'embargo_status': info['embargo_status'],
+        'draft_modified': info['draft_version']['modified'],
+        'contact_person': info['contact_person'],
+        'paper_relations': [],
     }
 
 
