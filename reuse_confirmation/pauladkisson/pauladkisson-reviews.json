@@ -305,7 +305,7 @@
       },
       "000449": {
         "note": "Voleti et al. 2019 is only cited in future work and not listed among the reused datasets.",
-        "call": "mention"
+        "call": "neither"
       }
     },
     "10.1038/s41593-024-01626-2": {
@@ -561,8 +561,8 @@
         "call": "neither"
       },
       "000125": {
-        "call": "neither",
-        "note": "\"The data used in this study are available on DANDI (https://dandiarchive.org/dandiset/000070)\""
+        "note": "\"The data used in this study are available on DANDI (https://dandiarchive.org/dandiset/000070)\"",
+        "call": "neither"
       }
     },
     "10.1038/s41586-025-08929-9": {
@@ -657,7 +657,7 @@
       },
       "000125": {
         "note": "This paper got their data from Dropbox and Dryad rather than DANDI.",
-        "call": "ambiguous_reuse"
+        "call": "neither"
       }
     },
     "10.1016/j.cub.2020.09.067": {
@@ -999,7 +999,7 @@
         "call": "ambiguous_reuse"
       },
       "000125": {
-        "call": "ambiguous_reuse"
+        "call": "neither"
       }
     },
     "10.1038/s42256-023-00663-z": {
@@ -1433,7 +1433,7 @@
       },
       "000125": {
         "note": "In the dataset description section of this paper, they do not reference Churchland et al. 2012, indicating that they used other datasets.",
-        "call": "mention"
+        "call": "neither"
       }
     },
     "10.1101/2024.12.09.627642": {
@@ -1707,11 +1707,11 @@
       },
       "001286": {
         "note": "This paper got their data from PhysioNet. Purdon et al. (2013) is just a background mention. ",
-        "call": "mention"
+        "call": "neither"
       },
       "001287": {
         "note": "This paper got their data from PhysioNet. Purdon et al. (2013) is just a background mention. ",
-        "call": "mention"
+        "call": "neither"
       }
     },
     "10.21203/rs.3.rs-2191626": {
@@ -1803,7 +1803,7 @@
         "call": "ambiguous_reuse"
       },
       "000125": {
-        "call": "ambiguous_reuse"
+        "call": "neither"
       }
     },
     "10.64898/2026.01.13.699305": {
@@ -1855,7 +1855,7 @@
       },
       "000125": {
         "note": "This paper reused data from Gallego et al. (2018). Churchland et al. (2012) was just a background mention. ",
-        "call": "mention"
+        "call": "neither"
       }
     },
     "10.7554/elife.101506": {
@@ -2003,7 +2003,7 @@
     "10.1002/epi4.70235": {
       "001468": {
         "note": "The only citation of the cited paper is in the intro, and the citing paper describes collecting their own data. ",
-        "call": "mention"
+        "call": "neither"
       }
     },
     "10.1007/978-3-031-70638-7_2": {
@@ -2481,7 +2481,7 @@
     "10.1101/2023.03.26.23287702": {
       "000153": {
         "note": "The only citation of Smith et al. is a background mention in the intro.",
-        "call": "mention"
+        "call": "neither"
       }
     },
     "10.1101/2024.01.09.574815": {
@@ -2794,16 +2794,16 @@
     },
     "10.1109/ner61569.2025.11588934": {
       "000359": {
-        "call": "ambiguous_reuse",
+        "call": "neither",
         "note": "Cited paper shared by 000465, 000359 and 000554. "
       },
       "000465": {
         "note": "Cited paper shared by 000465, 000359 and 000554. ",
-        "call": "ambiguous_reuse"
+        "call": "neither"
       },
       "000554": {
         "note": "Cited paper shared by 000465, 000359 and 000554. ",
-        "call": "ambiguous_reuse"
+        "call": "neither"
       }
     },
     "10.1113/jp289827": {
@@ -2862,7 +2862,7 @@
     "10.3390/brainsci16080866": {
       "001286": {
         "note": "This paper got their data from Chennu et al. (2016). Purdon et al. (2013) is only cited in the introduction as a background mention. ",
-        "call": "mention"
+        "call": "neither"
       }
     },
     "10.52202/079017-0430": {
@@ -2870,7 +2870,7 @@
         "call": "ambiguous_reuse"
       },
       "000125": {
-        "call": "ambiguous_reuse"
+        "call": "neither"
       },
       "000130": {
         "call": "reuse"
