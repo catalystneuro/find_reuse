@@ -26,6 +26,7 @@ from pathlib import Path
 
 import requests
 
+from src.shared.dandisets import holds_data
 from src.shared.llm_utils import call_openrouter_api, get_api_key
 
 DANDI_API_URL = "https://api.dandiarchive.org/api"
@@ -48,7 +49,12 @@ def save_cache(cache: dict):
 
 
 def get_all_dandiset_ids(session: requests.Session) -> list[dict]:
-    """Fetch all dandisets with their draft_modified timestamps."""
+    """
+    Fetch every dandiset that holds data, with its draft_modified timestamp.
+
+    A dandiset with no data in it cannot have been reused, so a model is never
+    asked to find its paper.
+    """
     dandisets = []
     url = f"{DANDI_API_URL}/dandisets/"
     params = {"page_size": 200}
@@ -58,6 +64,8 @@ def get_all_dandiset_ids(session: requests.Session) -> list[dict]:
         resp.raise_for_status()
         data = resp.json()
         for ds in data["results"]:
+            if not holds_data(ds):
+                continue
             draft = ds.get("draft_version", {})
             dandisets.append({
                 "id": ds["identifier"],
@@ -339,7 +347,7 @@ def main():
     # Get all dandisets
     print("Fetching dandiset list...", file=sys.stderr)
     all_dandisets = get_all_dandiset_ids(session)
-    print(f"  Total dandisets: {len(all_dandisets)}", file=sys.stderr)
+    print(f"  Dandisets holding data: {len(all_dandisets)}", file=sys.stderr)
     print(f"  Already have papers: {len(known_ids)}", file=sys.stderr)
 
     # Filter to dandisets without known papers

@@ -37,6 +37,7 @@ from src.shared.classify_fulltext_reuse import (
     classify_paper_reuse, DEFAULT_MODEL, PROMPT_VERSION, MODE_CITING, MODE_DIRECT,
     VALID_REASONING_EFFORTS, DEFAULT_REASONING_EFFORT, DEFAULT_MAX_TOKENS,
 )
+from src.shared.dandisets import dandisets_with_data
 
 REPO = Path(__file__).resolve().parents[2]
 
@@ -151,23 +152,32 @@ def build_worklist(results_path: Path) -> list[dict]:
     return work
 
 
-def build_direct_worklist(path: Path) -> list[dict]:
+def build_direct_worklist(path: Path,
+                          with_data: set[str] | None = None) -> list[dict]:
     """
     Worklist for the direct pathway, taken from the existing classifications.
 
     Each (paper, dataset) pair is its own question, because one paper can name
     several dataset identifiers and stand in a different relationship to each:
     primary for its own deposit, reuser of another.
+
+    Discovery takes any six digits a paper prints after a DANDI pattern, so an
+    identifier can name a dandiset with nothing in it, or one DANDI never issued,
+    such as the 123456 in its citation template's placeholder DOI. When
+    `with_data` is given, only pairs on the dandisets in it are asked about.
     """
     data = json.loads(path.read_text())
     work = []
+
+    def wanted(dandiset_id: str) -> bool:
+        return with_data is None or dandiset_id in with_data
 
     if 'classifications' in data:
         # A previous classification run: re-judge the same pairs, carrying the
         # old label so the two methods can be compared.
         for entry in data['classifications']:
             doi = entry.get('citing_doi')
-            if not doi or not is_paper(doi):
+            if not doi or not is_paper(doi) or not wanted(entry.get('dandiset_id', '')):
                 continue
             work.append({
                 'doi': doi,
@@ -191,6 +201,8 @@ def build_direct_worklist(path: Path) -> list[dict]:
                     continue
                 matches = info.get('matches') or []
                 for dataset_id in info.get('dataset_ids', []):
+                    if not wanted(dataset_id):
+                        continue
                     patterns = [m.get('matched_string') for m in matches
                                 if m.get('id') == dataset_id and m.get('matched_string')]
                     work.append({
@@ -416,9 +428,12 @@ def main():
         print(f"{len(work)} cached errors to retry, {len(carried)} results carried "
               f"forward ({args.mode} mode)", file=sys.stderr, flush=True)
     else:
-        builder = build_direct_worklist if args.mode == MODE_DIRECT else build_worklist
-        work = select_with_full_text(builder(Path(args.results_file)),
-                                     args.limit, args.paper_cache)
+        if args.mode == MODE_DIRECT:
+            candidates = build_direct_worklist(Path(args.results_file),
+                                               dandisets_with_data())
+        else:
+            candidates = build_worklist(Path(args.results_file))
+        work = select_with_full_text(candidates, args.limit, args.paper_cache)
         print(f"{len(work)} items with full text selected ({args.mode} mode)",
               file=sys.stderr, flush=True)
 

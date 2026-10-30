@@ -115,6 +115,12 @@ to be settled before it runs.
    python -m src.direct_pipeline.merge_paper_sources -o output/all_dandiset_papers.json
    ```
 
+   A dandiset with no assets in its draft or its most recent published version
+   is left out of all three, since nothing in it can have been reused, so its
+   papers are never mined for citing papers. The direct pathway's classification
+   (step 2) likewise skips identifiers that DANDI does not list publicly or that
+   hold no data.
+
 4. Confirm the model's picks by hand. See
    [primary_paper_confirmation/README.md](primary_paper_confirmation/README.md).
 

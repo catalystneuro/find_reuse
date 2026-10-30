@@ -53,6 +53,8 @@ from typing import Optional
 import requests
 from tqdm import tqdm
 
+from src.shared.dandisets import get_all_dandisets, holds_data
+
 # Cache directory for preprint→published lookups (shared with find_reuse.py)
 PREPRINT_CACHE_DIR = Path('.preprint_cache')
 # Cache file for alternate DOI lookups (published→preprint)
@@ -91,47 +93,6 @@ PAPER_RESOURCE_TYPES = {
     'dcite:ConferenceProceeding',
 }
 
-
-
-def get_all_dandisets(session: requests.Session, show_progress: bool = True) -> list[dict]:
-    """
-    Fetch all dandisets from the DANDI API.
-
-    Args:
-        session: requests Session object
-        show_progress: Whether to show a progress bar
-
-    Returns:
-        List of dandiset metadata dictionaries
-    """
-    url = f"{DANDI_API_URL}/dandisets/"
-    params = {'page_size': 100}
-
-    all_dandisets = []
-
-    # First request to get total count
-    resp = session.get(url, params=params, timeout=30)
-    resp.raise_for_status()
-    data = resp.json()
-
-    total_count = data['count']
-    all_dandisets.extend(data['results'])
-
-    # Create progress bar if requested
-    pbar = tqdm(total=total_count, desc="Fetching dandisets", disable=not show_progress)
-    pbar.update(len(data['results']))
-
-    # Paginate through remaining results
-    while data.get('next'):
-        resp = session.get(data['next'], timeout=30)
-        resp.raise_for_status()
-        data = resp.json()
-        all_dandisets.extend(data['results'])
-        pbar.update(len(data['results']))
-        time.sleep(0.1)  # Rate limiting
-
-    pbar.close()
-    return all_dandisets
 
 
 def get_dandiset_version_metadata(
@@ -1079,6 +1040,7 @@ def find_dandisets_with_primary_papers(
 
     results = []
     cache_hits = 0
+    empty = 0
 
     # Process each dandiset
     pbar = tqdm(dandisets, desc="Checking paper relations", disable=not show_progress)
@@ -1086,6 +1048,13 @@ def find_dandisets_with_primary_papers(
     for ds in pbar:
         ds_id = ds['identifier']
         pbar.set_postfix({'dandiset': ds_id})
+
+        # A dandiset with no data in it cannot have been reused, so its papers
+        # are not mined for citing papers. This comes before the cache so that
+        # a dandiset emptied since the last scan is left out too.
+        if not holds_data(ds):
+            empty += 1
+            continue
 
         # Get the most recent published version if available, otherwise use draft
         pub_version = ds.get('most_recent_published_version')
@@ -1193,6 +1162,8 @@ def find_dandisets_with_primary_papers(
 
     if cache_hits and show_progress:
         print(f"  Cache hits (unchanged draft): {cache_hits}/{len(dandisets)}", file=sys.stderr)
+    if empty and show_progress:
+        print(f"  Skipped (no data): {empty}/{len(dandisets)}", file=sys.stderr)
 
     return results
 
