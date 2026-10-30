@@ -17,6 +17,11 @@ found it by reading the paper. Both are ground truth and both are confirmed the
 same way, by how many people called the pair reuse; only the classifier's own
 are counted when tallying how often it was right.
 
+That tally is made twice. `calls` counts pairs. `precision` counts a paper and
+a dataset, treating the dandisets in config/dandiset_groups.json as one dataset
+each, since a paper reusing one of several dandisets that cannot be told apart
+is proposed for all of them and would otherwise count as several rejections.
+
 Usage:
     python -m src.review.merge_reviews
     python -m src.review.merge_reviews --min-reviewers 2
@@ -30,6 +35,7 @@ from pathlib import Path
 
 from src.review.assign_reviews import flatten
 from src.review.build_candidates import CANDIDATES_FILE, write_stamped
+from src.review.dandiset_groups import load_groups
 from src.review.reviewers import (REUSE_CONFIRMATION_DIR, REVIEWERS_FILE,
                                   load_reviewers, reviews_paths)
 
@@ -194,26 +200,94 @@ def confirmed(pairs: list[dict], min_reviewers: int) -> list[dict]:
             >= min_reviewers]
 
 
+def outcome(pair: dict) -> str:
+    """
+    What a pair came to: its settled call, or why it has none.
+
+    Pairs the reviewers disagreed about are their own outcome, since they have
+    no call and are not evidence either way until somebody settles them. So are
+    pairs nobody answered, where every review on them was left unfinished:
+    those were not disagreed about, they were not judged.
+    """
+    return pair['call'] or ('disputed' if pair['calls'] else 'unanswered')
+
+
 def tally(pairs: list[dict]) -> dict[str, int]:
     """
-    How many pairs came out each way, which is the classifier's precision.
+    How many pairs came out each way.
 
     Only the pairs a classifier proposed are counted. A pair a reviewer found by
     reading the paper was never a claim the classifier made, so crediting it
     here would measure the classifier against work it did not do.
-
-    Pairs the reviewers disagreed about are counted as their own outcome, since
-    they have no call and are not evidence either way until somebody settles
-    them. So are pairs nobody answered, where every review on them was left
-    unfinished: those were not disagreed about, they were not judged.
     """
     counts: dict[str, int] = {}
     for pair in pairs:
         if pair.get('source') != 'classifier':
             continue
-        outcome = pair['call'] or ('disputed' if pair['calls'] else 'unanswered')
-        counts[outcome] = counts.get(outcome, 0) + 1
+        counts[outcome(pair)] = counts.get(outcome(pair), 0) + 1
     return dict(sorted(counts.items()))
+
+
+# The outcomes that count as the classifier being right. Ambiguous reuse is
+# reuse of DANDI data that names no dandiset: the classifier was right that the
+# paper reused the data, and what could not be settled was which dataset.
+ACCEPTED = ('reuse', 'ambiguous_reuse')
+
+# The outcomes that are not evidence either way, and so are left out of the
+# denominator rather than counted against the classifier.
+UNSETTLED = ('disputed', 'unanswered', 'unsure')
+
+# The outcome a unit takes from its pairs is the first of these any of them
+# came to: one pair called reuse makes the unit reuse whatever its siblings
+# were called, and a unit is a rejection only if every pair in it is.
+UNIT_ORDER = ('reuse', 'ambiguous_reuse') + UNSETTLED + ('mention', 'primary',
+                                                         'neither')
+
+
+def unit_outcome(outcomes: list[str]) -> str:
+    """The outcome of a unit, from the outcomes of the pairs in it."""
+    return min(outcomes, key=lambda o: (UNIT_ORDER.index(o)
+                                        if o in UNIT_ORDER else len(UNIT_ORDER)))
+
+
+def precision(pairs: list[dict], groups: dict[str, str]) -> dict:
+    """
+    How often the classifier was right, per pathway.
+
+    The unit is a paper and a dataset rather than a pair: a paper's pairs with
+    the dandisets of one group in config/dandiset_groups.json are counted once.
+    A paper reusing one MC_Maze variant is proposed for all of them, and pair by
+    pair that is one confirmation and several rejections for a call that was
+    right. A dandiset in no group is a dataset on its own.
+
+    As in tally(), only the pairs a classifier proposed are counted.
+    """
+    units: dict[tuple[str, str, str], list[str]] = {}
+    for pair in pairs:
+        if pair.get('source') != 'classifier':
+            continue
+        dataset = groups.get(pair['dandiset'], pair['dandiset'])
+        units.setdefault((pair['pathway'], pair['doi'], dataset),
+                         []).append(outcome(pair))
+
+    counts: dict[str, dict[str, int]] = {}
+    for (pathway, _, _), outcomes in units.items():
+        settled = unit_outcome(outcomes)
+        per_pathway = counts.setdefault(pathway, {})
+        per_pathway[settled] = per_pathway.get(settled, 0) + 1
+
+    by_pathway = {}
+    for pathway, calls in sorted(counts.items()):
+        settled = sum(n for o, n in calls.items() if o not in UNSETTLED)
+        accepted = sum(calls.get(o, 0) for o in ACCEPTED)
+        by_pathway[pathway] = {
+            'units': sum(calls.values()),
+            'calls': dict(sorted(calls.items())),
+            'settled': settled,
+            'accepted': accepted,
+            'precision': round(accepted / settled, 3) if settled else None,
+        }
+    return {'accepted_calls': list(ACCEPTED), 'by_pathway': by_pathway}
 
 
 def main():
@@ -233,6 +307,7 @@ def main():
     confirmed_pairs = confirmed(pairs, args.min_reviewers)
 
     counts = tally(pairs)
+    measured = precision(pairs, load_groups())
     found = sum(1 for pair in pairs if pair['source'] == 'reviewer')
     header = {
         'candidates_generated_at': candidates['generated_at'],
@@ -243,7 +318,7 @@ def main():
     changed = {
         ALL_REVIEWS_FILE: write_stamped(ALL_REVIEWS_FILE, {
             **header, 'reviewed': len(pairs) - found, 'added': found,
-            'calls': counts, 'pairs': pairs}),
+            'calls': counts, 'precision': measured, 'pairs': pairs}),
         CONFIRMED_FILE: write_stamped(CONFIRMED_FILE, {
             **header, 'min_reviewers': args.min_reviewers,
             'confirmed': len(confirmed_pairs), 'pairs': confirmed_pairs}),
@@ -252,6 +327,14 @@ def main():
     print(f'{len(pairs) - found} of {len(candidates["pairs"])} candidate pairs '
           f'reviewed: '
           f'{", ".join(f"{count} {outcome}" for outcome, count in counts.items())}')
+    for pathway, result in measured['by_pathway'].items():
+        if result['precision'] is None:
+            continue
+        left_out = result['units'] - result['settled']
+        print(f'{pathway} precision {result["precision"]:.1%}: '
+              f'{result["accepted"]} of {result["settled"]} papers and datasets '
+              f'called reuse or ambiguous reuse'
+              + (f', {left_out} not yet settled' if left_out else ''))
     if found:
         print(f'{found} pair{"" if found == 1 else "s"} reviewers added while '
               f'reading the papers, counted as reuse and not as the classifier')
