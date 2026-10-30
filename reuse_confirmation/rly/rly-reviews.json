@@ -320,7 +320,7 @@
     },
     "10.1038/s41467-025-62202-1": {
       "000129": {
-        "note": "Yes, for a figure",
+        "note": "Yes, for a figure. Ref 42 is \"O’Doherty, J. Mc_rtt: macaque motor cortex spiking activity during self-paced reaching. https://dandiarchive.org/dandiset/000129/draft (2023).\" The paper names DANDI:000129, so per the Makin et al. 2018 review note, marking as Reuse.",
         "call": "reuse"
       }
     },
@@ -892,7 +892,7 @@
     },
     "10.1038/s41598-021-02277-0": {
       "000129": {
-        "note": "\"In this work, we analysed the publicly available 2016–2017 Sabes Lab Broadband recordings described in detail at81.\" Ref 81: \"ODoherty, J. E., Cardoso, M. M. B. , Makin, J. G., Sabes, P. N. Nonhuman primate reaching with multichannel sensorimotor cortex electrophysiology. (2017). [Online]. https://doi.org/10.5281/zenodo.788569.\" \"We calculated and tested the significance of the ISPCMs for 96 channels for 15 sessions each, for a total of 1440 broadband intracortical recordings.\" DANDI:000129 has only one session, and I think not broadband, of the Zenodo dataset for benchmarking.",
+        "note": "\"In this work, we analysed the publicly available 2016–2017 Sabes Lab Broadband recordings described in detail at81.\" Ref 81: \"ODoherty, J. E., Cardoso, M. M. B. , Makin, J. G., Sabes, P. N. Nonhuman primate reaching with multichannel sensorimotor cortex electrophysiology. (2017). [Online]. https://doi.org/10.5281/zenodo.788569.\" \"We calculated and tested the significance of the ISPCMs for 96 channels for 15 sessions each, for a total of 1440 broadband intracortical recordings.\" DANDI:000129 has only one session, and I think not broadband, of the Zenodo dataset for benchmarking. Per the Makin et al. 2018 review note, marking as Ambiguous Reuse. DANDI:001055 is not a candidate for this paper.",
         "call": "ambiguous_reuse"
       }
     },
