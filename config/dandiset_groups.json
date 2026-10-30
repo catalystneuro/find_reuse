@@ -1,0 +1,61 @@
+{
+  "_comment": [
+    "Dandisets that are counted as one dataset when measuring how often the",
+    "classifier was right.",
+    "",
+    "Some datasets are released as several dandisets that share a primary paper",
+    "or a source, and papers reusing them often cannot be told apart. A paper",
+    "that reused one of them is proposed for all of them, and the reviewer calls",
+    "the one it used Reuse and the rest Neither. Counted pair by pair, every",
+    "such paper adds one confirmation and several rejections, although the",
+    "classifier was right that the paper reused the data.",
+    "",
+    "When measuring precision, the pairs one paper has with the dandisets of a",
+    "group are therefore counted once, as reuse if any of them is. Reviews and",
+    "the per-dandiset record in confirmed_reuse.json are unaffected, so a paper",
+    "is still credited to the dandiset the reviewer named.",
+    "",
+    "Each group gives the reason, so it can be re-examined if the dandisets are",
+    "later consolidated or come to be told apart reliably.",
+    "",
+    "Read by src.review.dandiset_groups."
+  ],
+  "MC_Maze": {
+    "dandisets": ["000070", "000125", "000128", "000138", "000139", "000140"],
+    "reason": [
+      "The maze-reaching recordings of Churchland et al. 2010 and 2012:",
+      "000070 holds the full dataset, 000125 is an analysis dataset with no",
+      "data on DANDI (listed in case it is filled), and 000128,",
+      "000138, 000139 and 000140 the Neural Latents Benchmark MC_Maze task and",
+      "its Large, Medium and Small variants. Each names one or both of the",
+      "Churchland papers, and papers reusing them usually cite those papers or",
+      "the benchmark. See review_notes/mc_maze.md."
+    ]
+  },
+  "MC_RTT": {
+    "dandisets": ["000129", "001055"],
+    "reason": [
+      "MC_RTT and NeuroTask Random Target both hold recordings from Makin et",
+      "al. 2018, which O'Doherty et al. also released on Zenodo. Papers",
+      "reusing them usually cite the paper or the Zenodo record and name",
+      "neither dandiset. See review_notes/makin_2018.md."
+    ]
+  },
+  "IBL": {
+    "dandisets": ["000045", "000149", "000409"],
+    "reason": [
+      "International Brain Laboratory releases: 000045 the behavioral data,",
+      "000149 an earlier ephys release, and 000409 the Brain Wide Map.",
+      "Papers reusing IBL data usually cite the IBL papers, which several of",
+      "these dandisets name, and reviewers attribute Brain Wide Map reuse to",
+      "000409 and call the rest Neither."
+    ]
+  },
+  "Scala_Patch-seq": {
+    "dandisets": ["000008", "000035"],
+    "reason": [
+      "The motor cortex Patch-seq recordings of Scala et al. 2021, released",
+      "as two dandisets that both name the paper."
+    ]
+  }
+}
