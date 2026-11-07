@@ -47,3 +47,5 @@ tmp/
 # Model evaluation runs (one cache per model and effort)
 .model_eval_cache/
 scripts/elsevier_tdm/work/
+scripts/elsevier_tdm/elsevier_texts.zip
+scripts/elsevier_tdm/fetch_log.json
