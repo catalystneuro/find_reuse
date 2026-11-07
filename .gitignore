@@ -49,3 +49,4 @@ tmp/
 scripts/elsevier_tdm/work/
 scripts/elsevier_tdm/elsevier_texts.zip
 scripts/elsevier_tdm/fetch_log.json
+scripts/elsevier_tdm/elsevier_texts/

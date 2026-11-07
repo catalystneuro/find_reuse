@@ -10,8 +10,8 @@ your own Elsevier API key:
     python fetch_elsevier.py             # all DOIs in dois.txt
 
 It writes elsevier_texts.zip: one JSON file per article that came back as full
-text, plus fetch_log.json with the status of every DOI. Rerunning skips the
-articles already fetched.
+text, plus fetch_log.json with the status of every DOI. Articles are also kept in
+the elsevier_texts/ folder next to it, so a rerun skips those already fetched.
 """
 import argparse
 import json
@@ -67,31 +67,31 @@ def main():
 
     dois = [d.strip() for d in Path(args.dois).read_text().splitlines() if d.strip()]
     out = Path(args.out)
-    done = set()
-    if out.exists():
-        with zipfile.ZipFile(out) as z:
-            done = {json.loads(z.read(n))['doi'] for n in z.namelist() if n.startswith('texts/')}
-    log_path = out.with_name('fetch_log.json')
+    texts = out.with_name('elsevier_texts')        # one JSON file per article, kept for reruns
+    texts.mkdir(exist_ok=True)
+    path_for = lambda doi: texts / f'{quote(doi, safe="")}.json'  # noqa: E731
+    log_path = texts / 'fetch_log.json'
     log = json.loads(log_path.read_text()) if log_path.exists() else {}
-    todo = [d for d in dois if d not in done]
-    print(f'{len(dois)} DOIs, {len(done)} already fetched, {len(todo)} to go')
-    with zipfile.ZipFile(out, 'a', compression=zipfile.ZIP_DEFLATED) as z:
-        for i, doi in enumerate(todo, 1):
-            text, status = fetch(doi, key, session)
-            log[doi] = status
-            if text:
-                z.writestr(f'texts/{quote(doi, safe="")}.json', json.dumps({
-                    'doi': doi, 'text': text, 'source': 'elsevier', 'has_full_text': True,
-                    'cached_at': datetime.now(timezone.utc).isoformat()}))
-                done.add(doi)
-            if i % 25 == 0 or i == len(todo):
-                print(f'  {i}/{len(todo)} tried, {len(done)} fetched', flush=True)
-                log_path.write_text(json.dumps(log, indent=1))
-            time.sleep(INTERVAL)
-        z.writestr('fetch_log.json', json.dumps(log, indent=1))
+    todo = [d for d in dois if not path_for(d).exists()]
+    print(f'{len(dois)} DOIs, {len(dois) - len(todo)} already fetched, {len(todo)} to go')
+    for i, doi in enumerate(todo, 1):
+        text, status = fetch(doi, key, session)
+        log[doi] = status
+        if text:
+            path_for(doi).write_text(json.dumps({
+                'doi': doi, 'text': text, 'source': 'elsevier', 'has_full_text': True,
+                'cached_at': datetime.now(timezone.utc).isoformat()}))
+        if i % 25 == 0 or i == len(todo):
+            got = sum(1 for d in dois if path_for(d).exists())
+            print(f'  {i}/{len(todo)} tried, {got} fetched', flush=True)
+            log_path.write_text(json.dumps(log, indent=1))
+        time.sleep(INTERVAL)
     log_path.write_text(json.dumps(log, indent=1))
-    print(f'Done: {len(done)} of {len(dois)} articles in {out}')
-
+    with zipfile.ZipFile(out, 'w', compression=zipfile.ZIP_DEFLATED) as z:
+        for f in sorted(texts.iterdir()):
+            z.write(f, f'texts/{f.name}' if f.name != 'fetch_log.json' else 'fetch_log.json')
+    got = sum(1 for d in dois if path_for(d).exists())
+    print(f'Done: {got} of {len(dois)} articles in {out}')
 
 if __name__ == '__main__':
     main()
