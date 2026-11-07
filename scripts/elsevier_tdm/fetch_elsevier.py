@@ -9,16 +9,16 @@ your own Elsevier API key:
     python fetch_elsevier.py --check     # one article, to confirm access
     python fetch_elsevier.py             # all DOIs in dois.txt
 
-It writes elsevier_texts.zip: one JSON file per article that came back as full
-text, plus fetch_log.json with the status of every DOI. Articles are also kept in
-the elsevier_texts/ folder next to it, so a rerun skips those already fetched.
+It writes the elsevier_texts/ folder next to it: one JSON file per article that
+came back as full text, plus fetch_log.json with the status of every DOI. A rerun
+skips articles already fetched. The texts stay on this machine; classify_local.py
+reads them and writes the decisions that are shared.
 """
 import argparse
 import json
 import os
 import sys
 import time
-import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import quote
@@ -51,7 +51,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split('\n\n')[0])
     ap.add_argument('--check', action='store_true', help='fetch one article to confirm access, then stop')
     ap.add_argument('--dois', default=str(HERE / 'dois.txt'))
-    ap.add_argument('--out', default=str(HERE / 'elsevier_texts.zip'))
+    ap.add_argument('--out', default=str(HERE / 'elsevier_texts'))
     args = ap.parse_args()
     key = os.environ.get('ELSEVIER_API_KEY')
     if not key:
@@ -66,8 +66,7 @@ def main():
         sys.exit(f'Not entitled from here ({status}). Are you on the campus network or VPN?')
 
     dois = [d.strip() for d in Path(args.dois).read_text().splitlines() if d.strip()]
-    out = Path(args.out)
-    texts = out.with_name('elsevier_texts')        # one JSON file per article, kept for reruns
+    texts = Path(args.out)                         # one JSON file per article, kept for reruns
     texts.mkdir(exist_ok=True)
     path_for = lambda doi: texts / f'{quote(doi, safe="")}.json'  # noqa: E731
     log_path = texts / 'fetch_log.json'
@@ -87,11 +86,8 @@ def main():
             log_path.write_text(json.dumps(log, indent=1))
         time.sleep(INTERVAL)
     log_path.write_text(json.dumps(log, indent=1))
-    with zipfile.ZipFile(out, 'w', compression=zipfile.ZIP_DEFLATED) as z:
-        for f in sorted(texts.iterdir()):
-            z.write(f, f'texts/{f.name}' if f.name != 'fetch_log.json' else 'fetch_log.json')
     got = sum(1 for d in dois if path_for(d).exists())
-    print(f'Done: {got} of {len(dois)} articles in {out}')
+    print(f'Done: {got} of {len(dois)} articles in {texts}. Next: python classify_local.py')
 
 if __name__ == '__main__':
     main()
