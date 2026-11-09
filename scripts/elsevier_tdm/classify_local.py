@@ -92,7 +92,13 @@ def main():
     jobs = json.loads(Path(args.jobs).read_text())
     text_of = lambda doi: texts / f'{quote(doi, safe="")}.json'  # noqa: E731
     have = [j for j in jobs if text_of(j['doi']).exists()]
-    cached = lambda j: cache / (hashlib.sha1(f"{j['corpus']}|{j.get('mode', 'citing')}|{j['doi']}|{j['dataset_id']}".encode()).hexdigest() + '.json')  # noqa: E731
+    # Citing jobs keep the key of the first job list, so answers cached by a run on that
+    # list are reused; direct jobs add the mode.
+    def cached(j):
+        mode = j.get('mode', 'citing')
+        key = f"{j['corpus']}|{j['doi']}|{j['dataset_id']}" if mode == 'citing' else \
+            f"{j['corpus']}|{mode}|{j['doi']}|{j['dataset_id']}"
+        return cache / (hashlib.sha1(key.encode()).hexdigest() + '.json')
     todo = [j for j in have if not cached(j).exists()]
     print(f'{len(jobs)} pairs; {len(have)} have fetched text; {len(have) - len(todo)} already classified; '
           f'{len(todo)} to go (about ${0.009 * len(todo):.0f})')
