@@ -23,8 +23,25 @@ OUT = {'dandi': MAIN / 'output/fulltext_classifications.json',
 def main():
     src = json.loads(Path(sys.argv[1]).read_text())
     facts = {}
+    # Direct-pathway decisions go to the direct outputs: DANDI's direct classifications, and
+    # a CRCNS direct file that data preparation picks up (output/crcns/direct_fulltext_2*.json).
+    direct = [d for d in src['decisions'] if d.get('mode') == 'direct']
+    for corpus, path in (('dandi', MAIN / 'output/fulltext_direct_openalex.json'),
+                         ('crcns', MAIN / 'output/crcns/direct_fulltext_20261109_elsevier.json')):
+        rows = [d for d in direct if d['corpus'] == corpus]
+        data = json.loads(path.read_text()) if path.exists() else {'classifications': []}
+        if path.exists() and not path.with_suffix('.json.pre_elsevier').exists():
+            shutil.copy(path, path.with_suffix('.json.pre_elsevier'))
+        new = {(d['doi'], d['dataset_id']) for d in rows}
+        data['classifications'] = [c for c in data['classifications']
+                                   if (c.get('citing_doi'), c.get('dandiset_id')) not in new] + [
+            {**{k: v for k, v in d.items() if k not in ('corpus', 'dataset_id', 'doi')},
+             'citing_doi': d['doi'], 'paper_doi': d['doi'], 'dandiset_id': d['dataset_id'],
+             'text_source': 'elsevier_federated'} for d in rows]
+        path.write_text(json.dumps(data, indent=2))
+        print(f'{corpus}: {len(rows)} Elsevier direct pairs merged into {path.relative_to(MAIN)}')
     for corpus, path in OUT.items():
-        rows = [d for d in src['decisions'] if d['corpus'] == corpus]
+        rows = [d for d in src['decisions'] if d['corpus'] == corpus and d.get('mode', 'citing') != 'direct']
         data = json.loads(path.read_text())
         backup = path.with_suffix('.json.pre_elsevier')
         if not backup.exists():

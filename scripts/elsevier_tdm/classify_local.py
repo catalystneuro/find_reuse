@@ -70,7 +70,7 @@ def redact(reasoning, text):
 def shareable(job, result, text):
     named = sorted({m for hit in DATASET_ID_RE.finditer(text) for m in re.findall(r'0\d{5}', hit.group(0))})
     reasoning, redactions = redact(result.get('reasoning'), text)
-    return {**{k: job[k] for k in ('corpus', 'doi', 'dataset_id', 'primary_paper_doi')},
+    return {**{k: job.get(k) for k in ('corpus', 'mode', 'doi', 'dataset_id', 'primary_paper_doi')},
             **{k: result.get(k) for k in KEEP},
             'evidence_quotes': [snippet(q) for q in result.get('evidence_quotes') or []],
             'source_quotes': [snippet(q) for q in result.get('source_quotes') or []],
@@ -92,7 +92,7 @@ def main():
     jobs = json.loads(Path(args.jobs).read_text())
     text_of = lambda doi: texts / f'{quote(doi, safe="")}.json'  # noqa: E731
     have = [j for j in jobs if text_of(j['doi']).exists()]
-    cached = lambda j: cache / (hashlib.sha1(f"{j['corpus']}|{j['doi']}|{j['dataset_id']}".encode()).hexdigest() + '.json')  # noqa: E731
+    cached = lambda j: cache / (hashlib.sha1(f"{j['corpus']}|{j.get('mode', 'citing')}|{j['doi']}|{j['dataset_id']}".encode()).hexdigest() + '.json')  # noqa: E731
     todo = [j for j in have if not cached(j).exists()]
     print(f'{len(jobs)} pairs; {len(have)} have fetched text; {len(have) - len(todo)} already classified; '
           f'{len(todo)} to go (about ${0.009 * len(todo):.0f})')
@@ -102,7 +102,8 @@ def main():
     def run(job):
         text = json.loads(text_of(job['doi']).read_text())['text']
         result = classify_paper_reuse(text, dataset_id=job['dataset_id'], dataset_name=job['dataset_name'],
-                                      primary_paper_doi=job['primary_paper_doi'], paper_doi=job['doi'])
+                                      primary_paper_doi=job['primary_paper_doi'], paper_doi=job['doi'],
+                                      mode=job.get('mode', 'citing'), matched_patterns=job.get('matched_patterns'))
         if result.get('fatal') or result.get('error_kind') == 'no_api_key':
             raise SystemExit(f"Stopping: {result.get('error')}")
         if result.get('classification') != 'ERROR':
