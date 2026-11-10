@@ -703,6 +703,12 @@
       },
       "000059": {
         "call": "reuse"
+      },
+      "000021": {
+        "call": "ambiguous_reuse"
+      },
+      "000022": {
+        "call": "ambiguous_reuse"
       }
     },
     "10.1016/j.neuron.2025.06.001": {
@@ -2044,6 +2050,12 @@
       },
       "000050": {
         "call": "neither"
+      },
+      "000021": {
+        "call": "ambiguous_reuse"
+      },
+      "000022": {
+        "call": "ambiguous_reuse"
       }
     },
     "10.1016/j.compbiomed.2023.107783": {
@@ -2054,6 +2066,14 @@
     "10.1016/j.cub.2021.07.062": {
       "000050": {
         "call": "neither"
+      },
+      "000021": {
+        "note": "58 mice indicate both 000021 and 000022.",
+        "call": "reuse"
+      },
+      "000022": {
+        "note": "58 mice indicate both 000021 and 000022.",
+        "call": "reuse"
       }
     },
     "10.1016/j.cub.2024.06.068": {
@@ -2497,6 +2517,18 @@
     "10.1002/advs.202406224": {
       "000050": {
         "call": "neither"
+      },
+      "000021": {
+        "note": "This paper focused on the Brain Observatory 1.1 stimulus set, indicating 000021 instead of 000022.",
+        "call": "reuse"
+      },
+      "000022": {
+        "note": "This paper focused on the Brain Observatory 1.1 stimulus set, indicating 000021 instead of 000022.",
+        "call": "neither"
+      },
+      "000728": {
+        "note": "This paper focused on the Brain Observatory 1.1 stimulus set, indicating 000021 instead of 000022.",
+        "call": "neither"
       }
     },
     "10.1007/978-3-031-70638-7_3": {
@@ -2507,10 +2539,24 @@
     "10.1007/s00422-021-00906-5": {
       "000050": {
         "call": "neither"
+      },
+      "000021": {
+        "call": "ambiguous_reuse"
+      },
+      "000022": {
+        "call": "ambiguous_reuse"
       }
     },
     "10.1016/j.cell.2021.03.042": {
       "000050": {
+        "call": "neither"
+      },
+      "000021": {
+        "note": "We used the recordings in which the ”brain_observatory_1.1” stimulus set...",
+        "call": "reuse"
+      },
+      "000022": {
+        "note": "We used the recordings in which the ”brain_observatory_1.1” stimulus set...",
         "call": "neither"
       }
     },
@@ -2959,6 +3005,190 @@
       },
       "001201": {
         "call": "reuse"
+      }
+    },
+    "10.1002/cjs.11790": {
+      "000021": {
+        "call": "ambiguous_reuse"
+      },
+      "000022": {
+        "call": "ambiguous_reuse"
+      }
+    },
+    "10.1002/cne.25404": {
+      "000021": {
+        "call": "ambiguous_reuse"
+      },
+      "000022": {
+        "call": "ambiguous_reuse"
+      }
+    },
+    "10.1007/s10827-022-00841-9": {
+      "000021": {
+        "note": "This is a summary of all the abstracts in a conference, not a paper.",
+        "call": "neither"
+      },
+      "000022": {
+        "note": "This is a summary of all the abstracts in a conference, not a paper.",
+        "call": "neither"
+      }
+    },
+    "10.1007/s11071-023-09135-w": {
+      "000021": {
+        "call": "ambiguous_reuse"
+      },
+      "000022": {
+        "call": "ambiguous_reuse"
+      }
+    },
+    "10.1016/j.celrep.2025.115385": {
+      "000021": {
+        "note": "This paper just says they used a dataset from the Allen Institute. Could be visual coding neural pixels or something else entirely.",
+        "call": "unsure"
+      },
+      "000022": {
+        "note": "This paper just says they used a dataset from the Allen Institute. Could be visual coding neural pixels or something else entirely. ",
+        "call": "unsure"
+      }
+    },
+    "10.1016/j.celrep.2025.115547": {
+      "000021": {
+        "note": "32 mice indicate Dandiset 000021 rather than Dandiset 000022.",
+        "call": "reuse"
+      },
+      "000022": {
+        "note": "32 mice indicate Dandiset 000021 rather than Dandiset 000022.",
+        "call": "neither"
+      }
+    },
+    "10.1016/j.cub.2021.06.094": {
+      "000021": {
+        "call": "ambiguous_reuse"
+      },
+      "000022": {
+        "call": "ambiguous_reuse"
+      }
+    },
+    "10.1016/j.cub.2023.10.073": {
+      "000021": {
+        "note": "This paper used the functional connectivity dataset rather than the Brain Observatory 1.1 stimulus set dataset.",
+        "call": "neither"
+      },
+      "000022": {
+        "note": "This paper used the functional connectivity dataset rather than the Brain Observatory 1.1 stimulus set dataset.",
+        "call": "reuse"
+      }
+    },
+    "10.1016/j.cub.2024.11.073": {
+      "000021": {
+        "call": "ambiguous_reuse"
+      },
+      "000022": {
+        "call": "ambiguous_reuse"
+      }
+    },
+    "10.1016/j.cub.2026.03.031": {
+      "000021": {
+        "call": "ambiguous_reuse"
+      },
+      "000022": {
+        "call": "ambiguous_reuse"
+      }
+    },
+    "10.1016/j.isci.2025.112427": {
+      "000021": {
+        "call": "ambiguous_reuse"
+      },
+      "000022": {
+        "call": "ambiguous_reuse"
+      }
+    },
+    "10.1016/j.isci.2025.114395": {
+      "000021": {
+        "note": "This paper used both stimulus sets, indicating that they reused both 000021 and 000022.",
+        "call": "reuse"
+      },
+      "000022": {
+        "note": "This paper used both stimulus sets, indicating that they reused both 000021 and 000022.",
+        "call": "reuse"
+      }
+    },
+    "10.1016/j.jneumeth.2025.110443": {
+      "000021": {
+        "call": "ambiguous_reuse"
+      },
+      "000022": {
+        "call": "ambiguous_reuse"
+      }
+    },
+    "10.1016/j.neunet.2024.106423": {
+      "000021": {
+        "call": "ambiguous_reuse"
+      },
+      "000022": {
+        "call": "ambiguous_reuse"
+      }
+    },
+    "10.1016/j.neunet.2025.108528": {
+      "000021": {
+        "call": "ambiguous_reuse"
+      },
+      "000022": {
+        "call": "ambiguous_reuse"
+      }
+    },
+    "10.1016/j.neuron.2021.09.037": {
+      "000021": {
+        "note": "58 mice indicate this paper used both 000021 and 000022.",
+        "call": "reuse"
+      },
+      "000022": {
+        "note": "58 mice indicate this paper used both 000021 and 000022.",
+        "call": "reuse"
+      }
+    },
+    "10.1016/j.neuron.2022.01.027": {
+      "000021": {
+        "call": "ambiguous_reuse"
+      },
+      "000022": {
+        "call": "ambiguous_reuse"
+      }
+    },
+    "10.1016/j.neuron.2022.04.002": {
+      "000021": {
+        "call": "ambiguous_reuse"
+      },
+      "000022": {
+        "call": "ambiguous_reuse"
+      }
+    },
+    "10.1016/j.neuron.2023.03.006": {
+      "000021": {
+        "note": "This paper mentions all 58 subjects, indicating reuse of both 000021 and 000022.",
+        "call": "reuse"
+      },
+      "000022": {
+        "note": "This paper mentions all 58 subjects, indicating reuse of both 000021 and 000022.",
+        "call": "reuse"
+      }
+    },
+    "10.1016/j.neuron.2024.04.020": {
+      "000021": {
+        "note": "This paper mentions all 58 mice, indicating reuse of both 000021 and 000022. ",
+        "call": "reuse"
+      },
+      "000022": {
+        "note": "This paper mentions all 58 mice, indicating reuse of both 000021 and 000022. ",
+        "call": "reuse"
+      }
+    },
+    "10.1016/j.neuron.2024.05.024": {
+      "000021": {
+        "call": "ambiguous_reuse"
+      },
+      "000022": {
+        "call": "ambiguous_reuse"
       }
     }
   },
