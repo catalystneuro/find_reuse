@@ -44,6 +44,14 @@
     "10.1038/s41467-026-68893-4": {
       "000713": {
         "call": "reuse"
+      },
+      "000021": {
+        "note": "This paper directly mentions Dandiset 000713 rather than Dandiset 000021 or 000022. ",
+        "call": "neither"
+      },
+      "000022": {
+        "note": "This paper directly mentions Dandiset 000713 rather than Dandiset 000021 or 000022. ",
+        "call": "neither"
       }
     },
     "10.1038/s41583-026-01042-4": {
@@ -2583,6 +2591,9 @@
     "10.1038/s41467-026-69068-x": {
       "000050": {
         "call": "neither"
+      },
+      "000021": {
+        "call": "ambiguous_reuse"
       }
     },
     "10.1038/s41593-025-02128-5": {
@@ -3190,6 +3201,64 @@
       "000022": {
         "call": "ambiguous_reuse"
       }
+    },
+    "10.1016/j.neuron.2025.03.030": {
+      "000021": {
+        "call": "ambiguous_reuse"
+      }
+    },
+    "10.1016/j.neuron.2025.05.029": {
+      "000021": {
+        "call": "ambiguous_reuse"
+      }
+    },
+    "10.1016/j.patter.2026.101590": {
+      "000021": {
+        "note": "This is a mention: Siegle et al. (2021) is only used for quality metrics rather than data.",
+        "call": "mention"
+      }
+    },
+    "10.1038/s41467-021-24456-3": {
+      "000021": {
+        "call": "ambiguous_reuse"
+      }
+    },
+    "10.1038/s41467-024-49704-0": {
+      "000021": {
+        "call": "ambiguous_reuse"
+      }
+    },
+    "10.1038/s41467-024-50563-y": {
+      "000021": {
+        "call": "ambiguous_reuse"
+      }
+    },
+    "10.1038/s41467-025-56733-w": {
+      "000021": {
+        "call": "ambiguous_reuse"
+      }
+    },
+    "10.1038/s41467-025-62202-1": {
+      "000021": {
+        "call": "ambiguous_reuse"
+      }
+    },
+    "10.1038/s41467-026-71331-0": {
+      "000021": {
+        "note": "This paper reused data from both Visual Behavior Neuropixels and Visual Coding Neuropixels.",
+        "call": "ambiguous_reuse"
+      },
+      "000022": {
+        "note": "This paper reused data from both Visual Behavior Neuropixels and Visual Coding Neuropixels.",
+        "call": "ambiguous_reuse"
+      },
+      "000713": {
+        "call": "reuse",
+        "note": "This paper reused data from both Visual Behavior Neuropixels and Visual Coding Neuropixels."
+      },
+      "000957": {
+        "call": "reuse"
+      }
     }
   },
   "added": {
@@ -3206,6 +3275,11 @@
     "10.64898/2026.03.06.709637": {
       "001209": {
         "dandiset_name": "FALCON Benchmark M1-B: primary motor cortex recordings in primate during reach-to-grasp task"
+      }
+    },
+    "10.1038/s41467-026-71331-0": {
+      "000713": {
+        "dandiset_name": "Allen Institute - Visual Behavior - Neuropixels"
       }
     }
   }
