@@ -205,6 +205,31 @@ pairs alone, since that is the number its precision is read off and a pair it
 never proposed would credit it with a call it never made. `added` beside it is
 how many the reviewers found.
 
+`precision` is how often the classifier was right, per pathway, and it counts
+differently from `calls`. Its unit is a paper and a dataset rather than a pair.
+Some datasets are released as several dandisets that papers cannot be told
+apart by, such as the MC_Maze variants, and a paper reusing one of them is
+proposed for all of them. Reviewers call the one it used reuse and the rest
+neither, so counted pair by pair, one correct call comes out as one
+confirmation and several rejections. `config/dandiset_groups.json` lists those
+groups, and a paper's pairs with the dandisets of one group are counted once,
+as reuse if any of them is. A dandiset in no group is a dataset on its own.
+
+```json
+{"accepted_calls": ["reuse", "ambiguous_reuse"],
+ "by_pathway": {"indirect": {"units": 577, "calls": {"...": 0},
+                             "settled": 564, "accepted": 400,
+                             "precision": 0.709}}}
+```
+
+`accepted_calls` are the outcomes counted as the classifier being right. They
+include `ambiguous_reuse`, since in those the classifier was right that the
+paper reused DANDI data and what could not be settled was which dandiset.
+`settled` leaves out the units that are disputed, unanswered or unsure, which
+are not evidence either way. The groups change only this count: the reviews
+and the per-dandiset record in `confirmed_reuse.json` are untouched, so a paper
+is still credited to the dandiset the reviewer named.
+
 Two outcomes in that header are not calls anybody made. `disputed` is a pair
 the reviewers answered differently. `unanswered` is one where every review on
 it was left unfinished, which the page can produce by writing a note as it is

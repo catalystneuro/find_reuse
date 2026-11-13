@@ -373,6 +373,99 @@ class TestTally:
         assert M.tally(pairs) == {'reuse': 1}
 
 
+class TestPrecision:
+    GROUPS = {'000128': 'MC_Maze', '000138': 'MC_Maze', '000139': 'MC_Maze'}
+
+    @staticmethod
+    def measure(reviews, groups=GROUPS, added=None):
+        candidates = [candidate(doi, dandiset) for doi, dandiset in reviews
+                      if (doi, dandiset) not in (added or {})]
+        pairs, _ = M.merge(candidates,
+                           {pair: {'paul': {'call': call}}
+                            for pair, call in reviews.items()},
+                           added)
+        return M.precision(pairs, groups)['by_pathway']['indirect']
+
+    def test_a_paper_reusing_one_dandiset_of_a_group_counts_once_as_right(self):
+        """
+        Pair by pair this is one confirmation and two rejections, although the
+        classifier was right that the paper reused MC_Maze.
+        """
+        result = self.measure({('10.1/a', '000128'): 'reuse',
+                               ('10.1/a', '000138'): 'neither',
+                               ('10.1/a', '000139'): 'neither'})
+        assert result['units'] == 1
+        assert result['calls'] == {'reuse': 1}
+        assert result['precision'] == 1.0
+
+    def test_a_group_every_pair_rejects_counts_once_as_wrong(self):
+        result = self.measure({('10.1/a', '000128'): 'neither',
+                               ('10.1/a', '000138'): 'mention'})
+        assert result['calls'] == {'mention': 1}
+        assert result['precision'] == 0.0
+
+    def test_a_dandiset_in_no_group_is_its_own_unit(self):
+        result = self.measure({('10.1/a', '000541'): 'reuse',
+                               ('10.1/a', '000128'): 'neither'})
+        assert result['units'] == 2
+        assert result['precision'] == 0.5
+
+    def test_the_same_group_on_two_papers_is_two_units(self):
+        result = self.measure({('10.1/a', '000128'): 'reuse',
+                               ('10.1/b', '000138'): 'neither'})
+        assert result['units'] == 2
+
+    def test_ambiguous_reuse_counts_as_right(self):
+        """The paper reused DANDI data; what was unclear is which dandiset."""
+        result = self.measure({('10.1/a', '000541'): 'ambiguous_reuse',
+                               ('10.1/b', '000541'): 'neither'})
+        assert result['accepted'] == 1
+        assert result['precision'] == 0.5
+
+    def test_a_reuse_call_outranks_an_ambiguous_one_in_the_same_group(self):
+        result = self.measure({('10.1/a', '000128'): 'ambiguous_reuse',
+                               ('10.1/a', '000138'): 'reuse'})
+        assert result['calls'] == {'reuse': 1}
+
+    def test_an_unsettled_unit_is_left_out_of_the_denominator(self):
+        result = self.measure({('10.1/a', '000541'): 'unsure',
+                               ('10.1/b', '000541'): 'reuse'})
+        assert result['units'] == 2
+        assert result['settled'] == 1
+        assert result['precision'] == 1.0
+
+    def test_an_unsettled_pair_does_not_hide_a_rejection_it_cannot_outrank(self):
+        """An unsettled sibling keeps the unit open, since it may yet be reuse."""
+        result = self.measure({('10.1/a', '000128'): 'unsure',
+                               ('10.1/a', '000138'): 'neither'})
+        assert result['calls'] == {'unsure': 1}
+        assert result['settled'] == 0
+        assert result['precision'] is None
+
+    def test_pathways_are_measured_separately(self):
+        candidates = [candidate('10.1/a'),
+                      candidate('10.1/b', pathway='direct')]
+        pairs, _ = M.merge(candidates, {
+            ('10.1/a', '000541'): {'paul': {'call': 'neither'}},
+            ('10.1/b', '000541'): {'paul': {'call': 'reuse'}}})
+        by_pathway = M.precision(pairs, {})['by_pathway']
+        assert by_pathway['indirect']['precision'] == 0.0
+        assert by_pathway['direct']['precision'] == 1.0
+
+    def test_a_pair_a_reviewer_found_is_left_out(self):
+        result = self.measure({('10.1/a', '000541'): 'neither',
+                               ('10.1/a', '000128'): 'reuse'},
+                              added={('10.1/a', '000128'): 'MC_Maze'})
+        assert result['units'] == 1
+        assert result['precision'] == 0.0
+
+    def test_says_which_calls_it_counted_as_right(self):
+        pairs, _ = M.merge([candidate('10.1/a')],
+                           {('10.1/a', '000541'): {'paul': {'call': 'reuse'}}})
+        assert M.precision(pairs, {})['accepted_calls'] == [
+            'reuse', 'ambiguous_reuse']
+
+
 class TestWriting:
     def test_a_merge_that_says_the_same_thing_leaves_the_file_alone(
             self, candidates, tmp_path):
