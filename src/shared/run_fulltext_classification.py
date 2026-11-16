@@ -38,6 +38,7 @@ from src.shared.classify_fulltext_reuse import (
     VALID_REASONING_EFFORTS, DEFAULT_REASONING_EFFORT, DEFAULT_MAX_TOKENS,
 )
 from src.shared.dandisets import dandisets_with_data
+from src.shared import screen_reuse
 
 REPO = Path(__file__).resolve().parents[2]
 
@@ -153,7 +154,8 @@ def build_worklist(results_path: Path) -> list[dict]:
 
 
 def build_direct_worklist(path: Path,
-                          with_data: set[str] | None = None) -> list[dict]:
+                          with_data: set[str] | None = None,
+                          archive_name: str = DIRECT_ARCHIVE) -> list[dict]:
     """
     Worklist for the direct pathway, taken from the existing classifications.
 
@@ -197,7 +199,7 @@ def build_direct_worklist(path: Path,
             if not doi or not is_paper(doi):
                 continue
             for archive, info in (entry.get('archives') or {}).items():
-                if archive != DIRECT_ARCHIVE:
+                if archive != archive_name:
                     continue
                 matches = info.get('matches') or []
                 for dataset_id in info.get('dataset_ids', []):
@@ -380,7 +382,26 @@ def main():
                              'the budget covers thinking as well as the answer; '
                              'papers with ambiguous evidence can exhaust 8192 '
                              'and come back as truncated_response.')
+    parser.add_argument('--direct-archive', default=DIRECT_ARCHIVE,
+                        help='archive whose identifiers the direct pathway classifies '
+                             '(as named in discovery output, e.g. "CRCNS")')
+    parser.add_argument('--screener', default=screen_reuse.DEFAULT_SCREENER,
+                        help='decision model that settles pairs unlikely to be reuse '
+                             'before the classifier is asked; "none" sends every pair '
+                             'to the classifier')
+    parser.add_argument('--screen-cutoff', type=float, default=None,
+                        help='pairs the screener puts below this probability of reuse '
+                             'are not sent to the classifier (default: '
+                             f'{screen_reuse.DEFAULT_CUTOFF} citing, '
+                             f'{screen_reuse.DEFAULT_DIRECT_CUTOFF} direct)')
     args = parser.parse_args()
+
+    # A reclassify run is a request for the classifier's reading of one label.
+    screening = args.screener != 'none' and not args.reclassify
+    direct = args.mode == MODE_DIRECT
+    if args.screen_cutoff is None:
+        args.screen_cutoff = (screen_reuse.DEFAULT_DIRECT_CUTOFF if direct
+                              else screen_reuse.DEFAULT_CUTOFF)
 
     # Keep the two pathways in separate caches and outputs; they answer different
     # questions and their labels are not interchangeable.
@@ -429,8 +450,11 @@ def main():
               f"forward ({args.mode} mode)", file=sys.stderr, flush=True)
     else:
         if args.mode == MODE_DIRECT:
-            candidates = build_direct_worklist(Path(args.results_file),
-                                               dandisets_with_data())
+            # The with-data filter applies to DANDI identifiers only.
+            candidates = build_direct_worklist(
+                Path(args.results_file),
+                dandisets_with_data() if args.direct_archive == DIRECT_ARCHIVE else None,
+                archive_name=args.direct_archive)
         else:
             candidates = build_worklist(Path(args.results_file))
         work = select_with_full_text(candidates, args.limit, args.paper_cache)
@@ -451,7 +475,17 @@ def main():
             # A cached answer to a different question is not an answer to this
             # one. Mixing prompt versions would silently produce a corpus where
             # some rows have same_lab and archive and others cannot.
-            if (prior.get('prompt_version') != PROMPT_VERSION
+            if prior.get('screened_out'):
+                # Settled by the screener, never read by the classifier. Still
+                # settled if the same screener would be asked and its answer is
+                # still under the cutoff; otherwise the pair is taken up again,
+                # and the screener's cached answer makes that free.
+                if (screening and prior.get('model') == args.screener
+                        and prior['screener']['p_reuse'] < args.screen_cutoff):
+                    cached_results.append(prior)
+                else:
+                    todo.append(item)
+            elif (prior.get('prompt_version') != PROMPT_VERSION
                     or prior.get('model') != args.model):
                 # A different model answering the same prompt is a different
                 # answer, and the corpus must not mix them any more than it
@@ -487,9 +521,77 @@ def main():
                 use_cache=True, cache_dir=args.paper_cache)
         return thread_local.fetcher
 
+    if screening and todo:
+        from src.review.paper_metadata import citation, resolve
+        screen_dir = screen_reuse.screener_cache_dir(REPO, args.screener, direct,
+                                                     args.direct_archive)
+        screen_dir.mkdir(parents=True, exist_ok=True)
+        screen_context = screen_reuse.context_length(args.screener)
+        # The citing question names the dataset's publication as papers cite it.
+        primaries_meta = {} if direct else resolve(
+            {i['primary_paper_doi'] for i in todo if i.get('primary_paper_doi')},
+            REPO / '.paper_metadata_cache.json')
+
+    def get_session():
+        if not hasattr(thread_local, 'session'):
+            thread_local.session = screen_reuse.new_session()
+        return thread_local.session
+
+    def screened(item, text):
+        """The screener's answer for the pair, or None if it could not give one."""
+        path = cache_path(screen_dir, item['doi'], item['dandiset_id'])
+        if path.exists():
+            try:
+                return json.loads(path.read_text())
+            except Exception:
+                pass
+        primary = primaries_meta.get((item.get('primary_paper_doi') or '').lower())
+        try:
+            if direct:
+                answer = screen_reuse.screen(
+                    text, args.screener, get_session(), screen_context, direct=True,
+                    archive=args.direct_archive, dataset_id=item['dandiset_id'],
+                    matched_patterns=item.get('matched_patterns'),
+                    title=item['title'], doi=item['doi'])
+            else:
+                answer = screen_reuse.screen(
+                    text, args.screener, get_session(), screen_context,
+                    dandiset_id=item['dandiset_id'], dandiset_name=item['dandiset_name'],
+                    published_in=(f"{citation(primary)}, \"{primary['title']}\""
+                                  if primary else item.get('primary_paper_doi') or ''),
+                    title=item['title'], doi=item['doi'])
+        except Exception as e:
+            # Fail open: a pair the screener could not answer gets the classifier.
+            print(f"  screener failed on {item['doi']} {item['dandiset_id']}: "
+                  f"{type(e).__name__}: {str(e)[:120]}", file=sys.stderr, flush=True)
+            return None
+        path.write_text(json.dumps(answer, indent=1))
+        return answer
+
     def run_one(item):
         fetched = get_fetcher().get_paper_text_detailed(item['doi'])
-        if fetched['status'] != 'full_text':
+        # A retried citing pair comes back without its dandiset's name, and the
+        # screener was measured with it, so those go straight to the classifier.
+        # The direct question never has the name: the paper prints the identifier.
+        answer = (screened(item, fetched['text'])
+                  if screening and fetched['status'] == 'full_text'
+                  and (direct or item.get('dandiset_name')) else None)
+        if answer and answer['p_reuse'] < args.screen_cutoff:
+            # Not sent to the classifier. The label is the screener's choice
+            # between the pathway's two that are not reuse.
+            probabilities = answer['probabilities']
+            others = ('PRIMARY', 'NEITHER') if direct else ('MENTION', 'NEITHER')
+            result = {
+                'classification': max(others, key=lambda k: probabilities.get(k, 0)),
+                'confidence': answer.get('confidence') or 0,
+                'evidence_quotes': [], 'quote_warnings': [],
+                'hallucinated_quote_count': 0,
+                'screened_out': True, 'model': args.screener,
+                'screener': {'model': args.screener, 'cutoff': args.screen_cutoff,
+                             'p_reuse': answer['p_reuse'], 'probabilities': probabilities},
+                'usage': answer['usage'],
+            }
+        elif fetched['status'] != 'full_text':
             # Should not happen given the worklist filter, but never guess.
             result = {
                 'classification': 'ERROR', 'confidence': 0,
@@ -511,6 +613,9 @@ def main():
                 matched_patterns=item.get('matched_patterns'),
                 reasoning_effort=args.reasoning_effort,
             )
+            if answer:
+                result['screener'] = {'model': args.screener, 'cutoff': args.screen_cutoff,
+                                      'p_reuse': answer['p_reuse']}
         result['citing_doi'] = item['doi']
         result['dandiset_id'] = item['dandiset_id']
         result['title'] = item['title']
@@ -621,6 +726,9 @@ def main():
         'estimated_cost_usd': round(cost, 2),
         'seconds': round(elapsed, 1),
         'model': args.model,
+        'screener': args.screener if screening else None,
+        'screen_cutoff': args.screen_cutoff if screening else None,
+        'screened_out': sum(1 for r in all_results if r.get('screened_out')),
         'aborted': aborted,
     }
 
