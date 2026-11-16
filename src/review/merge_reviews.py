@@ -18,7 +18,8 @@ same way, by how many people called the pair reuse; only the classifier's own
 are counted when tallying how often it was right.
 
 That tally is made twice. `calls` counts pairs. `precision` counts a paper and
-a dataset, treating the dandisets in config/dandiset_groups.json as one dataset
+a dataset, treating dandisets that share a primary paper, and the groups in
+config/dandiset_groups.json, as one dataset
 each, since a paper reusing one of several dandisets that cannot be told apart
 is proposed for all of them and would otherwise count as several rejections.
 
@@ -35,7 +36,7 @@ from pathlib import Path
 
 from src.review.assign_reviews import flatten
 from src.review.build_candidates import CANDIDATES_FILE, write_stamped
-from src.review.dandiset_groups import load_groups
+from src.review.dandiset_groups import units
 from src.review.reviewers import (REUSE_CONFIRMATION_DIR, REVIEWERS_FILE,
                                   load_reviewers, reviews_paths)
 
@@ -255,7 +256,8 @@ def precision(pairs: list[dict], groups: dict[str, str]) -> dict:
     How often the classifier was right, per pathway.
 
     The unit is a paper and a dataset rather than a pair: a paper's pairs with
-    the dandisets of one group in config/dandiset_groups.json are counted once.
+    the dandisets of one group are counted once: dandisets that share a primary
+    paper, and the groups listed in config/dandiset_groups.json.
     A paper reusing one MC_Maze variant is proposed for all of them, and pair by
     pair that is one confirmation and several rejections for a call that was
     right. A dandiset in no group is a dataset on its own.
@@ -307,7 +309,7 @@ def main():
     confirmed_pairs = confirmed(pairs, args.min_reviewers)
 
     counts = tally(pairs)
-    measured = precision(pairs, load_groups())
+    measured = precision(pairs, units())
     found = sum(1 for pair in pairs if pair['source'] == 'reviewer')
     header = {
         'candidates_generated_at': candidates['generated_at'],
