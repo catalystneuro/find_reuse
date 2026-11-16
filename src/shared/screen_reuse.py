@@ -131,8 +131,11 @@ def paper_state(passages: list[str], whole: bool, *, dandiset_id: str, dandiset_
                 published_in: str, title: str, doi: str) -> dict:
     """What the model is shown. One shape for the eval and for production."""
     return {
-        'dataset': {'dandiset': f'DANDI:{dandiset_id}', 'name': dandiset_name,
-                    'published_in': published_in},
+        # Other archives' datasets come through the same fields: a CRCNS dataset
+        # is 'hc-3', and calling it DANDI:hc-3 would point the model the wrong way.
+        'dataset': {('dandiset' if dandiset_id.isdigit() else 'dataset'):
+                    (f'DANDI:{dandiset_id}' if dandiset_id.isdigit() else dandiset_id),
+                    'name': dandiset_name, 'published_in': published_in},
         'paper': {'title': title, 'doi': doi},
         ('text' if whole else 'passages'): passages,
     }

@@ -189,6 +189,7 @@ To check a model or a cutoff:
 python -m src.review.eval_decision_model --model MODEL --input full --tier full   # citing pairs, against reviewers
 python scripts/screener_checks/direct_check.py DANDI                                   # direct pairs
 python scripts/screener_checks/direct_check.py CRCNS
+python scripts/screener_checks/crcns_citing_check.py CORPUS.json CLASSIFICATIONS.json   # CRCNS citing pairs
 ```
 
 The model must take whole papers, so its window has to be about 200K tokens or
