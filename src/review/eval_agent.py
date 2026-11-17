@@ -70,6 +70,8 @@ In this folder:
 
 The paper was linked to the dandiset because it cites the paper the data were published with. It may never name DANDI. The same recordings are often also on a lab's site or in another archive (CRCNS, the Allen Institute's portal or SDK, IBL/ONE, Zenodo, figshare, Dryad, G-Node, the Neural Latents Benchmark).
 
+Reuse counts wherever the data came from. If the authors analyzed the recordings this dandiset holds, the answer is use even when they got them from another archive, a lab's site, a benchmark's loader or the authors directly, and even when their copy is fuller or older than the one on DANDI, or only part of it. Never answer that the data were not used because they did not come from DANDI. Report where they came from in `source`; that is recorded separately.
+
 Work as a careful human curator would. Read the paper first. Then, where the text leaves the question open, check: follow the paper's data availability links and the repositories or benchmarks it names (WebFetch), look at what the dandiset and its related dandisets hold (https://dandiarchive.org/dandiset/<id> or https://api.dandiarchive.org/api/dandisets/<id>/versions/draft/), look at the paper's code repository if it names one, and search the web (WebSearch) if you need to find out what a named dataset is. Do not spend effort on checks the paper's text already settles.
 
 Decide:
