@@ -103,11 +103,19 @@ If a quoted passage matches the paper exactly and clearly shows the authors
 analysed this dataset, call it **Reuse** and move on. No further digging is
 needed. When the quotes do not settle it, read the paper.
 
-**Reuse** means the data was reused, wherever it was downloaded from. A paper
-that got the data from the AllenSDK, the IBL ONE API, Zenodo, Figshare or a
-lab's own server is still **Reuse**. When the paper says it got the data
-somewhere other than DANDI, write the note in this form, so data obtained from
-DANDI can be counted separately:
+**Reuse** means the data was reused, wherever it was downloaded from. What
+counts is that the paper analysed the recordings this dandiset holds, not that
+it got them from DANDI. A paper that got the same data from the AllenSDK, the
+IBL ONE API, CRCNS, Zenodo, Figshare, Dryad, G-Node, a benchmark's own loader,
+a lab's server or the authors directly is still **Reuse**. So is a paper that
+used a fuller or an earlier copy of the recordings than the one on DANDI, or
+part of them. Do not call a pair **Neither** or **Mention** because the data
+came from somewhere else.
+
+Where the data came from is recorded separately: the classifier names the
+source it reads in the paper, and your note records it too. When the paper
+says it got the data somewhere other than DANDI, write the note in this form,
+so data obtained from DANDI can be counted separately:
 
 ```text
 Obtained from AllenSDK, not DANDI. DANDI:000021 mirrors this data.
@@ -118,7 +126,7 @@ Obtained from AllenSDK, not DANDI. DANDI:000021 mirrors this data.
 | Label | When |
 |---|---|
 | **Reuse** | The paper obtained the dataset and analysed it. |
-| **Ambiguous Reuse** | The paper reused DANDI data; which dandiset is unclear. Say what you could tell in the note. |
+| **Ambiguous Reuse** | The paper reused the data of one of several related dandisets, and which one is unclear. Say what you could tell in the note. |
 | **Mention** | The paper refers to the work but never touches the data. |
 | **Neither** | A pipeline error: the pair should not have been proposed. See below. |
 | **Unsure** | You cannot tell from the text. Say why in the note. |
@@ -128,7 +136,7 @@ Obtained from AllenSDK, not DANDI. DANDI:000021 mirrors this data.
 | Label | When |
 |---|---|
 | **Reuse** | The paper obtained the dataset and analysed it. |
-| **Ambiguous Reuse** | The paper reused DANDI data; which dandiset is unclear. Say what you could tell in the note. |
+| **Ambiguous Reuse** | The paper reused the data of one of several related dandisets, and which one is unclear. Say what you could tell in the note. |
 | **Primary** | The paper *is* the one that deposited the dataset. |
 | **Neither** | A pipeline error: the pair should not have been proposed. See below. |
 | **Unsure** | You cannot tell from the text. Say why in the note. |
@@ -141,7 +149,8 @@ called correctly from the text it was given:
 
 - The citing paper is a preprint of a paper that is reviewed under its own DOI.
 - Several dandisets share the cited publication, and the paper shows which one
-  it used. The others are **Neither**.
+  it used. The others are **Neither**. This is about which dandiset holds the
+  recordings the paper analysed, not where the paper downloaded them.
 - Only the abstract was fetched, so the text cannot settle the call.
 - A model linked a paper to this dandiset that has nothing to do with it.
 

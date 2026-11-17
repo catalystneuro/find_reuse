@@ -1,0 +1,1907 @@
+{
+ "seed": 20261116,
+ "pool": 135,
+ "papers": [
+  {
+   "doi": "10.3390/brainsci15030221",
+   "title": "Effects of Packet Loss on Neural Decoding Effectiveness in Wireless Transmission",
+   "key": "10.3390_brainsci15030221",
+   "dandisets": [
+    "000129",
+    "001055"
+   ],
+   "gold": {
+    "000129": {
+     "review": "ambiguous_reuse",
+     "note": "This paper clearly reused data from Makin et al. 2018. Technically, that paper is associated with two DANDI sets: 000129 and 001055, making this call Ambiguous Reuse.",
+     "this": null,
+     "family": "MC_RTT",
+     "family_used": true
+    },
+    "001055": {
+     "review": "ambiguous_reuse",
+     "note": "This paper clearly reused data from Makin et al. 2018. Technically, that paper is associated with two DANDI sets: 000129 and 001055, making this call Ambiguous Reuse.",
+     "this": null,
+     "family": "MC_RTT",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.5607/en23020",
+   "title": "Bias in Prestimulus Motor Cortical Activity Determines Decision-making Error in Rodents",
+   "key": "10.5607_en23020",
+   "dandisets": [
+    "000010",
+    "000011",
+    "000060"
+   ],
+   "gold": {
+    "000010": {
+     "review": "reuse",
+     "note": "\"This study analyzed two separate open datasets obtained from the following data-sharing websites: Collaborative Research in Computational Neuroscience (CRCNS.org) for the tactile delayed-response task [ 14 ] and FigShare for the auditory delayed-response task ( https://doi.org/10.25378/janelia.7489253 \" Ref 14 is Li N, Gerfen CR, Svoboda K (2014) Extracellular recordings from anterior lateral motor cortex (ALM) neurons of adult mice performing a tactile decision behavior [Internet]. Plone Foundation.\nAvailable from: https://doi.org/10.6080/K0MS3QNT which is CRCNS, alm-1, later shared as DANDI:000010.",
+     "this": true,
+     "family": "000010",
+     "family_used": true
+    },
+    "000011": {
+     "review": "neither",
+     "note": "The cited paper 10.1038/nature17643 deposited data as alm-3 on crcns, which is DANDI:000011. However, the citing paper does not appear to reuse that dataset",
+     "this": false,
+     "family": "000011",
+     "family_used": false
+    }
+   }
+  },
+  {
+   "doi": "10.1016/j.neuroscience.2026.02.010",
+   "title": "Correlates of head-fixed directional forelimb movements in mouse superior colliculus and substantia nigra pars reticulata",
+   "key": "10.1016_j.neuroscience.2026.02.010",
+   "dandisets": [
+    "000045",
+    "000149",
+    "000409"
+   ],
+   "gold": {
+    "000409": {
+     "review": "reuse",
+     "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409.",
+     "this": true,
+     "family": "IBL",
+     "family_used": true
+    },
+    "000149": {
+     "review": "neither",
+     "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409.",
+     "this": false,
+     "family": "IBL",
+     "family_used": true
+    },
+    "000045": {
+     "review": "neither",
+     "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409.",
+     "this": false,
+     "family": "IBL",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1101/2024.09.15.613126",
+   "title": "Few-shot Algorithms for Consistent Neural Decoding (FALCON) Benchmark",
+   "key": "10.1101_2024.09.15.613126",
+   "dandisets": [
+    "000941",
+    "000953",
+    "000954"
+   ],
+   "gold": {
+    "000941": {
+     "review": "neither",
+     "note": "This is a primary paper for the FALCON benchmark.",
+     "this": false,
+     "family": "shared_paper_000941",
+     "family_used": false
+    },
+    "000953": {
+     "review": "neither",
+     "note": "This is a primary paper for the FALCON benchmark. ",
+     "this": false,
+     "family": "000953",
+     "family_used": false
+    },
+    "000954": {
+     "review": "neither",
+     "note": "This is a primary paper for the FALCON benchmark. ",
+     "this": false,
+     "family": "000954",
+     "family_used": false
+    }
+   }
+  },
+  {
+   "doi": "10.1101/2025.03.21.644350",
+   "title": "A transient neural code for feedback-driven motor corrections during reaching",
+   "key": "10.1101_2025.03.21.644350",
+   "dandisets": [
+    "000127",
+    "000128",
+    "000129",
+    "000138",
+    "000139",
+    "000140",
+    "000688"
+   ],
+   "gold": {
+    "000128": {
+     "review": "reuse",
+     "note": "This paper clearly reused one of the MC_Maze datasets. It is only present on the MC_Maze leaderboard (https://eval.ai/web/challenges/challenge-page/1256/leaderboard/3183, Ctrl-TNDM (BAND)), not the MC_Maze scaling leaderboard (https://eval.ai/web/challenges/challenge-page/1256/leaderboard/3184). This indicates that they reused data from dataset 000128. ",
+     "this": true,
+     "family": "MC_Maze",
+     "family_used": true
+    },
+    "000139": {
+     "review": "neither",
+     "note": "This paper clearly reused one of the MC_Maze datasets. It is only present on the MC_Maze leaderboard (https://eval.ai/web/challenges/challenge-page/1256/leaderboard/3183, Ctrl-TNDM (BAND)), not the MC_Maze scaling leaderboard (https://eval.ai/web/challenges/challenge-page/1256/leaderboard/3184). This indicates that they reused data from dataset 000128. ",
+     "this": false,
+     "family": "MC_Maze",
+     "family_used": true
+    },
+    "000688": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "000688",
+     "family_used": true
+    },
+    "000138": {
+     "review": "neither",
+     "note": "Used MC_Maze (DANDI:000128), MC_RTT (DANDI:000129), Area2_Bump (DANDI:000127). BAND (team Ctrl-TNDM) is on the NLB MC_Maze, MC_RTT and Area2_Bump leaderboards and on no MC_Maze Scaling leaderboard: https://eval.ai/web/challenges/challenge-page/1256/leaderboard",
+     "this": false,
+     "family": "MC_Maze",
+     "family_used": true
+    },
+    "000140": {
+     "review": "neither",
+     "note": "Used MC_Maze (DANDI:000128), MC_RTT (DANDI:000129), Area2_Bump (DANDI:000127). BAND (team Ctrl-TNDM) is on the NLB MC_Maze, MC_RTT and Area2_Bump leaderboards and on no MC_Maze Scaling leaderboard: https://eval.ai/web/challenges/challenge-page/1256/leaderboard",
+     "this": false,
+     "family": "MC_Maze",
+     "family_used": true
+    },
+    "000127": {
+     "review": "reuse",
+     "note": "Used MC_Maze (DANDI:000128), MC_RTT (DANDI:000129), Area2_Bump (DANDI:000127). BAND (team Ctrl-TNDM) is on the NLB MC_Maze, MC_RTT and Area2_Bump leaderboards and on no MC_Maze Scaling leaderboard: https://eval.ai/web/challenges/challenge-page/1256/leaderboard",
+     "this": true,
+     "family": "000127",
+     "family_used": true
+    },
+    "000129": {
+     "review": "reuse",
+     "note": "Used MC_Maze (DANDI:000128), MC_RTT (DANDI:000129), Area2_Bump (DANDI:000127). BAND (team Ctrl-TNDM) is on the NLB MC_Maze, MC_RTT and Area2_Bump leaderboards and on no MC_Maze Scaling leaderboard: https://eval.ai/web/challenges/challenge-page/1256/leaderboard",
+     "this": true,
+     "family": "MC_RTT",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1371/journal.pcbi.1013335",
+   "title": "Decoding decision-making behavior from sparse neural spiking activity",
+   "key": "10.1371_journal.pcbi.1013335",
+   "dandisets": [
+    "000045",
+    "000409"
+   ],
+   "gold": {
+    "000045": {
+     "review": "neither",
+     "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409. ",
+     "this": false,
+     "family": "IBL",
+     "family_used": true
+    },
+    "000409": {
+     "review": "reuse",
+     "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409. ",
+     "this": true,
+     "family": "IBL",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1016/j.celrep.2025.115338",
+   "title": "Modeling conditional distributions of neural and behavioral data with masked variational autoencoders",
+   "key": "10.1016_j.celrep.2025.115338",
+   "dandisets": [
+    "000129",
+    "001055"
+   ],
+   "gold": {
+    "000129": {
+     "review": "ambiguous_reuse",
+     "note": "The paper cites https://zenodo.org/records/583331 from O'Dougherty et al, 2017, and focuses on one session: loco_20170213_02, which is not the session in DANDI:000129, which has a limited subset of the Zenodo dataset for benchmarking. Per the Makin et al. 2018 review note, marking both 000129 and 001055 as Ambiguous Reuse.",
+     "this": null,
+     "family": "MC_RTT",
+     "family_used": true
+    },
+    "001055": {
+     "review": "ambiguous_reuse",
+     "note": "[10.1016/j.celrep.2025.115338](https://doi.org/10.1016/j.celrep.2025.115338) reuses data from https://zenodo.org/records/583331 from O'Dougherty et al, 2017, and focuses on one session: loco_20170213_02. It seems that all subjects and sessions from the Zenodo dataset were repackaged into DANDI:001055, unlike the NLB dandiset, but it's unclear how the data may have been cut or transformed to form the NeuroTask benchmark. Per the Makin et al. 2018 review note, marking both 000129 and 001055 as Ambiguous Reuse.",
+     "this": null,
+     "family": "MC_RTT",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1038/s41593-024-01731-2",
+   "title": "Dissociative and prioritized modeling of behaviorally relevant neural dynamics using recurrent neural networks",
+   "key": "10.1038_s41593-024-01731-2",
+   "dandisets": [
+    "000127",
+    "000129",
+    "001055"
+   ],
+   "gold": {
+    "000127": {
+     "review": "reuse",
+     "note": "\"Additionally, DPAD was always on the best performance frontier for predicting the neural\u2013behavioral data compared to long short-term memory (LSTM) networks as well as a concurrently44 developed method with DPAD termed CEBRA36 on our four datasets (Fig. 4a\u2013h) in addition to a fifth movement dataset54 analyzed in the CEBRA paper (Fig. 4i,j).\" The CEBRA paper reused DANDI:000127. \"In the fifth dataset, which was collected and made publicly available by the laboratory of L. E. Miller 54\"",
+     "this": true,
+     "family": "000127",
+     "family_used": true
+    },
+    "000129": {
+     "review": "ambiguous_reuse",
+     "note": "Data accessed from Zenodo. Reuses data from https://zenodo.org/records/3854034. \"We analyzed the data for the first seven sessions for which the wideband activity was also available (sessions 20160622/01 to 20160921/01).\" DANDI:000129 has a limited subset (1 session) of the Zenodo dataset for benchmarking.",
+     "this": null,
+     "family": "MC_RTT",
+     "family_used": true
+    },
+    "001055": {
+     "review": "ambiguous_reuse",
+     "note": "Data accessed from Zenodo. Reuses data from https://zenodo.org/records/3854034. \"We analyzed the data for the first seven sessions for which the wideband activity was also available (sessions 20160622/01 to 20160921/01).\" The NeuroTask benchmark, DANDI:001055, has data from both subjects and multiple sessions per subject, so it is likely that NeuroTask repackages the entire dataset, unlike the NLB dandiset.",
+     "this": null,
+     "family": "MC_RTT",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1038/s41593-024-01783-4",
+   "title": "Rastermap: a discovery method for neural population recordings",
+   "key": "10.1038_s41593-024-01783-4",
+   "dandisets": [
+    "000017",
+    "000044",
+    "000130"
+   ],
+   "gold": {
+    "000130": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "000130",
+     "family_used": true
+    },
+    "000017": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "000017",
+     "family_used": true
+    },
+    "000044": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "000044",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1371/journal.pcbi.1011975",
+   "title": "Bayesian inference of structured latent spaces from neural population activity with the orthogonal stochastic linear mixing model",
+   "key": "10.1371_journal.pcbi.1011975",
+   "dandisets": [
+    "000070",
+    "000128",
+    "000138",
+    "000139",
+    "000140"
+   ],
+   "gold": {
+    "000070": {
+     "review": "neither",
+     "note": "This paper reused data from dataset 000128, not dataset 000070, as evidenced by their data availability section.",
+     "this": false,
+     "family": "MC_Maze",
+     "family_used": true
+    },
+    "000139": {
+     "review": "neither",
+     "note": "This paper reused data from dataset 000128 as evidenced by their data availability section.",
+     "this": false,
+     "family": "MC_Maze",
+     "family_used": true
+    },
+    "000138": {
+     "review": "neither",
+     "note": "Paper cites DANDI:000128 directly. It also says \"It consists of one full session with 2869 total trials (2295 trials for training and 574 trials for testing), 108 conditions and 182 neurons with simultaneously monitored hand kinematics.\" which is consistent only with MC_Maze and not the Large/Medium/Small variants.",
+     "this": false,
+     "family": "MC_Maze",
+     "family_used": true
+    },
+    "000140": {
+     "review": "neither",
+     "note": "Paper cites DANDI:000128 directly. It also says \"It consists of one full session with 2869 total trials (2295 trials for training and 574 trials for testing), 108 conditions and 182 neurons with simultaneously monitored hand kinematics.\" which is consistent only with MC_Maze and not the Large/Medium/Small variants.",
+     "this": false,
+     "family": "MC_Maze",
+     "family_used": true
+    },
+    "000128": {
+     "review": "reuse",
+     "note": "Paper cites DANDI:000128 directly. It also says \"It consists of one full session with 2869 total trials (2295 trials for training and 574 trials for testing), 108 conditions and 182 neurons with simultaneously monitored hand kinematics.\" which is consistent only with MC_Maze and not the Large/Medium/Small variants.",
+     "this": true,
+     "family": "MC_Maze",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1016/j.cub.2024.05.048",
+   "title": "Hyperpolarization-activated currents drive neuronal activation sequences in sleep",
+   "key": "10.1016_j.cub.2024.05.048",
+   "dandisets": [
+    "000041",
+    "000056",
+    "000939"
+   ],
+   "gold": {
+    "000041": {
+     "review": "reuse",
+     "note": "Paper cites the cited paper and dataset at CRCNS: https://crcns.org/data-sets/fcx/fcx-1 which is the same as DANDI:000041.",
+     "this": true,
+     "family": "000041",
+     "family_used": true
+    },
+    "000939": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "000939",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1101/2025.02.11.637559",
+   "title": "Annotation Comparison Explorer (ACE): connecting brain cell types across studies of health and Alzheimer\u2019s Disease",
+   "key": "10.1101_2025.02.11.637559",
+   "dandisets": [
+    "000008",
+    "000020",
+    "000023",
+    "000035"
+   ],
+   "gold": {
+    "000008": {
+     "review": "ambiguous_reuse",
+     "note": "\"By exploring an available table of Patch-seq data collected in mouse primary motor cortex [14] and restricting the view to these two subclasses (ET and IT), this difference is clearly consistent between all ET and IT cell types (Figure 1F), shows a statistical difference across\ncell types (Figure 1F; inset), and matches previous reports in humans [13]. \" Ref 14 is Scala et al., 2021. \"First, annotation tables from five Patch-seq studies are included [14\u201318]. These studies all include cell type classifications defined in the original publication, typically using label transfer from existing mouse or human neocortical cell type taxonomies along with morphoelectric characteristics and other cell or donor metadata measured for each cell.\" Unclear whether DANDI:000008, DANDI:000035, or both were used.",
+     "this": null,
+     "family": "Scala_Patch-seq",
+     "family_used": true
+    },
+    "000035": {
+     "review": "ambiguous_reuse",
+     "note": "\"By exploring an available table of Patch-seq data collected in mouse primary motor cortex [14] and restricting the view to these two subclasses (ET and IT), this difference is clearly consistent between all ET and IT cell types (Figure 1F), shows a statistical difference across\ncell types (Figure 1F; inset), and matches previous reports in humans [13]. \" Ref 14 is Scala et al., 2021. \"First, annotation tables from five Patch-seq studies are included [14\u201318]. These studies all include cell type classifications defined in the original publication, typically using label transfer from existing mouse or human neocortical cell type taxonomies along with morphoelectric characteristics and other cell or donor metadata measured for each cell.\" Unclear whether DANDI:000008, DANDI:000035, or both were used.",
+     "this": null,
+     "family": "Scala_Patch-seq",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1523/jneurosci.1009-23.2023",
+   "title": "Responses to Pattern-Violating Visual Stimuli Evolve Differently Over Days in Somata and Distal Apical Dendrites",
+   "key": "10.1523_jneurosci.1009-23.2023",
+   "dandisets": [
+    "000037",
+    "000336"
+   ],
+   "gold": {
+    "000037": {
+     "review": "neither",
+     "note": "\"The dataset used in this paper was collected as part of the Allen Institute for Brain Science\u2019s OpenScope initiative. We have publicly released the full dataset (Gillon et al., 2023b), and have previously published a dataset descriptor paper without any scientific analysis (Gillon et al., 2023a).\" I believe this is the primary data analysis paper for this dataset and Gillon et al were the project leads, though OpenScope collected the data. ",
+     "this": false,
+     "family": "shared_paper_000037",
+     "family_used": false
+    },
+    "000336": {
+     "review": "neither",
+     "note": "This paper cites Larkum 2013 which is \"described by\" DANDI:000336 but this dataset was not generated by Larkum 2013 and this paper does not reuse DANDI:000336",
+     "this": false,
+     "family": "shared_paper_000037",
+     "family_used": false
+    }
+   }
+  },
+  {
+   "doi": "10.1523/jneurosci.0398-23.2023",
+   "title": "Theta\u2013Alpha Connectivity in the Hippocampal\u2013Entorhinal Circuit Predicts Working Memory Load",
+   "key": "10.1523_jneurosci.0398-23.2023",
+   "dandisets": [
+    "000574",
+    "000575"
+   ],
+   "gold": {
+    "000574": {
+     "review": "reuse",
+     "note": "\"The data set was analyzed and described earlier (Boran et al., 2019, 2020; Dimakopoulos et al., 2022; Li et al., 2022, 2023) and is freely available for download at https://doi.gin.g-node.org/10.12751/g-node.d76994/.\" Data for Boran et al., 2019 is on G-Node and was later standardized and shared as DANDI:000574",
+     "this": true,
+     "family": "000574",
+     "family_used": true
+    },
+    "000575": {
+     "review": "neither",
+     "note": "\"The data set was analyzed and described earlier (Boran et al., 2019, 2020; Dimakopoulos et al., 2022; Li et al., 2022, 2023) and is freely available for download at https://doi.gin.g-node.org/10.12751/g-node.d76994/.\" DANDI:000575 is associated with Boran et al., 2022 and that does not appear to be reused in this study",
+     "this": false,
+     "family": "000575",
+     "family_used": false
+    }
+   }
+  },
+  {
+   "doi": "10.1016/j.isci.2026.115976",
+   "title": "Active sensing during a visual perceptual decision-making task",
+   "key": "10.1016_j.isci.2026.115976",
+   "dandisets": [
+    "000045",
+    "000149",
+    "000409"
+   ],
+   "gold": {
+    "000045": {
+     "review": "reuse",
+     "note": "It is not 100% clear but highly likely that the behavioral dataset reused in the paper is the same as the one in DANDI:000045.",
+     "this": true,
+     "family": "IBL",
+     "family_used": true
+    },
+    "000409": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "IBL",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1101/2024.10.28.620662",
+   "title": "NeuroTD infers time varying delays in neural activities by adaptive sliding window alignment",
+   "key": "10.1101_2024.10.28.620662",
+   "dandisets": [
+    "000008",
+    "000035",
+    "000574"
+   ],
+   "gold": {
+    "000008": {
+     "review": "ambiguous_reuse",
+     "note": "\"The real-world datasets spanned\ndifferent biological and technical scales: (1) a neural circuits dataset that includes neuron electrical activities\nrecorded from 32\u201364 intracranial recording sites across medial temporal lobe regions, measured using depth\nelectrodes, with their spatial positions recorded to map time delays and signal transmission pathways [5];\nand (2) a Patch-seq dataset from mouse motor cortex that combines electrophysiological recordings with\nsingle-cell gene expression profiles [12].\" No references to temperature control. Ref 5 is \"Ece Boran, Tommaso Fedele, Peter Klaver, Peter Hilfiker, Lennart Stieglitz, Thomas Grunwald, and\nJohannes Sarnthein. \u201cPersistent hippocampal neural firing and hippocampal-cortical coupling predict\nverbal working memory load\u201d. In: Science advances 5.3 (2019), eaav3687.\" Ref 12 is Scala et al. Source unknown.",
+     "this": null,
+     "family": "Scala_Patch-seq",
+     "family_used": true
+    },
+    "000035": {
+     "review": "ambiguous_reuse",
+     "note": "\"The real-world datasets spanned\ndifferent biological and technical scales: (1) a neural circuits dataset that includes neuron electrical activities\nrecorded from 32\u201364 intracranial recording sites across medial temporal lobe regions, measured using depth\nelectrodes, with their spatial positions recorded to map time delays and signal transmission pathways [5];\nand (2) a Patch-seq dataset from mouse motor cortex that combines electrophysiological recordings with\nsingle-cell gene expression profiles [12].\" No references to temperature control. \n\nRef 5 is \"Ece Boran, Tommaso Fedele, Peter Klaver, Peter Hilfiker, Lennart Stieglitz, Thomas Grunwald, and Johannes Sarnthein. \"Persistent hippocampal neural firing and hippocampal-cortical coupling predict verbal working memory load\": In: Science advances 5.3 (2019), eaav3687.\" Ref 12 is Scala et al. Source unknown.",
+     "this": null,
+     "family": "Scala_Patch-seq",
+     "family_used": true
+    },
+    "000574": {
+     "review": "reuse",
+     "note": "\"The real-world datasets spanned\ndifferent biological and technical scales: (1) a neural circuits dataset that includes neuron electrical activities\nrecorded from 32\u201364 intracranial recording sites across medial temporal lobe regions, measured using depth\nelectrodes, with their spatial positions recorded to map time delays and signal transmission pathways [5];\nand (2) a Patch-seq dataset from mouse motor cortex that combines electrophysiological recordings with\nsingle-cell gene expression profiles [12].\" No references to temperature control. \n\nRef 5 is \"Ece Boran, Tommaso Fedele, Peter Klaver, Peter Hilfiker, Lennart Stieglitz, Thomas Grunwald, and Johannes Sarnthein. \"Persistent hippocampal neural firing and hippocampal-cortical coupling predict verbal working memory load\": In: Science advances 5.3 (2019), eaav3687.\" Ref 12 is Scala et al. Source unknown.",
+     "this": true,
+     "family": "000574",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1016/j.neuron.2025.06.001",
+   "title": "Spontaneous movements and their relationship to neural activity fluctuate with latent engagement states",
+   "key": "10.1016_j.neuron.2025.06.001",
+   "dandisets": [
+    "000678",
+    "001172"
+   ],
+   "gold": {
+    "000678": {
+     "review": "neither",
+     "note": "This paper reused data from Musall et al. 2023, citation number 26. It did NOT reuse data from Hulsey et al. 2024, citation number 20. ",
+     "this": false,
+     "family": "000678",
+     "family_used": false
+    },
+    "001172": {
+     "review": "mention",
+     "note": "This paper reused data from Musall et al. 2023 (https://doi.org/10.1038/s41593-022-01245-9) rather than Lohani et al. 2022. Lohani et al. is just a background mention in the discussion.",
+     "this": false,
+     "family": "001172",
+     "family_used": false
+    }
+   }
+  },
+  {
+   "doi": "10.1007/s12264-022-00983-x",
+   "title": "Correlation Analysis of Molecularly-Defined Cortical Interneuron Populations with Morpho-Electric Properties in Layer V of Mouse Neocortex",
+   "key": "10.1007_s12264-022-00983-x",
+   "dandisets": [
+    "000008",
+    "000020",
+    "000035"
+   ],
+   "gold": {
+    "000008": {
+     "review": "ambiguous_reuse",
+     "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035).",
+     "this": null,
+     "family": "Scala_Patch-seq",
+     "family_used": true
+    },
+    "000035": {
+     "review": "ambiguous_reuse",
+     "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035).",
+     "this": null,
+     "family": "Scala_Patch-seq",
+     "family_used": true
+    },
+    "000020": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "000020",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1101/2025.03.25.645208",
+   "title": "A trace-based analysis pipeline for coherent and optimized electrophysiological data analysis",
+   "key": "10.1101_2025.03.25.645208",
+   "dandisets": [
+    "000008",
+    "000035"
+   ],
+   "gold": {
+    "000008": {
+     "review": "ambiguous_reuse",
+     "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035).",
+     "this": null,
+     "family": "Scala_Patch-seq",
+     "family_used": true
+    },
+    "000035": {
+     "review": "ambiguous_reuse",
+     "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035).",
+     "this": null,
+     "family": "Scala_Patch-seq",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1038/s42256-023-00663-z",
+   "title": "Joint variational autoencoders for multimodal imputation and embedding",
+   "key": "10.1038_s42256-023-00663-z",
+   "dandisets": [
+    "000008",
+    "000020",
+    "000035"
+   ],
+   "gold": {
+    "000008": {
+     "review": "ambiguous_reuse",
+     "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035).",
+     "this": null,
+     "family": "Scala_Patch-seq",
+     "family_used": true
+    },
+    "000035": {
+     "review": "ambiguous_reuse",
+     "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035).",
+     "this": null,
+     "family": "Scala_Patch-seq",
+     "family_used": true
+    },
+    "000020": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "000020",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1016/j.cub.2025.10.006",
+   "title": "Nonlinear integration of sensory inputs and behavioral state by a single neuron in C. elegans",
+   "key": "10.1016_j.cub.2025.10.006",
+   "dandisets": [
+    "000541",
+    "000715"
+   ],
+   "gold": {
+    "000541": {
+     "review": "ambiguous_reuse",
+     "note": "This paper definitely reused data from the NeuroPAL dataset, but it is ambiguous which Dandiset.",
+     "this": null,
+     "family": "shared_paper_000541",
+     "family_used": true
+    },
+    "000715": {
+     "review": "ambiguous_reuse",
+     "note": "This paper definitely reused data from the NeuroPAL dataset, but it is ambiguous which Dandiset.",
+     "this": null,
+     "family": "shared_paper_000541",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1523/jneurosci.2155-24.2025",
+   "title": "Consistent Hierarchies of Single-Neuron Timescales in Mice, Macaques, and Humans",
+   "key": "10.1523_jneurosci.2155-24.2025",
+   "dandisets": [
+    "000004",
+    "000017"
+   ],
+   "gold": {
+    "000004": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "000004",
+     "family_used": true
+    },
+    "000017": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "000017",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.64898/2026.01.12.699074",
+   "title": "Time Cells in the Human Brain Support Working Memory Maintenance",
+   "key": "10.64898_2026.01.12.699074",
+   "dandisets": [
+    "000207",
+    "000469"
+   ],
+   "gold": {
+    "000207": {
+     "review": "reuse",
+     "note": "\"To test whether time cell sequences are specific to time intervals of WM maintenance or also\nexist in other types of memory tasks, we repeated our analysis in a separate public dataset\ninvolving episodic memory encoding30. \" Ref 30 is Zheng et al, which is DANDI:000207",
+     "this": true,
+     "family": "000207",
+     "family_used": true
+    },
+    "000469": {
+     "review": "reuse",
+     "note": "\"To investigate whether time cells exist in the human brain during WM, we analyzed singleneuron recordings from the Kyzar et al. (2024) open-source dataset29. \" Ref 29 is Kyzar et al, which is DANDI:000469",
+     "this": true,
+     "family": "000469",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1101/2022.06.10.495710",
+   "title": "Off-manifold coding in visual cortex revealed by sleep",
+   "key": "10.1101_2022.06.10.495710",
+   "dandisets": [
+    "000056",
+    "000061",
+    "000166",
+    "000213"
+   ],
+   "gold": {
+    "000061": {
+     "review": "reuse",
+     "note": "This paper appears to have gotten their data from the Buzs\u00e1ki lab website rather than DANDI, as far as I can tell.",
+     "this": true,
+     "family": "000061",
+     "family_used": true
+    },
+    "000166": {
+     "review": "reuse",
+     "note": "This paper appears to have gotten their data from the Buzs\u00e1ki lab website rather than DANDI. ",
+     "this": true,
+     "family": "000166",
+     "family_used": true
+    },
+    "000213": {
+     "review": "reuse",
+     "note": "This paper appears to have gotten their data from the Buzs\u00e1ki lab website rather than DANDI.",
+     "this": true,
+     "family": "000213",
+     "family_used": true
+    },
+    "000056": {
+     "review": "reuse",
+     "note": "This paper used data from the Buzs\u00e1ki lab website rather than DANDI.",
+     "this": true,
+     "family": "000056",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1038/s41592-022-01742-6",
+   "title": "A modular architecture for organizing, processing and sharing neurophysiology data",
+   "key": "10.1038_s41592-022-01742-6",
+   "dandisets": [
+    "000045",
+    "000409"
+   ],
+   "gold": {
+    "000409": {
+     "review": "neither",
+     "note": "This methods paper uses data from Dandiset 000045, not 000409. ",
+     "this": false,
+     "family": "IBL",
+     "family_used": true
+    },
+    "000045": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "IBL",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1101/2025.08.30.673281",
+   "title": "Brain-wide organization of intrinsic timescales at single-neuron resolution",
+   "key": "10.1101_2025.08.30.673281",
+   "dandisets": [
+    "000045",
+    "000149",
+    "000409"
+   ],
+   "gold": {
+    "000409": {
+     "review": "reuse",
+     "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409. ",
+     "this": true,
+     "family": "IBL",
+     "family_used": true
+    },
+    "000045": {
+     "review": "neither",
+     "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409. ",
+     "this": false,
+     "family": "IBL",
+     "family_used": true
+    },
+    "000149": {
+     "review": "neither",
+     "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409. ",
+     "this": false,
+     "family": "IBL",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1038/s41467-023-39424-2",
+   "title": "CAJAL enables analysis and integration of single-cell morphological data using metric geometry",
+   "key": "10.1038_s41467-023-39424-2",
+   "dandisets": [
+    "000008",
+    "000020",
+    "000035",
+    "000402"
+   ],
+   "gold": {
+    "000008": {
+     "review": "ambiguous_reuse",
+     "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035).",
+     "this": null,
+     "family": "Scala_Patch-seq",
+     "family_used": true
+    },
+    "000035": {
+     "review": "ambiguous_reuse",
+     "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035).",
+     "this": null,
+     "family": "Scala_Patch-seq",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1101/2021.06.11.448131",
+   "title": "OFF-periods reduce the complexity of neocortical activity during sleep",
+   "key": "10.1101_2021.06.11.448131",
+   "dandisets": [
+    "000041",
+    "000044"
+   ],
+   "gold": {
+    "000041": {
+     "review": "reuse",
+     "note": "This paper got their data from CRCNS rather than DANDI. ",
+     "this": true,
+     "family": "000041",
+     "family_used": true
+    },
+    "000044": {
+     "review": "reuse",
+     "note": "This paper got their data from CRCNS rather than DANDI. ",
+     "this": true,
+     "family": "000044",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1038/s41592-024-02319-1",
+   "title": "Lightning Pose: improved animal pose estimation via semi-supervised learning, Bayesian ensembling and cloud-native open-source tools",
+   "key": "10.1038_s41592-024-02319-1",
+   "dandisets": [
+    "000045",
+    "000149",
+    "000409"
+   ],
+   "gold": {
+    "000045": {
+     "review": "neither",
+     "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409. ",
+     "this": false,
+     "family": "IBL",
+     "family_used": true
+    },
+    "000409": {
+     "review": "reuse",
+     "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409. ",
+     "this": true,
+     "family": "IBL",
+     "family_used": true
+    },
+    "000149": {
+     "review": "neither",
+     "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409. ",
+     "this": false,
+     "family": "IBL",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1088/1741-2552/ad1787",
+   "title": "A spiking neural network with continuous local learning for robust online brain machine interface",
+   "key": "10.1088_1741-2552_ad1787",
+   "dandisets": [
+    "000128",
+    "000138",
+    "000139",
+    "000140"
+   ],
+   "gold": {
+    "000138": {
+     "review": "neither",
+     "note": "The paper says \"MC Maze\" (ambiguous) and cites the \"MC Maze Small\" dataset as [30] in the references. The paper also mentions 107 neurons, which uniquely matches the number of held-in neurons in MC_Maze_Small when looking across the counts of held-in/held-out/total in the four maze datasets. Also, with AI help, I computed ISI in various ways: using mean of per-unit ISIs or pooled mean, and using held-in, held-out, and all neurons for all four maze datasets. The pooled mean on held-in neurons from MC Maze Small was the only combination that matched the reported 221.9\u2009ms.",
+     "this": false,
+     "family": "MC_Maze",
+     "family_used": true
+    },
+    "000140": {
+     "review": "reuse",
+     "note": "The paper says \"MC Maze\" (ambiguous) and cites the \"MC Maze Small\" dataset as [30] in the references. The paper also mentions 107 neurons, which uniquely matches the number of held-in neurons in MC_Maze_Small when looking across the counts of held-in/held-out/total in the four maze datasets. Also, with AI help, I computed ISI in various ways: using mean of per-unit ISIs or pooled mean, and using held-in, held-out, and all neurons for all four maze datasets. The pooled mean on held-in neurons from MC Maze Small was the only combination that matched the reported 221.9\u2009ms.",
+     "this": true,
+     "family": "MC_Maze",
+     "family_used": true
+    },
+    "000128": {
+     "review": "neither",
+     "note": "The paper says \"MC Maze\" (ambiguous) and cites the \"MC Maze Small\" dataset as [30] in the references. The paper also mentions 107 neurons, which uniquely matches the number of held-in neurons in MC_Maze_Small when looking across the counts of held-in/held-out/total in the four maze datasets. Also, with AI help, I computed ISI in various ways: using mean of per-unit ISIs or pooled mean, and using held-in, held-out, and all neurons for all four maze datasets. The pooled mean on held-in neurons from MC Maze Small was the only combination that matched the reported 221.9\u2009ms.",
+     "this": false,
+     "family": "MC_Maze",
+     "family_used": true
+    },
+    "000139": {
+     "review": "neither",
+     "note": "The paper says \"MC Maze\" (ambiguous) and cites the \"MC Maze Small\" dataset as [30] in the references. The paper also mentions 107 neurons, which uniquely matches the number of held-in neurons in MC_Maze_Small when looking across the counts of held-in/held-out/total in the four maze datasets. Also, with AI help, I computed ISI in various ways: using mean of per-unit ISIs or pooled mean, and using held-in, held-out, and all neurons for all four maze datasets. The pooled mean on held-in neurons from MC Maze Small was the only combination that matched the reported 221.9\u2009ms.",
+     "this": false,
+     "family": "MC_Maze",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1101/2020.12.16.423127",
+   "title": "A midbrain - thalamus - cortex circuit reorganizes cortical dynamics to initiate planned movement",
+   "key": "10.1101_2020.12.16.423127",
+   "dandisets": [
+    "000007",
+    "000009"
+   ],
+   "gold": {
+    "000007": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "000007",
+     "family_used": true
+    },
+    "000009": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "000009",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.64898/2026.09.18.752552",
+   "title": "Spike Sorting with VanillaSort",
+   "key": "10.64898_2026.09.18.752552",
+   "dandisets": [
+    "000045",
+    "000409",
+    "000618"
+   ],
+   "gold": {
+    "000045": {
+     "review": "neither",
+     "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409. ",
+     "this": false,
+     "family": "IBL",
+     "family_used": true
+    },
+    "000409": {
+     "review": "reuse",
+     "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409. ",
+     "this": true,
+     "family": "IBL",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1101/2025.02.23.639768",
+   "title": "AIRUS: a simple workflow for AI-assisted exploration of scientific data",
+   "key": "10.1101_2025.02.23.639768",
+   "dandisets": [
+    "000149",
+    "000409"
+   ],
+   "gold": {
+    "000409": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "IBL",
+     "family_used": true
+    },
+    "000149": {
+     "review": "neither",
+     "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409. ",
+     "this": false,
+     "family": "IBL",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1016/j.neucom.2026.132742",
+   "title": "Sequential learning in neural decoders reveals interpretable neural representations",
+   "key": "10.1016_j.neucom.2026.132742",
+   "dandisets": [
+    "000129",
+    "000688",
+    "001055"
+   ],
+   "gold": {
+    "000688": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "000688",
+     "family_used": true
+    },
+    "000129": {
+     "review": "ambiguous_reuse",
+     "note": "This paper clearly reused data from Makin et al. 2018. Technically, that paper is associated with two DANDI sets: 000129 and 001055, making this call Ambiguous Reuse.",
+     "this": null,
+     "family": "MC_RTT",
+     "family_used": true
+    },
+    "001055": {
+     "review": "ambiguous_reuse",
+     "note": "This paper clearly reused data from Makin et al. 2018. Technically, that paper is associated with two DANDI sets: 000129 and 001055, making this call Ambiguous Reuse.",
+     "this": null,
+     "family": "MC_RTT",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1126/science.adk8261",
+   "title": "Selection of experience for memory by hippocampal sharp wave ripples",
+   "key": "10.1126_science.adk8261",
+   "dandisets": [
+    "000044",
+    "000552"
+   ],
+   "gold": {
+    "000552": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "000552",
+     "family_used": true
+    },
+    "000044": {
+     "review": "reuse",
+     "note": "This paper got their Grosmark et al. data from the Buzs\u00e1ki lab website rather than DANDI.",
+     "this": true,
+     "family": "000044",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1101/2025.07.10.664247",
+   "title": "Rethinking Kalman Filters for Motor Brain-Machine Interface: The Fundamental Limitations and A Perspective Shift",
+   "key": "10.1101_2025.07.10.664247",
+   "dandisets": [
+    "000138",
+    "000139",
+    "000140"
+   ],
+   "gold": {
+    "000138": {
+     "review": "mention",
+     "note": "The authors reused data from the CRCNS pmd-1 dataset, which is completely unrelated to the cited paper and cited dataset.",
+     "this": false,
+     "family": "MC_Maze",
+     "family_used": false
+    },
+    "000139": {
+     "review": "mention",
+     "note": "The authors reused data from the CRCNS pmd-1 dataset, which is completely unrelated to the cited paper and cited dataset.",
+     "this": false,
+     "family": "MC_Maze",
+     "family_used": false
+    },
+    "000140": {
+     "review": "mention",
+     "note": "The authors reused data from the CRCNS pmd-1 dataset, which is completely unrelated to the cited paper and cited dataset.",
+     "this": false,
+     "family": "MC_Maze",
+     "family_used": false
+    }
+   }
+  },
+  {
+   "doi": "10.1038/s41592-025-02614-5",
+   "title": "DREDge: robust motion correction for high-density extracellular recordings across species",
+   "key": "10.1038_s41592-025-02614-5",
+   "dandisets": [
+    "000397",
+    "000957",
+    "001282",
+    "001290"
+   ],
+   "gold": {
+    "000397": {
+     "review": "reuse",
+     "note": "\"We validate DREDge on two human Neuropixels recordings [6] and a mouse recording [2] from two separate research groups.\" Ref 6 is DANDI:000397. Data is also available on Figshare, and the dataset authors are authors on this paper, so source is unknown. Paper says \"Human data are available for download at Dryad (https://doi.org/10.5061/dryad.d2547d840) and DANDI (https://dandiarchive.org/dandiset/000397) from MGH13 and at Dryad (https://doi.org/10.7272/Q6ST7N3B) from the UCSF14. IBL data for the reproducible electrophysiology experiment are publicly available and can be downloaded via AWS Open Data at https://registry.opendata.aws/ibl-reproducible-ephys/ or by following the instructions under Data at https://www.internationalbrainlab.com/repro-ephys/ and using the tag 2022_Q2_IBL_et_al_RepeatedSite35. The NP1 and NP2 imposed motion datasets here (dataset 1) can be downloaded at Figshare (https://doi.org/10.6084/m9.figshare.14024495.v1)6. The NP Ultra imposed motion datasets are available at DANDI (https://dandiarchive.org/dandiset/000957/)36. Neuroseeker recordings in ketamine\u2013xylazine-anesthetized rat data are available on G-node (https://gin.g-node.org/UlbertLab/High_Resolution_Cortical_Spikes/) and described in a data descriptor record42. The NP1-NHP insertion datasets are available at DANDI (https://dandiarchive.org/dandiset/001282/) and the fast-motion NHP dataset of Extended Data Fig. 3 is available at DANDI (https://dandiarchive.org/dandiset/001290/).\"",
+     "this": true,
+     "family": "000397",
+     "family_used": true
+    },
+    "000957": {
+     "review": "reuse",
+     "note": "\"We validate DREDge on two human Neuropixels recordings [6] and a mouse recording [2] from two separate research groups.\" Ref 6 is DANDI:000397. Data is also available on Figshare, and the dataset authors are authors on this paper, so source is unknown. Paper says \"Human data are available for download at Dryad (https://doi.org/10.5061/dryad.d2547d840) and DANDI (https://dandiarchive.org/dandiset/000397) from MGH13 and at Dryad (https://doi.org/10.7272/Q6ST7N3B) from the UCSF14. IBL data for the reproducible electrophysiology experiment are publicly available and can be downloaded via AWS Open Data at https://registry.opendata.aws/ibl-reproducible-ephys/ or by following the instructions under Data at https://www.internationalbrainlab.com/repro-ephys/ and using the tag 2022_Q2_IBL_et_al_RepeatedSite35. The NP1 and NP2 imposed motion datasets here (dataset 1) can be downloaded at Figshare (https://doi.org/10.6084/m9.figshare.14024495.v1)6. The NP Ultra imposed motion datasets are available at DANDI (https://dandiarchive.org/dandiset/000957/)36. Neuroseeker recordings in ketamine\u2013xylazine-anesthetized rat data are available on G-node (https://gin.g-node.org/UlbertLab/High_Resolution_Cortical_Spikes/) and described in a data descriptor record42. The NP1-NHP insertion datasets are available at DANDI (https://dandiarchive.org/dandiset/001282/) and the fast-motion NHP dataset of Extended Data Fig. 3 is available at DANDI (https://dandiarchive.org/dandiset/001290/).\"",
+     "this": true,
+     "family": "000957",
+     "family_used": true
+    },
+    "001282": {
+     "review": "reuse",
+     "note": "\"We validate DREDge on two human Neuropixels recordings [6] and a mouse recording [2] from two separate research groups.\" Ref 6 is DANDI:000397. Data is also available on Figshare, and the dataset authors are authors on this paper, so source is unknown. Paper says \"Human data are available for download at Dryad (https://doi.org/10.5061/dryad.d2547d840) and DANDI (https://dandiarchive.org/dandiset/000397) from MGH13 and at Dryad (https://doi.org/10.7272/Q6ST7N3B) from the UCSF14. IBL data for the reproducible electrophysiology experiment are publicly available and can be downloaded via AWS Open Data at https://registry.opendata.aws/ibl-reproducible-ephys/ or by following the instructions under Data at https://www.internationalbrainlab.com/repro-ephys/ and using the tag 2022_Q2_IBL_et_al_RepeatedSite35. The NP1 and NP2 imposed motion datasets here (dataset 1) can be downloaded at Figshare (https://doi.org/10.6084/m9.figshare.14024495.v1)6. The NP Ultra imposed motion datasets are available at DANDI (https://dandiarchive.org/dandiset/000957/)36. Neuroseeker recordings in ketamine\u2013xylazine-anesthetized rat data are available on G-node (https://gin.g-node.org/UlbertLab/High_Resolution_Cortical_Spikes/) and described in a data descriptor record42. The NP1-NHP insertion datasets are available at DANDI (https://dandiarchive.org/dandiset/001282/) and the fast-motion NHP dataset of Extended Data Fig. 3 is available at DANDI (https://dandiarchive.org/dandiset/001290/).\"",
+     "this": true,
+     "family": "001282",
+     "family_used": true
+    },
+    "001290": {
+     "review": "reuse",
+     "note": "\"We validate DREDge on two human Neuropixels recordings [6] and a mouse recording [2] from two separate research groups.\" Ref 6 is DANDI:000397. Data is also available on Figshare, and the dataset authors are authors on this paper, so source is unknown. Paper says \"Human data are available for download at Dryad (https://doi.org/10.5061/dryad.d2547d840) and DANDI (https://dandiarchive.org/dandiset/000397) from MGH13 and at Dryad (https://doi.org/10.7272/Q6ST7N3B) from the UCSF14. IBL data for the reproducible electrophysiology experiment are publicly available and can be downloaded via AWS Open Data at https://registry.opendata.aws/ibl-reproducible-ephys/ or by following the instructions under Data at https://www.internationalbrainlab.com/repro-ephys/ and using the tag 2022_Q2_IBL_et_al_RepeatedSite35. The NP1 and NP2 imposed motion datasets here (dataset 1) can be downloaded at Figshare (https://doi.org/10.6084/m9.figshare.14024495.v1)6. The NP Ultra imposed motion datasets are available at DANDI (https://dandiarchive.org/dandiset/000957/)36. Neuroseeker recordings in ketamine\u2013xylazine-anesthetized rat data are available on G-node (https://gin.g-node.org/UlbertLab/High_Resolution_Cortical_Spikes/) and described in a data descriptor record42. The NP1-NHP insertion datasets are available at DANDI (https://dandiarchive.org/dandiset/001282/) and the fast-motion NHP dataset of Extended Data Fig. 3 is available at DANDI (https://dandiarchive.org/dandiset/001290/).\"",
+     "this": true,
+     "family": "001290",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1038/s41593-024-01774-5",
+   "title": "Integrated multimodal cell atlas of Alzheimer\u2019s disease",
+   "key": "10.1038_s41593-024-01774-5",
+   "dandisets": [
+    "000023",
+    "000630",
+    "000636"
+   ],
+   "gold": {
+    "000636": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "000636",
+     "family_used": true
+    },
+    "000630": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "000630",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.7554/elife.85786",
+   "title": "Pynapple, a toolbox for data analysis in neuroscience",
+   "key": "10.7554_elife.85786",
+   "dandisets": [
+    "000021",
+    "000022",
+    "000056",
+    "000207"
+   ],
+   "gold": {
+    "000207": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "000207",
+     "family_used": true
+    },
+    "000056": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "000056",
+     "family_used": true
+    },
+    "000021": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "Allen_VC_Neuropixels",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1371/journal.pcbi.1014106",
+   "title": "A multimodal spatial atlas of transcriptomic, morphological, and electrophysiological cell type densities in the mouse brain",
+   "key": "10.1371_journal.pcbi.1014106",
+   "dandisets": [
+    "000008",
+    "000020",
+    "000035"
+   ],
+   "gold": {
+    "000008": {
+     "review": "ambiguous_reuse",
+     "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035).",
+     "this": null,
+     "family": "Scala_Patch-seq",
+     "family_used": true
+    },
+    "000035": {
+     "review": "ambiguous_reuse",
+     "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035).",
+     "this": null,
+     "family": "Scala_Patch-seq",
+     "family_used": true
+    },
+    "000020": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "000020",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1523/eneuro.0554-23.2024",
+   "title": "Assessing Cross-Contamination in Spike-Sorted Electrophysiology Data",
+   "key": "10.1523_eneuro.0554-23.2024",
+   "dandisets": [
+    "000006",
+    "000007",
+    "000009",
+    "000011",
+    "000017",
+    "000060",
+    "000221",
+    "000239"
+   ],
+   "gold": {
+    "000006": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "000006",
+     "family_used": true
+    },
+    "000007": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "000007",
+     "family_used": true
+    },
+    "000009": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "000009",
+     "family_used": true
+    },
+    "000011": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "000011",
+     "family_used": true
+    },
+    "000017": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "000017",
+     "family_used": true
+    },
+    "000239": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "000239",
+     "family_used": true
+    },
+    "000060": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "000060",
+     "family_used": true
+    },
+    "000221": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "000221",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1371/journal.pone.0290146",
+   "title": "Sleep disrupts complex spiking dynamics in the neocortex and hippocampus",
+   "key": "10.1371_journal.pone.0290146",
+   "dandisets": [
+    "000041",
+    "000044"
+   ],
+   "gold": {
+    "000041": {
+     "review": "reuse",
+     "note": "\"We analyse 2 datasets: Watson et al. (neocortex, available at CRCNS.org/fcx) [70]; and Grosmark and Buzsaki (hippocampus, available at CRCNS.org/hc) [71]. T\" Watson et al is DANDI:000041. Grosmark et al is DANDI:000044.",
+     "this": true,
+     "family": "000041",
+     "family_used": true
+    },
+    "000044": {
+     "review": "reuse",
+     "note": "\"We analyse 2 datasets: Watson et al. (neocortex, available at CRCNS.org/fcx) [70]; and Grosmark and Buzsaki (hippocampus, available at CRCNS.org/hc) [71]. T\" Watson et al is DANDI:000041. Grosmark et al is DANDI:000044.",
+     "this": true,
+     "family": "000044",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.3390/a19040305",
+   "title": "In Vitro to In Vivo: Bidirectional and High-Precision Generation of In Vitro and In Vivo Neuronal Spike Data",
+   "key": "10.3390_a19040305",
+   "dandisets": [
+    "000045",
+    "000149",
+    "000409"
+   ],
+   "gold": {
+    "000409": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "IBL",
+     "family_used": true
+    },
+    "000149": {
+     "review": "neither",
+     "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409. ",
+     "this": false,
+     "family": "IBL",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1101/2024.12.05.627057",
+   "title": "In Search of Transcriptomic Correlates of Neuronal Firing-Rate Adaptation across Subtypes, Regions and Species: A Patch-seq Analysis",
+   "key": "10.1101_2024.12.05.627057",
+   "dandisets": [
+    "000008",
+    "000020",
+    "000035"
+   ],
+   "gold": {
+    "000008": {
+     "review": "reuse",
+     "note": "\"We further extended our analysis to a mouse 96 M1 Patch-seq dataset that includes pyramidal cells26, as well as to an electrophysiological and a transcriptomic dataset3 covering the same three brain regions in macaque monkeys, thereby confirming the generality of our conclusions. \" \"The Patch-seq dataset of adult mouse primary motor cortex (MOp) was accessed from26.\nThis dataset collected transcriptomic and electrophysiological data from 1,329 cells at room temperature (25 \u25e6C) from mouse MOp layer 1, layer 2/3, layer 5, and layer 6. Cells tagged as PV, SST, and pyramidal (ET, IT, CT, and NP) cell types are included in our analysis.\" No evidence of using the data from the physiological temperature dataset DANDI:000035.",
+     "this": true,
+     "family": "Scala_Patch-seq",
+     "family_used": true
+    },
+    "000035": {
+     "review": "neither",
+     "note": "\"We further extended our analysis to a mouse 96 M1 Patch-seq dataset that includes pyramidal cells26, as well as to an electrophysiological and a transcriptomic dataset3 covering the same three brain regions in macaque monkeys, thereby confirming the generality of our conclusions. \" \"The Patch-seq dataset of adult mouse primary motor cortex (MOp) was accessed from26.\nThis dataset collected transcriptomic and electrophysiological data from 1,329 cells at room temperature (25 \u25e6C) from mouse MOp layer 1, layer 2/3, layer 5, and layer 6. Cells tagged as PV, SST, and pyramidal (ET, IT, CT, and NP) cell types are included in our analysis.\" No evidence of using the data from the physiological temperature dataset DANDI:000035.",
+     "this": false,
+     "family": "Scala_Patch-seq",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1038/s41592-026-03076-z",
+   "title": "Neuropixels Opto: combining high-resolution electrophysiology and optogenetics",
+   "key": "10.1038_s41592-026-03076-z",
+   "dandisets": [
+    "000045",
+    "000149",
+    "000409"
+   ],
+   "gold": {
+    "000045": {
+     "review": "neither",
+     "note": "This paper references the brain-wide map paper for their data reuse, indicating that they reused data from 000409 rather than 000045.",
+     "this": false,
+     "family": "IBL",
+     "family_used": true
+    },
+    "000409": {
+     "review": "reuse",
+     "note": "This paper references the brain-wide map paper for their data reuse, indicating that they reused data from 000409 rather than 000045.",
+     "this": true,
+     "family": "IBL",
+     "family_used": true
+    },
+    "000149": {
+     "review": "neither",
+     "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409. ",
+     "this": false,
+     "family": "IBL",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1038/s41598-024-53075-3",
+   "title": "Waveform-based classification of dentate spikes",
+   "key": "10.1038_s41598-024-53075-3",
+   "dandisets": [
+    "000003",
+    "000165"
+   ],
+   "gold": {
+    "000003": {
+     "review": "reuse",
+     "note": "\"To validate the WFbC method, we analyzed electrophysiological recordings from linear probes implanted in the dorsoventral axis of the hippocampus of 8 mice distributed across 3 datasets: dataset A with 1 mouse (A); dataset B with 3 mice (B1-3); and dataset C with 4 mice (C1-4).\" \"Mouse A was implanted with a 32-site polytrode that had channels arranged in two columns 26 . We focused on analyzing the raw LFPs (0\u2013625 Hz) from the \u201c140611\u201d home cage session 33 , whose electrode array position covered both DG blades.\" \"We are also grateful to Daniela Moura for providing the dentate gyrus image used to illustrate the schematics in Fig. 1 A, and Yuta Senzai and Gy\u00f6rgy Buzs\u00e1ki for making dataset A publicly available.\"",
+     "this": true,
+     "family": "000003",
+     "family_used": true
+    },
+    "000165": {
+     "review": "reuse",
+     "note": "\"To validate the WFbC method, we analyzed electrophysiological recordings from linear probes implanted in the dorsoventral axis of the hippocampus of 8 mice distributed across 3 datasets: dataset A with 1 mouse (A); dataset B with 3 mice (B1-3); and dataset C with 4 mice (C1-4).\" \"Dataset C is composed of the 0\u2013300 Hz filtered LFPs from two parvalbumin-expressing (PV)-Cre mice and two somatostatin-expressing (SST)-Cre mice within their home cages, as previously described 30 . Here we analyzed the concatenated LFPs from the sessions with vehicle (1% dimethyl sulfoxide in 0.9% sterile saline) administration 30 \" Ref 30: Aery Jones, E. A. et al. Dentate gyrus and CA3 GABAergic interneurons bidirectionally modulate signatures of internal and external drive to CA1. Cell Rep. 37(13), 110159 (2021). which is DANDI:000165. Source unknown.",
+     "this": true,
+     "family": "000165",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1038/s41467-024-51390-x",
+   "title": "Sub-threshold neuronal activity and the dynamical regime of cerebral cortex",
+   "key": "10.1038_s41467-024-51390-x",
+   "dandisets": [
+    "000005",
+    "000008",
+    "000009",
+    "000035"
+   ],
+   "gold": {
+    "000005": {
+     "review": "ambiguous_reuse",
+     "note": "Data Availability says: \"Electrophysiological data for vS1 neurons (see79) in NWB2.0 format (https://neurodatawithoutborders.github.io/) are available at Figshare (https://figshare.com; https://doi.org/10.25378/janelia.8869115) and for ALM neurons (see35) at (https://doi.org/10.25378/janelia.7489253).\" Main text says \"In our Supplementary Information, we extended our analysis to layer 4 (Fig. S7) and layer 5 (Fig. S8) neurons in vS1 and developed a model of the vS1 layer 4 network (Fig. S10; see Methods and Supplementary Information).\" Supplemental data says \"Similar to the analysis of ALM neurons, we analyzed\nthe supra- and sub-threshold activity of neurons within the vibrissal somatosensory area (vS1) during the\nsampling period within a similar decision-making task (Fig.S7A; recorded data from [38, 79]). \" This dataset appears to be reference 38 in NWB form on DANDI. It's unclear how the figshare dataset (related to the paper of ref 79) relates to the dandiset, and it's unclear whether the paper reused data from the dandiset (probably not through DANDI though). Side note: it seems like the dandiset is also on CRCNS as https://crcns.org/data-sets/ssc/ssc-7. ",
+     "this": null,
+     "family": "000005",
+     "family_used": true
+    },
+    "000009": {
+     "review": "reuse",
+     "note": "Data Availability says: \"Electrophysiological data for vS1 neurons (see79) in NWB2.0 format (https://neurodatawithoutborders.github.io/) are available at Figshare (https://figshare.com; https://doi.org/10.25378/janelia.8869115) and for ALM neurons (see35) at (https://doi.org/10.25378/janelia.7489253).\" The paper main text says \"We analyzed the supra (spiking) threshold activity of excitatory and inhibitory cells and the sub-threshold activity (membrane potential) of excitatory cells of the anterior lateral motor cortex (ALM) of mice performing a delayed-response task (analysis of data from34,35)\". DANDI:000009 is ref 34. It's not clear how refs 34 and 35 relate.",
+     "this": true,
+     "family": "000009",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.64898/2026.09.09.750499",
+   "title": "NeuroGate: waveform translation between brain regions",
+   "key": "10.64898_2026.09.09.750499",
+   "dandisets": [
+    "000067",
+    "000574"
+   ],
+   "gold": {
+    "000067": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "000067",
+     "family_used": true
+    },
+    "000574": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "000574",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1016/j.patter.2023.100847",
+   "title": "MANGEM: A web app for multimodal analysis of neuronal gene expression, electrophysiology, and morphology",
+   "key": "10.1016_j.patter.2023.100847",
+   "dandisets": [
+    "000008",
+    "000020",
+    "000035"
+   ],
+   "gold": {
+    "000035": {
+     "review": "ambiguous_reuse",
+     "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035).",
+     "this": null,
+     "family": "Scala_Patch-seq",
+     "family_used": true
+    },
+    "000020": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "000020",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1016/j.crmeth.2024.100964",
+   "title": "Unifying community whole-brain imaging datasets enables robust neuron identification and reveals determinants of neuron position in C.\u00a0elegans",
+   "key": "10.1016_j.crmeth.2024.100964",
+   "dandisets": [
+    "000541",
+    "000714",
+    "000715",
+    "000776"
+   ],
+   "gold": {
+    "000776": {
+     "review": "primary",
+     "note": "This paper harmonized data from various sources and stored it on the DANDI Archive, which makes it a primary source rather than a re-user.",
+     "this": false,
+     "family": "000776",
+     "family_used": false
+    },
+    "000541": {
+     "review": "primary",
+     "note": "This paper harmonized data from various sources and stored it on the DANDI Archive, which makes it a primary source rather than a re-user.",
+     "this": false,
+     "family": "shared_paper_000541",
+     "family_used": false
+    }
+   }
+  },
+  {
+   "doi": "10.1101/2023.04.05.535396",
+   "title": "An emerging view of neural geometry in motor cortex supports high-performance decoding",
+   "key": "10.1101_2023.04.05.535396",
+   "dandisets": [
+    "000127",
+    "000128",
+    "000129",
+    "000130",
+    "000138",
+    "000139",
+    "000140",
+    "001055"
+   ],
+   "gold": {
+    "000127": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "000127",
+     "family_used": true
+    },
+    "000130": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "000130",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1109/jsen.2024.3487021",
+   "title": "Low-Power FPGA-Based Spiking Neural Networks for Real-Time Decoding of Intracortical Neural Activity",
+   "key": "10.1109_jsen.2024.3487021",
+   "dandisets": [
+    "000129",
+    "001055"
+   ],
+   "gold": {
+    "000129": {
+     "review": "ambiguous_reuse",
+     "note": "This paper clearly reused data from Makin et al. 2018. Technically, that paper is associated with two DANDI sets: 000129 and 001055, making this call Ambiguous Reuse.",
+     "this": null,
+     "family": "MC_RTT",
+     "family_used": true
+    },
+    "001055": {
+     "review": "ambiguous_reuse",
+     "note": "This paper clearly reused data from Makin et al. 2018. Technically, that paper is associated with two DANDI sets: 000129 and 001055, making this call Ambiguous Reuse.",
+     "this": null,
+     "family": "MC_RTT",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1609/aaai.v37i5.25738",
+   "title": "Extracting Semantic-Dynamic Features for Long-Term Stable Brain Computer Interface",
+   "key": "10.1609_aaai.v37i5.25738",
+   "dandisets": [
+    "000128",
+    "000139"
+   ],
+   "gold": {
+    "000128": {
+     "review": "neither",
+     "note": "\"For experiments we use the neural data published in (Dyer et al. 2017), as well as its corresponding movement trajectories Y\ns , t, and target point category L s,Ltas labels. The dataset contains neural data from two nonhuman primates (NHPs) named \u2018CHEWIE\u2019 and \u2018JANGO\u2019 respectively. In (Dyer et al. 2017) \u2018CHEWIE\u2019 performs an 8-direction centre-out reaching task and \u2018JANGO\u2019 applies its force of the wrist to move a cursor on the screen. \" Dyer et al is Dyer, E. L.; Gheshlaghi Azar, M.; Perich, M. G.; Fernandes,\nH. L.; Naufel, S.; Miller, L. E.; and Kording, K. P. 2017. A cryptography-based approach for movement decoding. Nature biomedical engineering, 1(12): 967\u2013976.",
+     "this": false,
+     "family": "MC_Maze",
+     "family_used": false
+    },
+    "000139": {
+     "review": "neither",
+     "note": "\"For experiments we use the neural data published in (Dyer et al. 2017), as well as its corresponding movement trajectories Y\ns , t, and target point category L s,Ltas labels. The dataset contains neural data from two nonhuman primates (NHPs) named \u2018CHEWIE\u2019 and \u2018JANGO\u2019 respectively. In (Dyer et al. 2017) \u2018CHEWIE\u2019 performs an 8-direction centre-out reaching task and \u2018JANGO\u2019 applies its force of the wrist to move a cursor on the screen. \" Dyer et al is Dyer, E. L.; Gheshlaghi Azar, M.; Perich, M. G.; Fernandes,\nH. L.; Naufel, S.; Miller, L. E.; and Kording, K. P. 2017. A cryptography-based approach for movement decoding. Nature biomedical engineering, 1(12): 967\u2013976.",
+     "this": false,
+     "family": "MC_Maze",
+     "family_used": false
+    }
+   }
+  },
+  {
+   "doi": "10.1101/2022.05.19.492525",
+   "title": "Multi-modal analysis and integration of single-cell morphological data",
+   "key": "10.1101_2022.05.19.492525",
+   "dandisets": [
+    "000008",
+    "000020",
+    "000035"
+   ],
+   "gold": {
+    "000008": {
+     "review": "ambiguous_reuse",
+     "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035).",
+     "this": null,
+     "family": "Scala_Patch-seq",
+     "family_used": true
+    },
+    "000035": {
+     "review": "ambiguous_reuse",
+     "note": "This paper clearly reused data from Scala et al. 2021, which is associated with Dandiset 000008, but it is unclear whether they used data from that Dandiset or the other Dandiset that shares the same paper (000035).",
+     "this": null,
+     "family": "Scala_Patch-seq",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1038/s42003-021-02807-6",
+   "title": "Manifold learning analysis suggests strategies to align single-cell multimodal data of neuronal electrophysiology and transcriptomics",
+   "key": "10.1038_s42003-021-02807-6",
+   "dandisets": [
+    "000008",
+    "000020",
+    "000035"
+   ],
+   "gold": {
+    "000008": {
+     "review": "ambiguous_reuse",
+     "note": "\"Another Patch-Seq dataset included the transcriptomic and electrophysiological data of 1227 neuronal cells (GABAergic cortical neurons) in the mouse motor cortex5.\" \"Also, for the motor cortex, after aligning its 1208 neuronal cells using the gene expression and electrophysiological features (Methods), we found a similar result that the NMA outperforms other methods in terms of alignment (Fig. S3 , average distances of aligned same cells: PCA\u2009=\u20092.366, CCA\u2009=\u20092.037, NMA\u2009=\u20090.199).\" Unclear whether this dataset was used, DANDI:000008 was used, or both.",
+     "this": null,
+     "family": "Scala_Patch-seq",
+     "family_used": true
+    },
+    "000035": {
+     "review": "ambiguous_reuse",
+     "note": "\"Another Patch-Seq dataset included the transcriptomic and electrophysiological data of 1227 neuronal cells (GABAergic cortical neurons) in the mouse motor cortex5.\" \"Also, for the motor cortex, after aligning its 1208 neuronal cells using the gene expression and electrophysiological features (Methods), we found a similar result that the NMA outperforms other methods in terms of alignment (Fig. S3 , average distances of aligned same cells: PCA\u2009=\u20092.366, CCA\u2009=\u20092.037, NMA\u2009=\u20090.199).\" Unclear whether this dataset was used, DANDI:000008 was used, or both.",
+     "this": null,
+     "family": "Scala_Patch-seq",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.7554/elife.89421",
+   "title": "An emerging view of neural geometry in motor cortex supports high-performance decoding",
+   "key": "10.7554_elife.89421",
+   "dandisets": [
+    "000127",
+    "000128",
+    "000129",
+    "000130",
+    "000138",
+    "000139",
+    "000140",
+    "001055"
+   ],
+   "gold": {
+    "000127": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "000127",
+     "family_used": true
+    },
+    "000130": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "000130",
+     "family_used": true
+    },
+    "000128": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "MC_Maze",
+     "family_used": true
+    },
+    "000138": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "MC_Maze",
+     "family_used": true
+    },
+    "000139": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "MC_Maze",
+     "family_used": true
+    },
+    "000140": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "MC_Maze",
+     "family_used": true
+    },
+    "001055": {
+     "review": "neither",
+     "note": "Some/all of the dandisets used (NLB on DANDI) were repackaged into DANDI:001055, but this paper did not use data from DANDI:001055. The paper names MC_RTT (DANDI:000129), so marking as Neither.",
+     "this": false,
+     "family": "MC_RTT",
+     "family_used": true
+    },
+    "000129": {
+     "review": "reuse",
+     "note": "The data availability section lists \"MC_RTT: https://dandiarchive.org/dandiset/000129\" and says \"Useful functions for loading the DANDI datasets are available at https://github.com/neurallatents/nlb_tools\".",
+     "this": true,
+     "family": "MC_RTT",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1038/s41593-022-01171-w",
+   "title": "Thalamus-driven functional populations in frontal cortex support decision-making",
+   "key": "10.1038_s41593-022-01171-w",
+   "dandisets": [
+    "000010",
+    "000011"
+   ],
+   "gold": {
+    "000010": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "000010",
+     "family_used": true
+    },
+    "000011": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "000011",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1371/journal.pcbi.1008198",
+   "title": "A comparison of neuronal population dynamics measured with calcium imaging and electrophysiology",
+   "key": "10.1371_journal.pcbi.1008198",
+   "dandisets": [
+    "000009",
+    "000010",
+    "000015"
+   ],
+   "gold": {
+    "000009": {
+     "review": "reuse",
+     "note": "\"First, we considered intracellular recordings for which spike sorting is not required[37] (we used only trials without photostimulation and excluded one cell due to the small number of trials; see Materials and Methods). \" Ref 37 is the Guo et al., 2017, associated with DANDI:000009.",
+     "this": true,
+     "family": "000009",
+     "family_used": true
+    },
+    "000010": {
+     "review": "reuse",
+     "note": "\"In the first series of imaging experiments, neurons were transduced with adeno-associated virus expressing GCaMP6s (6s-AAV), a widely-used method[10,13] (data from[25], 1493 neurons, 4 mice). \" \"We compared this data to ephys data acquired with silicon probes that record multiple neurons simultaneously (720 neurons, 19 mice[25]) (Fig 1C, 1E and 1G). \" Ref 25 is Li et al., 2015, associated with DANDI:000010",
+     "this": true,
+     "family": "000010",
+     "family_used": true
+    },
+    "000015": {
+     "review": "reuse",
+     "note": "\"In the second, neural activity was recorded by imaging transgenic mice expressing GCaMP6s in cortical pyramidal neurons (6s-TG, data from[36], 2293 neurons, 1 mouse).\" Ref 36 is Chen et al., 2017, associated with DANDI:000015",
+     "this": true,
+     "family": "000015",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.7554/elife.93060",
+   "title": "Aligned and oblique dynamics in recurrent neural networks",
+   "key": "10.7554_elife.93060",
+   "dandisets": [
+    "000128",
+    "000129",
+    "000138",
+    "000139",
+    "000140",
+    "001055"
+   ],
+   "gold": {
+    "000128": {
+     "review": "neither",
+     "note": "The paper's codebase (https://github.com/frschu/Aligned-and-oblique-dynamics-in-recurrent-neural-networks/blob/main/notebooks/experimental_data_plot.ipynb) only references \"nlb-mc_maze_large\" (DANDI:000138)",
+     "this": false,
+     "family": "MC_Maze",
+     "family_used": true
+    },
+    "000138": {
+     "review": "reuse",
+     "note": "The paper's codebase references \"nlb-mc_maze_large\" (DANDI:000138), and the Figure 7 \"NLB maze\" bar number of neurons = 162 is consistent only with MC_Maze_Large.",
+     "this": true,
+     "family": "MC_Maze",
+     "family_used": true
+    },
+    "000140": {
+     "review": "neither",
+     "note": "The paper's codebase (https://github.com/frschu/Aligned-and-oblique-dynamics-in-recurrent-neural-networks/blob/main/notebooks/experimental_data_plot.ipynb) only references \"nlb-mc_maze_large\" (DANDI:000138)",
+     "this": false,
+     "family": "MC_Maze",
+     "family_used": true
+    },
+    "000129": {
+     "review": "reuse",
+     "note": "\"We also analyzed data made available through the Neural Latents Benchmark (NLB) (Pei et al., 2021). In two different tasks, monkeys needed to perform movements along a screen. In a random target task, the monkeys had to point at a randomly generated target position on a screen, with a successive target point generated once the previous one was reached (Makin et al., 2018).\". The paper's codebase (https://github.com/frschu/Aligned-and-oblique-dynamics-in-recurrent-neural-networks/blob/main/notebooks/experimental_data_download.ipynb) downloads \"mc_rtt\" as dataset_id 000129.",
+     "this": true,
+     "family": "MC_RTT",
+     "family_used": true
+    },
+    "000139": {
+     "review": "neither",
+     "note": "The paper's codebase references \"nlb-mc_maze_large\" (DANDI:000138), and the Figure 7 \"NLB maze\" bar number of neurons = 162 is consistent only with MC_Maze_Large, not MC_Maze_Medium.",
+     "this": false,
+     "family": "MC_Maze",
+     "family_used": true
+    },
+    "001055": {
+     "review": "neither",
+     "note": "Used Makin et al data that was downloaded from DANDI:000129 (MC_RTT) repackaged into DANDI:001055. The paper names the NLB random target task, so marking as Neither.",
+     "this": false,
+     "family": "MC_RTT",
+     "family_used": true
+    }
+   }
+  },
+  {
+   "doi": "10.1101/2025.10.01.679820",
+   "title": "Modular Organization of Electrical Fluctuations in the Mouse Brain",
+   "key": "10.1101_2025.10.01.679820",
+   "dandisets": [
+    "000045",
+    "000149",
+    "000397",
+    "000409"
+   ],
+   "gold": {
+    "000045": {
+     "review": "neither",
+     "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409.",
+     "this": false,
+     "family": "IBL",
+     "family_used": true
+    },
+    "000409": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "IBL",
+     "family_used": true
+    },
+    "000397": {
+     "review": "reuse",
+     "note": "",
+     "this": true,
+     "family": "000397",
+     "family_used": true
+    },
+    "000149": {
+     "review": "neither",
+     "note": "This paper reuses data from IBL Brainwide Map, therefore, it reuses Dandiset 000409. ",
+     "this": false,
+     "family": "IBL",
+     "family_used": true
+    }
+   }
+  }
+ ]
+}

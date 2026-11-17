@@ -46,3 +46,5 @@ tmp/
 
 # Model evaluation runs (one cache per model and effort)
 .model_eval_cache/
+.agent_eval/
+.screener_cache/

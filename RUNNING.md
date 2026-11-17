@@ -165,6 +165,37 @@ python scripts/build_reuse_report_docx.py -o ~/Desktop/dandi_reuse_report.docx
 It recomputes its figures from the classification outputs, so it cannot drift
 from the data.
 
+## The screener
+
+Before the classifier reads a pair, a decision model
+(`perplexity/pplx-decider-v1.3`, through OpenRouter) reads the whole paper and
+gives the probability that the pair is reuse. A pair under the cutoff is
+settled there, and only the rest go to the classifier. The code is in
+`src/shared/screen_reuse.py`.
+
+- The cutoff is 0.1 for citing pairs and 0.05 for direct pairs.
+- A screened pair is labelled MENTION or NEITHER (citing) or PRIMARY or NEITHER
+  (direct), and its row carries `screened_out: true`. It has no quotes or
+  reasoning.
+- If the screener fails on a pair, the classifier reads it.
+- `--screener none` turns screening off. `--screener MODEL` and
+  `--screen-cutoff X` change the model and the cutoff.
+- Answers are cached in `.screener_cache/`, one folder per model, pathway and
+  archive.
+
+To check a model or a cutoff:
+
+```bash
+python -m src.review.eval_decision_model --model MODEL --input full --tier full   # citing pairs, against reviewers
+python scripts/screener_checks/direct_check.py DANDI                                   # direct pairs
+python scripts/screener_checks/direct_check.py CRCNS
+python scripts/screener_checks/crcns_citing_check.py CORPUS.json CLASSIFICATIONS.json   # CRCNS citing pairs
+```
+
+The model must take whole papers, so its window has to be about 200K tokens or
+more. For a new archive, run the direct check on that archive before trusting
+the cutoff: CRCNS needed a lower one than DANDI.
+
 ## Evaluating a new model
 
 Before switching the classifier to a new model, score it against what reviewers
